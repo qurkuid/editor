@@ -310,3 +310,55 @@ describe('furniture assembly Gate 2 contract', () => {
     expect(partsByType.get('none')).toEqual([])
   })
 })
+
+describe('two-sided island (backBays + depthSplit)', () => {
+  test('renders parts for both faces with no duplicate IDs', async () => {
+    const assembly = await assemblyFixture('island')
+    const result = buildFurnitureAssembly(assembly)
+    const ids = result.parts.map((part) => part.id)
+
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(result.parts.some((part) => part.face === 'front')).toBe(true)
+    expect(result.parts.some((part) => part.face === 'back')).toBe(true)
+    expect(result.warnings).toEqual([])
+  })
+
+  test('back-face fronts sit on the -Z side, front-face fronts on +Z', async () => {
+    const assembly = await assemblyFixture('island')
+    const fronts = buildFurnitureAssembly(assembly).parts.filter((part) => part.kind === 'front')
+    const frontFaceFronts = fronts.filter((part) => part.face === 'front')
+    const backFaceFronts = fronts.filter((part) => part.face === 'back')
+
+    expect(frontFaceFronts.length).toBeGreaterThan(0)
+    expect(backFaceFronts.length).toBeGreaterThan(0)
+    expect(frontFaceFronts.every((part) => part.position[2] > 0)).toBe(true)
+    expect(backFaceFronts.every((part) => part.position[2] < 0)).toBe(true)
+  })
+
+  test('honors an asymmetric depthSplit for front vs back carcass depth', async () => {
+    // The island fixture splits 1200mm total as frontD 400 / backD 800.
+    const assembly = await assemblyFixture('island')
+    const tops = buildFurnitureAssembly(assembly).parts.filter((part) => part.kind === 'top')
+    const frontTop = tops.find((part) => part.face === 'front')
+    const backTop = tops.find((part) => part.face === 'back')
+
+    expect(frontTop?.size[2]).toBeCloseTo(assembly.depthSplit?.front ?? 0)
+    expect(backTop?.size[2]).toBeCloseTo(assembly.depthSplit?.back ?? 0)
+    expect(frontTop?.size[2]).not.toBeCloseTo(backTop?.size[2] ?? 0)
+  })
+
+  test('emits exactly one shared spine panel per bay, not one per face', async () => {
+    const assembly = await assemblyFixture('island')
+    const backPanels = buildFurnitureAssembly(assembly).parts.filter((part) => part.kind === 'back')
+
+    expect(backPanels).toHaveLength(assembly.bays.length)
+    expect(backPanels.every((part) => part.face === 'front')).toBe(true)
+  })
+
+  test('front-only assemblies never stamp a face onto parts', async () => {
+    const assembly = await assemblyFixture('wardrobe')
+    const result = buildFurnitureAssembly(assembly)
+
+    expect(result.parts.every((part) => part.face === undefined)).toBe(true)
+  })
+})

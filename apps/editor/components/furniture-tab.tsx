@@ -1,6 +1,11 @@
 'use client'
 
-import { type CabinetNode, type FurnitureKind, useScene } from '@pascal-app/core'
+import {
+  type CabinetNode,
+  FURNITURE_KIND_DEFAULT_DIMENSIONS,
+  type FurnitureKind,
+  useScene,
+} from '@pascal-app/core'
 import {
   FURNITURE_KIND_LABEL_KEYS,
   getLinearUnitLabel,
@@ -163,7 +168,10 @@ export function FurnitureTab() {
 
   const pickPreset = (nextKind: FurnitureKind) => {
     if (!levelId) return
-    useFurniturePlacementOptions.getState().setKind(nextKind)
+    const options = useFurniturePlacementOptions.getState()
+    options.setKind(nextKind)
+    options.setDimensions(FURNITURE_KIND_DEFAULT_DIMENSIONS[nextKind])
+    options.setBayCount(1)
     activateFurnitureTool()
   }
 

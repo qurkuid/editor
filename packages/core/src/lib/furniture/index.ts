@@ -41,6 +41,8 @@ export {
   type DeleteFurnitureTierOptions,
   deleteFurnitureBay,
   deleteFurnitureTier,
+  FURNITURE_KIND_DEFAULT_DIMENSIONS,
+  type FurnitureFace,
   type InsertFurnitureBayOptions,
   type InsertFurnitureTierOptions,
   insertFurnitureBay,

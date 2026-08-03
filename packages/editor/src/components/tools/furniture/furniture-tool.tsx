@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { sfxEmitter } from '../../../lib/sfx-bus'
 import useEditor, { getContinuation, isGridSnapActive } from '../../../store/use-editor'
 import { PlacementBox } from '../shared/placement-box'
-import { createFurnitureNode } from './furniture-factory'
+import { createFurnitureNode, FURNITURE_KIND_MOUNT_HEIGHT } from './furniture-factory'
 import { useFurniturePlacementOptions } from './furniture-placement-options'
 
 const ROTATE_STEP_RAD = Math.PI / 4
@@ -93,11 +93,12 @@ export const FurnitureTool = () => {
   }, [activeLevelId, bayCount, dimensions, kind])
 
   if (!activeLevelId || !position) return null
+  const mountHeight = FURNITURE_KIND_MOUNT_HEIGHT[kind]
   return (
     <PlacementBox
       dimensions={[dimensions.width, dimensions.height, dimensions.depth]}
       measurements={{ unit }}
-      position={position}
+      position={[position[0], position[1] + mountHeight, position[2]]}
       rotationY={yaw}
       valid
     />

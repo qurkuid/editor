@@ -5,6 +5,7 @@ import type {
   CabinetModuleNode as CabinetModuleNodeType,
   CabinetNode as CabinetNodeType,
   FurnitureAssembly,
+  FurnitureFace,
   FurnitureFront,
   FurnitureKind,
 } from '@pascal-app/core'
@@ -155,6 +156,7 @@ type FurnitureNavigation = {
   tierId: string | null
   editingInterior: boolean
   editingFront: boolean
+  face: FurnitureFace
 }
 
 export type FurnitureInteriorDraft = {
@@ -185,7 +187,13 @@ const INITIAL_FURNITURE_NAVIGATION: FurnitureNavigation = {
   tierId: null,
   editingInterior: false,
   editingFront: false,
+  face: 'front',
 }
+
+const FURNITURE_FACE_OPTIONS: Array<{ value: FurnitureFace; label: string }> = [
+  { value: 'front', label: 'Front' },
+  { value: 'back', label: 'Back' },
+]
 
 export type FurnitureFrontDraftAction =
   | { type: 'setKind'; kind: FurnitureFront['kind'] }
@@ -645,7 +653,15 @@ export default function CabinetPanel() {
   )
 
   const selectedFurniture = node?.type === 'cabinet' ? node.furniture : undefined
-  const activeBay = selectedFurniture?.bays.find((bay) => bay.id === furnitureNavigation.bayId)
+  const activeFace = furnitureNavigation.face
+  // Islands carry cabinetry on both faces (see backBays/depthSplit in the
+  // schema) — the front/back switch below only makes sense once a back row
+  // actually exists to edit independently.
+  const isTwoSidedIsland =
+    selectedFurniture?.furnitureKind === 'island' && (selectedFurniture.backBays?.length ?? 0) > 0
+  const activeFaceBays =
+    activeFace === 'back' ? (selectedFurniture?.backBays ?? []) : (selectedFurniture?.bays ?? [])
+  const activeBay = activeFaceBays.find((bay) => bay.id === furnitureNavigation.bayId)
   const activeTier = activeBay?.tiers.find((tier) => tier.id === furnitureNavigation.tierId)
   const cancelFurnitureInterior = useCallback(() => {
     setFurnitureDraft(null)
@@ -660,6 +676,7 @@ export default function CabinetPanel() {
       tierId: furnitureNavigation.tierId,
       shelfCount: furnitureDraft.shelfCount,
       hanger: furnitureDraft.hanger,
+      face: furnitureNavigation.face,
     })
     if (nextFurniture !== selectedFurniture) updateFurniture(nextFurniture)
     setFurnitureDraft(null)
@@ -678,6 +695,7 @@ export default function CabinetPanel() {
       bayId: furnitureNavigation.bayId,
       tierId: furnitureNavigation.tierId,
       front: furnitureFrontDraft,
+      face: furnitureNavigation.face,
     })
     if (nextFurniture !== selectedFurniture) updateFurniture(nextFurniture)
     setFurnitureFrontDraft(null)
@@ -863,7 +881,7 @@ export default function CabinetPanel() {
     }
 
     if (activeBay && furnitureNavigation.bayId && furnitureNavigation.tierId && activeTier) {
-      const bayIndex = furniture.bays.findIndex((bay) => bay.id === activeBay.id)
+      const bayIndex = activeFaceBays.findIndex((bay) => bay.id === activeBay.id)
       const tierIndex = activeBay.tiers.findIndex((tier) => tier.id === activeTier.id)
       const adjacentTier = activeBay.tiers[tierIndex + 1] ?? activeBay.tiers[tierIndex - 1]
 
@@ -950,6 +968,7 @@ export default function CabinetPanel() {
                           minMeters: 0.05,
                           maxMeters: activeTier.height + adjacentTier.height - 0.05,
                         }),
+                        face: activeFace,
                       }),
                     )
                   }
@@ -986,6 +1005,7 @@ export default function CabinetPanel() {
                       insertFurnitureTier(furniture, {
                         bayId: activeBay.id,
                         afterTierId: activeTier.id,
+                        face: activeFace,
                       }),
                     )
                   }
@@ -998,6 +1018,7 @@ export default function CabinetPanel() {
                       deleteFurnitureTier(furniture, {
                         bayId: activeBay.id,
                         tierId: activeTier.id,
+                        face: activeFace,
                       }),
                     )
                     setFurnitureNavigation((current) => ({ ...current, tierId: null }))
@@ -1011,12 +1032,17 @@ export default function CabinetPanel() {
     }
 
     if (activeBay && furnitureNavigation.bayId && !furnitureNavigation.tierId) {
-      const bayIndex = furniture.bays.findIndex((bay) => bay.id === activeBay.id)
-      const adjacentBay = furniture.bays[bayIndex + 1] ?? furniture.bays[bayIndex - 1]
+      const bayIndex = activeFaceBays.findIndex((bay) => bay.id === activeBay.id)
+      const adjacentBay = activeFaceBays[bayIndex + 1] ?? activeFaceBays[bayIndex - 1]
       return (
         <PanelWrapper
           icon="/icons/item.webp"
-          onBack={() => setFurnitureNavigation(INITIAL_FURNITURE_NAVIGATION)}
+          onBack={() =>
+            setFurnitureNavigation((current) => ({
+              ...INITIAL_FURNITURE_NAVIGATION,
+              face: current.face,
+            }))
+          }
           onClose={close}
           title={`Bay ${bayIndex + 1}`}
           width={320}
@@ -1037,6 +1063,7 @@ export default function CabinetPanel() {
                           minMeters: 0.05,
                           maxMeters: activeBay.width + adjacentBay.width - 0.05,
                         }),
+                        face: activeFace,
                       }),
                     )
                   }
@@ -1050,15 +1077,22 @@ export default function CabinetPanel() {
                 <ActionButton
                   label="Insert bay after"
                   onClick={() =>
-                    updateFurniture(insertFurnitureBay(furniture, { afterBayId: activeBay.id }))
+                    updateFurniture(
+                      insertFurnitureBay(furniture, { afterBayId: activeBay.id, face: activeFace }),
+                    )
                   }
                 />
                 <ActionButton
-                  disabled={furniture.bays.length === 1}
+                  disabled={activeFaceBays.length === 1}
                   label="Delete bay"
                   onClick={() => {
-                    updateFurniture(deleteFurnitureBay(furniture, { bayId: activeBay.id }))
-                    setFurnitureNavigation(INITIAL_FURNITURE_NAVIGATION)
+                    updateFurniture(
+                      deleteFurnitureBay(furniture, { bayId: activeBay.id, face: activeFace }),
+                    )
+                    setFurnitureNavigation((current) => ({
+                      ...INITIAL_FURNITURE_NAVIGATION,
+                      face: current.face,
+                    }))
                   }}
                 />
               </div>
@@ -1124,6 +1158,22 @@ export default function CabinetPanel() {
             />
           ))}
         </PanelSection>
+        {isTwoSidedIsland && (
+          <PanelSection title="Face">
+            <div className="px-1 pb-2">
+              <SegmentedControl
+                onChange={(value) =>
+                  setFurnitureNavigation((current) => ({
+                    ...INITIAL_FURNITURE_NAVIGATION,
+                    face: value as FurnitureFace,
+                  }))
+                }
+                options={FURNITURE_FACE_OPTIONS}
+                value={activeFace}
+              />
+            </div>
+          </PanelSection>
+        )}
         <PanelSection title="Bays">
           <div className="mb-2 flex items-center justify-between gap-3 px-1">
             <span className="text-xs">Bay count</span>
@@ -1131,26 +1181,30 @@ export default function CabinetPanel() {
               <button
                 aria-label="Remove last bay"
                 className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
-                disabled={furniture.bays.length === 1}
+                disabled={activeFaceBays.length === 1}
                 onClick={() => {
-                  const lastBay = furniture.bays[furniture.bays.length - 1]
+                  const lastBay = activeFaceBays[activeFaceBays.length - 1]
                   if (!lastBay) return
-                  updateFurniture(deleteFurnitureBay(furniture, { bayId: lastBay.id }))
+                  updateFurniture(
+                    deleteFurnitureBay(furniture, { bayId: lastBay.id, face: activeFace }),
+                  )
                 }}
                 type="button"
               >
                 <Minus className="h-3.5 w-3.5" />
               </button>
               <span aria-live="polite" className="w-5 text-center text-xs">
-                {furniture.bays.length}
+                {activeFaceBays.length}
               </span>
               <button
                 aria-label="Add bay"
                 className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground"
                 onClick={() => {
-                  const lastBay = furniture.bays[furniture.bays.length - 1]
+                  const lastBay = activeFaceBays[activeFaceBays.length - 1]
                   if (!lastBay) return
-                  updateFurniture(insertFurnitureBay(furniture, { afterBayId: lastBay.id }))
+                  updateFurniture(
+                    insertFurnitureBay(furniture, { afterBayId: lastBay.id, face: activeFace }),
+                  )
                 }}
                 type="button"
               >
@@ -1159,7 +1213,7 @@ export default function CabinetPanel() {
             </div>
           </div>
           <div className="flex flex-col gap-2 px-1 pb-2">
-            {furniture.bays.map((bay, index) => (
+            {activeFaceBays.map((bay, index) => (
               <button
                 className={PRESET_BUTTON_CLASS}
                 key={bay.id}
@@ -1169,6 +1223,7 @@ export default function CabinetPanel() {
                     tierId: null,
                     editingInterior: false,
                     editingFront: false,
+                    face: activeFace,
                   })
                 }
                 type="button"

@@ -1,4 +1,4 @@
-import type { FurnitureAssembly } from '../../schema/nodes/furniture'
+import type { FurnitureAssembly, FurnitureBay } from '../../schema/nodes/furniture'
 
 export type FurnitureAssemblyPartKind =
   | 'side-left'
@@ -26,6 +26,7 @@ export interface FurnitureAssemblyPart {
   materialId?: string
   bayId?: string
   tierId?: string
+  face?: 'front' | 'back'
 }
 
 export interface FurnitureAssemblyBounds {
@@ -98,15 +99,29 @@ export function buildFurnitureAssembly(
   }
   const parts: FurnitureAssemblyPart[] = []
   const warnings: FurnitureAssemblyWarning[] = []
-  const totalBayWidth = assembly.bays.reduce((total, bay) => total + bay.width, 0)
 
-  if (Math.abs(totalBayWidth - width) > DIMENSION_TOLERANCE) {
-    warnings.push({
-      code: 'bay-width-mismatch',
-      path: 'bays',
-      message: `Bay widths total ${totalBayWidth} m but assembly width is ${width} m.`,
-    })
+  const checkBayWidthTotal = (bays: FurnitureBay[], path: string) => {
+    const total = bays.reduce((sum, bay) => sum + bay.width, 0)
+    if (Math.abs(total - width) > DIMENSION_TOLERANCE) {
+      warnings.push({
+        code: 'bay-width-mismatch',
+        path,
+        message: `Bay widths total ${total} m but assembly width is ${width} m.`,
+      })
+    }
   }
+  checkBayWidthTotal(assembly.bays, 'bays')
+
+  const backBays = assembly.backBays ?? []
+  const hasBackBays = backBays.length > 0
+  if (hasBackBays) checkBayWidthTotal(backBays, 'backBays')
+
+  // An island is one carcass envelope shared by two independently configured
+  // faces: front bays occupy the +Z portion, back bays the -Z portion, split
+  // at depthSplit. Bays that never declare backBays keep the single-face
+  // depth centered on the assembly exactly as before.
+  const split =
+    assembly.depthSplit ?? (hasBackBays ? { front: depth / 2, back: depth / 2 } : undefined)
 
   const addPart = (part: FurnitureAssemblyPart, path: string) => {
     if (part.size.every((dimension) => Number.isFinite(dimension) && dimension > 0)) {
@@ -123,13 +138,19 @@ export function buildFurnitureAssembly(
 
   const leftmostBay = assembly.bays[0]
   const rightmostBay = assembly.bays[assembly.bays.length - 1]
+  const leftmostBackBay = backBays[0]
+  const rightmostBackBay = backBays[backBays.length - 1]
 
   // EP (노출 측판) is a finish panel over an exposed end, not the carcass side
   // itself — it defaults off. Width is the wall-to-wall opening, so an end
   // panel takes the outermost slice and the carcass side steps inboard of it
-  // rather than the assembly growing past its declared bounds.
-  const leftEndPanel = leftmostBay?.endPanels.left === true
-  const rightEndPanel = rightmostBay?.endPanels.right === true
+  // rather than the assembly growing past its declared bounds. Either face's
+  // outer bay can request one; the sides already span the full depth, so a
+  // single shared panel covers both.
+  const leftEndPanel =
+    leftmostBay?.endPanels.left === true || leftmostBackBay?.endPanels.left === true
+  const rightEndPanel =
+    rightmostBay?.endPanels.right === true || rightmostBackBay?.endPanels.right === true
   const leftSideOffset = leftEndPanel ? carcassThickness : 0
   const rightSideOffset = rightEndPanel ? carcassThickness : 0
 
@@ -183,259 +204,314 @@ export function buildFurnitureAssembly(
     'dimensions',
   )
 
-  let bayLeft = -totalBayWidth / 2
-  for (const [bayIndex, bay] of assembly.bays.entries()) {
-    const bayRight = bayLeft + bay.width
-    const bayCenter = (bayLeft + bayRight) / 2
-    const innerWidth = bay.width - carcassThickness * 2
-    const baseHeight = bay.base.height
+  // Renders one face's bay row (front or back). `zBack`/`zFront` are the
+  // compartment's spine-side and door-side z boundaries; for the back face
+  // these are mirrored (zFront < zBack), which `dirSign` captures so every
+  // "inset from the door" and "clear of the back panel" offset still points
+  // the right way. `includeBackPanel` is only true for the front face — the
+  // island's two compartments meet at one shared spine, so only one side
+  // builds the panel that sits there instead of each face emitting its own.
+  const emitFaceBays = (
+    bays: FurnitureBay[],
+    face: 'front' | 'back',
+    zBack: number,
+    zFront: number,
+    includeBackPanel: boolean,
+  ) => {
+    const pathPrefix = face === 'back' ? 'backBays' : 'bays'
+    const idInfix = face === 'back' ? 'back:' : ''
+    const faceStamp = hasBackBays ? { face } : {}
+    const compartmentDepth = Math.abs(zFront - zBack)
+    const compartmentCenterZ = (zBack + zFront) / 2
+    const dirSign = Math.sign(zFront - zBack) || 1
 
-    if (bayIndex > 0) {
-      const previousBay = assembly.bays[bayIndex - 1]
-      addPart(
-        {
-          id: `divider:${previousBay?.id}:${bay.id}`,
-          kind: 'divider',
-          shape: 'box',
-          position: [bayLeft, height / 2, 0],
-          size: [carcassThickness, height, depth],
-          materialId: assembly.materialDefaults.carcass,
-          bayId: bay.id,
-        },
-        `bays[${bayIndex}]`,
-      )
-    }
+    const totalBayWidth = bays.reduce((sum, bay) => sum + bay.width, 0)
+    let bayLeft = -totalBayWidth / 2
+    for (const [bayIndex, bay] of bays.entries()) {
+      const bayRight = bayLeft + bay.width
+      const bayCenter = (bayLeft + bayRight) / 2
+      const innerWidth = bay.width - carcassThickness * 2
+      const baseHeight = bay.base.height
 
-    if (bay.visible) {
-      addPart(
-        {
-          id: `bay:${bay.id}:top`,
-          kind: 'top',
-          shape: 'box',
-          position: [bayCenter, height - carcassThickness / 2, 0],
-          size: [innerWidth, carcassThickness, depth],
-          materialId: assembly.materialDefaults.carcass,
-          bayId: bay.id,
-        },
-        `bays[${bayIndex}].width`,
-      )
-      addPart(
-        {
-          id: `bay:${bay.id}:bottom`,
-          kind: 'bottom',
-          shape: 'box',
-          position: [bayCenter, baseHeight + carcassThickness / 2, 0],
-          size: [innerWidth, carcassThickness, depth],
-          materialId: assembly.materialDefaults.carcass,
-          bayId: bay.id,
-        },
-        `bays[${bayIndex}].width`,
-      )
-      addPart(
-        {
-          id: `bay:${bay.id}:back`,
-          kind: 'back',
-          shape: 'box',
-          position: [bayCenter, (baseHeight + height) / 2, -depth / 2 + backThickness / 2],
-          size: [innerWidth, height - baseHeight, backThickness],
-          materialId: assembly.materialDefaults.back,
-          bayId: bay.id,
-        },
-        `bays[${bayIndex}]`,
-      )
-
-      if (bay.base.type === 'plinth') {
+      if (bayIndex > 0) {
+        const previousBay = bays[bayIndex - 1]
         addPart(
           {
-            id: `bay:${bay.id}:plinth`,
-            kind: 'plinth',
+            id: `divider:${idInfix}${previousBay?.id}:${bay.id}`,
+            kind: 'divider',
             shape: 'box',
-            position: [bayCenter, baseHeight / 2, 0],
-            size: [innerWidth, baseHeight, depth],
+            position: [bayLeft, height / 2, compartmentCenterZ],
+            size: [carcassThickness, height, compartmentDepth],
             materialId: assembly.materialDefaults.carcass,
             bayId: bay.id,
+            ...faceStamp,
           },
-          `bays[${bayIndex}].base`,
+          `${pathPrefix}[${bayIndex}]`,
         )
-      } else if (bay.base.type === 'legs') {
-        const legOffsetX = innerWidth / 2 - LEG_INSET
-        const legOffsetZ = depth / 2 - LEG_INSET
-        const legCorners: Array<[number, number]> = [
-          [-legOffsetX, -legOffsetZ],
-          [legOffsetX, -legOffsetZ],
-          [-legOffsetX, legOffsetZ],
-          [legOffsetX, legOffsetZ],
-        ]
-        for (const [legIndex, [offsetX, offsetZ]] of legCorners.entries()) {
+      }
+
+      if (bay.visible) {
+        addPart(
+          {
+            id: `bay:${idInfix}${bay.id}:top`,
+            kind: 'top',
+            shape: 'box',
+            position: [bayCenter, height - carcassThickness / 2, compartmentCenterZ],
+            size: [innerWidth, carcassThickness, compartmentDepth],
+            materialId: assembly.materialDefaults.carcass,
+            bayId: bay.id,
+            ...faceStamp,
+          },
+          `${pathPrefix}[${bayIndex}].width`,
+        )
+        addPart(
+          {
+            id: `bay:${idInfix}${bay.id}:bottom`,
+            kind: 'bottom',
+            shape: 'box',
+            position: [bayCenter, baseHeight + carcassThickness / 2, compartmentCenterZ],
+            size: [innerWidth, carcassThickness, compartmentDepth],
+            materialId: assembly.materialDefaults.carcass,
+            bayId: bay.id,
+            ...faceStamp,
+          },
+          `${pathPrefix}[${bayIndex}].width`,
+        )
+        if (includeBackPanel) {
           addPart(
             {
-              id: `bay:${bay.id}:leg:${legIndex}`,
-              kind: 'leg',
+              id: `bay:${idInfix}${bay.id}:back`,
+              kind: 'back',
               shape: 'box',
-              position: [bayCenter + offsetX, baseHeight / 2, offsetZ],
-              size: [LEG_SIZE, baseHeight, LEG_SIZE],
-              materialId: assembly.materialDefaults.hardware,
+              position: [
+                bayCenter,
+                (baseHeight + height) / 2,
+                zBack + (dirSign * backThickness) / 2,
+              ],
+              size: [innerWidth, height - baseHeight, backThickness],
+              materialId: assembly.materialDefaults.back,
               bayId: bay.id,
+              ...faceStamp,
             },
-            `bays[${bayIndex}].base`,
+            `${pathPrefix}[${bayIndex}]`,
           )
         }
-      }
 
-      if (bay.kickplate) {
-        addPart(
-          {
-            id: `bay:${bay.id}:kickplate`,
-            kind: 'kickplate',
-            shape: 'box',
-            position: [
-              bayCenter,
-              baseHeight / 2,
-              depth / 2 - KICKPLATE_INSET - carcassThickness / 2,
-            ],
-            size: [innerWidth, baseHeight, carcassThickness],
-            materialId: assembly.materialDefaults.carcass,
-            bayId: bay.id,
-          },
-          `bays[${bayIndex}].kickplate`,
-        )
-      }
-    }
-
-    let tierBottom = baseHeight
-    for (const [tierIndex, tier] of bay.tiers.entries()) {
-      const tierTop = tierBottom + tier.height
-      if (tierTop > height + DIMENSION_TOLERANCE) {
-        warnings.push({
-          code: 'tier-height-overflow',
-          path: `bays[${bayIndex}].tiers[${tierIndex}]`,
-          message: `Tier "${tier.id}" extends above the assembly height.`,
-        })
-      }
-
-      if (bay.visible && tier.visible) {
-        const shelfHeights = tier.shelves.heights.slice(0, tier.shelves.count)
-        for (const [shelfIndex, shelfHeight] of shelfHeights.entries()) {
+        if (bay.base.type === 'plinth') {
           addPart(
             {
-              id: `bay:${bay.id}:tier:${tier.id}:shelf:${shelfIndex}`,
-              kind: 'shelf',
+              id: `bay:${idInfix}${bay.id}:plinth`,
+              kind: 'plinth',
               shape: 'box',
-              position: [bayCenter, tierBottom + shelfHeight, 0],
-              size: [innerWidth, carcassThickness, depth - backThickness],
+              position: [bayCenter, baseHeight / 2, compartmentCenterZ],
+              size: [innerWidth, baseHeight, compartmentDepth],
               materialId: assembly.materialDefaults.carcass,
               bayId: bay.id,
-              tierId: tier.id,
+              ...faceStamp,
             },
-            `bays[${bayIndex}].tiers[${tierIndex}].shelves.heights[${shelfIndex}]`,
+            `${pathPrefix}[${bayIndex}].base`,
           )
-        }
-
-        if (tier.hanger) {
-          addPart(
-            {
-              id: `bay:${bay.id}:tier:${tier.id}:hanger`,
-              kind: 'hanger',
-              shape: 'cylinder',
-              position: [bayCenter, tierTop - HANGER_TOP_CLEARANCE - rodDiameter / 2, 0],
-              size: [innerWidth - HANGER_SIDE_INSET * 2, rodDiameter, rodDiameter],
-              materialId: assembly.materialDefaults.hardware,
-              bayId: bay.id,
-              tierId: tier.id,
-            },
-            `bays[${bayIndex}].tiers[${tierIndex}]`,
-          )
-        }
-
-        if (tier.front.kind !== 'open') {
-          const frontWidth = innerWidth - frontGap * 2
-          const frontHeight = tier.height - frontGap * 2
-          const frontZ = depth / 2 - frontThickness / 2
-          const frontY = tierBottom + tier.height / 2
-          const frontMaterialId =
-            assembly.materialDefaults.front ?? assembly.materialDefaults.carcass
-          const frontPath = `bays[${bayIndex}].tiers[${tierIndex}].front`
-          const addFrontPart = (
-            index: number,
-            position: [number, number, number],
-            size: [number, number, number],
-          ) => {
+        } else if (bay.base.type === 'legs') {
+          const legOffsetX = innerWidth / 2 - LEG_INSET
+          const legOffsetZ = compartmentDepth / 2 - LEG_INSET
+          const legCorners: Array<[number, number]> = [
+            [-legOffsetX, -legOffsetZ],
+            [legOffsetX, -legOffsetZ],
+            [-legOffsetX, legOffsetZ],
+            [legOffsetX, legOffsetZ],
+          ]
+          for (const [legIndex, [offsetX, offsetZ]] of legCorners.entries()) {
             addPart(
               {
-                id: `bay:${bay.id}:tier:${tier.id}:front:${index}`,
-                kind: 'front',
+                id: `bay:${idInfix}${bay.id}:leg:${legIndex}`,
+                kind: 'leg',
                 shape: 'box',
-                position,
-                size,
-                materialId: frontMaterialId,
+                position: [bayCenter + offsetX, baseHeight / 2, compartmentCenterZ + offsetZ],
+                size: [LEG_SIZE, baseHeight, LEG_SIZE],
+                materialId: assembly.materialDefaults.hardware,
+                bayId: bay.id,
+                ...faceStamp,
+              },
+              `${pathPrefix}[${bayIndex}].base`,
+            )
+          }
+        }
+
+        if (bay.kickplate) {
+          addPart(
+            {
+              id: `bay:${idInfix}${bay.id}:kickplate`,
+              kind: 'kickplate',
+              shape: 'box',
+              position: [
+                bayCenter,
+                baseHeight / 2,
+                zFront - dirSign * (KICKPLATE_INSET + carcassThickness / 2),
+              ],
+              size: [innerWidth, baseHeight, carcassThickness],
+              materialId: assembly.materialDefaults.carcass,
+              bayId: bay.id,
+              ...faceStamp,
+            },
+            `${pathPrefix}[${bayIndex}].kickplate`,
+          )
+        }
+      }
+
+      let tierBottom = baseHeight
+      for (const [tierIndex, tier] of bay.tiers.entries()) {
+        const tierTop = tierBottom + tier.height
+        if (tierTop > height + DIMENSION_TOLERANCE) {
+          warnings.push({
+            code: 'tier-height-overflow',
+            path: `${pathPrefix}[${bayIndex}].tiers[${tierIndex}]`,
+            message: `Tier "${tier.id}" extends above the assembly height.`,
+          })
+        }
+
+        if (bay.visible && tier.visible) {
+          const shelfHeights = tier.shelves.heights.slice(0, tier.shelves.count)
+          for (const [shelfIndex, shelfHeight] of shelfHeights.entries()) {
+            addPart(
+              {
+                id: `bay:${idInfix}${bay.id}:tier:${tier.id}:shelf:${shelfIndex}`,
+                kind: 'shelf',
+                shape: 'box',
+                position: [bayCenter, tierBottom + shelfHeight, compartmentCenterZ],
+                size: [
+                  innerWidth,
+                  carcassThickness,
+                  includeBackPanel ? compartmentDepth - backThickness : compartmentDepth,
+                ],
+                materialId: assembly.materialDefaults.carcass,
                 bayId: bay.id,
                 tierId: tier.id,
+                ...faceStamp,
               },
-              frontPath,
+              `${pathPrefix}[${bayIndex}].tiers[${tierIndex}].shelves.heights[${shelfIndex}]`,
             )
           }
 
-          if (
-            tier.front.kind === 'hinged' ||
-            tier.front.kind === 'flap' ||
-            tier.front.kind === 'pull-out'
-          ) {
-            const leaves = tier.front.kind === 'hinged' ? tier.front.leaves : 1
-            if (leaves === 1) {
-              addFrontPart(
-                0,
-                [bayCenter, frontY, frontZ],
-                [frontWidth, frontHeight, frontThickness],
-              )
-            } else {
-              const leafWidth = (frontWidth - frontGap) / 2
-              const offset = leafWidth / 2 + frontGap / 2
-              addFrontPart(
-                0,
-                [bayCenter - offset, frontY, frontZ],
-                [leafWidth, frontHeight, frontThickness],
-              )
-              addFrontPart(
-                1,
-                [bayCenter + offset, frontY, frontZ],
-                [leafWidth, frontHeight, frontThickness],
-              )
-            }
-          } else if (tier.front.kind === 'drawer') {
-            const count = tier.front.count
-            const drawerHeight = (frontHeight - frontGap * (count - 1)) / count
-            let drawerBottom = tierBottom + frontGap
-            for (let index = 0; index < count; index += 1) {
-              addFrontPart(
-                index,
-                [bayCenter, drawerBottom + drawerHeight / 2, frontZ],
-                [frontWidth, drawerHeight, frontThickness],
-              )
-              drawerBottom += drawerHeight + frontGap
-            }
-          } else if (tier.front.kind === 'sliding') {
-            const leaves = tier.front.leaves
-            const leafWidth = frontWidth / leaves
-            const leftEdge = bayCenter - frontWidth / 2
-            for (let index = 0; index < leaves; index += 1) {
-              addFrontPart(
-                index,
-                [
-                  leftEdge + leafWidth * (index + 0.5),
-                  frontY,
-                  frontZ - (index % 2) * frontThickness,
+          if (tier.hanger) {
+            addPart(
+              {
+                id: `bay:${idInfix}${bay.id}:tier:${tier.id}:hanger`,
+                kind: 'hanger',
+                shape: 'cylinder',
+                position: [
+                  bayCenter,
+                  tierTop - HANGER_TOP_CLEARANCE - rodDiameter / 2,
+                  compartmentCenterZ,
                 ],
-                [leafWidth, frontHeight, frontThickness],
+                size: [innerWidth - HANGER_SIDE_INSET * 2, rodDiameter, rodDiameter],
+                materialId: assembly.materialDefaults.hardware,
+                bayId: bay.id,
+                tierId: tier.id,
+                ...faceStamp,
+              },
+              `${pathPrefix}[${bayIndex}].tiers[${tierIndex}]`,
+            )
+          }
+
+          if (tier.front.kind !== 'open') {
+            const frontWidth = innerWidth - frontGap * 2
+            const frontHeight = tier.height - frontGap * 2
+            const frontZ = zFront - (dirSign * frontThickness) / 2
+            const frontY = tierBottom + tier.height / 2
+            const frontMaterialId =
+              assembly.materialDefaults.front ?? assembly.materialDefaults.carcass
+            const frontPath = `${pathPrefix}[${bayIndex}].tiers[${tierIndex}].front`
+            const addFrontPart = (
+              index: number,
+              position: [number, number, number],
+              size: [number, number, number],
+            ) => {
+              addPart(
+                {
+                  id: `bay:${idInfix}${bay.id}:tier:${tier.id}:front:${index}`,
+                  kind: 'front',
+                  shape: 'box',
+                  position,
+                  size,
+                  materialId: frontMaterialId,
+                  bayId: bay.id,
+                  tierId: tier.id,
+                  ...faceStamp,
+                },
+                frontPath,
               )
+            }
+
+            if (
+              tier.front.kind === 'hinged' ||
+              tier.front.kind === 'flap' ||
+              tier.front.kind === 'pull-out'
+            ) {
+              const leaves = tier.front.kind === 'hinged' ? tier.front.leaves : 1
+              if (leaves === 1) {
+                addFrontPart(
+                  0,
+                  [bayCenter, frontY, frontZ],
+                  [frontWidth, frontHeight, frontThickness],
+                )
+              } else {
+                const leafWidth = (frontWidth - frontGap) / 2
+                const offset = leafWidth / 2 + frontGap / 2
+                addFrontPart(
+                  0,
+                  [bayCenter - offset, frontY, frontZ],
+                  [leafWidth, frontHeight, frontThickness],
+                )
+                addFrontPart(
+                  1,
+                  [bayCenter + offset, frontY, frontZ],
+                  [leafWidth, frontHeight, frontThickness],
+                )
+              }
+            } else if (tier.front.kind === 'drawer') {
+              const count = tier.front.count
+              const drawerHeight = (frontHeight - frontGap * (count - 1)) / count
+              let drawerBottom = tierBottom + frontGap
+              for (let index = 0; index < count; index += 1) {
+                addFrontPart(
+                  index,
+                  [bayCenter, drawerBottom + drawerHeight / 2, frontZ],
+                  [frontWidth, drawerHeight, frontThickness],
+                )
+                drawerBottom += drawerHeight + frontGap
+              }
+            } else if (tier.front.kind === 'sliding') {
+              const leaves = tier.front.leaves
+              const leafWidth = frontWidth / leaves
+              const leftEdge = bayCenter - frontWidth / 2
+              for (let index = 0; index < leaves; index += 1) {
+                addFrontPart(
+                  index,
+                  [
+                    leftEdge + leafWidth * (index + 0.5),
+                    frontY,
+                    frontZ - dirSign * (index % 2) * frontThickness,
+                  ],
+                  [leafWidth, frontHeight, frontThickness],
+                )
+              }
             }
           }
         }
+
+        tierBottom = tierTop
       }
 
-      tierBottom = tierTop
+      bayLeft = bayRight
     }
+  }
 
-    bayLeft = bayRight
+  const frontZBack = split ? 0 : -depth / 2
+  const frontZFront = split ? split.front : depth / 2
+  emitFaceBays(assembly.bays, 'front', frontZBack, frontZFront, true)
+
+  if (hasBackBays && split) {
+    emitFaceBays(backBays, 'back', 0, -split.back, false)
   }
 
   return { parts, bounds, warnings }

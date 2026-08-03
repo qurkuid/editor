@@ -338,8 +338,8 @@ describe('AI modeling control plane', () => {
           id: cabinet.id,
           bayId: assembly.bays[0].id,
           tierId: assembly.bays[0].tiers[0].id,
-          shelfCount: 0,
-          hanger: false,
+          shelfCount: assembly.bays[0].tiers[0].shelves.count,
+          hanger: assembly.bays[0].tiers[0].hanger,
         },
       ],
     })

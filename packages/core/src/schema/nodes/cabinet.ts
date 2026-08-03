@@ -191,6 +191,15 @@ export const CabinetNode = BaseNode.extend({
     })
     .optional(),
   ...cabinetBoxFields,
+  // A run carrying a furniture assembly is a whole wall of joinery, not a
+  // kitchen module, so it needs the furniture panel's own dimension range.
+  // These must stay >= MAX_FURNITURE_WIDTH/DEPTH in cabinet/resize-limits.ts:
+  // the resize handle bounds are separate, and if the schema caps lower the
+  // store silently clamps `width` while `furniture.dimensions` keeps growing,
+  // leaving bounds and collision disagreeing with what is rendered.
+  width: z.number().min(0.05).max(10).default(0.5),
+  depth: z.number().min(0.3).max(4).default(0.5),
+  carcassHeight: z.number().min(0.4).max(4).default(0.72),
 }).describe('Parametric modular cabinet run node')
 
 export const CabinetModuleNode = BaseNode.extend({

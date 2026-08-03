@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import type { FurnitureKind } from '../../schema/nodes/furniture'
 import {
   createDefaultFurnitureAssembly,
   deleteFurnitureBay,
@@ -19,8 +20,8 @@ describe('furniture direct and AI operation contract', () => {
     const second = createDefaultFurnitureAssembly({ bayCount: 2 })
 
     expect(first).toEqual(second)
-    expect(first.dimensions).toEqual({ width: 1.2, height: 2.4, depth: 0.6 })
-    expect(first.bays.map((bay) => bay.width)).toEqual([0.6, 0.6])
+    expect(first.dimensions).toEqual({ width: 2.4, height: 2.4, depth: 0.6 })
+    expect(first.bays.map((bay) => bay.width)).toEqual([1.2, 1.2])
     expect(first.bays.map((bay) => bay.id)).toEqual(['bay-0', 'bay-1'])
   })
 
@@ -165,7 +166,10 @@ describe('furniture direct and AI operation contract', () => {
   })
 
   test('inserts, resizes, and deletes bays without changing total width or stable IDs', () => {
-    const assembly = createDefaultFurnitureAssembly({ bayCount: 2 })
+    const assembly = createDefaultFurnitureAssembly({
+      bayCount: 2,
+      dimensions: { width: 1.2, height: 2.4, depth: 0.6 },
+    })
     const inserted = insertFurnitureBay(assembly, { afterBayId: 'bay-0', newWidth: 0.2 })
 
     expect(inserted.bays.map((bay) => bay.id)).toEqual(['bay-0', 'bay-0-copy', 'bay-1'])
@@ -241,7 +245,9 @@ describe('furniture direct and AI operation contract', () => {
   })
 
   test('rejects missing, invalid, impossible, and final structural edits before mutation', () => {
-    const assembly = createDefaultFurnitureAssembly()
+    const assembly = createDefaultFurnitureAssembly({
+      dimensions: { width: 1.2, height: 2.4, depth: 0.6 },
+    })
     const bayId = assembly.bays[0].id
     const tierId = assembly.bays[0].tiers[0].id
 
@@ -258,5 +264,238 @@ describe('furniture direct and AI operation contract', () => {
     expect(() => resizeFurnitureTier(assembly, { bayId, tierId, height: 1 })).toThrow(RangeError)
     expect(assembly.bays).toHaveLength(1)
     expect(assembly.bays[0].tiers).toHaveLength(1)
+  })
+})
+
+describe('createDefaultFurnitureAssembly per-kind defaults', () => {
+  test('wardrobe is a full-height plinth cabinet with a hanger and one shelf', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'wardrobe' })
+
+    expect(assembly.dimensions).toEqual({ width: 2.4, height: 2.4, depth: 0.6 })
+    expect(assembly.bays[0].base).toEqual({ type: 'plinth', height: 0.05 })
+    expect(assembly.bays[0].kickplate).toBe(true)
+    expect(assembly.bays[0].tiers).toHaveLength(1)
+    expect(assembly.bays[0].tiers[0].hanger).toBe(true)
+    expect(assembly.bays[0].tiers[0].shelves.count).toBe(1)
+  })
+
+  test('base-run is counter height with a plinth base and one shelf, no hanger', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'base-run' })
+
+    expect(assembly.dimensions).toEqual({ width: 1.8, height: 0.85, depth: 0.6 })
+    expect(assembly.bays[0].base.type).toBe('plinth')
+    expect(assembly.bays[0].tiers).toHaveLength(1)
+    expect(assembly.bays[0].tiers[0].hanger).toBe(false)
+    expect(assembly.bays[0].tiers[0].shelves.count).toBe(1)
+  })
+
+  test('upper-run is a shallow wall-hung cabinet with no plinth or kickplate', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'upper-run' })
+
+    expect(assembly.dimensions).toEqual({ width: 1.8, height: 0.72, depth: 0.35 })
+    expect(assembly.bays[0].base).toEqual({ type: 'floating', height: 0 })
+    expect(assembly.bays[0].kickplate).toBe(false)
+    expect(assembly.bays[0].tiers).toHaveLength(1)
+    expect(assembly.bays[0].tiers[0].shelves.count).toBe(2)
+  })
+
+  test('tall is a narrow two-tier cabinet with shelves in both tiers', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'tall' })
+
+    expect(assembly.dimensions).toEqual({ width: 0.6, height: 2.1, depth: 0.6 })
+    expect(assembly.bays[0].tiers).toHaveLength(2)
+    expect(assembly.bays[0].tiers[0].height).toBeCloseTo(0.6)
+    expect(assembly.bays[0].tiers[1].height).toBeCloseTo(1.4)
+    expect(assembly.bays[0].tiers[0].shelves.count).toBeGreaterThan(0)
+    expect(assembly.bays[0].tiers[1].shelves.count).toBeGreaterThan(0)
+  })
+
+  test('island is counter height with extra depth and one shelf', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'island' })
+
+    expect(assembly.dimensions).toEqual({ width: 1.8, height: 0.85, depth: 0.9 })
+    expect(assembly.bays[0].tiers).toHaveLength(1)
+    expect(assembly.bays[0].tiers[0].shelves.count).toBe(1)
+  })
+
+  test('set is a full-height cabinet with a lower and upper tier separated by an invisible gap', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'set' })
+
+    expect(assembly.dimensions).toEqual({ width: 1.8, height: 2.4, depth: 0.6 })
+    expect(assembly.bays[0].tiers).toHaveLength(3)
+    expect(assembly.bays[0].tiers[0].height).toBeCloseTo(0.85)
+    expect(assembly.bays[0].tiers[1].visible).toBe(false)
+    expect(assembly.bays[0].tiers[2].height).toBeCloseTo(0.72)
+    const totalHeight = assembly.bays[0].tiers.reduce((sum, tier) => sum + tier.height, 0)
+    expect(totalHeight).toBeCloseTo(assembly.dimensions.height - assembly.bays[0].base.height)
+  })
+
+  test('sink is counter height with an open front', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'sink' })
+
+    expect(assembly.dimensions).toEqual({ width: 0.9, height: 0.85, depth: 0.6 })
+    expect(assembly.bays[0].tiers).toHaveLength(1)
+    expect(assembly.bays[0].tiers[0].front.kind).toBe('open')
+  })
+
+  test('different kinds produce structurally different assemblies', () => {
+    const kinds: FurnitureKind[] = [
+      'wardrobe',
+      'base-run',
+      'upper-run',
+      'tall',
+      'island',
+      'set',
+      'sink',
+    ]
+    const assemblies = kinds.map((kind) => createDefaultFurnitureAssembly({ furnitureKind: kind }))
+    const signatures = assemblies.map((assembly) =>
+      JSON.stringify({
+        dimensions: assembly.dimensions,
+        base: assembly.bays[0].base,
+        kickplate: assembly.bays[0].kickplate,
+        tiers: assembly.bays[0].tiers.map((tier) => ({
+          height: tier.height,
+          hanger: tier.hanger,
+          shelves: tier.shelves.count,
+          visible: tier.visible,
+          front: tier.front.kind,
+        })),
+      }),
+    )
+
+    expect(new Set(signatures).size).toBe(kinds.length)
+  })
+
+  test('explicit dimensions and bay count still win over kind defaults', () => {
+    const assembly = createDefaultFurnitureAssembly({
+      furnitureKind: 'upper-run',
+      dimensions: { width: 3, height: 1, depth: 0.5 },
+      bayCount: 3,
+    })
+
+    expect(assembly.dimensions).toEqual({ width: 3, height: 1, depth: 0.5 })
+    expect(assembly.bays).toHaveLength(3)
+  })
+})
+
+describe('island two-sided defaults and face-addressed operations', () => {
+  test('seeds a mirrored back row and a depthSplit that sums to the overall depth', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'island' })
+
+    expect(assembly.depthSplit).toEqual({ front: 0.27, back: 0.63 })
+    expect(assembly.depthSplit!.front + assembly.depthSplit!.back).toBeCloseTo(
+      assembly.dimensions.depth,
+    )
+    expect(assembly.backBays).toHaveLength(assembly.bays.length)
+    expect(assembly.backBays?.[0]?.id).not.toBe(assembly.bays[0].id)
+    expect(assembly.backBays?.[0]?.width).toBeCloseTo(assembly.bays[0].width)
+    expect(assembly.backBays?.[0]?.base).toEqual(assembly.bays[0].base)
+    expect(assembly.backBays?.[0]?.kickplate).toBe(assembly.bays[0].kickplate)
+    expect(assembly.backBays?.[0]?.tiers[0]?.shelves).toEqual(assembly.bays[0].tiers[0]?.shelves)
+  })
+
+  test('other kinds stay front-only — no backBays or depthSplit seeded', () => {
+    const kinds: FurnitureKind[] = ['wardrobe', 'base-run', 'upper-run', 'tall', 'set', 'sink']
+
+    for (const kind of kinds) {
+      const assembly = createDefaultFurnitureAssembly({ furnitureKind: kind })
+      expect(assembly.backBays).toBeUndefined()
+      expect(assembly.depthSplit).toBeUndefined()
+    }
+  })
+
+  test('face-addressed tier interior and front edits mutate only the targeted face', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'island' })
+    const backBay = assembly.backBays![0]!
+    const backTier = backBay.tiers[0]!
+
+    const interiorChanged = setFurnitureTierInterior(assembly, {
+      bayId: backBay.id,
+      tierId: backTier.id,
+      shelfCount: 3,
+      hanger: true,
+      face: 'back',
+    })
+    expect(interiorChanged.bays).toBe(assembly.bays)
+    expect(interiorChanged.backBays?.[0]?.tiers[0]?.shelves.count).toBe(3)
+    expect(interiorChanged.backBays?.[0]?.tiers[0]?.hanger).toBe(true)
+
+    const frontChanged = setFurnitureTierFront(assembly, {
+      bayId: backBay.id,
+      tierId: backTier.id,
+      front: { kind: 'hinged', leaves: 2, glass: false, color: '' },
+      face: 'back',
+    })
+    expect(frontChanged.bays).toBe(assembly.bays)
+    expect(frontChanged.backBays?.[0]?.tiers[0]?.front).toEqual({
+      kind: 'hinged',
+      leaves: 2,
+      glass: false,
+      color: '',
+    })
+  })
+
+  test('face-addressed bay insert, resize, and delete mutate only the targeted face', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'island', bayCount: 2 })
+    const backBayId = assembly.backBays![0]!.id
+
+    const inserted = insertFurnitureBay(assembly, { afterBayId: backBayId, face: 'back' })
+    expect(inserted.bays).toBe(assembly.bays)
+    expect(inserted.backBays).toHaveLength(3)
+
+    const resized = resizeFurnitureBay(inserted, {
+      bayId: inserted.backBays![1]!.id,
+      width: 0.3,
+      face: 'back',
+    })
+    expect(resized.bays).toBe(inserted.bays)
+    expect(resized.backBays?.[1]?.width).toBeCloseTo(0.3)
+
+    const deleted = deleteFurnitureBay(resized, {
+      bayId: resized.backBays![1]!.id,
+      face: 'back',
+    })
+    expect(deleted.bays).toBe(resized.bays)
+    expect(deleted.backBays).toHaveLength(2)
+  })
+
+  test('face-addressed tier insert, resize, and delete mutate only the targeted face', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'island' })
+    const backBayId = assembly.backBays![0]!.id
+    const backTierId = assembly.backBays![0]!.tiers[0]!.id
+
+    const inserted = insertFurnitureTier(assembly, {
+      bayId: backBayId,
+      afterTierId: backTierId,
+      face: 'back',
+    })
+    expect(inserted.bays).toBe(assembly.bays)
+    expect(inserted.backBays?.[0]?.tiers).toHaveLength(2)
+
+    const resized = resizeFurnitureTier(inserted, {
+      bayId: backBayId,
+      tierId: backTierId,
+      height: 0.2,
+      face: 'back',
+    })
+    expect(resized.bays).toBe(inserted.bays)
+    expect(resized.backBays?.[0]?.tiers[0]?.height).toBeCloseTo(0.2)
+
+    const deleted = deleteFurnitureTier(resized, {
+      bayId: backBayId,
+      tierId: `${backTierId}-copy`,
+      face: 'back',
+    })
+    expect(deleted.bays).toBe(resized.bays)
+    expect(deleted.backBays?.[0]?.tiers).toHaveLength(1)
+  })
+
+  test('resizeFurnitureAssembly scales the back row width in step with the front row', () => {
+    const assembly = createDefaultFurnitureAssembly({ furnitureKind: 'island' })
+    const resized = resizeFurnitureAssembly(assembly, { width: 3.6 })
+
+    expect(resized.bays[0].width).toBeCloseTo(3.6)
+    expect(resized.backBays?.[0]?.width).toBeCloseTo(3.6)
   })
 })

@@ -9,6 +9,7 @@ import type {
 } from '@pascal-app/core'
 import { createDefaultFurnitureAssembly } from '@pascal-app/core'
 import { cabinetDefinition } from '../definition'
+import { MAX_FURNITURE_DEPTH, MAX_FURNITURE_WIDTH } from '../resize-limits'
 import { CabinetNode } from '../schema'
 
 function furnitureFixture(withFurniture = true) {
@@ -116,5 +117,32 @@ describe('furniture cabinet resize writes through to the assembly', () => {
     expect(handle.max(deepFixture.node, deepFixture.sceneApi)).toBeGreaterThan(
       deepFixture.node.depth,
     )
+  })
+})
+
+describe('furniture cabinet schema range', () => {
+  // The resize handles allow furniture up to MAX_FURNITURE_WIDTH/DEPTH, but the
+  // store re-parses every mutation through the node schema. When the schema
+  // capped lower, `width` was silently clamped while `furniture.dimensions`
+  // kept the requested size — geometry grew, bounds did not.
+  test('accepts a run as wide and deep as the furniture resize limits allow', () => {
+    const node = CabinetNode.parse({
+      id: 'cabinet_furniture-range',
+      width: MAX_FURNITURE_WIDTH,
+      depth: MAX_FURNITURE_DEPTH,
+      carcassHeight: 2.4,
+    })
+
+    expect(node.width).toBe(MAX_FURNITURE_WIDTH)
+    expect(node.depth).toBe(MAX_FURNITURE_DEPTH)
+  })
+
+  test('a resized furniture patch round-trips through the schema unclamped', () => {
+    const { node, sceneApi } = furnitureFixture()
+    const patch = linearHandle(node, sceneApi, 'x', 'min').apply(node, 6, sceneApi)
+    const reparsed = CabinetNode.parse({ ...node, ...patch })
+
+    expect(reparsed.width).toBe(6)
+    expect(reparsed.furniture?.dimensions.width).toBe(6)
   })
 })

@@ -14,48 +14,90 @@ export interface CreateDefaultFurnitureAssemblyOptions {
   bayCount?: number
 }
 
+// Korean interior/kitchen standards — the starting size and carcass a fresh
+// assembly gets when the caller doesn't pin a dimension explicitly.
+export const FURNITURE_KIND_DEFAULT_DIMENSIONS: Record<
+  FurnitureKind,
+  FurnitureAssembly['dimensions']
+> = {
+  wardrobe: { width: 2.4, height: 2.4, depth: 0.6 },
+  'base-run': { width: 1.8, height: 0.85, depth: 0.6 },
+  'upper-run': { width: 1.8, height: 0.72, depth: 0.35 },
+  tall: { width: 0.6, height: 2.1, depth: 0.6 },
+  island: { width: 1.8, height: 0.85, depth: 0.9 },
+  set: { width: 1.8, height: 2.4, depth: 0.6 },
+  sink: { width: 0.9, height: 0.85, depth: 0.6 },
+}
+
+const FURNITURE_KIND_BASE: Record<
+  FurnitureKind,
+  { type: 'plinth' | 'floating'; height: number; kickplate: boolean }
+> = {
+  wardrobe: { type: 'plinth', height: 0.05, kickplate: true },
+  'base-run': { type: 'plinth', height: 0.1, kickplate: true },
+  'upper-run': { type: 'floating', height: 0, kickplate: false },
+  tall: { type: 'plinth', height: 0.1, kickplate: true },
+  island: { type: 'plinth', height: 0.1, kickplate: true },
+  set: { type: 'plinth', height: 0.1, kickplate: true },
+  sink: { type: 'plinth', height: 0.1, kickplate: true },
+}
+
+// An island's back row is addressed by the same operations as its front row
+// — AI and direct UI share one operation set rather than a parallel
+// back-bay-only API. `face` defaults to 'front' so every existing call site
+// (which never passes it) keeps targeting `assembly.bays` unchanged.
+export type FurnitureFace = 'front' | 'back'
+
 export interface SetFurnitureTierInteriorOptions {
   bayId: string
   tierId: string
   shelfCount: number
   hanger: boolean
+  face?: FurnitureFace
 }
 
 export interface SetFurnitureTierFrontOptions {
   bayId: string
   tierId: string
   front: FurnitureFront
+  face?: FurnitureFace
 }
 
 export interface InsertFurnitureBayOptions {
   afterBayId: string
   newWidth?: number
+  face?: FurnitureFace
 }
 
 export interface DeleteFurnitureBayOptions {
   bayId: string
+  face?: FurnitureFace
 }
 
 export interface ResizeFurnitureBayOptions {
   bayId: string
   width: number
+  face?: FurnitureFace
 }
 
 export interface InsertFurnitureTierOptions {
   bayId: string
   afterTierId: string
   newHeight?: number
+  face?: FurnitureFace
 }
 
 export interface DeleteFurnitureTierOptions {
   bayId: string
   tierId: string
+  face?: FurnitureFace
 }
 
 export interface ResizeFurnitureTierOptions {
   bayId: string
   tierId: string
   height: number
+  face?: FurnitureFace
 }
 
 function assertPositiveFinite(value: number, label: string): void {
@@ -116,10 +158,83 @@ function validateAssembly(candidate: FurnitureAssembly): FurnitureAssembly {
   return candidate
 }
 
-function findBay(assembly: FurnitureAssembly, bayId: string): [FurnitureBay, number] {
-  const index = assembly.bays.findIndex((bay) => bay.id === bayId)
+function evenShelfHeights(tierHeight: number, count: number): number[] {
+  return Array.from({ length: count }, (_, index) => (tierHeight * (index + 1)) / (count + 1))
+}
+
+function shelvesFor(tierHeight: number, count: number) {
+  return { count, heights: evenShelfHeights(tierHeight, count) }
+}
+
+// Per-kind tier layout for a freshly created assembly — the distinguishing
+// interior structure (shelves, hanger, open front, the counter-to-upper gap)
+// that makes each furniture kind look and behave like its real counterpart
+// instead of an identical box wearing a different label.
+function buildKindTiers(furnitureKind: FurnitureKind, bayId: string, interiorHeight: number) {
+  const tierId = (suffix: number) => `${bayId}-tier-${suffix}`
+
+  switch (furnitureKind) {
+    case 'upper-run':
+      return [{ id: tierId(0), height: interiorHeight, shelves: shelvesFor(interiorHeight, 2) }]
+    case 'base-run':
+    case 'island':
+      return [{ id: tierId(0), height: interiorHeight, shelves: shelvesFor(interiorHeight, 1) }]
+    case 'sink':
+      return [{ id: tierId(0), height: interiorHeight, front: { kind: 'open', color: '' } }]
+    case 'tall': {
+      const lowerHeight = interiorHeight * 0.3
+      const upperHeight = interiorHeight - lowerHeight
+      return [
+        { id: tierId(0), height: lowerHeight, shelves: shelvesFor(lowerHeight, 1) },
+        { id: tierId(1), height: upperHeight, shelves: shelvesFor(upperHeight, 3) },
+      ]
+    }
+    case 'set': {
+      const lowerHeight = 0.85
+      const upperHeight = 0.72
+      // The physical gap between the counter run and the wall cabinets above
+      // it — clamped so an aggressively shortened override can't drive it
+      // negative.
+      const gapHeight = Math.max(interiorHeight - lowerHeight - upperHeight, 0.01)
+      return [
+        { id: tierId(0), height: lowerHeight, shelves: shelvesFor(lowerHeight, 1) },
+        { id: tierId(1), height: gapHeight, visible: false },
+        { id: tierId(2), height: upperHeight, shelves: shelvesFor(upperHeight, 2) },
+      ]
+    }
+    default:
+      return [
+        {
+          id: tierId(0),
+          height: interiorHeight,
+          shelves: shelvesFor(interiorHeight, 1),
+          hanger: true,
+        },
+      ]
+  }
+}
+
+function faceBayArray(assembly: FurnitureAssembly, face: FurnitureFace): FurnitureBay[] {
+  return face === 'back' ? (assembly.backBays ?? []) : assembly.bays
+}
+
+function withFaceBayArray(
+  assembly: FurnitureAssembly,
+  face: FurnitureFace,
+  bays: FurnitureBay[],
+): FurnitureAssembly {
+  return face === 'back' ? { ...assembly, backBays: bays } : { ...assembly, bays }
+}
+
+function findBay(
+  assembly: FurnitureAssembly,
+  bayId: string,
+  face: FurnitureFace = 'front',
+): [FurnitureBay, number] {
+  const bays = faceBayArray(assembly, face)
+  const index = bays.findIndex((bay) => bay.id === bayId)
   if (index < 0) throw new RangeError(`Furniture bay "${bayId}" was not found.`)
-  return [assembly.bays[index]!, index]
+  return [bays[index]!, index]
 }
 
 function findTier(bay: FurnitureBay, tierId: string): [FurnitureTier, number] {
@@ -133,29 +248,54 @@ function findTier(bay: FurnitureBay, tierId: string): [FurnitureTier, number] {
 export function createDefaultFurnitureAssembly(
   options: CreateDefaultFurnitureAssemblyOptions = {},
 ): FurnitureAssembly {
+  const furnitureKind = options.furnitureKind ?? 'wardrobe'
+  const kindDimensions = FURNITURE_KIND_DEFAULT_DIMENSIONS[furnitureKind]
   const dimensions = {
-    width: options.dimensions?.width ?? 1.2,
-    height: options.dimensions?.height ?? 2.4,
-    depth: options.dimensions?.depth ?? 0.6,
+    width: options.dimensions?.width ?? kindDimensions.width,
+    height: options.dimensions?.height ?? kindDimensions.height,
+    depth: options.dimensions?.depth ?? kindDimensions.depth,
   }
   const bayCount = options.bayCount ?? 1
   if (!Number.isInteger(bayCount) || bayCount < 1 || bayCount > 100) {
     throw new RangeError('bayCount must be an integer from 1 to 100.')
   }
-  const baseHeight = Math.min(0.05, dimensions.height / 4)
-  const tierHeight = dimensions.height - baseHeight
+  const kindBase = FURNITURE_KIND_BASE[furnitureKind]
+  const baseHeight =
+    kindBase.type === 'floating' ? 0 : Math.min(kindBase.height, dimensions.height / 4)
+  const interiorHeight = dimensions.height - baseHeight
+
+  const buildBays = (idPrefix: string) =>
+    Array.from({ length: bayCount }, (_, index) => {
+      const bayId = `${idPrefix}-${index}`
+      return {
+        id: bayId,
+        width: dimensions.width / bayCount,
+        base: { type: kindBase.type, height: baseHeight },
+        kickplate: kindBase.kickplate,
+        endPanels: { left: false, right: false },
+        tiers: buildKindTiers(furnitureKind, bayId, interiorHeight),
+      }
+    })
+
+  // An island is free-standing with cabinetry on both faces — a faithful
+  // port of the SketchUp source's front row + mirror-generated back row — so
+  // a fresh one also seeds a back row and the depth split between them. The
+  // split is proportional (30/70) rather than SU's literal 300/700mm so it
+  // still sums exactly to Pascal's own default island depth (0.9 m, not SU's
+  // 1 m); the ratio otherwise matches SU's shallower show face / deeper work
+  // face convention.
+  const isIsland = furnitureKind === 'island'
 
   return normalizeFurnitureAssembly({
-    furnitureKind: options.furnitureKind ?? 'wardrobe',
+    furnitureKind,
     dimensions,
-    bays: Array.from({ length: bayCount }, (_, index) => ({
-      id: `bay-${index}`,
-      width: dimensions.width / bayCount,
-      base: { type: 'plinth', height: baseHeight },
-      kickplate: true,
-      endPanels: { left: false, right: false },
-      tiers: [{ id: `bay-${index}-tier-0`, height: tierHeight }],
-    })),
+    bays: buildBays('bay'),
+    ...(isIsland
+      ? {
+          backBays: buildBays('back-bay'),
+          depthSplit: { front: dimensions.depth * 0.3, back: dimensions.depth * 0.7 },
+        }
+      : {}),
   })
 }
 
@@ -172,6 +312,12 @@ export function resizeFurnitureAssembly(
     ...assembly,
     dimensions: nextDimensions,
     bays: assembly.bays.map((bay) => ({ ...bay, width: bay.width * widthScale })),
+    // An island's back row spans the same overall width as its front row, so
+    // it scales the same way — otherwise a width resize would leave the two
+    // faces summing to different totals.
+    ...(assembly.backBays
+      ? { backBays: assembly.backBays.map((bay) => ({ ...bay, width: bay.width * widthScale })) }
+      : {}),
   })
 }
 
@@ -193,7 +339,9 @@ export function setFurnitureTierInterior(
     throw new TypeError('hanger must be a boolean.')
   }
 
-  const bay = assembly.bays.find((candidate) => candidate.id === options.bayId)
+  const face = options.face ?? 'front'
+  const bays = faceBayArray(assembly, face)
+  const bay = bays.find((candidate) => candidate.id === options.bayId)
   if (!bay) throw new RangeError(`Furniture bay "${options.bayId}" was not found.`)
 
   const tier = bay.tiers.find((candidate) => candidate.id === options.tierId)
@@ -214,9 +362,10 @@ export function setFurnitureTierInterior(
 
   if (shelvesMatch && tier.hanger === options.hanger) return assembly
 
-  return {
-    ...assembly,
-    bays: assembly.bays.map((candidateBay) =>
+  return withFaceBayArray(
+    assembly,
+    face,
+    bays.map((candidateBay) =>
       candidateBay.id !== options.bayId
         ? candidateBay
         : {
@@ -232,14 +381,16 @@ export function setFurnitureTierInterior(
             ),
           },
     ),
-  }
+  )
 }
 
 export function setFurnitureTierFront(
   assembly: FurnitureAssembly,
   options: SetFurnitureTierFrontOptions,
 ): FurnitureAssembly {
-  const bay = assembly.bays.find((candidate) => candidate.id === options.bayId)
+  const face = options.face ?? 'front'
+  const bays = faceBayArray(assembly, face)
+  const bay = bays.find((candidate) => candidate.id === options.bayId)
   if (!bay) throw new RangeError(`Furniture bay "${options.bayId}" was not found.`)
 
   const tier = bay.tiers.find((candidate) => candidate.id === options.tierId)
@@ -252,9 +403,10 @@ export function setFurnitureTierFront(
   const front = FurnitureFrontSchema.parse(options.front)
   if (JSON.stringify(tier.front) === JSON.stringify(front)) return assembly
 
-  return {
-    ...assembly,
-    bays: assembly.bays.map((candidateBay) =>
+  return withFaceBayArray(
+    assembly,
+    face,
+    bays.map((candidateBay) =>
       candidateBay.id !== options.bayId
         ? candidateBay
         : {
@@ -264,14 +416,15 @@ export function setFurnitureTierFront(
             ),
           },
     ),
-  }
+  )
 }
 
 export function insertFurnitureBay(
   assembly: FurnitureAssembly,
   options: InsertFurnitureBayOptions,
 ): FurnitureAssembly {
-  const [anchor, anchorIndex] = findBay(assembly, options.afterBayId)
+  const face = options.face ?? 'front'
+  const [anchor, anchorIndex] = findBay(assembly, options.afterBayId, face)
   const width = options.newWidth ?? anchor.width / 2
   assertPositiveFinite(width, 'newWidth')
   const anchorWidth = anchor.width - width
@@ -297,27 +450,29 @@ export function insertFurnitureBay(
       }
     }),
   }
-  const bays = assembly.bays.map((bay, index) =>
+  const bays = faceBayArray(assembly, face).map((bay, index) =>
     index === anchorIndex ? { ...bay, width: anchorWidth } : bay,
   )
   bays.splice(anchorIndex + 1, 0, newBay)
-  return validateAssembly({ ...assembly, bays })
+  return validateAssembly(withFaceBayArray(assembly, face, bays))
 }
 
 export function deleteFurnitureBay(
   assembly: FurnitureAssembly,
   options: DeleteFurnitureBayOptions,
 ): FurnitureAssembly {
-  const [target, targetIndex] = findBay(assembly, options.bayId)
-  if (assembly.bays.length === 1) {
+  const face = options.face ?? 'front'
+  const faceBays = faceBayArray(assembly, face)
+  const [target, targetIndex] = findBay(assembly, options.bayId, face)
+  if (faceBays.length === 1) {
     throw new RangeError('The final furniture bay cannot be deleted.')
   }
   const compensationIndex = targetIndex > 0 ? targetIndex - 1 : targetIndex + 1
-  const compensationId = assembly.bays[compensationIndex]!.id
-  const bays = assembly.bays
+  const compensationId = faceBays[compensationIndex]!.id
+  const bays = faceBays
     .filter((bay) => bay.id !== target.id)
     .map((bay) => (bay.id === compensationId ? { ...bay, width: bay.width + target.width } : bay))
-  return validateAssembly({ ...assembly, bays })
+  return validateAssembly(withFaceBayArray(assembly, face, bays))
 }
 
 export function resizeFurnitureBay(
@@ -325,29 +480,31 @@ export function resizeFurnitureBay(
   options: ResizeFurnitureBayOptions,
 ): FurnitureAssembly {
   assertPositiveFinite(options.width, 'width')
-  const [target, targetIndex] = findBay(assembly, options.bayId)
+  const face = options.face ?? 'front'
+  const faceBays = faceBayArray(assembly, face)
+  const [target, targetIndex] = findBay(assembly, options.bayId, face)
   if (target.width === options.width) return assembly
-  if (assembly.bays.length === 1) {
+  if (faceBays.length === 1) {
     throw new RangeError('A single bay cannot be resized while total width is fixed.')
   }
-  const compensationIndex =
-    targetIndex < assembly.bays.length - 1 ? targetIndex + 1 : targetIndex - 1
-  const compensation = assembly.bays[compensationIndex]!
+  const compensationIndex = targetIndex < faceBays.length - 1 ? targetIndex + 1 : targetIndex - 1
+  const compensation = faceBays[compensationIndex]!
   const compensationWidth = compensation.width - (options.width - target.width)
   assertPositiveFinite(compensationWidth, 'compensating bay width')
-  const bays = assembly.bays.map((bay) => {
+  const bays = faceBays.map((bay) => {
     if (bay.id === target.id) return { ...bay, width: options.width }
     if (bay.id === compensation.id) return { ...bay, width: compensationWidth }
     return bay
   })
-  return validateAssembly({ ...assembly, bays })
+  return validateAssembly(withFaceBayArray(assembly, face, bays))
 }
 
 export function insertFurnitureTier(
   assembly: FurnitureAssembly,
   options: InsertFurnitureTierOptions,
 ): FurnitureAssembly {
-  const [bay, bayIndex] = findBay(assembly, options.bayId)
+  const face = options.face ?? 'front'
+  const [bay, bayIndex] = findBay(assembly, options.bayId, face)
   const [anchor, anchorIndex] = findTier(bay, options.afterTierId)
   const height = options.newHeight ?? anchor.height / 2
   assertPositiveFinite(height, 'newHeight')
@@ -369,17 +526,18 @@ export function insertFurnitureTier(
     index === anchorIndex ? resizeTierContents(tier, anchorHeight) : tier,
   )
   tiers.splice(anchorIndex + 1, 0, newTier)
-  const bays = assembly.bays.map((candidate, index) =>
+  const bays = faceBayArray(assembly, face).map((candidate, index) =>
     index === bayIndex ? { ...candidate, tiers } : candidate,
   )
-  return validateAssembly({ ...assembly, bays })
+  return validateAssembly(withFaceBayArray(assembly, face, bays))
 }
 
 export function deleteFurnitureTier(
   assembly: FurnitureAssembly,
   options: DeleteFurnitureTierOptions,
 ): FurnitureAssembly {
-  const [bay, bayIndex] = findBay(assembly, options.bayId)
+  const face = options.face ?? 'front'
+  const [bay, bayIndex] = findBay(assembly, options.bayId, face)
   const [target, targetIndex] = findTier(bay, options.tierId)
   if (bay.tiers.length === 1) {
     throw new RangeError('The final furniture tier cannot be deleted.')
@@ -391,10 +549,10 @@ export function deleteFurnitureTier(
     .map((tier) =>
       tier.id === compensationId ? resizeTierContents(tier, tier.height + target.height) : tier,
     )
-  const bays = assembly.bays.map((candidate, index) =>
+  const bays = faceBayArray(assembly, face).map((candidate, index) =>
     index === bayIndex ? { ...candidate, tiers } : candidate,
   )
-  return validateAssembly({ ...assembly, bays })
+  return validateAssembly(withFaceBayArray(assembly, face, bays))
 }
 
 export function resizeFurnitureTier(
@@ -402,7 +560,8 @@ export function resizeFurnitureTier(
   options: ResizeFurnitureTierOptions,
 ): FurnitureAssembly {
   assertPositiveFinite(options.height, 'height')
-  const [bay, bayIndex] = findBay(assembly, options.bayId)
+  const face = options.face ?? 'front'
+  const [bay, bayIndex] = findBay(assembly, options.bayId, face)
   const [target, targetIndex] = findTier(bay, options.tierId)
   if (target.height === options.height) return assembly
   if (bay.tiers.length === 1) {
@@ -417,8 +576,8 @@ export function resizeFurnitureTier(
     if (tier.id === compensation.id) return resizeTierContents(tier, compensationHeight)
     return tier
   })
-  const bays = assembly.bays.map((candidate, index) =>
+  const bays = faceBayArray(assembly, face).map((candidate, index) =>
     index === bayIndex ? { ...candidate, tiers } : candidate,
   )
-  return validateAssembly({ ...assembly, bays })
+  return validateAssembly(withFaceBayArray(assembly, face, bays))
 }
