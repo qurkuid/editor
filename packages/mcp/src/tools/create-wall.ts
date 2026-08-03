@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { createDefaultWallFaceBands } from '@pascal-app/core'
 import type { AnyNodeId } from '@pascal-app/core/schema'
 import { WallNode } from '@pascal-app/core/schema'
 import { z } from 'zod'
@@ -56,10 +57,12 @@ export function registerCreateWall(server: McpServer, bridge: SceneOperations): 
         )
       }
 
+      const resolvedThickness = thickness ?? 0.1
       const wall = WallNode.parse({
         start: start as [number, number],
         end: end as [number, number],
-        ...(thickness !== undefined ? { thickness } : {}),
+        thickness: resolvedThickness,
+        faceBands: createDefaultWallFaceBands(resolvedThickness),
         ...(height !== undefined ? { height } : {}),
       })
       const id = bridge.createNode(wall, levelId as AnyNodeId)

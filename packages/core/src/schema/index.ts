@@ -23,14 +23,26 @@ export {
   DEFAULT_MATERIALS,
   MaterialMapPropertiesSchema,
   MaterialMapsSchema,
+  MaterialPhysicalSize,
   MaterialPreset,
   MaterialPresetPayloadSchema,
   MaterialProperties,
   MaterialSchema,
+  MaterialSourceRef,
   MaterialTarget,
   resolveMaterial,
   TextureWrapMode,
 } from './material'
+export {
+  BodyCurve,
+  BodyFace,
+  BodyFaceSurface,
+  BodyHalfEdge,
+  BodyLoop,
+  BodyNode,
+  BodyShell,
+  BodyVertex,
+} from './nodes/body'
 export { BoxVentNode } from './nodes/box-vent'
 export { BuildingNode } from './nodes/building'
 export { CabinetModuleNode, CabinetNode } from './nodes/cabinet'
@@ -96,7 +108,27 @@ export {
 } from './nodes/elevator'
 export { EyebrowVentNode } from './nodes/eyebrow-vent'
 export { FenceBaseStyle, FenceNode, FenceStyle } from './nodes/fence'
-export { GuideNode, GuideScaleReference } from './nodes/guide'
+export type {
+  FurnitureAssembly,
+  FurnitureBay,
+  FurnitureFixture,
+  FurnitureFront,
+  FurnitureKind,
+  FurnitureTier,
+} from './nodes/furniture'
+export {
+  FurnitureAssemblySchema,
+  FurnitureBaySchema,
+  FurnitureFixtureSchema,
+  FurnitureFrontSchema,
+  FurnitureKindSchema,
+  FurnitureTierSchema,
+} from './nodes/furniture'
+export {
+  GuideNode,
+  GuidePerspectiveCorners,
+  GuideScaleReference,
+} from './nodes/guide'
 export { GutterNode, GutterOutlet } from './nodes/gutter'
 export { HvacEquipmentNode } from './nodes/hvac-equipment'
 export type {
@@ -118,6 +150,9 @@ export {
   LOW_PROFILE_ITEM_SURFACE_MAX_HEIGHT,
 } from './nodes/item'
 export { LevelNode } from './nodes/level'
+export { LightingCircuitNode } from './nodes/lighting-circuit'
+export { LightingFixtureNode } from './nodes/lighting-fixture'
+export { LightingSwitchNode } from './nodes/lighting-switch'
 export { LinesetNode } from './nodes/lineset'
 export { LiquidLineNode } from './nodes/liquid-line'
 export {
@@ -256,6 +291,10 @@ export {
   WALL_SLOT_DEFAULT,
   WALL_SURFACE_SLOT_DEFAULTS,
   WALL_TRIM_DEFAULTS,
+  WallBandConstruction,
+  WallBandConstructionMode,
+  WallConstructionLayer,
+  WallConstructionLayerKind,
   WallNode,
   WallTreatmentSide,
   WallTrimProfile,

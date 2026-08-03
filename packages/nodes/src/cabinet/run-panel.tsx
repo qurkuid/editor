@@ -4,8 +4,15 @@ import type {
   AnyNodeId,
   CabinetModuleNode as CabinetModuleNodeType,
   CabinetNode as CabinetNodeType,
+  SceneMaterial,
 } from '@pascal-app/core'
-import { createSceneApi, useScene } from '@pascal-app/core'
+import {
+  createSceneApi,
+  getCatalogMaterialById,
+  getLibraryMaterialIdFromRef,
+  getSceneMaterialIdFromRef,
+  useScene,
+} from '@pascal-app/core'
 import {
   ActionButton,
   PanelSection,
@@ -13,10 +20,18 @@ import {
   SegmentedControl,
   SliderControl,
   ToggleControl,
+  useEditor,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Plus, Trash } from 'lucide-react'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import {
+  COUNTERTOP_CUTOUT_KINDS,
+  type CountertopCutout,
+  type CountertopCutoutKind,
+  newCountertopCutout,
+  patchCountertopCutout,
+} from './countertop-cutouts'
 import {
   addCabinetModuleSide,
   backAlignZ,
@@ -26,6 +41,7 @@ import {
   runModuleBaseY,
   syncCornerRunsFromSourceModule,
   syncCornerStyleGroupFromRun,
+  syncSetLinkWallRun,
   wallChildOf,
 } from './run-ops'
 import {
@@ -77,6 +93,38 @@ function moduleSummary(module: CabinetModuleNodeType) {
   if (stack.length === 0) return 'Empty'
   if (stack.length === 1) return stack[0]!.type
   return `${stack.length} compartments`
+}
+
+// Mirrors `resolveCurrentBrush` in material-paint-panel.tsx — same ref shape
+// (`node.slots.countertop`), same fallback chain to a display name/color.
+function countertopMaterialSwatch(
+  node: CabinetNodeType,
+  materials: Record<string, SceneMaterial>,
+): { name: string; color: string } {
+  const ref = node.slots?.countertop
+  const sceneMaterialId = getSceneMaterialIdFromRef(ref)
+  const sceneMaterial = sceneMaterialId ? materials[sceneMaterialId] : undefined
+  const catalogMaterial = getCatalogMaterialById(getLibraryMaterialIdFromRef(ref) ?? undefined)
+  return {
+    name: sceneMaterial?.name ?? catalogMaterial?.label ?? 'Default',
+    color:
+      sceneMaterial?.material.properties?.color ??
+      catalogMaterial?.previewColor ??
+      catalogMaterial?.preset.mapProperties.color ??
+      '#ffffff',
+  }
+}
+
+const COUNTERTOP_CUTOUT_KIND_OPTIONS = COUNTERTOP_CUTOUT_KINDS.map((kind) => ({
+  value: kind,
+  label: kind[0]!.toUpperCase() + kind.slice(1),
+}))
+
+function cutoutLabel(cutout: CountertopCutout): { primary: string; secondary: string } {
+  return {
+    primary: cutout.kind[0]!.toUpperCase() + cutout.kind.slice(1),
+    secondary: cutout.shape === 'circle' ? 'Circle' : 'Rectangle',
+  }
 }
 
 export function bumpRunLayoutRevisionViaStore(
@@ -211,6 +259,9 @@ export function CabinetRunPanel({
     () => [...modules].sort((a, b) => a.position[0] - b.position[0]),
     [modules],
   )
+  // An upper/lower set's wall run never carries a countertop — its slab,
+  // seating overhang, and waterfall controls are geometrically inert.
+  const isWallSetRun = node.runTier === 'wall' && Boolean(node.setLink)
 
   const updateRun = useCallback(
     (patch: Partial<CabinetNodeType>) => {
@@ -295,8 +346,29 @@ export function CabinetRunPanel({
           sceneApi,
         })
       }
+
+      // An upper/lower set's wall run tracks this run's REAL height — keep
+      // it clear of the countertop after a plinth/carcass edit.
+      if (shouldSyncHeight || shouldSyncPosition) {
+        syncSetLinkWallRun({ baseRun: nextNode, sceneApi })
+      }
     },
     [modules, node],
+  )
+
+  const updateSetLink = useCallback(
+    (patch: Partial<NonNullable<CabinetNodeType['setLink']>>) => {
+      if (!node.setLink) return
+      const scene = useScene.getState()
+      const sceneApi = createSceneApi(useScene)
+      const nextSetLink = { ...node.setLink, ...patch }
+      scene.updateNode(node.id, { setLink: nextSetLink })
+      const baseRun = scene.nodes[nextSetLink.baseRunId]
+      if (baseRun?.type === 'cabinet') {
+        syncSetLinkWallRun({ baseRun, sceneApi })
+      }
+    },
+    [node],
   )
 
   const addModule = useCallback(
@@ -325,6 +397,62 @@ export function CabinetRunPanel({
       }
     },
     [node.id, setSelection],
+  )
+
+  const materials = useScene((s) => s.materials)
+  const countertopSwatch = useMemo(
+    () => countertopMaterialSwatch(node, materials),
+    [node, materials],
+  )
+  // Same entry point the command palette / 'P' shortcut use
+  // (`editor.mode.material-paint` in editor-commands.tsx): scope the paint
+  // target to this run's `countertop` slot first so the picker opens primed
+  // on the resolved current material instead of whatever was last painted.
+  const startCountertopPaint = useCallback(() => {
+    setSelection({ selectedIds: [node.id] })
+    const editor = useEditor.getState()
+    editor.setSelectedMaterialTarget({ nodeId: node.id, role: 'countertop' })
+    editor.primeMaterialPaintFromSelection()
+    editor.setPhase('structure')
+    editor.setStructureLayer('elements')
+    editor.setMode('material-paint')
+  }, [node.id, setSelection])
+
+  const [selectedCutoutId, setSelectedCutoutId] = useState<string | null>(null)
+  const cutouts = node.countertopCutouts
+  const selectedCutout = cutouts.find((cutout) => cutout.id === selectedCutoutId) ?? null
+
+  const updateCutouts = useCallback(
+    (next: CountertopCutout[]) => updateRun({ countertopCutouts: next }),
+    [updateRun],
+  )
+
+  const addCutout = useCallback(
+    (shape: CountertopCutout['shape']) => {
+      const cutout = newCountertopCutout(shape)
+      updateCutouts([...cutouts, cutout])
+      setSelectedCutoutId(cutout.id)
+    },
+    [cutouts, updateCutouts],
+  )
+
+  const removeCutout = useCallback(
+    (id: string) => {
+      updateCutouts(cutouts.filter((cutout) => cutout.id !== id))
+      setSelectedCutoutId((current) => (current === id ? null : current))
+    },
+    [cutouts, updateCutouts],
+  )
+
+  const patchSelectedCutout = useCallback(
+    (patch: Parameters<typeof patchCountertopCutout>[1]) => {
+      if (!selectedCutout) return
+      const id = selectedCutout.id
+      updateCutouts(
+        cutouts.map((cutout) => (cutout.id === id ? patchCountertopCutout(cutout, patch) : cutout)),
+      )
+    },
+    [cutouts, selectedCutout, updateCutouts],
   )
 
   return (
@@ -419,112 +547,303 @@ export function CabinetRunPanel({
               value={node.plinthHeight}
             />
           )}
-          <ToggleControl
-            checked={node.withCountertop}
-            label="Show countertop"
-            onChange={(checked) => updateRun({ withCountertop: checked })}
-          />
-          {node.withCountertop && (
+          {!isWallSetRun && (
             <>
-              <SliderControl
-                label="Countertop height"
-                max={0.08}
-                min={0.005}
-                onChange={(value) => updateRun({ countertopThickness: value })}
-                precision={3}
-                step={0.005}
-                unit="m"
-                value={node.countertopThickness}
+              <ToggleControl
+                checked={node.withCountertop}
+                label="Show countertop"
+                onChange={(checked) => updateRun({ withCountertop: checked })}
               />
-              <SliderControl
-                label="Countertop depth"
-                max={0.12}
-                min={0}
-                onChange={(value) => updateRun({ countertopOverhang: value })}
-                precision={2}
-                step={0.005}
-                unit="m"
-                value={node.countertopOverhang}
-              />
+              {node.withCountertop && (
+                <>
+                  <SliderControl
+                    label="Countertop height"
+                    max={0.08}
+                    min={0.005}
+                    onChange={(value) => updateRun({ countertopThickness: value })}
+                    precision={3}
+                    step={0.005}
+                    unit="m"
+                    value={node.countertopThickness}
+                  />
+                  <SliderControl
+                    label="Countertop depth"
+                    max={0.12}
+                    min={0}
+                    onChange={(value) => updateRun({ countertopOverhang: value })}
+                    precision={2}
+                    step={0.005}
+                    unit="m"
+                    value={node.countertopOverhang}
+                  />
+                  <button
+                    aria-label="Paint countertop"
+                    className="flex w-full items-center gap-2 rounded-lg border border-border/40 bg-[#252527] px-2 py-2 text-left transition-colors hover:bg-[#2c2c2e]"
+                    onClick={startCountertopPaint}
+                    type="button"
+                  >
+                    <span
+                      className="h-6 w-6 shrink-0 rounded-md border border-border/70"
+                      style={{ backgroundColor: countertopSwatch.color }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-medium text-foreground">
+                        {countertopSwatch.name}
+                      </span>
+                      <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Countertop material — click to paint
+                      </span>
+                    </span>
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
       </PanelSection>
 
-      <PanelSection title="Island & Bar">
-        <div className="space-y-2 px-1 pb-2">
-          {node.withCountertop && node.barLedge?.edge !== 'back' && (
+      {isWallSetRun && node.setLink && (
+        <PanelSection title="Wall Set">
+          <div className="space-y-2 px-1 pb-2">
             <SliderControl
-              label="Seating overhang"
-              max={0.45}
+              label="Gap above base"
+              max={1}
               min={0}
-              onChange={(value) => updateRun({ countertopBackOverhang: value })}
+              onChange={(value) => updateSetLink({ gap: value })}
               precision={2}
               step={0.05}
               unit="m"
-              value={node.countertopBackOverhang}
+              value={node.setLink.gap}
             />
-          )}
-          <ToggleControl
-            checked={node.withFinishedBack}
-            label="Finished back"
-            onChange={(checked) => updateRun({ withFinishedBack: checked })}
-          />
-          {node.withCountertop && (
-            <ToggleControl
-              checked={node.withWaterfall}
-              label="Waterfall ends"
-              onChange={(checked) => updateRun({ withWaterfall: checked })}
+            <SegmentedControl
+              onChange={(value) => updateSetLink({ anchor: value as 'lower' | 'upper' })}
+              options={[
+                { value: 'lower', label: 'Follow base' },
+                { value: 'upper', label: 'Fixed height' },
+              ]}
+              value={node.setLink.anchor}
             />
-          )}
-          <ToggleControl
-            checked={Boolean(node.barLedge)}
-            label="Bar counter"
-            onChange={(checked) =>
-              updateRun({
-                barLedge: checked ? { edge: 'back', height: 1.06, depth: 0.35 } : undefined,
-              })
-            }
-          />
-          {node.barLedge && (
-            <>
-              <SegmentedControl
+          </div>
+        </PanelSection>
+      )}
+
+      {node.withCountertop && !isWallSetRun && (
+        <PanelSection title="Countertop Cutouts">
+          <div className="flex flex-col gap-2 px-1 pb-2">
+            {cutouts.map((cutout) => {
+              const label = cutoutLabel(cutout)
+              return (
+                <div
+                  className="flex items-center justify-between rounded-lg border border-border/40 bg-[#252527] px-2 py-2"
+                  key={cutout.id}
+                >
+                  <button
+                    className="min-w-0 flex-1 text-left"
+                    onClick={() => setSelectedCutoutId(cutout.id)}
+                    type="button"
+                  >
+                    <div className="truncate text-xs font-medium text-foreground">
+                      {label.primary}
+                      {selectedCutout?.id === cutout.id ? ' •' : ''}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      {label.secondary}
+                    </div>
+                  </button>
+                  <button
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-red-500/20 bg-red-500/8 text-red-300 transition-colors hover:bg-red-500/15 hover:text-red-200"
+                    onClick={() => removeCutout(cutout.id)}
+                    type="button"
+                  >
+                    <Trash className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+          <div className="px-1 pb-1">
+            <div className="grid grid-cols-2 gap-2">
+              <ActionButton
+                icon={<Plus className="h-4 w-4" />}
+                label="Add rect"
+                onClick={() => addCutout('rect')}
+              />
+              <ActionButton
+                icon={<Plus className="h-4 w-4" />}
+                label="Add circle"
+                onClick={() => addCutout('circle')}
+              />
+            </div>
+          </div>
+
+          {selectedCutout && (
+            <div className="space-y-2 px-1 pb-2">
+              <div>
+                <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  Kind
+                </div>
+                <SegmentedControl
+                  onChange={(value) => patchSelectedCutout({ kind: value as CountertopCutoutKind })}
+                  options={COUNTERTOP_CUTOUT_KIND_OPTIONS}
+                  value={selectedCutout.kind}
+                />
+              </div>
+              <SliderControl
+                label="Position X"
+                max={3}
+                min={-3}
                 onChange={(value) =>
-                  updateRun({
-                    barLedge: { ...node.barLedge!, edge: value as 'back' | 'left' | 'right' },
-                  })
+                  patchSelectedCutout({ position: { ...selectedCutout.position, x: value } })
                 }
-                options={[
-                  { value: 'back', label: 'Back' },
-                  { value: 'left', label: 'Left' },
-                  { value: 'right', label: 'Right' },
-                ]}
-                value={node.barLedge.edge}
+                precision={3}
+                step={0.005}
+                unit="m"
+                value={selectedCutout.position.x}
               />
               <SliderControl
-                label="Bar height"
-                max={1.3}
-                min={0.9}
-                onChange={(value) => updateRun({ barLedge: { ...node.barLedge!, height: value } })}
-                precision={2}
-                step={0.01}
+                label="Position Z"
+                max={3}
+                min={-3}
+                onChange={(value) =>
+                  patchSelectedCutout({ position: { ...selectedCutout.position, z: value } })
+                }
+                precision={3}
+                step={0.005}
                 unit="m"
-                value={node.barLedge.height}
+                value={selectedCutout.position.z}
               />
-              <SliderControl
-                label="Bar depth"
-                max={0.5}
-                min={0.15}
-                onChange={(value) => updateRun({ barLedge: { ...node.barLedge!, depth: value } })}
-                precision={2}
-                step={0.01}
-                unit="m"
-                value={node.barLedge.depth}
-              />
-            </>
+              {selectedCutout.shape === 'circle' ? (
+                <SliderControl
+                  label="Radius"
+                  max={0.6}
+                  min={0.01}
+                  onChange={(value) => patchSelectedCutout({ radius: value })}
+                  precision={3}
+                  step={0.005}
+                  unit="m"
+                  value={selectedCutout.radius}
+                />
+              ) : (
+                <>
+                  <SliderControl
+                    label="Width"
+                    max={1.2}
+                    min={0.01}
+                    onChange={(value) =>
+                      patchSelectedCutout({ size: { ...selectedCutout.size, width: value } })
+                    }
+                    precision={3}
+                    step={0.005}
+                    unit="m"
+                    value={selectedCutout.size.width}
+                  />
+                  <SliderControl
+                    label="Depth"
+                    max={1.2}
+                    min={0.01}
+                    onChange={(value) =>
+                      patchSelectedCutout({ size: { ...selectedCutout.size, depth: value } })
+                    }
+                    precision={3}
+                    step={0.005}
+                    unit="m"
+                    value={selectedCutout.size.depth}
+                  />
+                  <SliderControl
+                    label="Corner radius"
+                    max={0.3}
+                    min={0}
+                    onChange={(value) => patchSelectedCutout({ cornerRadius: value })}
+                    precision={3}
+                    step={0.005}
+                    unit="m"
+                    value={selectedCutout.cornerRadius}
+                  />
+                </>
+              )}
+            </div>
           )}
-        </div>
-      </PanelSection>
+        </PanelSection>
+      )}
+
+      {!isWallSetRun && (
+        <PanelSection title="Island & Bar">
+          <div className="space-y-2 px-1 pb-2">
+            {node.withCountertop && node.barLedge?.edge !== 'back' && (
+              <SliderControl
+                label="Seating overhang"
+                max={0.45}
+                min={0}
+                onChange={(value) => updateRun({ countertopBackOverhang: value })}
+                precision={2}
+                step={0.05}
+                unit="m"
+                value={node.countertopBackOverhang}
+              />
+            )}
+            <ToggleControl
+              checked={node.withFinishedBack}
+              label="Finished back"
+              onChange={(checked) => updateRun({ withFinishedBack: checked })}
+            />
+            {node.withCountertop && (
+              <ToggleControl
+                checked={node.withWaterfall}
+                label="Waterfall ends"
+                onChange={(checked) => updateRun({ withWaterfall: checked })}
+              />
+            )}
+            <ToggleControl
+              checked={Boolean(node.barLedge)}
+              label="Bar counter"
+              onChange={(checked) =>
+                updateRun({
+                  barLedge: checked ? { edge: 'back', height: 1.06, depth: 0.35 } : undefined,
+                })
+              }
+            />
+            {node.barLedge && (
+              <>
+                <SegmentedControl
+                  onChange={(value) =>
+                    updateRun({
+                      barLedge: { ...node.barLedge!, edge: value as 'back' | 'left' | 'right' },
+                    })
+                  }
+                  options={[
+                    { value: 'back', label: 'Back' },
+                    { value: 'left', label: 'Left' },
+                    { value: 'right', label: 'Right' },
+                  ]}
+                  value={node.barLedge.edge}
+                />
+                <SliderControl
+                  label="Bar height"
+                  max={1.3}
+                  min={0.9}
+                  onChange={(value) =>
+                    updateRun({ barLedge: { ...node.barLedge!, height: value } })
+                  }
+                  precision={2}
+                  step={0.01}
+                  unit="m"
+                  value={node.barLedge.height}
+                />
+                <SliderControl
+                  label="Bar depth"
+                  max={0.5}
+                  min={0.15}
+                  onChange={(value) => updateRun({ barLedge: { ...node.barLedge!, depth: value } })}
+                  precision={2}
+                  step={0.01}
+                  unit="m"
+                  value={node.barLedge.depth}
+                />
+              </>
+            )}
+          </div>
+        </PanelSection>
+      )}
 
       <PanelSection title="Fronts">
         <div className="space-y-2 px-1 pb-2">

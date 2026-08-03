@@ -1,7 +1,9 @@
 import type { CabinetNode, GeometryContext } from '@pascal-app/core'
 import type { ColorPreset, RenderShading } from '@pascal-app/viewer'
-import { Group } from 'three'
+import { Group, type Mesh } from 'three'
+import { buildFurnitureCabinetGeometry } from './furniture-geometry'
 import { addCooktopCompartment } from './geometry/cooktop'
+import { cooktopCutterGeometry, countertopCutoutGeometry } from './geometry/countertop-cutouts'
 import { addDishwasherCompartment } from './geometry/dishwasher'
 import { addFridgeCompartment } from './geometry/fridge'
 import {
@@ -15,13 +17,20 @@ import { addApplianceCompartment } from './geometry/oven-microwave'
 import { addPullOutPantryCompartment } from './geometry/pantry'
 import { buildCabinetRunGeometry } from './geometry/run'
 import { addBox, type CabinetGeometryNode, getCabinetSlotMaterials } from './geometry/shared'
-import { addSinkCompartment, cutSinkIntoCountertop, sinkBowls } from './geometry/sink'
+import {
+  addSinkCompartment,
+  type CountertopCutterSpec,
+  cutSinkIntoCountertop,
+  sinkBowls,
+  subtractCuttersFromCountertop,
+} from './geometry/sink'
 import {
   type CabinetHoodCompartmentType,
   compartmentDoorType,
   compartmentDrawerCount,
   compartmentShelfCount,
   compartmentSinkLayout,
+  isCooktopCompartmentType,
   isHoodCompartmentType,
   normalizeCabinetStack,
   stackForCabinet,
@@ -41,6 +50,9 @@ export function buildCabinetGeometry(
   colorPreset: ColorPreset = 'clay',
   sceneTheme?: string,
 ): Group {
+  if (node.type === 'cabinet' && node.furniture) {
+    return buildFurnitureCabinetGeometry(node, ctx, shading, textures, colorPreset, sceneTheme)
+  }
   if (node.type === 'cabinet') {
     const run = buildCabinetRunGeometry(node, ctx, shading, textures, colorPreset, sceneTheme)
     if (run) return run
@@ -211,6 +223,7 @@ export function buildCabinetGeometry(
   const sinkBowlSpecs = sinkRow
     ? sinkBowls(compartmentSinkLayout(sinkRow.compartment), innerWidth, depth)
     : null
+  const cooktopRow = rows.find((row) => isCooktopCompartmentType(row.compartment.type))
 
   if (!openLeft) {
     addBox(
@@ -273,11 +286,35 @@ export function buildCabinetGeometry(
       'cabinet-countertop',
       'countertop',
     )
+    let currentCountertop: Mesh = countertop
     if (sinkBowlSpecs) {
-      group.remove(countertop)
-      const cut = cutSinkIntoCountertop(countertop, sinkBowlSpecs, 0, 0, countertopThickness)
-      countertop.geometry.dispose()
+      group.remove(currentCountertop)
+      const cut = cutSinkIntoCountertop(currentCountertop, sinkBowlSpecs, 0, 0, countertopThickness)
+      currentCountertop.geometry.dispose()
       group.add(cut)
+      currentCountertop = cut
+    }
+
+    // A cooktop cuts its surface footprint out of the slab too, and any
+    // freeform openings declared on the module — reusing the same CSG
+    // helper the sink cut uses above. Sink/cooktop hardware always renders
+    // centered on the module (x=0, z=0); cutouts are relative to the slab's
+    // own bounding-box center (the `0.01` z-offset above).
+    const extraCutters: CountertopCutterSpec[] = [
+      ...(cooktopRow
+        ? [{ geometry: cooktopCutterGeometry(node, countertopThickness), x: 0, z: 0 }]
+        : []),
+      ...node.countertopCutouts.map((cutout) => ({
+        geometry: countertopCutoutGeometry(cutout, countertopThickness),
+        x: cutout.position.x,
+        z: 0.01 + cutout.position.z,
+      })),
+    ]
+    if (extraCutters.length > 0) {
+      group.remove(currentCountertop)
+      const next = subtractCuttersFromCountertop(currentCountertop, extraCutters)
+      currentCountertop.geometry.dispose()
+      group.add(next)
     }
   }
   if (sinkBowlSpecs && sinkRow) {

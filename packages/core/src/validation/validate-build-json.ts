@@ -1,4 +1,5 @@
 import { nodeRegistry } from '../registry'
+import { SceneMaterial } from '../schema/scene-material'
 import { AnyNode, type AnyNodeType } from '../schema/types'
 import { healSceneNodes } from '../utils/heal-scene-graph'
 
@@ -23,6 +24,8 @@ export type BuildStats = {
 export type ParsedBuildJson = {
   nodes: Record<string, unknown>
   rootNodeIds: string[]
+  collections?: Record<string, unknown>
+  materials?: Record<string, unknown>
   installedPlugins?: string[]
 }
 
@@ -110,6 +113,8 @@ export function validateBuildJson(input: unknown): ValidateBuildJsonResult {
 
   const nodesRaw = input.nodes
   const rootNodeIdsRaw = input.rootNodeIds
+  const collectionsRaw = input.collections
+  const materialsRaw = input.materials
   const installedPluginsRaw = input.installedPlugins
 
   if (!isPlainObject(nodesRaw)) {
@@ -206,6 +211,41 @@ export function validateBuildJson(input: unknown): ValidateBuildJsonResult {
   let validRootCount = 0
   let mismatchedKeyCount = 0
   let schemaFailureCount = 0
+  const collections = isPlainObject(collectionsRaw) ? collectionsRaw : undefined
+  const materials: Record<string, unknown> = {}
+
+  if (collectionsRaw !== undefined && collections === undefined) {
+    warnings.push({
+      severity: 'warning',
+      code: 'invalid_collections',
+      message: 'Ignored invalid "collections" — expected an object.',
+    })
+  }
+
+  if (materialsRaw !== undefined && !isPlainObject(materialsRaw)) {
+    warnings.push({
+      severity: 'warning',
+      code: 'invalid_materials',
+      message: 'Ignored invalid "materials" — expected an object.',
+    })
+  } else if (isPlainObject(materialsRaw)) {
+    for (const [id, value] of Object.entries(materialsRaw)) {
+      const parseResult = SceneMaterial.safeParse(value)
+      if (parseResult.success) {
+        materials[id] = parseResult.data
+        continue
+      }
+
+      schemaFailureCount += 1
+      const issue = parseResult.error.issues[0]
+      schemaIssues.push({
+        nodeId: id,
+        nodeType: 'scene-material',
+        path: issue ? issue.path.join('.') : '',
+        message: issue ? issue.message : 'schema mismatch',
+      })
+    }
+  }
 
   for (const [key, value] of Object.entries(nodes)) {
     if (!isPlainObject(value)) {
@@ -372,6 +412,8 @@ export function validateBuildJson(input: unknown): ValidateBuildJsonResult {
       ? {
           nodes,
           rootNodeIds,
+          ...(collections ? { collections } : {}),
+          ...(materialsRaw !== undefined && isPlainObject(materialsRaw) ? { materials } : {}),
           ...(installedPlugins ? { installedPlugins } : {}),
         }
       : null,

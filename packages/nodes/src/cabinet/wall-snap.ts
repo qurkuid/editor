@@ -292,6 +292,10 @@ export function resolveCabinetModuleWallSnapLocal({
   parentLevelId: AnyNodeId
   run: Extract<AnyNode, { type: 'cabinet' }>
 }): [number, number, number] | null {
+  // A two-sided island's runs are freestanding by definition — the linked
+  // pair would tear apart if one side snapped to a wall independently.
+  if (run.islandLink) return null
+
   const planCenter = runLocalToPlan(run, candidateLocal)
   const hit = findClosestWallInPlan([planCenter[0], planCenter[2]], nodes, parentLevelId)
   if (!hit) return null
@@ -337,6 +341,10 @@ export function resolveCabinetRunWallSnap({
   nodes: Record<AnyNodeId, AnyNode>
   parentLevelId: AnyNodeId
 }): [number, number, number] | null {
+  // A two-sided island's runs are freestanding by definition — the linked
+  // pair would tear apart if one side snapped to a wall independently.
+  if (cabinet.islandLink) return null
+
   const run = cabinetRunWidthAndCenterOffset(cabinet, nodes)
   const axisX = Math.cos(cabinet.rotation)
   const axisZ = -Math.sin(cabinet.rotation)

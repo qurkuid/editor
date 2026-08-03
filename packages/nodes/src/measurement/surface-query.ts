@@ -274,14 +274,17 @@ function isMeasurementSurfaceEligible(object: Object3D): boolean {
   return true
 }
 
-function nearestRegisteredOwner(
+function nearestSemanticOwner(
   object: Object3D,
   ownerByObject: Map<Object3D, string>,
+  nodes: Record<string, { type: string } | undefined>,
 ): string | null {
   let current: Object3D | null = object
   while (current) {
-    const owner = ownerByObject.get(current)
-    if (owner) return owner
+    const registered = ownerByObject.get(current)
+    if (registered) return registered
+    const generated = current.userData.pascalNodeId
+    if (typeof generated === 'string' && nodes[generated]) return generated
     current = current.parent
   }
   return null
@@ -366,7 +369,7 @@ function collectVisibleMeasurementSurfaceHits(
   const hits: WorldSurfaceHit[] = []
   for (const intersection of intersections) {
     if (!intersection.face) continue
-    const targetNodeId = nearestRegisteredOwner(intersection.object, context.ownerByObject)
+    const targetNodeId = nearestSemanticOwner(intersection.object, context.ownerByObject, nodes)
     const targetType = targetNodeId ? nodes[targetNodeId]?.type : undefined
     if (
       !isEffectivelyVisible(intersection.object) ||

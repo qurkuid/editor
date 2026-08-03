@@ -17,13 +17,13 @@ const DRAG_MARGIN = 8
 // Pointer travel (px) below which a header press is treated as a click
 // (toggles collapse) rather than a drag.
 const CLICK_SLOP = 4
-let desktopInspectorCollapsed = true
+let desktopInspectorCollapsed = false
 
 /** Forget the shared expanded state. Called when the last selection clears so
  * a fresh selection opens the inspector collapsed — the sharing is only meant
  * to survive swaps between panels (roof ↔ segment), not a close/reopen. */
 export function resetDesktopInspectorCollapsed() {
-  desktopInspectorCollapsed = true
+  desktopInspectorCollapsed = false
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -92,8 +92,8 @@ export function PanelWrapper({
 
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // The whole panel is collapsed to just its header by default; the chevron
-  // expands it to reveal the inspector body. Keep the desktop value shared
+  // The whole panel opens with its controls visible; the chevron can collapse
+  // it to just the header. Keep the desktop value shared
   // across inspector swaps (roof ↔ segment, etc.) so navigating between
   // related panels preserves whether the user left the inspector open.
   const [collapsed, setCollapsedState] = useState(desktopInspectorCollapsed)

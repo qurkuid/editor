@@ -1,17 +1,19 @@
 'use client'
 
 import { type GuideNode, useRegistry } from '@pascal-app/core'
-import { useAssetUrl, useViewer } from '@pascal-app/viewer'
+import { useAssetUrl, useNodeEvents, useViewer } from '@pascal-app/viewer'
 import { useLoader } from '@react-three/fiber'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
-import { DoubleSide, type Group, PlaneGeometry, type Texture, TextureLoader } from 'three'
+import { DoubleSide, type Group, type Texture, TextureLoader } from 'three'
 import { float, texture } from 'three/tsl'
 import { MeshBasicNodeMaterial } from 'three/webgpu'
+import { createGuidePlaneGeometry } from './geometry'
 
 export const GuideRenderer = ({ node }: { node: GuideNode }) => {
   const showGuides = useViewer((s) => s.showGuides)
-  const ref = useRef<Group>(null!)
+  const ref = useRef<Group>(null)
   useRegistry(node.id, 'guide', ref)
+  const events = useNodeEvents(node, 'guide')
 
   const resolvedUrl = useAssetUrl(node.url)
 
@@ -19,19 +21,30 @@ export const GuideRenderer = ({ node }: { node: GuideNode }) => {
     <group
       position={node.position}
       ref={ref}
-      rotation={[0, node.rotation[1], 0]}
+      rotation={node.rotation}
       visible={showGuides && node.visible !== false}
+      {...events}
     >
       {resolvedUrl && (
         <Suspense>
-          <GuidePlane opacity={node.opacity} scale={node.scale} url={resolvedUrl} />
+          <GuidePlane
+            opacity={node.opacity}
+            perspectiveCorners={node.perspectiveCorners}
+            scale={node.scale}
+            url={resolvedUrl}
+          />
         </Suspense>
       )}
     </group>
   )
 }
 
-const GuidePlane = ({ url, scale, opacity }: { url: string; scale: number; opacity: number }) => {
+const GuidePlane = ({
+  url,
+  scale,
+  opacity,
+  perspectiveCorners,
+}: Pick<GuideNode, 'opacity' | 'perspectiveCorners' | 'scale'> & { readonly url: string }) => {
   const tex = useLoader(TextureLoader, url) as Texture
 
   // Pass the geometry as a prop. JSX-child `<planeGeometry>` plus
@@ -60,12 +73,16 @@ const GuidePlane = ({ url, scale, opacity }: { url: string; scale: number; opaci
       depthWrite: false,
     })
 
-    const geom = new PlaneGeometry(planeWidth, planeHeight)
+    const geom = createGuidePlaneGeometry({
+      height: planeHeight,
+      perspectiveCorners,
+      width: planeWidth,
+    })
     geom.boundingBox = null
     geom.boundingSphere = null
 
     return { geometry: geom, material: mat }
-  }, [tex, scale, opacity])
+  }, [opacity, perspectiveCorners, scale, tex])
   useEffect(
     () => () => {
       geometry.dispose()
@@ -79,7 +96,6 @@ const GuidePlane = ({ url, scale, opacity }: { url: string; scale: number; opaci
       frustumCulled={false}
       geometry={geometry}
       material={material}
-      raycast={() => {}}
       rotation={[-Math.PI / 2, 0, 0]}
     />
   )

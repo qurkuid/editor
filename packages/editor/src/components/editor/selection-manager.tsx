@@ -903,6 +903,17 @@ export const SelectionManager = () => {
                   // single-surface case keeps the kind's own commit (covers
                   // non-slot kinds too).
                   if (scopeTargets.length > 1) {
+                    const sameNode = scopeTargets.every((target) => target.nodeId === node.id)
+                    if (sameNode && paintCap.commitRoles) {
+                      paintCap.commitRoles({
+                        node,
+                        roles: scopeTargets.map((target) => target.role),
+                        material: paintSpec.material,
+                        materialPreset: paintSpec.materialPreset,
+                        role,
+                      })
+                      return
+                    }
                     commitPaintScopeFanout(
                       scopeTargets,
                       paintSpec.material,

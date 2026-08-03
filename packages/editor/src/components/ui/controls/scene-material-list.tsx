@@ -15,6 +15,7 @@ import { Button } from '../primitives/button'
 import { Input } from '../primitives/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../primitives/tooltip'
 import { MaterialPropertiesEditor } from './material-properties-editor'
+import { SceneMaterialSeamlessAction } from './scene-material-seamless-action'
 
 type SlotRecord = Record<string, string | undefined>
 
@@ -179,11 +180,12 @@ function SceneMaterialRow({
                     sourceTarget: activePaintTarget,
                   })
                 }
-                size="icon-sm"
+                size="sm"
                 type="button"
-                variant="outline"
+                variant={isActive ? 'default' : 'outline'}
               >
                 <Paintbrush />
+                {isActive ? 'Selected' : 'Use'}
               </Button>
             </TooltipTrigger>
             <TooltipContent>Paint with</TooltipContent>
@@ -233,6 +235,12 @@ function SceneMaterialRow({
           </Tooltip>
         </div>
       </div>
+
+      <SceneMaterialSeamlessAction
+        id={id}
+        material={sceneMaterial.material}
+        onChange={(material) => updateSceneMaterial(id, { material })}
+      />
 
       {isEditingMaterial ? (
         <div className="mt-3 border-border/60 border-t pt-3">

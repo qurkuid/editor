@@ -123,6 +123,11 @@ describe('photo_to_scene', () => {
     const walls = allNodes.filter((n) => n.type === 'wall')
     const zones = allNodes.filter((n) => n.type === 'zone')
     expect(walls.length).toBe(4)
+    expect(
+      walls[0]?.type === 'wall'
+        ? walls[0].faceBands?.construction?.upper?.layers.map((layer) => layer.kind)
+        : [],
+    ).toEqual(['timber-stud', 'cavity', 'gypsum-board', 'finish'])
     expect(zones.length).toBe(1)
 
     // Scene was persisted in the store.

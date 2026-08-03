@@ -23,6 +23,10 @@ import { ViewerOverlay } from '../../components/viewer-overlay'
 import { ViewerZoneSystem } from '../../components/viewer-zone-system'
 import { type SaveStatus, useAutoSave } from '../../hooks/use-auto-save'
 import { useKeyboard } from '../../hooks/use-keyboard'
+import {
+  connectEditorHostIntegration,
+  type EditorHostIntegrationAdapter,
+} from '../../lib/host-integration'
 import { type ActivePaintMaterial, hasActivePaintMaterial } from '../../lib/material-paint'
 import {
   applySceneGraphToEditor,
@@ -60,6 +64,7 @@ import type { SidebarTab } from '../ui/sidebar/tab-bar'
 import { useHostPanels } from '../ui/sidebar/use-plugin-panels'
 import { CustomCameraControls } from './custom-camera-controls'
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog'
+import { DraftLengthHud } from './draft-length-hud'
 import { EditorLayoutV2 } from './editor-layout-v2'
 import { ExportManager } from './export-manager'
 import { FenceTangentLines3D } from './fence-tangent-lines-3d'
@@ -169,6 +174,7 @@ export interface EditorProps {
   floorplanSceneSlot?: ReactNode
 
   projectId?: string | null
+  integrationAdapter?: EditorHostIntegrationAdapter | null
 
   // Persistence — defaults to localStorage when omitted
   onLoad?: () => Promise<SceneGraph | null>
@@ -1040,6 +1046,7 @@ const ViewerCanvas = memo(function ViewerCanvas({
           2d / 3d / split alike) can anchor to this container's bottom-left. */}
       <div className="relative flex h-full" ref={setViewerAreaNode}>
         <QuickMeasurementHud />
+        <DraftLengthHud />
         <DeleteConfirmationDialog />
         {/* 2D floorplan — always mounted once shown, hidden via CSS to preserve state */}
         <div
@@ -1122,6 +1129,7 @@ export default function Editor({
   viewerSceneSlot,
   floorplanSceneSlot,
   projectId,
+  integrationAdapter,
   onLoad,
   onSave,
   onDirty,
@@ -1170,6 +1178,28 @@ export default function Editor({
     const teardown = initializeEditorRuntime()
     return teardown
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    let dispose: (() => void) | undefined
+
+    void connectEditorHostIntegration(integrationAdapter)
+      .then((session) => {
+        if (cancelled) {
+          session.dispose()
+          return
+        }
+        dispose = session.dispose
+      })
+      .catch((error: unknown) => {
+        console.error('[editor] host integration failed to initialize', error)
+      })
+
+    return () => {
+      cancelled = true
+      dispose?.()
+    }
+  }, [integrationAdapter])
 
   useEffect(() => {
     void useEditor.persist.rehydrate()

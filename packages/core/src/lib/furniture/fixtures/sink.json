@@ -1,0 +1,55 @@
+{
+  "schema_version": 0.5,
+  "type": "sink",
+  "W": 1800,
+  "H": 850,
+  "D": 600,
+  "sink": {
+    "enabled": true,
+    "preset": "calmforte_860",
+    "cutoutW": 828,
+    "cutoutD": 432,
+    "cutoutR": 24,
+    "bowlH": 200
+  },
+  "induction": {
+    "enabled": true,
+    "preset": "samsung_3",
+    "width": 600,
+    "depth": 522,
+    "height": 48
+  },
+  "bays": [
+    {
+      "width": 900,
+      "base": { "type": "leg", "height": 150 },
+      "kickplate": true,
+      "tiers": [
+        {
+          "height": 700,
+          "door": "hinged2",
+          "face": "front",
+          "tierMarkers": {
+            "sinkBowl": { "enabled": true, "x": 100, "y": 100, "w": 828, "d": 432, "r": 24 },
+            "faucet": { "enabled": true, "x": 500, "y": 50 }
+          }
+        }
+      ]
+    },
+    {
+      "width": 900,
+      "base": { "type": "leg", "height": 150 },
+      "kickplate": true,
+      "tiers": [
+        {
+          "height": 700,
+          "door": "hinged2",
+          "face": "front",
+          "tierMarkers": {
+            "induction": { "enabled": true, "x": 100, "y": 100, "w": 600, "d": 522, "model": "samsung_3" }
+          }
+        }
+      ]
+    }
+  ]
+}

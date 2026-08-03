@@ -99,6 +99,7 @@ export {
   clearMaterialCache,
   createDefaultMaterial,
   createMaterial,
+  createMaterialFromPreset,
   createMaterialFromPresetRef,
   createSurfaceRoleMaterial,
   DEFAULT_CEILING_MATERIAL,

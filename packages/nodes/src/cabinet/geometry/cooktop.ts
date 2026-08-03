@@ -110,6 +110,20 @@ export function inductionZones(layout: CooktopLayout): InductionZoneSpec[] {
     : INDUCTION_ZONE_LAYOUTS['induction-4zone']
 }
 
+/**
+ * Frame/surface footprint a cooktop draws for a given carcass width/depth.
+ * Single source of truth for the visible glass/ceramic surface AND the
+ * countertop opening it sits in — `geometry/countertop-cutouts.ts` cuts the
+ * surface footprint out of the slab so the two never drift apart.
+ */
+export function cooktopFootprint(node: { width: number; depth: number }) {
+  const frameWidth = Math.max(0.32, Math.min(node.width - 0.01, 0.76))
+  const frameDepth = Math.max(0.28, Math.min(node.depth - 0.04, 0.53))
+  const surfaceWidth = Math.max(0.28, frameWidth - 0.026)
+  const surfaceDepth = Math.max(0.24, frameDepth - 0.026)
+  return { frameWidth, frameDepth, surfaceWidth, surfaceDepth, cutoutCornerRadius: 0.012 }
+}
+
 function addCooktopFrameBorder(
   group: Group,
   name: string,
@@ -425,10 +439,7 @@ export function addCooktopCompartment(
   const burnersOn = activeBurners.size > 0 || compartmentCooktopBurnersOn(compartment)
   const name =
     type === 'cooktop-gas' ? `cabinet-cooktop-gas-${index}` : `cabinet-cooktop-induction-${index}`
-  const frameWidth = Math.max(0.32, Math.min(node.width - 0.01, 0.76))
-  const frameDepth = Math.max(0.28, Math.min(node.depth - 0.04, 0.53))
-  const surfaceWidth = Math.max(0.28, frameWidth - 0.026)
-  const surfaceDepth = Math.max(0.24, frameDepth - 0.026)
+  const { frameWidth, frameDepth, surfaceWidth, surfaceDepth } = cooktopFootprint(node)
   const surfaceThickness = 0.012
   const surfaceY = topY + surfaceThickness / 2 - 0.002
   addCooktopFrameBorder(group, name, frameWidth, frameDepth, topY + 0.006)

@@ -1,0 +1,58 @@
+export {
+  type FurnitureAssembly,
+  FurnitureAssemblySchema,
+  type FurnitureBay,
+  FurnitureBaySchema,
+  type FurnitureFixture,
+  FurnitureFixtureSchema,
+  type FurnitureTier,
+  FurnitureTierSchema,
+} from '../../schema/nodes/furniture'
+export {
+  buildFurnitureAssembly,
+  type FurnitureAssemblyBounds,
+  type FurnitureAssemblyOptions,
+  type FurnitureAssemblyPart,
+  type FurnitureAssemblyPartKind,
+  type FurnitureAssemblyPartShape,
+  type FurnitureAssemblyResult,
+  type FurnitureAssemblyWarning,
+  type FurnitureAssemblyWarningCode,
+} from './assembly'
+export {
+  type FurnitureBuilderImportResult,
+  type FurnitureImportWarning,
+  type FurnitureImportWarningCode,
+  importFurnitureBuilder,
+  importFurnitureBuilderJson,
+} from './import-furniture-builder'
+export {
+  FURNITURE_ASSEMBLY_SCHEMA_VERSION,
+  type FurnitureNormalizationInput,
+  metresToMillimetres,
+  millimetresToMetres,
+  normalizeFurniture,
+  normalizeFurnitureAssembly,
+} from './normalize'
+export {
+  type CreateDefaultFurnitureAssemblyOptions,
+  createDefaultFurnitureAssembly,
+  type DeleteFurnitureBayOptions,
+  type DeleteFurnitureTierOptions,
+  deleteFurnitureBay,
+  deleteFurnitureTier,
+  type InsertFurnitureBayOptions,
+  type InsertFurnitureTierOptions,
+  insertFurnitureBay,
+  insertFurnitureTier,
+  type ResizeFurnitureBayOptions,
+  type ResizeFurnitureTierOptions,
+  resizeFurnitureAssembly,
+  resizeFurnitureBay,
+  resizeFurnitureTier,
+  type SetFurnitureTierFrontOptions,
+  type SetFurnitureTierInteriorOptions,
+  setFurnitureKind,
+  setFurnitureTierFront,
+  setFurnitureTierInterior,
+} from './operations'

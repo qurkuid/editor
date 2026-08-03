@@ -109,6 +109,18 @@ describe('createWallOnCurrentLevel', () => {
     expect(levelWalls()).toHaveLength(2)
   })
 
+  test('new walls start with studs, gypsum, wallpaper, and an explicit cavity', () => {
+    const created = createWallOnCurrentLevel([2, 2], [3, 2])
+
+    expect(created?.faceBands?.construction?.upper?.layers.map((layer) => layer.kind)).toEqual([
+      'timber-stud',
+      'cavity',
+      'gypsum-board',
+      'finish',
+    ])
+    expect(created?.thickness).toBeCloseTo(0.1)
+  })
+
   test('committed wall preserves the ghost construction elevation on ground', () => {
     const created = createWallOnCurrentLevel([2, 2], [3, 2], {
       supportCap: 1.75,

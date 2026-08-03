@@ -4,17 +4,37 @@ import type {
   AnyNodeId,
   CabinetModuleNode as CabinetModuleNodeType,
   CabinetNode as CabinetNodeType,
+  FurnitureAssembly,
+  FurnitureFront,
+  FurnitureKind,
 } from '@pascal-app/core'
-import { createSceneApi, useScene } from '@pascal-app/core'
+import {
+  createDefaultFurnitureAssembly,
+  createSceneApi,
+  deleteFurnitureBay,
+  deleteFurnitureTier,
+  insertFurnitureBay,
+  insertFurnitureTier,
+  resizeFurnitureAssembly,
+  resizeFurnitureBay,
+  resizeFurnitureTier,
+  setFurnitureKind,
+  setFurnitureTierFront,
+  setFurnitureTierInterior,
+  useScene,
+} from '@pascal-app/core'
 import {
   ActionButton,
+  getLinearUnitLabel,
+  linearControlValueToMeters,
+  metersToLinearUnit,
   PanelSection,
   PanelWrapper,
   SegmentedControl,
   SliderControl,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
-import { Pause, Play, Plus } from 'lucide-react'
+import { Minus, Pause, Play, Plus } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { CompartmentCard } from './compartment-card'
@@ -83,16 +103,344 @@ const CABINET_TIER_OPTIONS = [
   { value: 'tall', label: 'Tall Cabinet' },
 ] as const
 
+const FURNITURE_KIND_OPTIONS: Array<{ value: FurnitureKind; label: string }> = [
+  { value: 'wardrobe', label: 'Wardrobe' },
+  { value: 'base-run', label: 'Base' },
+  { value: 'upper-run', label: 'Upper' },
+  { value: 'tall', label: 'Tall' },
+  { value: 'island', label: 'Island' },
+  { value: 'set', label: 'Set' },
+  { value: 'sink', label: 'Sink' },
+]
+
+const FURNITURE_FRONT_KIND_OPTIONS: Array<{ value: FurnitureFront['kind']; label: string }> = [
+  { value: 'open', label: 'Open' },
+  { value: 'hinged', label: 'Hinged' },
+  { value: 'drawer', label: 'Drawer' },
+  { value: 'flap', label: 'Flap' },
+  { value: 'sliding', label: 'Sliding' },
+  { value: 'pull-out', label: 'Pull-out' },
+]
+
+const FURNITURE_HINGED_LEAVES_OPTIONS = [
+  { value: '1', label: '1 leaf' },
+  { value: '2', label: '2 leaves' },
+] as const
+
+const FURNITURE_SLIDING_LEAVES_OPTIONS = [
+  { value: '2', label: '2' },
+  { value: '3', label: '3' },
+  { value: '4', label: '4' },
+] as const
+
+const FURNITURE_FLAP_DIRECTION_OPTIONS = [
+  { value: 'up', label: 'Up' },
+  { value: 'down', label: 'Down' },
+] as const
+
+const FURNITURE_PULL_OUT_STYLE_OPTIONS = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'spice', label: 'Spice' },
+  { value: 'pantry', label: 'Pantry' },
+] as const
+
 const EMPTY_MODULES: CabinetModuleNodeType[] = []
 const EMPTY_MODULE_IDS: AnyNodeId[] = []
 
 const PRESET_BUTTON_CLASS =
   'flex h-9 items-center justify-center rounded-md border border-border/40 bg-[#252527] px-3 py-2 text-center text-xs font-medium text-foreground transition-colors hover:border-border/70 hover:bg-[#303033]'
 
+type FurnitureNavigation = {
+  bayId: string | null
+  tierId: string | null
+  editingInterior: boolean
+  editingFront: boolean
+}
+
+export type FurnitureInteriorDraft = {
+  shelfCount: number
+  hanger: boolean
+}
+
+export type FurnitureInteriorDraftAction =
+  | 'decreaseShelfCount'
+  | 'increaseShelfCount'
+  | 'toggleHanger'
+
+export function reduceFurnitureInteriorDraft(
+  draft: FurnitureInteriorDraft,
+  action: FurnitureInteriorDraftAction,
+): FurnitureInteriorDraft {
+  if (action === 'decreaseShelfCount') {
+    return { ...draft, shelfCount: Math.max(0, draft.shelfCount - 1) }
+  }
+  if (action === 'increaseShelfCount') {
+    return { ...draft, shelfCount: Math.min(8, draft.shelfCount + 1) }
+  }
+  return { ...draft, hanger: !draft.hanger }
+}
+
+const INITIAL_FURNITURE_NAVIGATION: FurnitureNavigation = {
+  bayId: null,
+  tierId: null,
+  editingInterior: false,
+  editingFront: false,
+}
+
+export type FurnitureFrontDraftAction =
+  | { type: 'setKind'; kind: FurnitureFront['kind'] }
+  | { type: 'setLeaves'; leaves: number }
+  | { type: 'setGlass'; glass: boolean }
+  | { type: 'setDrawerCount'; count: number }
+  | { type: 'setFlapDirection'; direction: 'up' | 'down' }
+  | { type: 'setPullOutStyle'; style: 'standard' | 'spice' | 'pantry' }
+
+function createFurnitureFrontDraft(
+  kind: FurnitureFront['kind'],
+  previous: FurnitureFront,
+): FurnitureFront {
+  const appearance = { color: previous.color, materialId: previous.materialId }
+  if (kind === 'open') return { kind, ...appearance }
+  if (kind === 'hinged') return { kind, leaves: 2, glass: false, ...appearance }
+  if (kind === 'drawer') return { kind, count: 1, ...appearance }
+  if (kind === 'flap') return { kind, direction: 'up', ...appearance }
+  if (kind === 'sliding') return { kind, leaves: 2, ...appearance }
+  return { kind, style: 'standard', ...appearance }
+}
+
+export function reduceFurnitureFrontDraft(
+  draft: FurnitureFront,
+  action: FurnitureFrontDraftAction,
+): FurnitureFront {
+  if (action.type === 'setKind') return createFurnitureFrontDraft(action.kind, draft)
+  if (action.type === 'setLeaves' && draft.kind === 'hinged') {
+    return { ...draft, leaves: Math.min(2, Math.max(1, action.leaves)) }
+  }
+  if (action.type === 'setLeaves' && draft.kind === 'sliding') {
+    return { ...draft, leaves: Math.min(4, Math.max(2, action.leaves)) }
+  }
+  if (action.type === 'setGlass' && draft.kind === 'hinged') {
+    return { ...draft, glass: action.glass }
+  }
+  if (action.type === 'setDrawerCount' && draft.kind === 'drawer') {
+    return { ...draft, count: Math.min(6, Math.max(1, action.count)) }
+  }
+  if (action.type === 'setFlapDirection' && draft.kind === 'flap') {
+    return { ...draft, direction: action.direction }
+  }
+  if (action.type === 'setPullOutStyle' && draft.kind === 'pull-out') {
+    return { ...draft, style: action.style }
+  }
+  return draft
+}
+
+export function FurnitureTierInteriorControls({
+  draft,
+  onDraftChange,
+  onCancel,
+  onApply,
+}: {
+  draft: FurnitureInteriorDraft
+  onDraftChange: (action: FurnitureInteriorDraftAction) => void
+  onCancel: () => void
+  onApply: () => void
+}) {
+  return (
+    <div className="space-y-3 px-1 pb-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs">Shelf count</span>
+        <div className="flex items-center gap-1 rounded-md border border-border/50 p-1">
+          <button
+            aria-label="Decrease shelf count"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
+            disabled={draft.shelfCount === 0}
+            onClick={() => onDraftChange('decreaseShelfCount')}
+            type="button"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+          <span aria-live="polite" className="w-5 text-center text-xs">
+            {draft.shelfCount}
+          </span>
+          <button
+            aria-label="Increase shelf count"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
+            disabled={draft.shelfCount === 8}
+            onClick={() => onDraftChange('increaseShelfCount')}
+            type="button"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <button
+        aria-pressed={draft.hanger}
+        className="flex h-9 w-full items-center justify-between rounded-md border border-border/50 bg-[#2C2C2E] px-3 text-xs hover:bg-[#3e3e3e]"
+        onClick={() => onDraftChange('toggleHanger')}
+        type="button"
+      >
+        <span>Hanger rod</span>
+        <span className="text-muted-foreground">{draft.hanger ? 'On' : 'Off'}</span>
+      </button>
+      <div className="flex gap-2">
+        <ActionButton label="Cancel" onClick={onCancel} />
+        <ActionButton label="Apply" onClick={onApply} />
+      </div>
+      <p className="text-[10px] text-muted-foreground">Enter to apply · Escape to cancel</p>
+    </div>
+  )
+}
+
+export function FurnitureTierFrontControls({
+  draft,
+  onDraftChange,
+  onCancel,
+  onApply,
+}: {
+  draft: FurnitureFront
+  onDraftChange: (action: FurnitureFrontDraftAction) => void
+  onCancel: () => void
+  onApply: () => void
+}) {
+  return (
+    <div className="space-y-3 px-1 pb-2">
+      <div>
+        <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+          Kind
+        </div>
+        <SegmentedControl
+          onChange={(value) =>
+            onDraftChange({ type: 'setKind', kind: value as FurnitureFront['kind'] })
+          }
+          options={FURNITURE_FRONT_KIND_OPTIONS}
+          value={draft.kind}
+        />
+      </div>
+      {draft.kind === 'hinged' && (
+        <>
+          <div>
+            <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+              Leaves
+            </div>
+            <SegmentedControl
+              onChange={(value) => onDraftChange({ type: 'setLeaves', leaves: Number(value) })}
+              options={FURNITURE_HINGED_LEAVES_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+              value={String(draft.leaves)}
+            />
+          </div>
+          <button
+            aria-pressed={draft.glass}
+            className="flex h-9 w-full items-center justify-between rounded-md border border-border/50 bg-[#2C2C2E] px-3 text-xs hover:bg-[#3e3e3e]"
+            onClick={() => onDraftChange({ type: 'setGlass', glass: !draft.glass })}
+            type="button"
+          >
+            <span>Glass</span>
+            <span className="text-muted-foreground">{draft.glass ? 'On' : 'Off'}</span>
+          </button>
+        </>
+      )}
+      {draft.kind === 'drawer' && (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs">Drawer count</span>
+          <div className="flex items-center gap-1 rounded-md border border-border/50 p-1">
+            <button
+              aria-label="Decrease drawer count"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
+              disabled={draft.count === 1}
+              onClick={() => onDraftChange({ type: 'setDrawerCount', count: draft.count - 1 })}
+              type="button"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <span aria-live="polite" className="w-5 text-center text-xs">
+              {draft.count}
+            </span>
+            <button
+              aria-label="Increase drawer count"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
+              disabled={draft.count === 6}
+              onClick={() => onDraftChange({ type: 'setDrawerCount', count: draft.count + 1 })}
+              type="button"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+      {draft.kind === 'flap' && (
+        <div>
+          <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+            Direction
+          </div>
+          <SegmentedControl
+            onChange={(value) =>
+              onDraftChange({ type: 'setFlapDirection', direction: value as 'up' | 'down' })
+            }
+            options={FURNITURE_FLAP_DIRECTION_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+            value={draft.direction}
+          />
+        </div>
+      )}
+      {draft.kind === 'sliding' && (
+        <div>
+          <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+            Leaves
+          </div>
+          <SegmentedControl
+            onChange={(value) => onDraftChange({ type: 'setLeaves', leaves: Number(value) })}
+            options={FURNITURE_SLIDING_LEAVES_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+            value={String(draft.leaves)}
+          />
+        </div>
+      )}
+      {draft.kind === 'pull-out' && (
+        <div>
+          <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+            Style
+          </div>
+          <SegmentedControl
+            onChange={(value) =>
+              onDraftChange({
+                type: 'setPullOutStyle',
+                style: value as 'standard' | 'spice' | 'pantry',
+              })
+            }
+            options={FURNITURE_PULL_OUT_STYLE_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+            value={draft.style}
+          />
+        </div>
+      )}
+      <div className="flex gap-2">
+        <ActionButton label="Cancel" onClick={onCancel} />
+        <ActionButton label="Apply" onClick={onApply} />
+      </div>
+      <p className="text-[10px] text-muted-foreground">Enter to apply · Escape to cancel</p>
+    </div>
+  )
+}
+
 export default function CabinetPanel() {
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
+  const unit = useViewer((s) => s.unit)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [furnitureNavigation, setFurnitureNavigation] = useState<FurnitureNavigation>(
+    INITIAL_FURNITURE_NAVIGATION,
+  )
+  const [furnitureDraft, setFurnitureDraft] = useState<FurnitureInteriorDraft | null>(null)
+  const [furnitureFrontDraft, setFurnitureFrontDraft] = useState<FurnitureFront | null>(null)
   const node = useScene((s) =>
     selectedId ? (s.nodes[selectedId as AnyNodeId] as CabinetEditableNode | undefined) : undefined,
   )
@@ -264,11 +612,107 @@ export default function CabinetPanel() {
   )
 
   useEffect(() => {
+    if (selectedId === undefined) {
+      setFurnitureNavigation(INITIAL_FURNITURE_NAVIGATION)
+      setFurnitureDraft(null)
+      setFurnitureFrontDraft(null)
+      return
+    }
+    setFurnitureNavigation(INITIAL_FURNITURE_NAVIGATION)
+    setFurnitureDraft(null)
+    setFurnitureFrontDraft(null)
+  }, [selectedId])
+
+  useEffect(() => {
     setIsAnimating(selectedId ? isCabinetAnimationRunning(selectedId as AnyNodeId) : false)
     return onCabinetAnimationChange((nodeId, running) => {
       if (nodeId === selectedId) setIsAnimating(running)
     })
   }, [selectedId])
+
+  const updateFurniture = useCallback(
+    (furniture: FurnitureAssembly) => {
+      updateNode({
+        furniture,
+        width: furniture.dimensions.width,
+        depth: furniture.dimensions.depth,
+        carcassHeight: furniture.dimensions.height,
+        showPlinth: false,
+        withCountertop: false,
+      })
+    },
+    [updateNode],
+  )
+
+  const selectedFurniture = node?.type === 'cabinet' ? node.furniture : undefined
+  const activeBay = selectedFurniture?.bays.find((bay) => bay.id === furnitureNavigation.bayId)
+  const activeTier = activeBay?.tiers.find((tier) => tier.id === furnitureNavigation.tierId)
+  const cancelFurnitureInterior = useCallback(() => {
+    setFurnitureDraft(null)
+    setFurnitureNavigation((current) => ({ ...current, editingInterior: false }))
+  }, [])
+  const applyFurnitureInterior = useCallback(() => {
+    if (!selectedFurniture || !furnitureNavigation.bayId || !furnitureNavigation.tierId) return
+    if (!furnitureDraft) return
+
+    const nextFurniture = setFurnitureTierInterior(selectedFurniture, {
+      bayId: furnitureNavigation.bayId,
+      tierId: furnitureNavigation.tierId,
+      shelfCount: furnitureDraft.shelfCount,
+      hanger: furnitureDraft.hanger,
+    })
+    if (nextFurniture !== selectedFurniture) updateFurniture(nextFurniture)
+    setFurnitureDraft(null)
+    setFurnitureNavigation((current) => ({ ...current, editingInterior: false }))
+  }, [furnitureDraft, furnitureNavigation, selectedFurniture, updateFurniture])
+
+  const cancelFurnitureFront = useCallback(() => {
+    setFurnitureFrontDraft(null)
+    setFurnitureNavigation((current) => ({ ...current, editingFront: false }))
+  }, [])
+  const applyFurnitureFront = useCallback(() => {
+    if (!selectedFurniture || !furnitureNavigation.bayId || !furnitureNavigation.tierId) return
+    if (!furnitureFrontDraft) return
+
+    const nextFurniture = setFurnitureTierFront(selectedFurniture, {
+      bayId: furnitureNavigation.bayId,
+      tierId: furnitureNavigation.tierId,
+      front: furnitureFrontDraft,
+    })
+    if (nextFurniture !== selectedFurniture) updateFurniture(nextFurniture)
+    setFurnitureFrontDraft(null)
+    setFurnitureNavigation((current) => ({ ...current, editingFront: false }))
+  }, [furnitureFrontDraft, furnitureNavigation, selectedFurniture, updateFurniture])
+
+  useEffect(() => {
+    if (!furnitureNavigation.editingInterior) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        applyFurnitureInterior()
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        cancelFurnitureInterior()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [applyFurnitureInterior, cancelFurnitureInterior, furnitureNavigation.editingInterior])
+
+  useEffect(() => {
+    if (!furnitureNavigation.editingFront) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        applyFurnitureFront()
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        cancelFurnitureFront()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [applyFurnitureFront, cancelFurnitureFront, furnitureNavigation.editingFront])
 
   if (!node || (node.type !== 'cabinet' && node.type !== 'cabinet-module')) return null
 
@@ -401,6 +845,313 @@ export default function CabinetPanel() {
     return <CabinetRunPanel modules={modules} node={node} onClose={close} />
   }
 
+  const unitLabel = getLinearUnitLabel(unit)
+
+  if (node.type === 'cabinet' && node.furniture) {
+    const furniture = node.furniture
+    const updateFurnitureDimension = (
+      key: keyof FurnitureAssembly['dimensions'],
+      displayValue: number,
+    ) => {
+      const limits =
+        key === 'width' ? { minMeters: 0.3, maxMeters: 10 } : { minMeters: 0.1, maxMeters: 4 }
+      updateFurniture(
+        resizeFurnitureAssembly(furniture, {
+          [key]: linearControlValueToMeters(displayValue, unit, limits),
+        }),
+      )
+    }
+
+    if (activeBay && furnitureNavigation.bayId && furnitureNavigation.tierId && activeTier) {
+      const bayIndex = furniture.bays.findIndex((bay) => bay.id === activeBay.id)
+      const tierIndex = activeBay.tiers.findIndex((tier) => tier.id === activeTier.id)
+      const adjacentTier = activeBay.tiers[tierIndex + 1] ?? activeBay.tiers[tierIndex - 1]
+
+      if (furnitureNavigation.editingInterior && furnitureDraft) {
+        return (
+          <PanelWrapper
+            icon="/icons/item.webp"
+            onBack={cancelFurnitureInterior}
+            onClose={close}
+            title={`Tier ${tierIndex + 1} Interior`}
+            width={320}
+          >
+            <div className="px-1 pb-2 text-[11px] text-muted-foreground">
+              Bay {bayIndex + 1} → Tier {tierIndex + 1} → Interior
+            </div>
+            <PanelSection title="Interior">
+              <FurnitureTierInteriorControls
+                draft={furnitureDraft}
+                onApply={applyFurnitureInterior}
+                onCancel={cancelFurnitureInterior}
+                onDraftChange={(action) =>
+                  setFurnitureDraft((current) =>
+                    current ? reduceFurnitureInteriorDraft(current, action) : current,
+                  )
+                }
+              />
+            </PanelSection>
+          </PanelWrapper>
+        )
+      }
+
+      if (furnitureNavigation.editingFront && furnitureFrontDraft) {
+        return (
+          <PanelWrapper
+            icon="/icons/item.webp"
+            onBack={cancelFurnitureFront}
+            onClose={close}
+            title={`Tier ${tierIndex + 1} Front`}
+            width={320}
+          >
+            <div className="px-1 pb-2 text-[11px] text-muted-foreground">
+              Bay {bayIndex + 1} → Tier {tierIndex + 1} → Front
+            </div>
+            <PanelSection title="Front">
+              <FurnitureTierFrontControls
+                draft={furnitureFrontDraft}
+                onApply={applyFurnitureFront}
+                onCancel={cancelFurnitureFront}
+                onDraftChange={(action) =>
+                  setFurnitureFrontDraft((current) =>
+                    current ? reduceFurnitureFrontDraft(current, action) : current,
+                  )
+                }
+              />
+            </PanelSection>
+          </PanelWrapper>
+        )
+      }
+
+      return (
+        <PanelWrapper
+          icon="/icons/item.webp"
+          onBack={() => setFurnitureNavigation((current) => ({ ...current, tierId: null }))}
+          onClose={close}
+          title={`Tier ${tierIndex + 1}`}
+          width={320}
+        >
+          <div className="px-1 pb-2 text-[11px] text-muted-foreground">
+            Bay {bayIndex + 1} → Tier {tierIndex + 1}
+          </div>
+          <PanelSection title="Tier">
+            <div className="space-y-2 px-1 pb-2">
+              {adjacentTier ? (
+                <SliderControl
+                  label="Height"
+                  max={metersToLinearUnit(activeTier.height + adjacentTier.height - 0.05, unit)}
+                  min={metersToLinearUnit(0.05, unit)}
+                  onChange={(value) =>
+                    updateFurniture(
+                      resizeFurnitureTier(furniture, {
+                        bayId: activeBay.id,
+                        tierId: activeTier.id,
+                        height: linearControlValueToMeters(value, unit, {
+                          minMeters: 0.05,
+                          maxMeters: activeTier.height + adjacentTier.height - 0.05,
+                        }),
+                      }),
+                    )
+                  }
+                  precision={2}
+                  step={unit === 'imperial' ? 0.1 : 0.01}
+                  unit={unitLabel}
+                  value={metersToLinearUnit(activeTier.height, unit)}
+                />
+              ) : null}
+              <div className="flex gap-2">
+                <ActionButton
+                  label="Interior"
+                  onClick={() => {
+                    setFurnitureDraft({
+                      shelfCount: activeTier.shelves.count,
+                      hanger: activeTier.hanger,
+                    })
+                    setFurnitureNavigation((current) => ({ ...current, editingInterior: true }))
+                  }}
+                />
+                <ActionButton
+                  label="Front"
+                  onClick={() => {
+                    setFurnitureFrontDraft(activeTier.front)
+                    setFurnitureNavigation((current) => ({ ...current, editingFront: true }))
+                  }}
+                />
+              </div>
+              <div className="flex gap-2">
+                <ActionButton
+                  label="Insert tier after"
+                  onClick={() =>
+                    updateFurniture(
+                      insertFurnitureTier(furniture, {
+                        bayId: activeBay.id,
+                        afterTierId: activeTier.id,
+                      }),
+                    )
+                  }
+                />
+                <ActionButton
+                  disabled={activeBay.tiers.length === 1}
+                  label="Delete tier"
+                  onClick={() => {
+                    updateFurniture(
+                      deleteFurnitureTier(furniture, {
+                        bayId: activeBay.id,
+                        tierId: activeTier.id,
+                      }),
+                    )
+                    setFurnitureNavigation((current) => ({ ...current, tierId: null }))
+                  }}
+                />
+              </div>
+            </div>
+          </PanelSection>
+        </PanelWrapper>
+      )
+    }
+
+    if (activeBay && furnitureNavigation.bayId && !furnitureNavigation.tierId) {
+      const bayIndex = furniture.bays.findIndex((bay) => bay.id === activeBay.id)
+      const adjacentBay = furniture.bays[bayIndex + 1] ?? furniture.bays[bayIndex - 1]
+      return (
+        <PanelWrapper
+          icon="/icons/item.webp"
+          onBack={() => setFurnitureNavigation(INITIAL_FURNITURE_NAVIGATION)}
+          onClose={close}
+          title={`Bay ${bayIndex + 1}`}
+          width={320}
+        >
+          <div className="px-1 pb-2 text-[11px] text-muted-foreground">Bay {bayIndex + 1}</div>
+          <PanelSection title="Bay">
+            <div className="space-y-2 px-1 pb-2">
+              {adjacentBay ? (
+                <SliderControl
+                  label="Width"
+                  max={metersToLinearUnit(activeBay.width + adjacentBay.width - 0.05, unit)}
+                  min={metersToLinearUnit(0.05, unit)}
+                  onChange={(value) =>
+                    updateFurniture(
+                      resizeFurnitureBay(furniture, {
+                        bayId: activeBay.id,
+                        width: linearControlValueToMeters(value, unit, {
+                          minMeters: 0.05,
+                          maxMeters: activeBay.width + adjacentBay.width - 0.05,
+                        }),
+                      }),
+                    )
+                  }
+                  precision={2}
+                  step={unit === 'imperial' ? 0.1 : 0.01}
+                  unit={unitLabel}
+                  value={metersToLinearUnit(activeBay.width, unit)}
+                />
+              ) : null}
+              <div className="flex gap-2">
+                <ActionButton
+                  label="Insert bay after"
+                  onClick={() =>
+                    updateFurniture(insertFurnitureBay(furniture, { afterBayId: activeBay.id }))
+                  }
+                />
+                <ActionButton
+                  disabled={furniture.bays.length === 1}
+                  label="Delete bay"
+                  onClick={() => {
+                    updateFurniture(deleteFurnitureBay(furniture, { bayId: activeBay.id }))
+                    setFurnitureNavigation(INITIAL_FURNITURE_NAVIGATION)
+                  }}
+                />
+              </div>
+            </div>
+          </PanelSection>
+          <PanelSection title="Tiers">
+            <div className="flex flex-col gap-2 px-1 pb-2">
+              {activeBay.tiers.map((tier, index) => (
+                <button
+                  className={PRESET_BUTTON_CLASS}
+                  key={tier.id}
+                  onClick={() =>
+                    setFurnitureNavigation((current) => ({
+                      ...current,
+                      tierId: tier.id,
+                      editingInterior: false,
+                    }))
+                  }
+                  type="button"
+                >
+                  <span>Tier {index + 1}</span>
+                  <span className="text-muted-foreground">
+                    {metersToLinearUnit(tier.height, unit).toFixed(2)} {unitLabel}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </PanelSection>
+        </PanelWrapper>
+      )
+    }
+
+    return (
+      <PanelWrapper
+        icon="/icons/item.webp"
+        onClose={close}
+        title={node.name || 'Furniture Assembly'}
+        width={320}
+      >
+        <PanelSection title="Furniture type">
+          <div className="px-1 pb-2">
+            <SegmentedControl
+              onChange={(value) =>
+                updateFurniture(setFurnitureKind(furniture, value as FurnitureKind))
+              }
+              options={FURNITURE_KIND_OPTIONS}
+              value={furniture.furnitureKind}
+            />
+          </div>
+        </PanelSection>
+        <PanelSection title="Overall dimensions">
+          {(['width', 'height', 'depth'] as const).map((key) => (
+            <SliderControl
+              key={key}
+              label={key[0]?.toUpperCase() + key.slice(1)}
+              max={metersToLinearUnit(key === 'width' ? 10 : 4, unit)}
+              min={metersToLinearUnit(key === 'width' ? 0.3 : 0.1, unit)}
+              onChange={(value) => updateFurnitureDimension(key, value)}
+              precision={2}
+              step={unit === 'imperial' ? 0.1 : 0.01}
+              unit={unitLabel}
+              value={metersToLinearUnit(furniture.dimensions[key], unit)}
+            />
+          ))}
+        </PanelSection>
+        <PanelSection title="Bays">
+          <div className="flex flex-col gap-2 px-1 pb-2">
+            {furniture.bays.map((bay, index) => (
+              <button
+                className={PRESET_BUTTON_CLASS}
+                key={bay.id}
+                onClick={() =>
+                  setFurnitureNavigation({
+                    bayId: bay.id,
+                    tierId: null,
+                    editingInterior: false,
+                    editingFront: false,
+                  })
+                }
+                type="button"
+              >
+                <span>Bay {index + 1}</span>
+                <span className="text-muted-foreground">
+                  {metersToLinearUnit(bay.width, unit).toFixed(2)} {unitLabel}
+                </span>
+              </button>
+            ))}
+          </div>
+        </PanelSection>
+      </PanelWrapper>
+    )
+  }
+
   return (
     <PanelWrapper
       icon="/icons/item.webp"
@@ -409,6 +1160,16 @@ export default function CabinetPanel() {
       title={node.name || 'Modular Cabinet'}
       width={320}
     >
+      {node.type === 'cabinet' && !node.furniture && (
+        <PanelSection title="Furniture Builder">
+          <div className="px-1 pb-2">
+            <ActionButton
+              label="Use furniture assembly"
+              onClick={() => updateFurniture(createDefaultFurnitureAssembly())}
+            />
+          </div>
+        </PanelSection>
+      )}
       {node.type === 'cabinet-module' && parentRun?.type === 'cabinet' && (
         <PanelSection title="Presets">
           <div className="grid grid-cols-2 gap-2 px-1 pb-2">

@@ -75,7 +75,9 @@ import {
 import { createPortal } from 'react-dom'
 import { Vector3 } from 'three'
 import { useShallow } from 'zustand/react/shallow'
+import { useDraftLengthInput } from '../../hooks/use-draft-length-input'
 import { resolveCeilingPlanPointSnap } from '../../lib/ceiling-plan-snap'
+import { constrainPlanDraftPoint } from '../../lib/draft-length-input'
 import {
   alignFloorplanDraftPoint,
   buildFloorplanItemEntry,
@@ -5870,6 +5872,11 @@ export function FloorplanPanel({
   const isOpeningMoveActive = movingOpeningType !== null
   const isOpeningPlacementActive = isOpeningBuildActive || isOpeningMoveActive
   const isFenceBuildActive = phase === 'structure' && mode === 'build' && tool === 'fence'
+  const { clear: clearDraftLength, getLengthMeters } = useDraftLengthInput(
+    () =>
+      (isWallBuildActive && draftStart !== null) ||
+      (isFenceBuildActive && fenceDraftStart !== null),
+  )
   const fenceContinuation = useEditor((state) => state.continuationByContext.fence)
   const isRoofBuildActive = phase === 'structure' && mode === 'build' && tool === 'roof'
   const isStairBuildActive = phase === 'structure' && mode === 'build' && tool === 'stair'
@@ -7837,17 +7844,19 @@ export function FloorplanPanel({
   }, [isFloorplanOpen, stopFloorplanViewAnimation])
 
   const clearWallPlacementDraft = useCallback(() => {
+    clearDraftLength()
     setDraftStart(null)
     setWallChainFirstVertex(null)
     wallConstructionOptionsRef.current = undefined
     wallChainWallIdsRef.current = []
     setDraftEnd(null)
     useSegmentDraftChain.getState().clear('wall')
-  }, [setDraftEnd])
+  }, [clearDraftLength, setDraftEnd])
   const clearFencePlacementDraft = useCallback(() => {
+    clearDraftLength()
     setFenceDraftStart(null)
     setFenceDraftEnd(null)
-  }, [setFenceDraftEnd])
+  }, [clearDraftLength, setFenceDraftEnd])
   const clearRoofPlacementDraft = useCallback(() => {
     setRoofDraftStart(null)
     setRoofDraftEnd(null)
@@ -9299,6 +9308,10 @@ export function FloorplanPanel({
             applySnap: isMagneticSnapActive() && !fenceAngleSnap,
           })
 
+        if (fenceDraftStart) {
+          snappedPoint = constrainPlanDraftPoint(fenceDraftStart, snappedPoint, getLengthMeters())
+        }
+
         emitFloorplanGridEvent('move', snappedPoint, event)
         setCursorPoint((previousPoint) =>
           previousPoint && pointsEqual(previousPoint, snappedPoint) ? previousPoint : snappedPoint,
@@ -9490,6 +9503,9 @@ export function FloorplanPanel({
           applySnap: isMagneticSnapActive() && !wallAngleSnap,
         })
       }
+      if (draftStart) {
+        snappedPoint = constrainPlanDraftPoint(draftStart, snappedPoint, getLengthMeters())
+      }
       useWallSnapIndicator
         .getState()
         .set(wallSnap.snap ? { x: snappedPoint[0], z: snappedPoint[1], kind: wallSnap.snap } : null)
@@ -9528,6 +9544,7 @@ export function FloorplanPanel({
       fenceDraftStart,
       floorplanOpeningLocalY,
       getPlanPointFromClientPoint,
+      getLengthMeters,
       activePolygonDraftPoints,
       handleCeilingItemPlacementMove,
       isCeilingBuildActive,
@@ -9871,6 +9888,7 @@ export function FloorplanPanel({
     findClosestWallPoint,
     floorplanOpeningLocalY,
     getSnappedFloorplanPoint,
+    getDraftLengthMeters: getLengthMeters,
     handleCeilingItemPlacementClick,
     handleCeilingPlacementPoint,
     handleSlabPlacementPoint,

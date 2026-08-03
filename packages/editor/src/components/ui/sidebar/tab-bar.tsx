@@ -28,6 +28,7 @@ export function TabBar({ tabs, activeTab, onTabChange }: TabBarProps) {
         const isActive = activeTab === tab.id
         return (
           <button
+            aria-label={tab.label}
             className={cn(
               'relative h-7 rounded-md px-3 font-medium text-sm transition-colors',
               isActive
@@ -80,8 +81,9 @@ export function IconRail({ tabs, activeTab, collapsed, onIconClick }: IconRailPr
       <Tooltip key={tab.id}>
         <TooltipTrigger asChild>
           <button
+            aria-label={tab.label}
             className={cn(
-              'group flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-200 [&_img]:transition-[opacity,filter] [&_img]:duration-200',
+              'group flex h-14 w-12 flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 [&_img]:h-8 [&_img]:w-8 [&_img]:transition-[opacity,filter] [&_img]:duration-200',
               showActive
                 ? 'bg-accent text-foreground shadow-sm [&_img]:opacity-100 [&_img]:grayscale-0'
                 : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground [&_img]:opacity-60 [&_img]:grayscale hover:[&_img]:opacity-100 hover:[&_img]:grayscale-0',
@@ -94,6 +96,9 @@ export function IconRail({ tabs, activeTab, collapsed, onIconClick }: IconRailPr
             type="button"
           >
             {tab.icon ?? tab.label.charAt(0)}
+            <span className="max-w-11 truncate text-center font-medium text-[9px] leading-none">
+              {tab.label}
+            </span>
           </button>
         </TooltipTrigger>
         <TooltipContent side="right">{tab.label}</TooltipContent>

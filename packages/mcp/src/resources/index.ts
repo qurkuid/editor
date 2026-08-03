@@ -3,6 +3,7 @@ import type { SceneOperations } from '../operations'
 import { registerAgentGuide } from './agent-guide'
 import { registerCatalogItems } from './catalog-items'
 import { registerConstraints } from './constraints'
+import { registerDebugState } from './debug-state'
 import { registerSceneCurrent } from './scene-current'
 import { registerSceneSummary } from './scene-summary'
 
@@ -16,6 +17,7 @@ import { registerSceneSummary } from './scene-summary'
  * - `pascal://constraints/{levelId}`  — application/json, per-level constraints
  * - `pascal://agent-guide`            — text/markdown, MCP-first agent guide
  * - `pascal://agent/guide`            — text/markdown, legacy alias
+ * - `pascal://debug/state`            — application/json, execution diagnostics
  */
 export function registerResources(server: McpServer, operations: SceneOperations): void {
   registerAgentGuide(server, operations)
@@ -23,4 +25,5 @@ export function registerResources(server: McpServer, operations: SceneOperations
   registerSceneSummary(server, operations)
   registerCatalogItems(server, operations)
   registerConstraints(server, operations)
+  registerDebugState(server, operations)
 }

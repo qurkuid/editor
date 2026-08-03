@@ -397,7 +397,7 @@ const useViewer = create<ViewerState>()(
       setShadows: (shadows) => set({ shadows }),
 
       unit: detectDefaultUnit(),
-      metricNotation: 'meters',
+      metricNotation: 'millimeters',
       unitExplicit: false,
       setUnit: (unit) => set({ unit, unitExplicit: true }),
       setMetricNotation: (metricNotation) =>

@@ -1,0 +1,52 @@
+{
+  "schema_version": 0.5,
+  "type": "wardrobe",
+  "location": " [Bedroom] ",
+  "W": 2400,
+  "H": 2400,
+  "D": 600,
+  "bays": [
+    {
+      "width": 1200,
+      "base": { "type": "plinth", "height": 50 },
+      "kickplate": true,
+      "ep": { "left": true, "right": false },
+      "hidden": false,
+      "noLowerStile": false,
+      "tiers": [
+        {
+          "height": 2200,
+          "depth": { "value": 0, "reference": "door" },
+          "door": "hinged2",
+          "openType": "push",
+          "doorExt": { "top": 0, "bottom": 0 },
+          "doorColor": "#D2A373",
+          "face": "front",
+          "hanger": true,
+          "shelves": { "count": 2, "heights": [700, 1500] },
+          "channel": {
+            "top": { "enabled": true, "height": 40, "depth": 22, "handSpace": 20 },
+            "middle": false
+          },
+          "topPanel": { "enabled": false },
+          "internalDrawers": { "count": 1, "heights": [400] },
+          "mergeNext": false
+        }
+      ]
+    },
+    {
+      "width": 1200,
+      "base": { "type": "plinth", "height": 50 },
+      "kickplate": true,
+      "ep": { "left": false, "right": true },
+      "tiers": [
+        {
+          "height": 2200,
+          "door": "open",
+          "face": "front",
+          "shelves": { "count": 3, "heights": [500, 1100, 1700] }
+        }
+      ]
+    }
+  ]
+}

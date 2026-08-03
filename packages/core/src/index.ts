@@ -1,4 +1,5 @@
 export type {
+  BodyEvent,
   BoxVentEvent,
   BuildingEvent,
   CabinetEvent,
@@ -20,6 +21,9 @@ export type {
   GutterEvent,
   ItemEvent,
   LevelEvent,
+  LightingCircuitEvent,
+  LightingFixtureEvent,
+  LightingSwitchEvent,
   MeasurementEvent,
   NodeEvent,
   RidgeVentEvent,
@@ -79,7 +83,39 @@ export {
   type SupportSlabPatchOptions,
 } from './hooks/spatial-grid/support-host-patch'
 export { useSpatialQuery } from './hooks/spatial-grid/use-spatial-query'
-export { loadAssetUrl, saveAsset } from './lib/asset-storage'
+export {
+  findStoredAsset,
+  loadAssetUrl,
+  saveAsset,
+  saveStoredAsset,
+} from './lib/asset-storage'
+export {
+  type CreateRoundedRectangularFrameBodyOptions,
+  createRoundedRectangularFrameBody,
+} from './lib/body-frame'
+export {
+  getRoundedRectangularFrameOpeningPlacement,
+  getRoundedRectangularFrameParameters,
+  RoundedFrameOpeningBoundsError,
+  type RoundedFrameOpeningPlacement,
+  type RoundedRectangularFrameParameters,
+  updateRoundedRectangularFrameOpening,
+  updateRoundedRectangularFrameRadius,
+} from './lib/body-frame-edit'
+export { pushPullBodyFace } from './lib/body-push-pull'
+export {
+  type BodyTopologyDiagnostic,
+  type BodyTopologyDiagnosticCode,
+  type BodyTopologyValidation,
+  createPlanarFaceBody,
+  createRectangleBody,
+  getBodyFaceFrame,
+  getBodyLoopVertices,
+  getBodySemanticHash,
+  type PushPullBodyResult,
+  type TopologyRemap,
+  validateBodyTopology,
+} from './lib/body-topology'
 export {
   clampDoorOperationState,
   getDoorRenderOpenAmount,
@@ -87,7 +123,56 @@ export {
   isOperationDoorType,
   SECTIONAL_GARAGE_RENDER_OPEN_SCALE,
 } from './lib/door-operation'
+export type {
+  CreateDefaultFurnitureAssemblyOptions,
+  DeleteFurnitureBayOptions,
+  DeleteFurnitureTierOptions,
+  FurnitureAssemblyBounds,
+  FurnitureAssemblyOptions,
+  FurnitureAssemblyPart,
+  FurnitureAssemblyPartKind,
+  FurnitureAssemblyPartShape,
+  FurnitureAssemblyResult,
+  FurnitureAssemblyWarning,
+  FurnitureAssemblyWarningCode,
+  FurnitureBuilderImportResult,
+  FurnitureImportWarning,
+  FurnitureImportWarningCode,
+  FurnitureNormalizationInput,
+  InsertFurnitureBayOptions,
+  InsertFurnitureTierOptions,
+  ResizeFurnitureBayOptions,
+  ResizeFurnitureTierOptions,
+  SetFurnitureTierFrontOptions,
+  SetFurnitureTierInteriorOptions,
+} from './lib/furniture'
+export {
+  buildFurnitureAssembly,
+  createDefaultFurnitureAssembly,
+  deleteFurnitureBay,
+  deleteFurnitureTier,
+  FURNITURE_ASSEMBLY_SCHEMA_VERSION,
+  importFurnitureBuilder,
+  importFurnitureBuilderJson,
+  insertFurnitureBay,
+  insertFurnitureTier,
+  metresToMillimetres,
+  millimetresToMetres,
+  normalizeFurniture,
+  normalizeFurnitureAssembly,
+  resizeFurnitureAssembly,
+  resizeFurnitureBay,
+  resizeFurnitureTier,
+  setFurnitureKind,
+  setFurnitureTierFront,
+  setFurnitureTierInterior,
+} from './lib/furniture'
+export {
+  type GuideImagePoint,
+  projectGuidePerspectivePoint,
+} from './lib/guide-perspective'
 export { getDefaultLevelName, getLevelDisplayName } from './lib/level-name'
+export * from './lib/lighting'
 export {
   areMeasurementPointsCoplanar,
   closestMeasurementFeatureBinding,
@@ -196,6 +281,21 @@ export {
   terrainSupportLift,
 } from './lib/terrain-support'
 export {
+  buildWallConstructionLayerSpans,
+  calculateWallConstructionQuantities,
+  createDefaultWallFaceBands,
+  createWallBandConstructionPreset,
+  detectWallConstructionPreset,
+  getWallBandConstruction,
+  getWallBandPhysicalThickness,
+  getWallConstructionEnvelopeThickness,
+  normalizeWallBandConstructionToThickness,
+  WALL_CONSTRUCTION_LAYER_DEFAULTS,
+  type WallConstructionLayerSpan,
+  type WallConstructionPresetId,
+  type WallConstructionQuantity,
+} from './lib/wall-construction'
+export {
   closestOnSegment,
   collectLevelWallSegments,
   nearestWallSegment,
@@ -234,6 +334,7 @@ export {
   toSceneMaterialRef,
   unregisterLibraryMaterials,
 } from './material-library'
+export { resizeMaterialPhysicalSize } from './material-size'
 export type {
   FloorPlacedFootprint,
   FloorPlacedFootprintContext,

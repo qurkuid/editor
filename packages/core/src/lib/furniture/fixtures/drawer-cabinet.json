@@ -1,0 +1,48 @@
+{
+  "schema_version": 0.5,
+  "type": "base",
+  "furnitureKind": null,
+  "W": 900,
+  "H": 850,
+  "D": 600,
+  "dimensions": null,
+  "bays": [
+    {
+      "width": 900,
+      "base": {
+        "type": "plinth",
+        "height": 50
+      },
+      "kickplate": true,
+      "tiers": [
+        {
+          "height": 800,
+          "front": {
+            "kind": "drawer",
+            "count": 4,
+            "color": "#D2A373"
+          },
+          "face": "front",
+          "openType": "channel",
+          "internalDrawers": {
+            "count": 1,
+            "heights": [120]
+          }
+        },
+        {
+          "height": 400,
+          "door": "drawer_internal",
+          "drawerCount": 2,
+          "face": "front"
+        }
+      ]
+    }
+  ],
+  "backBays": null,
+  "upperBays": null,
+  "stack": null,
+  "fixtures": null,
+  "lights": null,
+  "outlets": null,
+  "smps": null
+}

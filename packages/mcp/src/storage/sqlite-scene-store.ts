@@ -284,7 +284,9 @@ export class SqliteSceneStore implements SceneStore {
 
   constructor(opts: SqliteSceneStoreOptions = {}) {
     const env = opts.env ?? process.env
-    this.databasePath = path.resolve(opts.databasePath ?? resolveDefaultDatabasePath(env))
+    this.databasePath = path.resolve(
+      /* turbopackIgnore: true */ opts.databasePath ?? resolveDefaultDatabasePath(env),
+    )
     this.maxSceneBytes = resolveMaxSceneBytes(env, opts.maxSceneBytes)
   }
 
@@ -595,7 +597,8 @@ export class SqliteSceneStore implements SceneStore {
     if (this.db) return this.db
     if (!this.dbPromise) {
       this.dbPromise = (async () => {
-        mkdirSync(path.dirname(this.databasePath), { recursive: true })
+        const databaseDirectory = path.dirname(/* turbopackIgnore: true */ this.databasePath)
+        mkdirSync(/* turbopackIgnore: true */ databaseDirectory, { recursive: true })
         const db = await openSqliteDatabase(this.databasePath)
         db.exec('PRAGMA foreign_keys = ON')
         db.exec('PRAGMA journal_mode = WAL')

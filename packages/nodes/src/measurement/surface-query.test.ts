@@ -26,6 +26,22 @@ function createSurface(z: number) {
 }
 
 describe('smart measurement surface priority', () => {
+  test('recovers a semantic owner from generated geometry identity', () => {
+    const body = createSurface(0)
+    body.userData.pascalNodeId = 'body_1'
+    body.updateMatrixWorld(true)
+    useScene.setState({ nodes: { body_1: { type: 'body' } } } as never)
+
+    const hit = castVisibleMeasurementSurface(
+      new Raycaster(new Vector3(0, 0, 1), new Vector3(0, 0, -1)),
+      { ownerByObject: new Map(), roots: [body] },
+    )
+
+    expect(hit?.targetNodeId).toBe('body_1')
+    body.geometry.dispose()
+    body.material.dispose()
+  })
+
   test('prefers a zone over a nearly coplanar slab', () => {
     const root = new Group()
     const slab = createSurface(0.04)

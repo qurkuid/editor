@@ -31,6 +31,41 @@ describe('validateBuildJson', () => {
     expect(result.schemaIssueCount).toBe(0)
   })
 
+  test('preserves document collections and external scene materials for import', () => {
+    const scene = {
+      ...makeScene(),
+      collections: {
+        collection_test: {
+          id: 'collection_test',
+          name: 'Test',
+          nodeIds: ['wall_test1'],
+        },
+      },
+      materials: {
+        mat_rawpainter: {
+          id: 'mat_rawpainter',
+          name: 'CV20_화이트',
+          material: {
+            id: 'rawpainter:70225',
+            preset: 'custom',
+            source: { provider: 'rawpainter', externalId: '70225' },
+            physicalSize: { widthM: 1.16, heightM: 0.3 },
+            texture: {
+              url: '/api/materials/rawpainter/asset/70225',
+              repeat: [1 / 1.16, 1 / 0.3],
+            },
+          },
+        },
+      },
+    }
+
+    const result = validateBuildJson(scene)
+
+    expect(result.ok).toBe(true)
+    expect(result.parsed?.collections).toEqual(scene.collections)
+    expect(result.parsed?.materials).toEqual(scene.materials)
+  })
+
   test('plugin-typed children do not hard-fail their parent level', () => {
     // Exports from projects with plugins carry nodes like `trees:tree`
     // whose ids sit in level.children. The static children id union would

@@ -7,11 +7,14 @@ import {
   useScene,
   type WallNode,
 } from '@pascal-app/core'
+import { useWallConstructionDisplay } from '@pascal-app/editor'
 import { getVisibleWallMaterials, NodeRenderer, useNodeEvents, useViewer } from '@pascal-app/viewer'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { Mesh } from 'three'
 import { useShallow } from 'zustand/react/shallow'
 import { createPlaceholderGeometry } from '../shared/placeholder-geometry'
+import { WallConstructionPreview, WallConstructionTopSection } from './construction-preview'
+import { resolveWallConstructionDisplay } from './construction-visual'
 import { useWallTreatmentLevelData } from './treatment-level-data'
 import { createWallExtraSlotMaterials, WallTreatments } from './treatments'
 
@@ -57,6 +60,12 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
   const textures = useViewer((s) => s.textures)
   const colorPreset = useViewer((s) => s.colorPreset)
   const sceneTheme = useViewer((s) => s.sceneTheme)
+  const showConstruction = useViewer((s) => s.selection.selectedIds.includes(node.id))
+  const constructionDisplayMode = useWallConstructionDisplay((s) => s.mode)
+  const constructionDisplay = resolveWallConstructionDisplay(
+    constructionDisplayMode,
+    showConstruction,
+  )
   const childNodes = useScene(
     useShallow((state) =>
       (node.children ?? [])
@@ -80,6 +89,25 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
     sceneTheme,
     sceneMaterials,
   )
+  const visibleBaseMaterials = useMemo(() => {
+    if (constructionDisplay.baseOpacity === 1) return baseMaterials
+    return baseMaterials.map((material) => {
+      const transparentMaterial = material.clone()
+      transparentMaterial.transparent = true
+      transparentMaterial.opacity = constructionDisplay.baseOpacity
+      transparentMaterial.depthWrite = false
+      transparentMaterial.needsUpdate = true
+      return transparentMaterial
+    })
+  }, [baseMaterials, constructionDisplay.baseOpacity])
+  useEffect(
+    () => () => {
+      if (visibleBaseMaterials !== baseMaterials) {
+        for (const material of visibleBaseMaterials) material.dispose()
+      }
+    },
+    [baseMaterials, visibleBaseMaterials],
+  )
   const extraMaterials = useMemo(
     () => createWallExtraSlotMaterials(node, shading, sceneMaterials),
     [node, sceneMaterials, shading],
@@ -97,7 +125,7 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
     <mesh
       castShadow
       geometry={placeholderGeometry}
-      material={baseMaterials}
+      material={visibleBaseMaterials}
       receiveShadow
       ref={ref}
       visible={node.visible}
@@ -116,6 +144,11 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
           materials={extraMaterials}
           node={node}
         />
+      )}
+
+      {constructionDisplay.showTopSection && <WallConstructionTopSection node={node} />}
+      {constructionDisplay.fullPreview && (
+        <WallConstructionPreview mode={constructionDisplay.fullPreview} node={node} />
       )}
 
       {(node.children ?? []).map((childId) => (

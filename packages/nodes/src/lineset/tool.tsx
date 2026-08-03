@@ -3,6 +3,7 @@
 import { emitter, type GridEvent, LinesetNode, useScene } from '@pascal-app/core'
 import {
   CursorSphere,
+  constrainSpatialDraftPoint,
   DimensionPill,
   EDITOR_LAYER,
   isAngleSnapActive,
@@ -10,6 +11,7 @@ import {
   isMagneticSnapActive,
   markToolCancelConsumed,
   triggerSFX,
+  useDraftLengthInput,
   useEditor,
   usePathDraftPreview,
 } from '@pascal-app/editor'
@@ -96,6 +98,9 @@ const LinesetTool = () => {
   const [altActive, setAltActive] = useState(false)
   const draftRef = useRef(draftPoints)
   draftRef.current = draftPoints
+  const { clear: clearDraftLength, getLengthMeters } = useDraftLengthInput(
+    () => draftRef.current.length > 0,
+  )
   const altAnchorRef = useRef<{ clientY: number; baseY: number } | null>(null)
   const lastClientYRef = useRef<number | null>(null)
 
@@ -124,6 +129,7 @@ const LinesetTool = () => {
         path: [start, end],
       })
       useScene.getState().createNode(lineset, activeLevelId)
+      clearDraftLength()
       triggerSFX('sfx:item-place')
       setDraftPoints([end])
       setSnapTarget(null)
@@ -133,7 +139,10 @@ const LinesetTool = () => {
 
     const resolveSnappedPoint = (
       event: GridEvent,
-    ): { point: [number, number, number]; snapped: [number, number, number] | null } => {
+    ): {
+      point: [number, number, number]
+      snapped: [number, number, number] | null
+    } => {
       // Port mating is the run's primary affordance; it stays on in every
       // snapping mode except `off` (the raw-cursor bypass).
       const snapEnabled = isGridSnapActive() || isMagneticSnapActive() || isAngleSnapActive()
@@ -145,7 +154,10 @@ const LinesetTool = () => {
           if (target) return { point: target, snapped: target }
         }
         const step = isGridSnapActive() ? useEditor.getState().gridSnapStep : 0
-        return { point: [snap(raw[0], step), 0, snap(raw[2], step)], snapped: null }
+        return {
+          point: [snap(raw[0], step), 0, snap(raw[2], step)],
+          snapped: null,
+        }
       }
       const rawXZ: [number, number, number] = [
         event.localPosition[0],
@@ -160,7 +172,10 @@ const LinesetTool = () => {
         if (target) return { point: target, snapped: target }
       }
       const step = isGridSnapActive() ? useEditor.getState().gridSnapStep : 0
-      return { point: [snap(angled[0], step), angled[1], snap(angled[2], step)], snapped: null }
+      return {
+        point: [snap(angled[0], step), angled[1], snap(angled[2], step)],
+        snapped: null,
+      }
     }
 
     const resolveAltVerticalPoint = (clientY: number): [number, number, number] | null => {
@@ -183,19 +198,27 @@ const LinesetTool = () => {
     const resolveAlignedPoint = (event: GridEvent) => {
       const r = resolveSnappedPoint(event)
       const hasStart = draftRef.current.length > 0
+      const last = draftRef.current.at(-1)
       const alt = event.nativeEvent?.altKey === true
-      const point = alignDrawPoint(r.point, {
+      const alignedPoint = alignDrawPoint(r.point, {
         applySnap: isMagneticSnapActive() && (!hasStart || !isAngleSnapActive()),
         bypass: alt || r.snapped !== null,
       })
-      return { ...r, point }
+      const length = hasStart ? getLengthMeters() : null
+      const point = last ? constrainSpatialDraftPoint(last, alignedPoint, length) : alignedPoint
+      return { ...r, point, snapped: length === null ? r.snapped : null }
     }
 
     const onMove = (event: GridEvent) => {
       const clientY = (event.nativeEvent as { clientY?: number } | undefined)?.clientY
       if (typeof clientY === 'number') lastClientYRef.current = clientY
       if (altAnchorRef.current && typeof clientY === 'number') {
-        const point = resolveAltVerticalPoint(clientY)
+        const rawPoint = resolveAltVerticalPoint(clientY)
+        const start = draftRef.current.at(-1)
+        const point =
+          rawPoint && start
+            ? constrainSpatialDraftPoint(start, rawPoint, getLengthMeters())
+            : rawPoint
         if (point) {
           clearDrawAlignment()
           setCursorPos(point)
@@ -214,7 +237,10 @@ const LinesetTool = () => {
         const clientY =
           (event.nativeEvent as { clientY?: number } | undefined)?.clientY ?? lastClientYRef.current
         if (typeof clientY === 'number') {
-          const point = resolveAltVerticalPoint(clientY)
+          const rawPoint = resolveAltVerticalPoint(clientY)
+          const point = rawPoint
+            ? constrainSpatialDraftPoint(start, rawPoint, getLengthMeters())
+            : null
           if (point && Math.abs(point[1] - start[1]) >= 1e-4) {
             commitSegment(start, point)
           }
@@ -234,7 +260,10 @@ const LinesetTool = () => {
       const last = draftRef.current.at(-1)
       if (!last || lastClientYRef.current === null) return
       if (altAnchorRef.current) return
-      altAnchorRef.current = { clientY: lastClientYRef.current, baseY: last[1] }
+      altAnchorRef.current = {
+        clientY: lastClientYRef.current,
+        baseY: last[1],
+      }
       setAltActive(true)
     }
 
@@ -267,6 +296,7 @@ const LinesetTool = () => {
       setDraftPoints([])
       setCursorPos(null)
       setSnapTarget(null)
+      clearDraftLength()
     }
 
     emitter.on('grid:move', onMove)
@@ -283,11 +313,14 @@ const LinesetTool = () => {
       altAnchorRef.current = null
       clearDrawAlignment()
     }
-  }, [activeLevelId])
+  }, [activeLevelId, clearDraftLength, getLengthMeters])
 
   if (!activeLevelId) return null
 
-  const previewSegments: Array<{ a: [number, number, number]; b: [number, number, number] }> = []
+  const previewSegments: Array<{
+    a: [number, number, number]
+    b: [number, number, number]
+  }> = []
   for (let i = 0; i < draftPoints.length - 1; i++) {
     previewSegments.push({ a: draftPoints[i]!, b: draftPoints[i + 1]! })
   }

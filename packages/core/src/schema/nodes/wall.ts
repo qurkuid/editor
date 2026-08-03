@@ -71,12 +71,46 @@ export const WALL_TRIM_DEFAULTS = {
   chairRail: WALL_CHAIR_RAIL_DEFAULT,
 } as const
 
+export const WallConstructionLayerKind = z.enum([
+  'gypsum-board',
+  'mdf',
+  'timber-stud',
+  'cavity',
+  'finish',
+  'custom',
+])
+export type WallConstructionLayerKind = z.infer<typeof WallConstructionLayerKind>
+
+export const WallConstructionLayer = z.object({
+  kind: WallConstructionLayerKind,
+  thickness: z.number().positive(),
+  memberWidth: z.number().positive().optional(),
+  studSpacing: z.number().positive().optional(),
+  sheetWidth: z.number().positive().optional(),
+  sheetHeight: z.number().positive().optional(),
+  wasteFactor: z.number().min(0).max(1).default(0.1),
+  productRef: z.string().optional(),
+  brand: z.string().optional(),
+  unitPrice: z.number().nonnegative().optional(),
+})
+export type WallConstructionLayer = z.infer<typeof WallConstructionLayer>
+
+export const WallBandConstructionMode = z.enum(['finish', 'overlay', 'assembly'])
+export type WallBandConstructionMode = z.infer<typeof WallBandConstructionMode>
+
+export const WallBandConstruction = z.object({
+  mode: WallBandConstructionMode.default('finish'),
+  layers: z.array(WallConstructionLayer).default([]),
+})
+export type WallBandConstruction = z.infer<typeof WallBandConstruction>
+
 const WallFaceBandConfigShape = z.object({
   enabled: z.boolean().default(false),
   count: z.number().int().min(1).max(4).default(1),
   lowerHeight: z.number().default(0.84),
   middleHeight: z.number().default(0.61),
   upperHeight: z.number().default(0.61),
+  construction: z.record(z.string(), WallBandConstruction).optional(),
 })
 
 export const WallFaceBandConfig = z.preprocess((value) => {

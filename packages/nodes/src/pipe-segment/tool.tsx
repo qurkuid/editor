@@ -3,6 +3,7 @@
 import { type AnyNode, emitter, type GridEvent, PipeSegmentNode, useScene } from '@pascal-app/core'
 import {
   CursorSphere,
+  constrainSpatialDraftPoint,
   DimensionPill,
   EDITOR_LAYER,
   isAngleSnapActive,
@@ -10,6 +11,7 @@ import {
   isMagneticSnapActive,
   markToolCancelConsumed,
   triggerSFX,
+  useDraftLengthInput,
   useEditor,
   usePathDraftPreview,
 } from '@pascal-app/editor'
@@ -150,6 +152,9 @@ const PipeSegmentTool = () => {
 
   const startRef = useRef(draftStart)
   startRef.current = draftStart
+  const { clear: clearDraftLength, getLengthMeters } = useDraftLengthInput(
+    () => startRef.current !== null,
+  )
   const systemRef = useRef(system)
   systemRef.current = system
   const slopedRef = useRef(sloped)
@@ -183,7 +188,10 @@ const PipeSegmentTool = () => {
   useEffect(() => {
     usePathDraftPreview
       .getState()
-      .setDraft('pipe-segment', displayStart ? [displayStart] : [], cursorPos, { diameter, system })
+      .setDraft('pipe-segment', displayStart ? [displayStart] : [], cursorPos, {
+        diameter,
+        system,
+      })
   }, [cursorPos, diameter, displayStart, system])
   useEffect(() => () => usePathDraftPreview.getState().clear('pipe-segment'), [])
 
@@ -214,7 +222,10 @@ const PipeSegmentTool = () => {
       )
       if (remaining < 0.05 || remaining >= originalLen) return null
       path[index] = plan.trimmedPortPoint
-      return { ...plan, trim: { id: port.nodeId, data: { path } as Partial<AnyNode> } }
+      return {
+        ...plan,
+        trim: { id: port.nodeId, data: { path } as Partial<AnyNode> },
+      }
     }
 
     const commitSegment = (
@@ -331,7 +342,10 @@ const PipeSegmentTool = () => {
         : [makePipe(pipeStart, pipeEnd)]
       useScene.getState().applyNodeChanges({
         create: [
-          ...bends.map((plan) => ({ node: plan.fitting, parentId: activeLevelId })),
+          ...bends.map((plan) => ({
+            node: plan.fitting,
+            parentId: activeLevelId,
+          })),
           ...(tap
             ? [
                 { node: tap.fitting, parentId: activeLevelId },
@@ -356,11 +370,17 @@ const PipeSegmentTool = () => {
           ...bends.map((plan) => plan.trim),
           ...(tap ? [tap.runUpdate as { id: AnyNode['id']; data: Partial<AnyNode> }] : []),
           ...(endTapFinal
-            ? [endTapFinal.runUpdate as { id: AnyNode['id']; data: Partial<AnyNode> }]
+            ? [
+                endTapFinal.runUpdate as {
+                  id: AnyNode['id']
+                  data: Partial<AnyNode>
+                },
+              ]
             : []),
           ...(cross ? [cross.runUpdate as { id: AnyNode['id']; data: Partial<AnyNode> }] : []),
         ],
       })
+      clearDraftLength()
       const nextPipe = pipes.at(-1)
       const nextStart = nextPipe ? nextPipe.path[nextPipe.path.length - 1]! : end
       const nextPort = nextPipe ? pipeEndPort(nextPipe, 'end') : endPort
@@ -453,7 +473,9 @@ const PipeSegmentTool = () => {
           rawXZ[1],
           snap(rawXZ[2], step),
         ]
-        const body = findNearestRunBodyXZ(probe, BODY_SNAP_RADIUS_M, { kinds: ['pipe-segment'] })
+        const body = findNearestRunBodyXZ(probe, BODY_SNAP_RADIUS_M, {
+          kinds: ['pipe-segment'],
+        })
         if (body) return { point: body.point, snapped: body.point, port: null, body }
       }
       let end: [number, number, number]
@@ -473,7 +495,12 @@ const PipeSegmentTool = () => {
           end = [start[0] + dx * s, angled[1], start[2] + dz * s]
         }
       }
-      return { point: applySlope(start, end), snapped: null, port: null, body: null }
+      return {
+        point: applySlope(start, end),
+        snapped: null,
+        port: null,
+        body: null,
+      }
     }
 
     const resolveAltVerticalPoint = (clientY: number): [number, number, number] | null => {
@@ -496,18 +523,33 @@ const PipeSegmentTool = () => {
       const r = resolveSnappedPoint(event)
       const hasStart = !!startRef.current
       const alt = event.nativeEvent?.altKey === true
-      const point = alignDrawPoint(r.point, {
+      const alignedPoint = alignDrawPoint(r.point, {
         applySnap: isMagneticSnapActive() && (!hasStart || !isAngleSnapActive()),
         bypass: alt || r.snapped !== null,
       })
-      return { ...r, point }
+      const length = hasStart ? getLengthMeters() : null
+      const point = startRef.current
+        ? constrainSpatialDraftPoint(startRef.current, alignedPoint, length)
+        : alignedPoint
+      return {
+        ...r,
+        point,
+        snapped: length === null ? r.snapped : null,
+        port: length === null ? r.port : null,
+        body: length === null ? r.body : null,
+      }
     }
 
     const onMove = (event: GridEvent) => {
       const clientY = (event.nativeEvent as { clientY?: number } | undefined)?.clientY
       if (typeof clientY === 'number') lastClientYRef.current = clientY
       if (altAnchorRef.current && typeof clientY === 'number') {
-        const point = resolveAltVerticalPoint(clientY)
+        const rawPoint = resolveAltVerticalPoint(clientY)
+        const start = startRef.current
+        const point =
+          rawPoint && start
+            ? constrainSpatialDraftPoint(start, rawPoint, getLengthMeters())
+            : rawPoint
         if (point) {
           clearDrawAlignment()
           setCursorPos(point)
@@ -526,7 +568,10 @@ const PipeSegmentTool = () => {
         const clientY =
           (event.nativeEvent as { clientY?: number } | undefined)?.clientY ?? lastClientYRef.current
         if (typeof clientY === 'number') {
-          const point = resolveAltVerticalPoint(clientY)
+          const rawPoint = resolveAltVerticalPoint(clientY)
+          const point = rawPoint
+            ? constrainSpatialDraftPoint(start, rawPoint, getLengthMeters())
+            : null
           if (point && Math.abs(point[1] - start[1]) >= 1e-4) commitSegment(start, point)
         }
         return
@@ -556,7 +601,10 @@ const PipeSegmentTool = () => {
       const start = startRef.current
       if (!start || lastClientYRef.current === null) return
       if (altAnchorRef.current) return
-      altAnchorRef.current = { clientY: lastClientYRef.current, baseY: start[1] }
+      altAnchorRef.current = {
+        clientY: lastClientYRef.current,
+        baseY: start[1],
+      }
       setAltActive(true)
     }
 
@@ -618,6 +666,7 @@ const PipeSegmentTool = () => {
       setSnapTarget(null)
       startPortRef.current = null
       startBodyRef.current = null
+      clearDraftLength()
     }
 
     emitter.on('grid:move', onMove)
@@ -634,7 +683,7 @@ const PipeSegmentTool = () => {
       altAnchorRef.current = null
       clearDrawAlignment()
     }
-  }, [activeLevelId])
+  }, [activeLevelId, clearDraftLength, getLengthMeters])
 
   if (!activeLevelId) return null
 
@@ -646,7 +695,12 @@ const PipeSegmentTool = () => {
           value: displayStart ? cursorPos[i]! - displayStart[i]! : cursorPos[i]!,
           signed: !!displayStart,
         })),
-        { key: 'diameter', prefix: 'Ø', value: diameter * 0.0254, signed: false },
+        {
+          key: 'diameter',
+          prefix: 'Ø',
+          value: diameter * 0.0254,
+          signed: false,
+        },
       ]
     : null
   const pillPrimary = draftStart && cursorPos ? (altActive ? 'y' : 'y') : undefined

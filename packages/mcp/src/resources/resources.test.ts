@@ -8,9 +8,11 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { WallNode, ZoneNode } from '@pascal-app/core/schema'
 import useScene from '@pascal-app/core/store'
 import { SceneBridge } from '../bridge/scene-bridge'
+import { createSceneOperations } from '../operations'
 import { registerAgentGuide } from './agent-guide'
 import { registerCatalogItems } from './catalog-items'
 import { registerConstraints } from './constraints'
+import { registerDebugState } from './debug-state'
 import { registerSceneCurrent } from './scene-current'
 import { registerSceneSummary } from './scene-summary'
 
@@ -287,6 +289,32 @@ describe('pascal://constraints/{levelId}', () => {
       expect(parsed.error).toBe('level_not_found')
       expect(parsed.slabs).toEqual([])
       expect(parsed.wallPolygons).toEqual([])
+    } finally {
+      await pair.close()
+    }
+  })
+})
+
+describe('pascal://debug/state', () => {
+  beforeEach(() => resetScene())
+
+  test('returns structural diagnostics without viewport data', async () => {
+    const pair = await spinUp((server, bridge) =>
+      registerDebugState(server, createSceneOperations({ bridge })),
+    )
+    try {
+      pair.bridge.loadDefault()
+      const response = await pair.client.readResource({ uri: 'pascal://debug/state' })
+      const content = response.contents[0] as { mimeType?: string; text?: string }
+      const payload = JSON.parse(content.text ?? '{}')
+
+      expect(content.mimeType).toBe('application/json')
+      expect(payload.scene.nodeCount).toBeGreaterThan(0)
+      expect(payload.scene.history).toEqual({ pastCount: 1, futureCount: 0 })
+      expect(payload.scene.validation.valid).toBe(true)
+      expect(payload.store.backend).toBeNull()
+      expect(payload.execution.recentSceneEvents).toEqual([])
+      expect(payload).not.toHaveProperty('screenshot')
     } finally {
       await pair.close()
     }

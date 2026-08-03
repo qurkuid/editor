@@ -246,6 +246,24 @@ export function cabinetCornerUnlinkPatchesOnDelete(
 }
 
 /**
+ * Deleting one half of a two-sided island (a `remove back row` quick action,
+ * a direct delete of the back run) must not leave the survivor pointing at a
+ * run that no longer exists. Deleting the FRONT run cascades to its nested
+ * back run automatically (it's a descendant), so both ids land in the same
+ * delete batch and this patch is dropped by the store — only a lone back-run
+ * delete actually needs it.
+ */
+export function cabinetIslandUnlinkPatchesOnDelete(
+  node: CabinetNode | CabinetModuleNode,
+  nodes: Readonly<Partial<Record<AnyNodeId, AnyNode>>>,
+): Array<{ id: AnyNodeId; data: Partial<AnyNode> }> {
+  if (node.type !== 'cabinet' || !node.islandLink) return []
+  const paired = nodes[node.islandLink.pairedRunId]
+  if (paired?.type !== 'cabinet') return []
+  return [{ id: paired.id as AnyNodeId, data: { islandLink: undefined } as Partial<AnyNode> }]
+}
+
+/**
  * A cabinet run is a grouping container — once its last child is deleted
  * the empty run must go too, so no orphan group lingers in the scene graph
  * or the persisted data. Children may be modules or derived corner leg
@@ -322,6 +340,22 @@ export function wallBottomHeightForTallAlignment() {
 /** Local Z offset that makes a shallower wall cabinet's back flush with its deeper base. */
 export function backAlignZ(baseDepth: number, wallDepth: number) {
   return -(baseDepth - wallDepth) / 2
+}
+
+/**
+ * Y where an upper/lower set's wall run bottom lands: `gap` above the base
+ * run's REAL height (its own plinth/carcass/countertop, not the fixed tall-
+ * alignment constant `wallBottomHeightForTallAlignment` uses), so a
+ * customized base run keeps the upper unit clear of its actual countertop.
+ */
+export function wallBottomHeightForSetLink(
+  baseRun: Pick<
+    CabinetNode,
+    'showPlinth' | 'plinthHeight' | 'carcassHeight' | 'withCountertop' | 'countertopThickness'
+  >,
+  gap: number,
+) {
+  return totalCabinetHeight(baseRun) + gap
 }
 
 export function wallChildOf(
@@ -1571,6 +1605,12 @@ function upsertCabinetRunWithModules({
     withCountertop: runTier === 'base' ? sourceRun.withCountertop : false,
     barLedge: undefined,
     withWaterfall: false,
+    // Never inherited from `sourceRun` — every derived run this helper
+    // builds (corner legs, wall children, island back rows, upper/lower
+    // sets) starts unlinked; callers that need one of these fields set it
+    // explicitly afterwards.
+    islandLink: undefined,
+    setLink: undefined,
   })
   sceneApi.upsert(run as AnyNode, parentId)
 
@@ -1601,6 +1641,210 @@ function upsertCabinetRunWithModules({
   })
 
   return { runId: run.id as AnyNodeId, moduleIds }
+}
+
+/**
+ * Add the back row that turns a straight base run into a two-sided island:
+ * a second `CabinetNode` nested under the front run's first module, rotated
+ * 180° so its fronts face away from the shared spine, offset along that
+ * spine so the two runs' back edges touch. Mirrors `addCornerRun`'s pattern
+ * of a linked derived run rather than widening the run schema with a
+ * per-module facing flag. Each side keeps its own independent countertop
+ * slab — cross-run span merging is out of scope.
+ */
+export function addIslandBackRun({
+  gap = 0,
+  run,
+  sceneApi,
+}: {
+  gap?: number
+  run: CabinetNode
+  sceneApi: SceneApi
+}): AnyNodeId | null {
+  const liveRun = sceneApi.get<CabinetNode>(run.id as AnyNodeId) ?? run
+  if (liveRun.runTier !== 'base' || liveRun.islandLink) return null
+  const modules = cabinetModulesForRun(liveRun, sceneApi.nodes())
+  if (modules.length === 0) return null
+
+  const runWorld = resolveCabinetWorldTransform(liveRun, sceneApi.nodes())
+  const backDepth = liveRun.depth
+  const backWorldPosition = runLocalToPlan(runWorld, [
+    0,
+    0,
+    -(liveRun.depth / 2 + backDepth / 2 + gap),
+  ])
+  const backWorldRotation = runWorld.rotation + Math.PI
+
+  const hostModule = sortRunModules(modules)[0]!
+  const backLocalPosition = worldToCabinetLocalPosition(
+    hostModule,
+    sceneApi.nodes(),
+    backWorldPosition,
+  )
+  const backLocalRotation = worldToCabinetLocalRotation(
+    hostModule,
+    sceneApi.nodes(),
+    backWorldRotation,
+  )
+
+  const sorted = sortRunModules(modules)
+  const modulePatches: CabinetModulePatch[] = sorted.map((module, index) => ({
+    name: index === 0 ? 'Base Cabinet' : `Base Cabinet ${index + 1}`,
+    width: module.width,
+    stack: doorStack(1),
+  }))
+
+  const backLeg = upsertCabinetRunWithModules({
+    depth: backDepth,
+    modulePatches,
+    name: 'Island Back Run',
+    parentId: hostModule.id as AnyNodeId,
+    position: backLocalPosition,
+    rotation: backLocalRotation,
+    runTier: 'base',
+    sceneApi,
+    sourceRun: liveRun,
+  })
+
+  // A back-to-back island's touching edges are internal — neither side gets
+  // the single-sided seating overhang / finished-back panel today's
+  // one-sided island applies; both fronts get the standard small overhang.
+  sceneApi.update(
+    liveRun.id as AnyNodeId,
+    {
+      countertopBackOverhang: 0,
+      withFinishedBack: false,
+      islandLink: { role: 'front', pairedRunId: backLeg.runId },
+    } as Partial<AnyNode>,
+  )
+  const backRunLiveMetadata = sceneApi.get<CabinetNode>(backLeg.runId)?.metadata ?? null
+  sceneApi.update(backLeg.runId, {
+    countertopBackOverhang: 0,
+    withFinishedBack: false,
+    islandLink: { role: 'back', pairedRunId: liveRun.id as AnyNodeId },
+    metadata: withSelectionProxyMetadata(backRunLiveMetadata, liveRun.id as AnyNodeId),
+  } as Partial<AnyNode>)
+  for (const moduleId of backLeg.moduleIds) {
+    setCabinetSelectionProxy(sceneApi, moduleId, liveRun.id as AnyNodeId)
+  }
+
+  bumpCabinetRunLayoutRevision(sceneApi, liveRun)
+  return backLeg.runId
+}
+
+/**
+ * Remove an island's back row. Goes through the normal delete pipeline (not
+ * a manual unlink) so `cabinetIslandUnlinkPatchesOnDelete` — registered on
+ * the cabinet kind's `parametrics.onDelete` — clears the front run's
+ * `islandLink` for us.
+ */
+export function removeIslandBackRun({
+  run,
+  sceneApi,
+}: {
+  run: CabinetNode
+  sceneApi: SceneApi
+}): boolean {
+  const liveRun = sceneApi.get<CabinetNode>(run.id as AnyNodeId) ?? run
+  if (liveRun.islandLink?.role !== 'front') return false
+  sceneApi.delete(liveRun.islandLink.pairedRunId)
+  return true
+}
+
+/** Every wall-tier run whose `setLink` names `baseRun` as its lower unit. */
+export function findSetLinkWallRuns(
+  baseRun: CabinetNode,
+  nodes: Readonly<Partial<Record<AnyNodeId, AnyNode>>>,
+): CabinetNode[] {
+  return Object.values(nodes).filter(
+    (node): node is CabinetNode =>
+      node?.type === 'cabinet' && node.setLink?.baseRunId === baseRun.id,
+  )
+}
+
+/**
+ * Reposition an upper/lower set's wall run after the base run's real height
+ * (plinth / carcass / countertop) changes, so a customized base keeps the
+ * upper unit clear of its actual countertop instead of the fixed
+ * tall-alignment constant. `anchor: 'upper'` deliberately keeps the upper
+ * unit's absolute Y fixed against base-height edits, so it's skipped here.
+ */
+export function syncSetLinkWallRun({
+  baseRun,
+  sceneApi,
+}: {
+  baseRun: CabinetNode
+  sceneApi: SceneApi
+}) {
+  const liveBaseRun = sceneApi.get<CabinetNode>(baseRun.id as AnyNodeId) ?? baseRun
+  for (const wallRun of findSetLinkWallRuns(liveBaseRun, sceneApi.nodes())) {
+    if (wallRun.setLink?.anchor !== 'lower') continue
+    const hostModule = wallRun.parentId
+      ? sceneApi.get<CabinetModuleNode>(wallRun.parentId as AnyNodeId)
+      : null
+    if (!hostModule) continue
+    const bottomY =
+      wallBottomHeightForSetLink(liveBaseRun, wallRun.setLink.gap) - hostModule.position[1]
+    const depthZ = backAlignZ(liveBaseRun.depth, wallRun.depth) - hostModule.position[2]
+    sceneApi.update(
+      wallRun.id as AnyNodeId,
+      {
+        position: [wallRun.position[0], bottomY, depthZ],
+      } as Partial<AnyNode>,
+    )
+  }
+}
+
+/**
+ * Add an upper/lower set's wall-tier run above a base run: its own
+ * `CabinetNode` (a `CabinetNode` can host a run of its own bays, decoupled
+ * from the base run's), nested under the base run's first module. Starts as
+ * a single full-width bay — independent of the base run's bay count, matching
+ * how the source design's 상하부 세트 lets the upper unit's layout diverge
+ * from the lower one's.
+ */
+export function addWallSetRun({
+  gap = 0.6,
+  run,
+  sceneApi,
+}: {
+  gap?: number
+  run: CabinetNode
+  sceneApi: SceneApi
+}): AnyNodeId | null {
+  const liveRun = sceneApi.get<CabinetNode>(run.id as AnyNodeId) ?? run
+  if (liveRun.runTier !== 'base') return null
+  if (findSetLinkWallRuns(liveRun, sceneApi.nodes()).length > 0) return null
+  const modules = cabinetModulesForRun(liveRun, sceneApi.nodes())
+  const extent = runLocalXExtent(modules)
+  if (!extent) return null
+
+  const hostModule = sortRunModules(modules)[0]!
+  const wallDepth = CABINET_WALL_DEPTH
+  const bottomY = wallBottomHeightForSetLink(liveRun, gap)
+
+  const wallSet = upsertCabinetRunWithModules({
+    depth: wallDepth,
+    modulePatches: [{ name: 'Wall Cabinet', width: extent.width, stack: doorStack(1) }],
+    name: 'Wall Set Run',
+    parentId: hostModule.id as AnyNodeId,
+    position: [
+      extent.centerX - hostModule.position[0],
+      bottomY - hostModule.position[1],
+      backAlignZ(liveRun.depth, wallDepth) - hostModule.position[2],
+    ],
+    rotation: 0,
+    runTier: 'wall',
+    sceneApi,
+    sourceRun: liveRun,
+  })
+
+  sceneApi.update(wallSet.runId, {
+    setLink: { anchor: 'lower', baseRunId: liveRun.id as AnyNodeId, gap },
+  } as Partial<AnyNode>)
+
+  bumpCabinetRunLayoutRevision(sceneApi, liveRun)
+  return wallSet.runId
 }
 
 function childModuleByName(

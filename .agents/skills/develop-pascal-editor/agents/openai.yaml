@@ -1,0 +1,7 @@
+interface:
+  display_name: "Develop Pascal Editor"
+  short_description: "Pascal 편집기 기능을 구조와 실동작까지 구현"
+  default_prompt: "Use $develop-pascal-editor to implement and verify this Pascal editor feature end to end."
+
+policy:
+  allow_implicit_invocation: true

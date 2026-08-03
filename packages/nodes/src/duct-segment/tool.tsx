@@ -14,6 +14,7 @@ import {
 } from '@pascal-app/core'
 import {
   CursorSphere,
+  constrainSpatialDraftPoint,
   DimensionPill,
   EDITOR_LAYER,
   isAngleSnapActive,
@@ -21,6 +22,7 @@ import {
   isMagneticSnapActive,
   markToolCancelConsumed,
   triggerSFX,
+  useDraftLengthInput,
   useEditor,
   usePathDraftPreview,
 } from '@pascal-app/editor'
@@ -332,7 +334,10 @@ const elbowPlanFor = (
   )
   if (remaining < 0.08 || remaining >= originalLen) return null
   path[index] = plan.trimmedPortPoint
-  return { ...plan, trim: { id: port.nodeId, data: { path } as Partial<AnyNode> } }
+  return {
+    ...plan,
+    trim: { id: port.nodeId, data: { path } as Partial<AnyNode> },
+  }
 }
 
 const realignPlanFor = (port: ScenePort | null, awayDir: [number, number, number]) => {
@@ -534,7 +539,10 @@ const DuctSegmentTool = () => {
   // What the in-flight cursor end currently snaps onto (port end, or a
   // run body for a tee / cross tap). Drives the auto-fitting GHOST so the
   // user sees the elbow / tee / cross the next click will mint.
-  const [endSnap, setEndSnap] = useState<{ port: ScenePort | null; body: RunBodyHit | null }>({
+  const [endSnap, setEndSnap] = useState<{
+    port: ScenePort | null
+    body: RunBodyHit | null
+  }>({
     port: null,
     body: null,
   })
@@ -542,6 +550,9 @@ const DuctSegmentTool = () => {
   // setState) read the latest values without re-subscribing.
   const draftRef = useRef(draftPoints)
   draftRef.current = draftPoints
+  const { clear: clearDraftLength, getLengthMeters } = useDraftLengthInput(
+    () => draftRef.current.length > 0,
+  )
   const cursorPosRef = useRef(cursorPos)
   cursorPosRef.current = cursorPos
   const profileRef = useRef(profile)
@@ -626,6 +637,7 @@ const DuctSegmentTool = () => {
         ],
         update: plan.updates,
       })
+      clearDraftLength()
       const nextDuct = plan.ducts.at(-1)
       const nextStart = nextDuct ? nextDuct.path[nextDuct.path.length - 1]! : end
       const nextPort = nextDuct ? ductEndPort(nextDuct, 'end') : endPort
@@ -723,7 +735,12 @@ const DuctSegmentTool = () => {
       if (event.nativeEvent?.altKey !== true && snapEnabled) {
         const target = findNearbyPort(rawXZ)
         if (target)
-          return { point: portPoint(target), snapped: portPoint(target), port: target, body: null }
+          return {
+            point: portPoint(target),
+            snapped: portPoint(target),
+            port: target,
+            body: null,
+          }
         // No open end nearby — landing on the side of a run taps a tee
         // there (mirror of the first-point tee tap). Probe with a
         // grid-snapped cursor so the tap steps along the duct instead of
@@ -775,11 +792,20 @@ const DuctSegmentTool = () => {
       const r = resolveSnappedPoint(event)
       const hasStart = draftRef.current.length > 0
       const alt = event.nativeEvent?.altKey === true
-      const point = alignDrawPoint(r.point, {
+      const alignedPoint = alignDrawPoint(r.point, {
         applySnap: isMagneticSnapActive() && (!hasStart || !isAngleSnapActive()),
         bypass: alt || r.snapped !== null,
       })
-      return { ...r, point }
+      const last = draftRef.current.at(-1)
+      const length = hasStart ? getLengthMeters() : null
+      const point = last ? constrainSpatialDraftPoint(last, alignedPoint, length) : alignedPoint
+      return {
+        ...r,
+        point,
+        snapped: length === null ? r.snapped : null,
+        port: length === null ? r.port : null,
+        body: length === null ? r.body : null,
+      }
     }
 
     // The ceiling the cursor is under (ceiling mode only) — drives the
@@ -798,7 +824,12 @@ const DuctSegmentTool = () => {
       if (typeof clientY === 'number') lastClientYRef.current = clientY
       // Alt vertical mode wins over the XZ logic.
       if (altAnchorRef.current && typeof clientY === 'number') {
-        const point = resolveAltVerticalPoint(clientY)
+        const rawPoint = resolveAltVerticalPoint(clientY)
+        const last = draftRef.current.at(-1)
+        const point =
+          rawPoint && last
+            ? constrainSpatialDraftPoint(last, rawPoint, getLengthMeters())
+            : rawPoint
         if (point) {
           clearDrawAlignment()
           setCursorPos(point)
@@ -824,7 +855,10 @@ const DuctSegmentTool = () => {
         const clientY =
           (event.nativeEvent as { clientY?: number } | undefined)?.clientY ?? lastClientYRef.current
         if (typeof clientY === 'number') {
-          const point = resolveAltVerticalPoint(clientY)
+          const rawPoint = resolveAltVerticalPoint(clientY)
+          const point = rawPoint
+            ? constrainSpatialDraftPoint(start, rawPoint, getLengthMeters())
+            : null
           if (point && Math.abs(point[1] - start[1]) >= 1e-4) {
             commitSegment(start, point)
           }
@@ -857,7 +891,10 @@ const DuctSegmentTool = () => {
       const last = draftRef.current.at(-1)
       if (!last || lastClientYRef.current === null) return
       if (altAnchorRef.current) return
-      altAnchorRef.current = { clientY: lastClientYRef.current, baseY: last[1] }
+      altAnchorRef.current = {
+        clientY: lastClientYRef.current,
+        baseY: last[1],
+      }
       setAltActive(true)
     }
 
@@ -896,7 +933,10 @@ const DuctSegmentTool = () => {
         stepDiameter(1)
       } else if (e.key === 'q' || e.key === 'Q') {
         e.preventDefault()
-        setProfile((p) => ({ ...p, shape: p.shape === 'round' ? 'rect' : 'round' }))
+        setProfile((p) => ({
+          ...p,
+          shape: p.shape === 'round' ? 'rect' : 'round',
+        }))
         triggerSFX('sfx:grid-snap')
       } else if (e.key === 'c' || e.key === 'C') {
         // Toggle ceiling mode: points hang from the ceiling above them
@@ -929,6 +969,7 @@ const DuctSegmentTool = () => {
       setHoverCeiling(null)
       startPortRef.current = null
       startBodyRef.current = null
+      clearDraftLength()
     }
 
     emitter.on('grid:move', onMove)
@@ -945,11 +986,14 @@ const DuctSegmentTool = () => {
       altAnchorRef.current = null
       clearDrawAlignment()
     }
-  }, [activeLevelId])
+  }, [activeLevelId, clearDraftLength, getLengthMeters])
 
   if (!activeLevelId) return null
 
-  const previewSegments: Array<{ a: [number, number, number]; b: [number, number, number] }> = []
+  const previewSegments: Array<{
+    a: [number, number, number]
+    b: [number, number, number]
+  }> = []
   for (let i = 0; i < draftPoints.length - 1; i++) {
     previewSegments.push({ a: draftPoints[i]!, b: draftPoints[i + 1]! })
   }
@@ -972,10 +1016,27 @@ const DuctSegmentTool = () => {
           signed: !!last,
         })),
         ...(profile.shape === 'round'
-          ? [{ key: 'diameter', prefix: 'Ø', value: profile.diameter * 0.0254, signed: false }]
+          ? [
+              {
+                key: 'diameter',
+                prefix: 'Ø',
+                value: profile.diameter * 0.0254,
+                signed: false,
+              },
+            ]
           : [
-              { key: 'trunk-w', prefix: 'W', value: profile.width * 0.0254, signed: false },
-              { key: 'trunk-h', prefix: 'H', value: profile.height * 0.0254, signed: false },
+              {
+                key: 'trunk-w',
+                prefix: 'W',
+                value: profile.width * 0.0254,
+                signed: false,
+              },
+              {
+                key: 'trunk-h',
+                prefix: 'H',
+                value: profile.height * 0.0254,
+                signed: false,
+              },
             ]),
       ]
     : null

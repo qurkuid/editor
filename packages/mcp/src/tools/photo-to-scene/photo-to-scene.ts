@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js'
+import { createDefaultWallFaceBands } from '@pascal-app/core'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
 import type { AnyNodeId, AnyNode as AnyNodeT } from '@pascal-app/core/schema'
 import {
@@ -281,10 +282,12 @@ function buildSceneGraphFromVision(
   for (let i = 0; i < vision.walls.length; i++) {
     const w = vision.walls[i]!
     try {
+      const wallThickness = w.thickness ?? defaultWallThickness
       const wall = WallNode.parse({
         start: w.start,
         end: w.end,
-        thickness: w.thickness ?? defaultWallThickness,
+        thickness: wallThickness,
+        faceBands: createDefaultWallFaceBands(wallThickness),
         ...(w.height !== undefined ? { height: w.height } : {}),
       })
       const linkedWall: AnyNodeT = {

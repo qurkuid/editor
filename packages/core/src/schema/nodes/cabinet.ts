@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { BaseNode, nodeType, objectId } from '../base'
 import { MaterialSchema } from '../material'
+import { FurnitureAssemblySchema, FurnitureBaySchema } from './furniture'
 
 const compartmentBase = {
   id: z.string(),
@@ -75,6 +76,43 @@ const CabinetCompartment = z.discriminatedUnion('type', [
 
 export type CabinetCompartmentSchema = z.infer<typeof CabinetCompartment>
 
+const countertopCutoutBase = {
+  id: z.string(),
+  // Descriptive only — the automatic sink/cooktop cuts driven by `stack`
+  // compartments don't go through this array. 'sink' / 'cooktop' here cover a
+  // manually placed opening (e.g. a farmhouse sink footprint the auto layout
+  // can't express); 'custom' covers anything else (outlet box, trash chute).
+  kind: z.enum(['sink', 'cooktop', 'outlet', 'custom']).default('custom'),
+  // Metres, relative to the countertop slab's own center: x runs along the
+  // run (module axis), z is front(-)/back(+) across the slab depth.
+  position: z.object({
+    x: z.number().min(-6).max(6),
+    z: z.number().min(-6).max(6),
+  }),
+}
+
+// Discriminated on `shape` so a circle can't carry rect-only fields (size,
+// cornerRadius) and a rect can't carry `radius` — same pattern as
+// CabinetCompartment above.
+export const CountertopCutout = z.discriminatedUnion('shape', [
+  z.object({
+    ...countertopCutoutBase,
+    shape: z.literal('rect'),
+    size: z.object({
+      width: z.number().min(0.01).max(1.2),
+      depth: z.number().min(0.01).max(1.2),
+    }),
+    cornerRadius: z.number().min(0).max(0.3).default(0),
+  }),
+  z.object({
+    ...countertopCutoutBase,
+    shape: z.literal('circle'),
+    radius: z.number().min(0.01).max(0.6),
+  }),
+])
+
+export type CountertopCutoutSchema = z.infer<typeof CountertopCutout>
+
 // Box construction / hardware fields shared verbatim by the run and its
 // modules. One source of truth so the two schemas can't drift.
 const cabinetBoxFields = {
@@ -94,6 +132,11 @@ const cabinetBoxFields = {
   // Extra slab reach off the back edge (island seating side) — up to a
   // 45 cm knee-space overhang, unlike the small uniform front/side overhang.
   countertopBackOverhang: z.number().min(0).max(0.45).default(0),
+  // Freeform openings cut out of the countertop slab (outlet boxes, custom
+  // appliance cutouts, ...) — separate from the sink/cooktop cuts the stack
+  // compartments already drive automatically. See CountertopCutout above for
+  // the position/size convention.
+  countertopCutouts: z.array(CountertopCutout).default([]),
   withFinishedBack: z.boolean().default(false),
   frontThickness: z.number().min(0.01).max(0.05).default(0.018),
   frontGap: z.number().min(0.001).max(0.02).default(0.003),
@@ -126,6 +169,27 @@ export const CabinetNode = BaseNode.extend({
     .optional(),
   // Countertop material dropping to the floor on exposed run ends.
   withWaterfall: z.boolean().default(false),
+  furniture: FurnitureAssemblySchema.optional(),
+  // Two-sided island: this run is one half of a back-to-back pair nested
+  // under the other half's module (see cabinet/run-ops.ts). Set symmetrically
+  // on both runs so either side can resolve its partner.
+  islandLink: z
+    .object({
+      role: z.enum(['front', 'back']),
+      pairedRunId: objectId('cabinet'),
+    })
+    .optional(),
+  // Upper/lower set: a `runTier: 'wall'` run nested under a base run's module,
+  // decoupled from the base run's own bay layout. `gap` is the clearance
+  // above the base run's real (plinth + carcass + countertop) height; `anchor`
+  // picks which side stays put when the base run's height changes.
+  setLink: z
+    .object({
+      baseRunId: objectId('cabinet'),
+      gap: z.number().min(0).max(1).default(0.6),
+      anchor: z.enum(['lower', 'upper']).default('lower'),
+    })
+    .optional(),
   ...cabinetBoxFields,
 }).describe('Parametric modular cabinet run node')
 
@@ -144,6 +208,7 @@ export const CabinetModuleNode = BaseNode.extend({
   // Corner-pocket fillers carry a small internal shelf so the dead corner reads
   // as reachable storage instead of an empty boxed void.
   cornerShelf: z.boolean().optional(),
+  furnitureBay: FurnitureBaySchema.optional(),
   ...cabinetBoxFields,
 }).describe('Parametric module inside a modular cabinet run')
 

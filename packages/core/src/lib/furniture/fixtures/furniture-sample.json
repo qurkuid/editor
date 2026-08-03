@@ -1,0 +1,67 @@
+{
+  "schema_version": 0.5,
+  "type": "wardrobe",
+  "furnitureKind": null,
+  "W": 1200,
+  "H": 2400,
+  "D": 600,
+  "dimensions": null,
+  "bays": [
+    {
+      "width": 1200,
+      "base": {
+        "type": "plinth",
+        "height": 50
+      },
+      "kickplate": true,
+      "tiers": [
+        {
+          "height": 2200,
+          "door": "open",
+          "face": "front",
+          "lights": [
+            {
+              "id": "light-under-shelf",
+              "mount": "shelf",
+              "axis": "length",
+              "shelfIndex": 2,
+              "inset": 30,
+              "componentName": "under-shelf-strip",
+              "rotate": 0
+            }
+          ],
+          "outlets": [
+            {
+              "id": "outlet-back",
+              "mount": "back",
+              "x": 120,
+              "z": 480,
+              "w": 86,
+              "h": 86,
+              "componentName": "double-outlet"
+            }
+          ],
+          "smps": [
+            {
+              "id": "smps-back",
+              "mount": "back",
+              "x": 240,
+              "z": 400,
+              "w": 200,
+              "d": 40,
+              "h": 30,
+              "componentName": "led-driver"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "backBays": null,
+  "upperBays": null,
+  "stack": null,
+  "fixtures": null,
+  "lights": null,
+  "outlets": null,
+  "smps": null
+}

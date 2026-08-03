@@ -1645,6 +1645,7 @@ export type PaintCapability = {
    * this flag only declares that the kind participates.
    */
   roomScope?: boolean
+  objectRoles?: (node: AnyNode) => string[]
   /**
    * Resolve which logical surface the user clicked. Returns `null`
    * when the face shouldn't be painted (e.g. interior slot exposed
@@ -1664,6 +1665,7 @@ export type PaintCapability = {
    * Must perform its mutations as a single undo step.
    */
   commit?: (args: PaintPatchArgs) => void
+  commitRoles?: (args: PaintPatchArgs & { roles: string[] }) => void
   /**
    * Apply a preview to the kind's registered mesh subtree at
    * `role`. The kind builds whatever preview material(s) it needs

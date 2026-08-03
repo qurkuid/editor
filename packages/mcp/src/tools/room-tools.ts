@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { createDefaultWallFaceBands } from '@pascal-app/core'
 import type { AnyNode, AnyNodeId, AssetInput } from '@pascal-app/core/schema'
 import {
   CeilingNode,
@@ -425,13 +426,15 @@ export function registerCreateRoom(server: McpServer, bridge: SceneOperations): 
       })
       const slab = SlabNode.parse({ polygon: points, metadata: { mcpTool: 'create_room' } })
       const ceiling = CeilingNode.parse({ polygon: points, metadata: { mcpTool: 'create_room' } })
+      const resolvedWallThickness = wallThickness ?? 0.1
       const walls = points.map((start, index) =>
         WallNode.parse({
           name: `${name} wall ${index + 1}`,
           start,
           end: points[(index + 1) % points.length],
           ...(wallHeight !== undefined ? { height: wallHeight } : {}),
-          ...(wallThickness !== undefined ? { thickness: wallThickness } : {}),
+          thickness: resolvedWallThickness,
+          faceBands: createDefaultWallFaceBands(resolvedWallThickness),
           metadata: { mcpTool: 'create_room', roomName: name, edgeIndex: index },
         }),
       )

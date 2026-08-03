@@ -86,7 +86,7 @@ export const sceneRegistry = {
   },
 }
 
-export function useRegistry(id: string, type: string, ref: React.RefObject<THREE.Object3D>) {
+export function useRegistry(id: string, type: string, ref: React.RefObject<THREE.Object3D | null>) {
   useLayoutEffect(() => {
     const obj = ref.current
     if (!obj) return
@@ -95,12 +95,14 @@ export function useRegistry(id: string, type: string, ref: React.RefObject<THREE
     sceneRegistry.nodes.set(id, obj)
 
     // 2. Add to type-specific set — Proxy auto-creates on first access.
-    sceneRegistry.byType[type]!.add(id)
+    const idsByType = sceneRegistry.byType[type]
+    if (!idsByType) return
+    idsByType.add(id)
 
     // 3. Cleanup when component unmounts
     return () => {
       sceneRegistry.nodes.delete(id)
-      sceneRegistry.byType[type]!.delete(id)
+      idsByType.delete(id)
     }
   }, [id, type, ref])
 }

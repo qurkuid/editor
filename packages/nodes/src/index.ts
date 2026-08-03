@@ -1,4 +1,5 @@
 import type { AnyNodeDefinition, Plugin } from '@pascal-app/core'
+import { bodyDefinition } from './body'
 import { boxVentDefinition } from './box-vent'
 import { buildingDefinition } from './building'
 import { cabinetDefinition, cabinetModuleDefinition } from './cabinet'
@@ -21,6 +22,9 @@ import { gutterDefinition } from './gutter'
 import { hvacEquipmentDefinition } from './hvac-equipment'
 import { itemDefinition } from './item'
 import { levelDefinition } from './level'
+import { lightingCircuitDefinition } from './lighting-circuit'
+import { lightingFixtureDefinition } from './lighting-fixture'
+import { lightingSwitchDefinition } from './lighting-switch'
 import { linesetDefinition } from './lineset'
 import { liquidLineDefinition } from './liquid-line'
 import { measurementDefinition } from './measurement'
@@ -67,6 +71,7 @@ export const builtinPlugin: Plugin = {
   nodes: [
     // Stage E-complete (full registry path)
     shelfDefinition as unknown as AnyNodeDefinition,
+    bodyDefinition as unknown as AnyNodeDefinition,
     spawnDefinition as unknown as AnyNodeDefinition,
     wallDefinition as unknown as AnyNodeDefinition,
     fenceDefinition as unknown as AnyNodeDefinition,
@@ -77,6 +82,9 @@ export const builtinPlugin: Plugin = {
     cabinetDefinition as unknown as AnyNodeDefinition,
     cabinetModuleDefinition as unknown as AnyNodeDefinition,
     itemDefinition as unknown as AnyNodeDefinition,
+    lightingCircuitDefinition as unknown as AnyNodeDefinition,
+    lightingFixtureDefinition as unknown as AnyNodeDefinition,
+    lightingSwitchDefinition as unknown as AnyNodeDefinition,
     // Stage A — wrap-exports the legacy renderer + system. Legacy
     // panels / move tools / floorplan branches still serve these.
     columnDefinition as unknown as AnyNodeDefinition,
@@ -120,6 +128,7 @@ export const builtinPlugin: Plugin = {
   ],
 }
 
+export { type BodyPrimitive, bodyDefinition, useBodyToolOptions } from './body'
 export { boxVentDefinition } from './box-vent'
 export { buildingDefinition } from './building'
 export {
@@ -150,6 +159,10 @@ export { gutterDefinition } from './gutter'
 export { hvacEquipmentDefinition } from './hvac-equipment'
 export { itemDefinition } from './item'
 export { levelDefinition } from './level'
+export { useLightingToolOptions } from './lighting/options'
+export { lightingCircuitDefinition } from './lighting-circuit'
+export { lightingFixtureDefinition } from './lighting-fixture'
+export { lightingSwitchDefinition } from './lighting-switch'
 export { linesetDefinition } from './lineset'
 export { liquidLineDefinition, useLiquidLineToolOptions } from './liquid-line'
 export { measurementDefinition } from './measurement'

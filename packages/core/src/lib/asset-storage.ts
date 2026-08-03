@@ -14,6 +14,16 @@ export async function saveAsset(file: File): Promise<string> {
   return `asset://${id}`
 }
 
+export async function findStoredAsset(id: string): Promise<string | null> {
+  const asset = await get<Blob>(`${ASSET_PREFIX}${id}`)
+  return asset ? `asset://${id}` : null
+}
+
+export async function saveStoredAsset(id: string, asset: Blob): Promise<string> {
+  await set(`${ASSET_PREFIX}${id}`, asset)
+  return `asset://${id}`
+}
+
 /**
  * Load a file from IndexedDB and return an object URL
  * If the URL is not a custom protocol URL, return it as is
@@ -31,9 +41,8 @@ export async function loadAssetUrl(url: string): Promise<string | null> {
     const id = url.replace('asset://', '')
 
     // Check cache first
-    if (urlCache.has(id)) {
-      return urlCache.get(id)!
-    }
+    const cachedUrl = urlCache.get(id)
+    if (cachedUrl) return cachedUrl
 
     try {
       const file = await get<File | Blob>(`${ASSET_PREFIX}${id}`)
@@ -45,6 +54,7 @@ export async function loadAssetUrl(url: string): Promise<string | null> {
       urlCache.set(id, objectUrl)
       return objectUrl
     } catch (error) {
+      if (!(error instanceof Error)) throw error
       console.error('Failed to load asset:', error)
       return null
     }

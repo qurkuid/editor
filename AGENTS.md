@@ -20,6 +20,11 @@ Public, open-source home of `@pascal-app/{core,viewer,editor,mcp}` and the stand
 
 `CLAUDE.md`, `GEMINI.md`, and `.github/copilot-instructions.md` are symlinks to this file. Codex reads this file directly.
 
+## Automatic skill routing
+
+- For any feature implementation, bug fix, or interaction/UI change in this repository, automatically invoke `.agents/skills/develop-pascal-editor/SKILL.md` before editing. This includes modeling and Body topology, placement or reshape tools, 2D/3D parity, selection, materials/RawPainter, AI scene control, reference images, units, sidebar workflows, and runtime verification.
+- Use it together with narrower named skills when applicable; its repository workflow and real-browser completion gate remain authoritative for Pascal editor development.
+
 ## Layer Boundaries (read once, internalise)
 
 - **`packages/core`** owns domain data and pure logic. It must not import Three.js, `packages/viewer`, `apps/editor`, rendering/UI concepts, tools, modes, phases, or view-specific concepts such as floorplan or paint preview.

@@ -1,4 +1,10 @@
-import type { AnyNode, CabinetModuleNode, CabinetNode, GeometryContext } from '@pascal-app/core'
+import type {
+  AnyNode,
+  AnyNodeId,
+  CabinetModuleNode,
+  CabinetNode,
+  GeometryContext,
+} from '@pascal-app/core'
 
 /**
  * Straight-line run layout math — the single home for the "modules sit on the
@@ -174,6 +180,89 @@ function modulesForRun(node: CabinetNode, ctx?: GeometryContext): CabinetModuleN
     .filter((child): child is CabinetModuleNode => child?.type === 'cabinet-module')
 }
 
+type CabinetPose = { position: [number, number, number]; rotation: number }
+
+function composeCabinetPose(
+  parentPosition: readonly [number, number, number],
+  parentRotation: number,
+  childPosition: readonly [number, number, number],
+  childRotation: number,
+): CabinetPose {
+  const cos = Math.cos(parentRotation)
+  const sin = Math.sin(parentRotation)
+  const [lx, ly, lz] = childPosition
+  return {
+    position: [
+      parentPosition[0] + lx * cos + lz * sin,
+      parentPosition[1] + ly,
+      parentPosition[2] - lx * sin + lz * cos,
+    ],
+    rotation: parentRotation + childRotation,
+  }
+}
+
+/**
+ * A run/module's pose composed up through its cabinet/cabinet-module
+ * ancestors, stopping at the first non-cabinet parent (the level) — the
+ * frame every top-level cabinet run's own `position`/`rotation` already
+ * live in.
+ */
+function worldCabinetPose(
+  node: CabinetNode | CabinetModuleNode,
+  ctx: GeometryContext,
+): CabinetPose {
+  const parent = node.parentId ? ctx.resolve<AnyNode>(node.parentId as AnyNodeId) : null
+  if (parent?.type === 'cabinet' || parent?.type === 'cabinet-module') {
+    const parentPose = worldCabinetPose(parent, ctx)
+    return composeCabinetPose(
+      parentPose.position,
+      parentPose.rotation,
+      node.position,
+      node.rotation,
+    )
+  }
+  return { position: [...node.position] as [number, number, number], rotation: node.rotation }
+}
+
+/**
+ * `sibling`'s pose re-expressed in the same frame as `node`'s own
+ * `position`/`rotation` (i.e. relative to `node`'s parent). A two-sided
+ * island's back run nests under the front run's module instead of sharing
+ * the front run's own parent, so its raw `position`/`rotation` fields live
+ * in a different frame than a normal same-parent `ctx.siblings` entry — this
+ * puts both sides in a common frame before the adjacency math compares them,
+ * so it works symmetrically from either run's own perspective.
+ */
+function siblingPoseRelativeToNodeParent(
+  node: CabinetNode,
+  sibling: CabinetNode,
+  ctx: GeometryContext,
+): CabinetPose {
+  const siblingWorld = worldCabinetPose(sibling, ctx)
+  const nodeParent = node.parentId ? ctx.resolve<AnyNode>(node.parentId as AnyNodeId) : null
+  const nodeParentWorld: CabinetPose =
+    nodeParent?.type === 'cabinet' || nodeParent?.type === 'cabinet-module'
+      ? worldCabinetPose(nodeParent, ctx)
+      : { position: [0, 0, 0], rotation: 0 }
+  return {
+    position: planToRunLocal(
+      nodeParentWorld,
+      siblingWorld.position[0],
+      siblingWorld.position[1] - nodeParentWorld.position[1],
+      siblingWorld.position[2],
+    ),
+    rotation: siblingWorld.rotation - nodeParentWorld.rotation,
+  }
+}
+
+/**
+ * Runs sharing the same parent as `node` via `ctx.siblings` (same kind, same
+ * parent) — plus, for a run carrying `islandLink`, its back-to-back partner
+ * even though that partner's parent differs (nested under the front run's
+ * module, see run-ops.ts addIslandBackRun). Without this, the pair's
+ * touching backs would each render a full, uncoordinated overhang into the
+ * same shared spine.
+ */
 function siblingCabinetSpansInRunLocal(node: CabinetNode, ctx?: GeometryContext) {
   if (!ctx) return []
 
@@ -181,9 +270,27 @@ function siblingCabinetSpansInRunLocal(node: CabinetNode, ctx?: GeometryContext)
   const localZ = [Math.sin(node.rotation), Math.cos(node.rotation)] as const
   const spans: Array<{ minX: number; maxX: number; depth: number; z: number }> = []
 
-  for (const sibling of ctx.siblings) {
+  const pairedRunId = node.islandLink?.pairedRunId
+  const pairedSibling = pairedRunId ? ctx.resolve<AnyNode>(pairedRunId) : undefined
+  const hasPairedSibling = pairedSibling?.type === 'cabinet'
+  const siblingCandidates =
+    hasPairedSibling && !ctx.siblings.some((sibling) => sibling.id === pairedSibling.id)
+      ? [...ctx.siblings, pairedSibling]
+      : ctx.siblings
+
+  for (const sibling of siblingCandidates) {
     if (sibling.type !== 'cabinet' || sibling.id === node.id) continue
-    if (Math.abs(angleDelta(sibling.rotation, node.rotation)) > 1e-3) continue
+    const isPairedPartner = hasPairedSibling && sibling.id === pairedSibling.id
+    const siblingPose = isPairedPartner
+      ? siblingPoseRelativeToNodeParent(node, sibling, ctx)
+      : { position: sibling.position, rotation: sibling.rotation }
+    // An island's back-to-back partner sits rotated 180° from its front, so
+    // its own local axes point the opposite way from `node`'s — negate its
+    // span coordinates instead of requiring the usual parallel rotation.
+    const parallel = Math.abs(angleDelta(siblingPose.rotation, node.rotation)) <= 1e-3
+    const antiParallel =
+      isPairedPartner && Math.abs(angleDelta(siblingPose.rotation, node.rotation + Math.PI)) <= 1e-3
+    if (!parallel && !antiParallel) continue
 
     const siblingModules = modulesForRun(sibling, ctx)
     const siblingSpans =
@@ -203,22 +310,58 @@ function siblingCabinetSpansInRunLocal(node: CabinetNode, ctx?: GeometryContext)
               hasCountertop: sibling.runTier !== 'tall',
             },
           ]
-    const dx = sibling.position[0] - node.position[0]
-    const dz = sibling.position[2] - node.position[2]
+    const dx = siblingPose.position[0] - node.position[0]
+    const dz = siblingPose.position[2] - node.position[2]
     const originX = dx * localX[0] + dz * localX[1]
     const originZ = dx * localZ[0] + dz * localZ[1]
 
     for (const span of siblingSpans) {
-      spans.push({
-        minX: originX + span.minX,
-        maxX: originX + span.maxX,
-        depth: span.depth,
-        z: originZ + span.centerZ,
-      })
+      spans.push(
+        antiParallel
+          ? {
+              minX: originX - span.maxX,
+              maxX: originX - span.minX,
+              depth: span.depth,
+              z: originZ - span.centerZ,
+            }
+          : {
+              minX: originX + span.minX,
+              maxX: originX + span.maxX,
+              depth: span.depth,
+              z: originZ + span.centerZ,
+            },
+      )
     }
   }
 
   return spans
+}
+
+/**
+ * Whether a span's BACK edge (local -Z, the touching seam of a back-to-back
+ * island pair) is flush against a paired sibling span — used to suppress
+ * `countertopBackOverhang` there so the two independent slabs don't each
+ * render a full seating overhang into the same shared spine.
+ */
+function hasAdjacentBackSpan({
+  span,
+  siblingSpans,
+}: {
+  span: Pick<RunSpan, 'minX' | 'maxX' | 'minZ'>
+  siblingSpans: Array<{ minX: number; maxX: number; depth: number; z: number }>
+}): boolean {
+  return siblingSpans.some((sibling) => {
+    if (!rangesOverlap(span.minX, span.maxX, sibling.minX, sibling.maxX, ADJACENT_RUN_EPSILON)) {
+      return false
+    }
+    const siblingNearEdge = sibling.z + sibling.depth / 2
+    const gap = span.minZ - siblingNearEdge
+    return gap >= -ADJACENT_RUN_Z_TOLERANCE && gap <= ADJACENT_RUN_Z_TOLERANCE
+  })
+}
+
+function rangesOverlap(minA: number, maxA: number, minB: number, maxB: number, epsilon: number) {
+  return Math.min(maxA, maxB) - Math.max(minA, minB) > -epsilon
 }
 
 function hasAdjacentCabinetSpan({
@@ -250,6 +393,12 @@ export type RunSpanEnds = {
   /** Run end with nothing abutting — where a waterfall panel would show. */
   exposedLeft: boolean
   exposedRight: boolean
+  /**
+   * True where this span's back edge is flush against an island partner's
+   * back edge — `countertopBackOverhang` should read as 0 there even though
+   * the node's own field may still carry a value.
+   */
+  backOverhangSuppressed: boolean
 }
 
 /**
@@ -332,8 +481,9 @@ export function getRunSpanEnds(
       !hasExternalRightNeighbor &&
       !hasInternalRightNeighbor &&
       barEdge !== 'right'
+    const backOverhangSuppressed = hasAdjacentBackSpan({ span, siblingSpans })
 
-    return { leftOverhang, rightOverhang, exposedLeft, exposedRight }
+    return { leftOverhang, rightOverhang, exposedLeft, exposedRight, backOverhangSuppressed }
   })
 }
 

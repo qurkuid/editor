@@ -1,33 +1,29 @@
-import {
-  type AnyNode,
-  type CeilingNode,
-  getMaterialPresetByRef,
-  resolveMaterial,
-} from '@pascal-app/core'
+import { type AnyNode, type CeilingNode, useScene } from '@pascal-app/core'
+import { useViewer } from '@pascal-app/viewer'
 import type { Mesh } from 'three'
 import { createSlotPaintCapability } from '../shared/slot-paint'
-import { getCeilingMaterials } from './materials'
+import { createCeilingSurfaceMaterial } from './materials'
 
 /**
  * Ceiling paint on the unified slot model. A ceiling has one paintable surface,
  * so every hit resolves to `surface`; commit writes `node.slots.surface`. The
- * preview swaps the registered underside mesh to the ceiling's own flat-tinted
- * material (built `BackSide`, the way it renders), so the hover preview matches
- * the committed result — a generic PBR preview would be invisible from below.
+ * preview swaps the registered underside mesh to a BackSide material so the
+ * hover preview matches the committed texture when viewed from inside the room.
  */
 export const ceilingPaint = createSlotPaintCapability({
   resolveRole: () => 'surface',
   applyPreview: ({ material, materialPreset, root }) => {
-    const color = materialPreset
-      ? (getMaterialPresetByRef(materialPreset)?.mapProperties.color ?? null)
-      : material
-        ? (resolveMaterial(material).color ?? null)
-        : null
-    if (!color) return () => {}
+    const preview = createCeilingSurfaceMaterial(
+      material,
+      materialPreset,
+      useScene.getState().materials,
+      useViewer.getState().shading,
+    )
+    if (!preview) return () => {}
     const mesh = root as Mesh
     if (!mesh.isMesh) return null
     const previous = mesh.material
-    mesh.material = getCeilingMaterials(color).bottomMaterial
+    mesh.material = preview.material
     return () => {
       mesh.material = previous
     }

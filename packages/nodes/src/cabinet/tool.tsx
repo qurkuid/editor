@@ -78,7 +78,12 @@ import useCabinetPlacementStatus from './placement-status'
 import useCabinetPlacementType from './placement-type'
 import { cabinetPresetById } from './presets'
 import { runLocalToPlan } from './run-layout'
-import { addCabinetModuleSide, addCornerRun, previewCornerAdditionLayout } from './run-ops'
+import {
+  addCabinetModuleSide,
+  addCornerRun,
+  addIslandBackRun,
+  previewCornerAdditionLayout,
+} from './run-ops'
 import {
   type CabinetWallSnapPlacement,
   collectCabinetWallSnapNeighbors,
@@ -848,6 +853,11 @@ const CabinetTool = () => {
             liveRun.id as AnyNodeId,
             resolveSupportSlabPatch(liveRun, sceneApi.nodes()),
           )
+          // A two-sided island: the back row is a second linked run, not a
+          // per-module facing flag (see run-ops.ts addIslandBackRun).
+          if (islandModeRef.current) {
+            addIslandBackRun({ run: liveRun, sceneApi })
+          }
           bumpCabinetRunsNearNewRun(cabinet.id as AnyNodeId)
           sceneApi.resumeHistory()
           return {

@@ -11,6 +11,15 @@ export const GuideScaleReference = z.object({
   label: z.string(),
 })
 
+const GuideImagePoint = z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)])
+
+export const GuidePerspectiveCorners = z.tuple([
+  GuideImagePoint,
+  GuideImagePoint,
+  GuideImagePoint,
+  GuideImagePoint,
+])
+
 export const GuideNode = BaseNode.extend({
   id: objectId('guide'),
   type: nodeType('guide'),
@@ -20,7 +29,9 @@ export const GuideNode = BaseNode.extend({
   scale: z.number().default(1),
   opacity: z.number().min(0).max(100).default(50),
   scaleReference: GuideScaleReference.nullable().default(null),
+  perspectiveCorners: GuidePerspectiveCorners.nullable().default(null),
 })
 
 export type GuideScaleReference = z.infer<typeof GuideScaleReference>
+export type GuidePerspectiveCorners = z.infer<typeof GuidePerspectiveCorners>
 export type GuideNode = z.infer<typeof GuideNode>

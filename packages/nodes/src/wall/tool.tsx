@@ -21,6 +21,7 @@ import {
   CursorSphere,
   chainEndJoinsExistingWall,
   clearPlacementSurface,
+  constrainPlanDraftPoint,
   createWallOnCurrentLevel,
   EDITOR_LAYER,
   formatAngleRadians,
@@ -42,6 +43,7 @@ import {
   snapWallDraftPointDetailed,
   triggerSFX,
   useAlignmentGuides,
+  useDraftLengthInput,
   useEditor,
   useFloorplanDraftPreview,
   useSegmentDraftChain,
@@ -484,6 +486,9 @@ export const WallTool: React.FC = () => {
   const chainWallIds = useRef<string[]>([])
   const constructionPlane = useRef<HorizontalConstructionPlane | null>(null)
   const buildingState = useRef(0)
+  const { clear: clearDraftLength, getLengthMeters } = useDraftLengthInput(
+    () => buildingState.current === 1,
+  )
   const [draftMeasurement, setDraftMeasurement] = useState<DraftMeasurementState>(null)
   const [axisGuide, setAxisGuide] = useState<DraftAxisGuideState>(null)
   const measurementColor = isDark ? '#ffffff' : '#111111'
@@ -515,7 +520,14 @@ export const WallTool: React.FC = () => {
         return point
       }
       const ar = resolveAlignment({
-        moving: [{ nodeId: '__wall-draft__', kind: 'corner', x: point[0], z: point[1] }],
+        moving: [
+          {
+            nodeId: '__wall-draft__',
+            kind: 'corner',
+            x: point[0],
+            z: point[1],
+          },
+        ],
         candidates: alignmentCandidates,
         threshold: ALIGNMENT_THRESHOLD_M,
       })
@@ -605,6 +617,7 @@ export const WallTool: React.FC = () => {
     }
 
     const stopDrafting = () => {
+      clearDraftLength()
       buildingState.current = 0
       constructionPlane.current = null
       chainFirstVertex.current = null
@@ -660,6 +673,13 @@ export const WallTool: React.FC = () => {
         magnetic: isMagneticSnapActive(),
       })
       gridPosition = alignPoint(snapResult.point, { applySnap: !angleLocked })
+      if (buildingState.current === 1) {
+        gridPosition = constrainPlanDraftPoint(
+          [startingPoint.current.x, startingPoint.current.z],
+          gridPosition,
+          getLengthMeters(),
+        )
+      }
       // Stand the magnetic beacon at the endpoint when it locked onto an
       // existing wall corner / wall point; clear it for plain grid/angle moves.
       useWallSnapIndicator
@@ -782,15 +802,19 @@ export const WallTool: React.FC = () => {
         setDraftMeasurement(null)
       } else if (buildingState.current === 1) {
         const angleLocked = isAngleSnapActive()
-        const snappedEnd = alignPoint(
-          snapWallDraftPointDetailed({
-            point: localClick,
-            walls: snapWalls,
-            start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
-            angleSnap: angleLocked,
-            magnetic: isMagneticSnapActive(),
-          }).point,
-          { applySnap: !angleLocked },
+        const snappedEnd = constrainPlanDraftPoint(
+          [startingPoint.current.x, startingPoint.current.z],
+          alignPoint(
+            snapWallDraftPointDetailed({
+              point: localClick,
+              walls: snapWalls,
+              start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
+              angleSnap: angleLocked,
+              magnetic: isMagneticSnapActive(),
+            }).point,
+            { applySnap: !angleLocked },
+          ),
+          getLengthMeters(),
         )
         const dx = snappedEnd[0] - startingPoint.current.x
         const dz = snappedEnd[1] - startingPoint.current.z
@@ -807,6 +831,7 @@ export const WallTool: React.FC = () => {
           },
         )
         if (!createdWall) return
+        clearDraftLength()
         chainWallIds.current.push(createdWall.id)
 
         // The new segment is now a real node — make it an alignment target
@@ -897,7 +922,7 @@ export const WallTool: React.FC = () => {
       draftPreview.setWallDraftStart(null)
       draftPreview.setWallDraftEnd(null)
     }
-  }, [unit])
+  }, [clearDraftLength, getLengthMeters, unit])
 
   return (
     <group>

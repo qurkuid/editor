@@ -46,4 +46,26 @@ describe('MaterialSchema', () => {
       expect(result.preset).toBeUndefined()
     })
   })
+
+  test('preserves external provider provenance and physical size for scene snapshots', () => {
+    expect(
+      MaterialSchema.parse({
+        id: 'rawpainter:70225',
+        preset: 'custom',
+        source: {
+          provider: 'rawpainter',
+          externalId: '70225',
+          revision: '2026-08-02T05:00:00.000Z',
+        },
+        physicalSize: { widthM: 1.16, heightM: 0.3 },
+        texture: {
+          url: '/api/materials/rawpainter/asset/70225',
+          repeat: [1 / 1.16, 1 / 0.3],
+        },
+      }),
+    ).toMatchObject({
+      source: { provider: 'rawpainter', externalId: '70225' },
+      physicalSize: { widthM: 1.16, heightM: 0.3 },
+    })
+  })
 })

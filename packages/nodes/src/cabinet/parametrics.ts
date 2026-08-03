@@ -1,5 +1,9 @@
 import type { CabinetModuleNode, CabinetNode, ParametricDescriptor } from '@pascal-app/core'
-import { cabinetCornerUnlinkPatchesOnDelete, cabinetEmptyRunCascadeDeleteIds } from './run-ops'
+import {
+  cabinetCornerUnlinkPatchesOnDelete,
+  cabinetEmptyRunCascadeDeleteIds,
+  cabinetIslandUnlinkPatchesOnDelete,
+} from './run-ops'
 
 export const cabinetParametrics: ParametricDescriptor<CabinetNode> = {
   groups: [
@@ -16,9 +20,12 @@ export const cabinetParametrics: ParametricDescriptor<CabinetNode> = {
       fields: [{ key: 'position', kind: 'vec3' }],
     },
   ],
-  // Deleting one L-corner member removes only it; these patches keep the
-  // corner-link metadata on the survivors consistent.
-  onDelete: (node, nodes) => cabinetCornerUnlinkPatchesOnDelete(node, nodes),
+  // Deleting one L-corner member or one half of a two-sided island removes
+  // only it; these patches keep the survivors' link fields consistent.
+  onDelete: (node, nodes) => [
+    ...cabinetCornerUnlinkPatchesOnDelete(node, nodes),
+    ...cabinetIslandUnlinkPatchesOnDelete(node, nodes),
+  ],
   // A derived leg run lives under its source run — deleting the last child
   // of a run deletes the now-empty run group too.
   onDeleteCascade: (node, nodes, pendingDeleteIds) =>

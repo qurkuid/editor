@@ -10,6 +10,7 @@ import {
 } from '@pascal-app/core'
 import {
   CursorSphere,
+  constrainSpatialDraftPoint,
   DimensionPill,
   EDITOR_LAYER,
   isAngleSnapActive,
@@ -17,6 +18,7 @@ import {
   isMagneticSnapActive,
   markToolCancelConsumed,
   triggerSFX,
+  useDraftLengthInput,
   useEditor,
   usePathDraftPreview,
 } from '@pascal-app/editor'
@@ -269,6 +271,9 @@ const LiquidLineTool = () => {
   const [altActive, setAltActive] = useState(false)
   const draftRef = useRef(draftPoints)
   draftRef.current = draftPoints
+  const { clear: clearDraftLength, getLengthMeters } = useDraftLengthInput(
+    () => draftRef.current.length > 0 && !useLiquidLineToolOptions.getState().follow,
+  )
   const followTargetRef = useRef<FollowTarget | null>(null)
   const altAnchorRef = useRef<{ clientY: number; baseY: number } | null>(null)
   const lastClientYRef = useRef<number | null>(null)
@@ -281,7 +286,8 @@ const LiquidLineTool = () => {
     followTargetRef.current = null
     altAnchorRef.current = null
     setAltActive(false)
-  }, [follow])
+    clearDraftLength()
+  }, [clearDraftLength, follow])
 
   // Leaving the tool clears Follow so re-arming it starts in free-draw.
   useEffect(() => () => useLiquidLineToolOptions.getState().setFollow(false), [])
@@ -312,6 +318,7 @@ const LiquidLineTool = () => {
         path: [start, end],
       })
       useScene.getState().createNode(line, activeLevelId)
+      clearDraftLength()
       triggerSFX('sfx:item-place')
       setDraftPoints([end])
       setSnapTarget(null)
@@ -331,7 +338,11 @@ const LiquidLineTool = () => {
         const a = traced[i]!
         const b = traced[i + 1]!
         if (samePt(a, b)) continue
-        const node = LiquidLineNode.parse({ ...defaults, name: 'Liquid Line', path: [a, b] })
+        const node = LiquidLineNode.parse({
+          ...defaults,
+          name: 'Liquid Line',
+          path: [a, b],
+        })
         create.push({ node, parentId: activeLevelId })
       }
       if (create.length === 0) return
@@ -353,7 +364,10 @@ const LiquidLineTool = () => {
           if (target) return { point: target, snapped: target }
         }
         const step = isGridSnapActive() ? useEditor.getState().gridSnapStep : 0
-        return { point: [snap(raw[0], step), 0, snap(raw[2], step)], snapped: null }
+        return {
+          point: [snap(raw[0], step), 0, snap(raw[2], step)],
+          snapped: null,
+        }
       }
       const rawXZ: Vec3 = [event.localPosition[0], last[1], event.localPosition[2]]
       // The 45° lock is now the `angles` snapping mode (Shift cycles to it),
@@ -364,7 +378,10 @@ const LiquidLineTool = () => {
         if (target) return { point: target, snapped: target }
       }
       const step = isGridSnapActive() ? useEditor.getState().gridSnapStep : 0
-      return { point: [snap(angled[0], step), angled[1], snap(angled[2], step)], snapped: null }
+      return {
+        point: [snap(angled[0], step), angled[1], snap(angled[2], step)],
+        snapped: null,
+      }
     }
 
     const resolveAltVerticalPoint = (clientY: number): Vec3 | null => {
@@ -382,11 +399,14 @@ const LiquidLineTool = () => {
       const r = resolveSnappedPoint(event)
       const hasStart = draftRef.current.length > 0
       const alt = event.nativeEvent?.altKey === true
-      const point = alignDrawPoint(r.point, {
+      const alignedPoint = alignDrawPoint(r.point, {
         applySnap: isMagneticSnapActive() && (!hasStart || !isAngleSnapActive()),
         bypass: alt || r.snapped !== null,
       })
-      return { ...r, point }
+      const last = draftRef.current.at(-1)
+      const length = hasStart ? getLengthMeters() : null
+      const point = last ? constrainSpatialDraftPoint(last, alignedPoint, length) : alignedPoint
+      return { ...r, point, snapped: length === null ? r.snapped : null }
     }
 
     const onMove = (event: GridEvent) => {
@@ -405,7 +425,12 @@ const LiquidLineTool = () => {
       const clientY = (event.nativeEvent as { clientY?: number } | undefined)?.clientY
       if (typeof clientY === 'number') lastClientYRef.current = clientY
       if (altAnchorRef.current && typeof clientY === 'number') {
-        const point = resolveAltVerticalPoint(clientY)
+        const rawPoint = resolveAltVerticalPoint(clientY)
+        const last = draftRef.current.at(-1)
+        const point =
+          rawPoint && last
+            ? constrainSpatialDraftPoint(last, rawPoint, getLengthMeters())
+            : rawPoint
         if (point) {
           clearDrawAlignment()
           setCursorPos(point)
@@ -431,7 +456,10 @@ const LiquidLineTool = () => {
         const clientY =
           (event.nativeEvent as { clientY?: number } | undefined)?.clientY ?? lastClientYRef.current
         if (typeof clientY === 'number') {
-          const point = resolveAltVerticalPoint(clientY)
+          const rawPoint = resolveAltVerticalPoint(clientY)
+          const point = rawPoint
+            ? constrainSpatialDraftPoint(start, rawPoint, getLengthMeters())
+            : null
           if (point && Math.abs(point[1] - start[1]) >= 1e-4) {
             commitSegment(start, point)
           }
@@ -452,7 +480,10 @@ const LiquidLineTool = () => {
       const last = draftRef.current.at(-1)
       if (!last || lastClientYRef.current === null) return
       if (altAnchorRef.current) return
-      altAnchorRef.current = { clientY: lastClientYRef.current, baseY: last[1] }
+      altAnchorRef.current = {
+        clientY: lastClientYRef.current,
+        baseY: last[1],
+      }
       setAltActive(true)
     }
 
@@ -492,6 +523,7 @@ const LiquidLineTool = () => {
       setSnapTarget(null)
       setTraceGhost(null)
       followTargetRef.current = null
+      clearDraftLength()
     }
 
     emitter.on('grid:move', onMove)
@@ -508,7 +540,7 @@ const LiquidLineTool = () => {
       altAnchorRef.current = null
       clearDrawAlignment()
     }
-  }, [activeLevelId])
+  }, [activeLevelId, clearDraftLength, getLengthMeters])
 
   if (!activeLevelId) return null
 

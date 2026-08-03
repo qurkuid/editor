@@ -1,4 +1,5 @@
 import z from 'zod'
+import { BodyNode } from './nodes/body'
 import { BoxVentNode } from './nodes/box-vent'
 import { BuildingNode } from './nodes/building'
 import { CabinetModuleNode, CabinetNode } from './nodes/cabinet'
@@ -21,6 +22,9 @@ import { GutterNode } from './nodes/gutter'
 import { HvacEquipmentNode } from './nodes/hvac-equipment'
 import { ItemNode } from './nodes/item'
 import { LevelNode } from './nodes/level'
+import { LightingCircuitNode } from './nodes/lighting-circuit'
+import { LightingFixtureNode } from './nodes/lighting-fixture'
+import { LightingSwitchNode } from './nodes/lighting-switch'
 import { LinesetNode } from './nodes/lineset'
 import { LiquidLineNode } from './nodes/liquid-line'
 import { MeasurementNode } from './nodes/measurement'
@@ -48,8 +52,12 @@ import { ZoneNode } from './nodes/zone'
 export const AnyNode = z.discriminatedUnion('type', [
   SiteNode,
   BuildingNode,
+  BodyNode,
   ElevatorNode,
   LevelNode,
+  LightingCircuitNode,
+  LightingFixtureNode,
+  LightingSwitchNode,
   ColumnNode,
   ConstructionDimensionNode,
   StructuralGridNode,

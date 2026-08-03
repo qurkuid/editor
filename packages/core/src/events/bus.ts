@@ -2,6 +2,7 @@ import type { ThreeEvent } from '@react-three/fiber'
 import mitt from 'mitt'
 import type { Object3D } from 'three'
 import type {
+  BodyNode,
   BoxVentNode,
   BuildingNode,
   CabinetModuleNode,
@@ -25,6 +26,9 @@ import type {
   HvacEquipmentNode,
   ItemNode,
   LevelNode,
+  LightingCircuitNode,
+  LightingFixtureNode,
+  LightingSwitchNode,
   LinesetNode,
   LiquidLineNode,
   MeasurementNode,
@@ -90,6 +94,7 @@ export interface NodeEvent<T extends AnyNode = AnyNode> {
 }
 
 export type WallEvent = NodeEvent<WallNode>
+export type BodyEvent = NodeEvent<BodyNode>
 export type FenceEvent = NodeEvent<FenceNode>
 export type ItemEvent = NodeEvent<ItemNode>
 export type SiteEvent = NodeEvent<SiteNode>
@@ -135,6 +140,9 @@ export type PipeTrapEvent = NodeEvent<PipeTrapNode>
 export type LinesetEvent = NodeEvent<LinesetNode>
 export type LiquidLineEvent = NodeEvent<LiquidLineNode>
 export type MeasurementEvent = NodeEvent<MeasurementNode>
+export type LightingCircuitEvent = NodeEvent<LightingCircuitNode>
+export type LightingFixtureEvent = NodeEvent<LightingFixtureNode>
+export type LightingSwitchEvent = NodeEvent<LightingSwitchNode>
 
 // Event suffixes - exported for use in hooks
 export const eventSuffixes = [
@@ -289,6 +297,7 @@ type SelectionEvents = {
 }
 
 type EditorEvents = GridEvents &
+  NodeEvents<'body', BodyEvent> &
   NodeEvents<'wall', WallEvent> &
   NodeEvents<'fence', FenceEvent> &
   NodeEvents<'cabinet', CabinetEvent> &
@@ -335,6 +344,9 @@ type EditorEvents = GridEvents &
   NodeEvents<'lineset', LinesetEvent> &
   NodeEvents<'liquid-line', LiquidLineEvent> &
   NodeEvents<'measurement', MeasurementEvent> &
+  NodeEvents<'lighting-circuit', LightingCircuitEvent> &
+  NodeEvents<'lighting-fixture', LightingFixtureEvent> &
+  NodeEvents<'lighting-switch', LightingSwitchEvent> &
   CameraControlEvents &
   ToolEvents &
   GuideEvents &

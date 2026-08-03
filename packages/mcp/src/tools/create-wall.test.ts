@@ -40,6 +40,11 @@ describe('create_wall', () => {
     const created = bridge.getNode(parsed.wallId)
     expect(created).not.toBeNull()
     expect((created as { thickness?: number }).thickness).toBe(0.15)
+    expect(
+      created?.type === 'wall'
+        ? created.faceBands?.construction?.upper?.layers.map((layer) => layer.kind)
+        : [],
+    ).toEqual(['timber-stud', 'cavity', 'gypsum-board', 'finish'])
   })
 
   test('accepts a natural-language thickness and canonicalizes to meters', async () => {

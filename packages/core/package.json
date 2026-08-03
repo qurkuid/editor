@@ -16,6 +16,11 @@
       "import": "./dist/utils/clone-scene-graph.js",
       "default": "./dist/utils/clone-scene-graph.js"
     },
+    "./body-transform": {
+      "types": "./dist/lib/body-transform.d.ts",
+      "import": "./dist/lib/body-transform.js",
+      "default": "./dist/lib/body-transform.js"
+    },
     "./registry": {
       "types": "./dist/registry/index.d.ts",
       "import": "./dist/registry/index.js",

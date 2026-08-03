@@ -25,11 +25,26 @@ export const MaterialProperties = z.object({
 })
 export type MaterialProperties = z.infer<typeof MaterialProperties>
 
+export const MaterialSourceRef = z.object({
+  provider: z.string().min(1),
+  externalId: z.string().min(1),
+  revision: z.string().optional(),
+})
+export type MaterialSourceRef = z.infer<typeof MaterialSourceRef>
+
+export const MaterialPhysicalSize = z.object({
+  widthM: z.number().positive(),
+  heightM: z.number().positive(),
+})
+export type MaterialPhysicalSize = z.infer<typeof MaterialPhysicalSize>
+
 export const MaterialSchema = z.object({
   id: z.string().optional(),
   // Coerce unknown presets (legacy/AI-generated data) to 'custom' instead of throwing.
   preset: MaterialPreset.catch('custom').optional(),
   properties: MaterialProperties.optional(),
+  source: MaterialSourceRef.optional(),
+  physicalSize: MaterialPhysicalSize.optional(),
   texture: z
     .object({
       url: AssetUrl,

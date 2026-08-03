@@ -61,6 +61,7 @@ import useInteractionScope, {
   useEndpointReshape,
   useIsCurveReshape,
 } from '../../store/use-interaction-scope'
+import { useWallConstructionDisplay } from '../../store/use-wall-construction-display'
 import { IconRefGlyph } from '../ui/icon-ref'
 import { formatMeasurement, MeasurementPill } from './measurement-pill'
 import { NodeActionMenu } from './node-action-menu'
@@ -303,6 +304,8 @@ export function FloatingActionMenu() {
   // The floating action menu is an action-conflicting control: hard-hidden
   // during any active interaction so it never competes with the live action.
   const scope = useInteractionScope((s) => s.scope)
+  const wallDisplayMode = useWallConstructionDisplay((s) => s.mode)
+  const setWallDisplayMode = useWallConstructionDisplay((s) => s.setMode)
   const menuStepBack = resolveOverlayPolicy(scope).conflictingControls === 'hidden'
 
   const groupRef = useRef<THREE.Group>(null)
@@ -827,6 +830,11 @@ export function FloatingActionMenu() {
               }
               onPointerDown={(e) => e.stopPropagation()}
               onPointerUp={(e) => e.stopPropagation()}
+              wallDisplay={
+                node?.type === 'wall'
+                  ? { mode: wallDisplayMode, onChange: setWallDisplayMode }
+                  : undefined
+              }
             />
             {quickActions.length > 0 ? (
               <div

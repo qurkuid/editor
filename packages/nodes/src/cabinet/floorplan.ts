@@ -61,7 +61,6 @@ export function buildCabinetFloorplan(
         ]
   const overhang = node.withCountertop ? node.countertopOverhang : 0
   const barEdge = node.barLedge?.edge
-  const backOverhang = node.withCountertop && barEdge !== 'back' ? node.countertopBackOverhang : 0
   const spanEnds = getRunSpanEnds(node, ctx, spans)
   const children: FloorplanGeometry[] = []
 
@@ -69,6 +68,12 @@ export function buildCabinetFloorplan(
     const spanIndex = spans.indexOf(span)
     const ends = spanEnds[spanIndex]!
     const hasSlab = node.withCountertop && span.hasCountertop
+    // A back-to-back island partner flush against this span's back edge
+    // suppresses the seating overhang there — see geometry/run.ts.
+    const backOverhang =
+      node.withCountertop && barEdge !== 'back' && !ends.backOverhangSuppressed
+        ? node.countertopBackOverhang
+        : 0
     // Countertop slab outline — the heavier line a kitchen plan reads first.
     // Tall spans (no countertop) fall back to their carcass footprint. Side
     // overhangs come from the shared span-end math so neighbor runs, L-corner

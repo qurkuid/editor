@@ -1,6 +1,7 @@
 import {
   type AnyNode,
   type AnyNodeId,
+  createDefaultWallFaceBands,
   DEFAULT_ANGLE_STEP,
   DEFAULT_LEVEL_HEIGHT,
   type DoorNode,
@@ -608,8 +609,11 @@ export function createWallOnCurrentLevel(
     // materials, sides) before the tool activates; merge those first so the
     // drawn wall reproduces the preset. Identity + endpoints always win.
     const defaults = useEditor.getState().toolDefaults.wall ?? {}
+    const thickness = typeof defaults.thickness === 'number' ? defaults.thickness : 0.1
     const wall = WallSchema.parse({
       ...defaults,
+      thickness,
+      faceBands: defaults.faceBands ?? createDefaultWallFaceBands(thickness),
       name: `Wall ${wallCount + 1}`,
       start: resolvedStart,
       end: resolvedEnd,

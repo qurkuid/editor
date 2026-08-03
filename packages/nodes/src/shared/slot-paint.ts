@@ -67,6 +67,36 @@ function findMatchingSceneMaterial(
   return null
 }
 
+export type PaintMaterialRefResolution = {
+  ref: string | undefined
+  newSceneMaterial: SceneMaterial | null
+}
+
+export function resolvePaintMaterialRef(
+  materials: Record<SceneMaterialId, SceneMaterial>,
+  material: MaterialSchema | undefined,
+  materialPreset: string | undefined,
+): PaintMaterialRefResolution | null {
+  if (material === undefined && materialPreset === undefined) {
+    return { ref: undefined, newSceneMaterial: null }
+  }
+  if (materialPreset) return { ref: materialPreset, newSceneMaterial: null }
+  if (!material) return null
+
+  const existing = findMatchingSceneMaterial(materials, material)
+  if (existing) return { ref: toSceneMaterialRef(existing.id), newSceneMaterial: null }
+
+  const id = generateSceneMaterialId()
+  return {
+    ref: toSceneMaterialRef(id),
+    newSceneMaterial: {
+      id,
+      name: `Material ${Object.keys(materials).length + 1}`,
+      material,
+    },
+  }
+}
+
 function commitSlotPaint(
   node: SlotsNode,
   role: string,
@@ -77,29 +107,9 @@ function commitSlotPaint(
   const state = useScene.getState()
   const currentNode = (state.nodes[nodeId] as SlotsNode | undefined) ?? node
 
-  let ref: string | undefined
-  let newSceneMaterial: SceneMaterial | null = null
-
-  if (material === undefined && materialPreset === undefined) {
-    ref = undefined
-  } else if (materialPreset) {
-    ref = materialPreset
-  } else if (material) {
-    const existing = findMatchingSceneMaterial(state.materials, material)
-    if (existing) {
-      ref = toSceneMaterialRef(existing.id)
-    } else {
-      const id = generateSceneMaterialId()
-      newSceneMaterial = {
-        id,
-        name: `Material ${Object.keys(state.materials).length + 1}`,
-        material,
-      }
-      ref = toSceneMaterialRef(id)
-    }
-  } else {
-    return
-  }
+  const resolution = resolvePaintMaterialRef(state.materials, material, materialPreset)
+  if (!resolution) return
+  const { ref, newSceneMaterial } = resolution
 
   const nextSlots = { ...(currentNode.slots ?? {}) }
   if (ref) nextSlots[role] = ref

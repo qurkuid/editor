@@ -6,12 +6,17 @@ import type {
   DuplicateSubtreeCloneArgs,
   DuplicateSubtreeCloneResult,
   FloorPlacedFootprint,
+  FurnitureAssembly,
   HandleDescriptor,
   LinearResizeHandle,
   NodeDefinition,
   SceneApi,
 } from '@pascal-app/core'
-import { findLevelAncestorId, selectionProxyIdFromMetadata } from '@pascal-app/core'
+import {
+  findLevelAncestorId,
+  resizeFurnitureAssembly,
+  selectionProxyIdFromMetadata,
+} from '@pascal-app/core'
 import { bakeCabinetAnimationClip } from './animation'
 import { buildCabinetFloorplan, buildCabinetModuleFloorplan } from './floorplan'
 import { cabinetModuleFloorplanMoveTarget } from './floorplan-move'
@@ -1117,14 +1122,14 @@ function cabinetWidthHandle(side: 'left' | 'right'): HandleDescriptor<CabinetEdi
     apply: (node, width, sceneApi) => {
       const gap = isCabinetModule(node) ? cabinetWallWidthGap(node, side, sceneApi) : 0
       const effectiveWidth = width + gap
-      return {
+      return withFurnitureResize(node, {
         width: effectiveWidth,
         position: [
           node.position[0] + (sign * (effectiveWidth - node.width)) / 2,
           node.position[1],
           node.position[2],
         ],
-      }
+      })
     },
     previewOverrides: (node, width, sceneApi) => {
       if (!isCabinetModule(node)) return []
@@ -1187,6 +1192,26 @@ function cabinetDepthResizePatch<N extends CabinetEditableNode>(
   } as Partial<N>
 }
 
+// A furniture cabinet draws from `furniture.dimensions` but is bounded, handled
+// and moved through the run's own width/depth/carcassHeight. Resizing has to
+// write both or the geometry stops matching its own selection box.
+function withFurnitureResize<N extends CabinetEditableNode>(
+  node: N,
+  patch: Partial<N>,
+): Partial<N> {
+  const furniture = (node as { furniture?: FurnitureAssembly }).furniture
+  if (!furniture) return patch
+  const dimensions: Partial<FurnitureAssembly['dimensions']> = {}
+  if (typeof patch.width === 'number') dimensions.width = patch.width
+  if (typeof patch.depth === 'number') dimensions.depth = patch.depth
+  if (typeof patch.carcassHeight === 'number') dimensions.height = patch.carcassHeight
+  if (Object.keys(dimensions).length === 0) return patch
+  return {
+    ...patch,
+    furniture: resizeFurnitureAssembly(furniture, dimensions),
+  } as Partial<N>
+}
+
 function snapCabinetDepth(
   node: CabinetEditableNode,
   requestedDepth: number,
@@ -1216,7 +1241,7 @@ function cabinetDepthHandle(): LinearResizeHandle<CabinetEditableNode> {
     min: MIN_CABINET_DEPTH,
     max: (node) => cabinetResizeUpperBound(node.depth, MAX_CABINET_DEPTH),
     currentValue: (node) => node.depth,
-    apply: cabinetDepthResizePatch,
+    apply: (node, depth) => withFurnitureResize(node, cabinetDepthResizePatch(node, depth)),
     magneticSnap: snapCabinetDepth,
     previewOverrides: (node, _depth, sceneApi) => {
       const parentRunOverride = parentRunGeometryPreviewOverride(node, sceneApi)
@@ -1728,7 +1753,7 @@ function cabinetHeightHandle(): HandleDescriptor<CabinetEditableNode> {
     anchor: 'min',
     min: MIN_CABINET_CARCASS_HEIGHT,
     currentValue: (node) => node.carcassHeight,
-    apply: (_node, carcassHeight) => ({ carcassHeight }),
+    apply: (node, carcassHeight) => withFurnitureResize(node, { carcassHeight }),
     commit: commitCabinetResize,
     placement: {
       position: (node) => [0, cabinetTotalHeight(node) + HEIGHT_HANDLE_OFFSET, 0],
@@ -1861,6 +1886,7 @@ export const cabinetDefinition: NodeDefinition<typeof CabinetNode> = {
     countertopThickness: 0.02,
     countertopOverhang: 0.02,
     countertopBackOverhang: 0,
+    countertopCutouts: [],
     withFinishedBack: false,
     withWaterfall: false,
     frontThickness: 0.018,
@@ -1969,6 +1995,7 @@ export const cabinetDefinition: NodeDefinition<typeof CabinetNode> = {
       JSON.stringify(cabinetAdjacencyRevision(n.metadata)),
       JSON.stringify(n.children ?? []),
       JSON.stringify(n.stack ?? null),
+      JSON.stringify(n.furniture ?? null),
     ]),
   floorplan: buildCabinetFloorplan,
   floorplanSiblingOverrides: cabinetFloorplanSiblingOverrides,
@@ -2051,6 +2078,7 @@ export const cabinetModuleDefinition: NodeDefinition<typeof CabinetModuleNode> =
     countertopThickness: 0,
     countertopOverhang: 0.02,
     countertopBackOverhang: 0,
+    countertopCutouts: [],
     withFinishedBack: false,
     frontThickness: 0.018,
     frontGap: 0.003,

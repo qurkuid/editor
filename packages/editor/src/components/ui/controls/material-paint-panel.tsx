@@ -3,7 +3,12 @@
 import {
   type AnyNodeId,
   generateSceneMaterialId,
+  getCatalogMaterialById,
+  getLibraryMaterialIdFromRef,
+  getSceneMaterialIdFromRef,
   type SceneMaterialId,
+  type SceneMaterial,
+  toLibraryMaterialRef,
   toSceneMaterialRef,
   useScene,
 } from '@pascal-app/core'
@@ -11,9 +16,11 @@ import { useViewer } from '@pascal-app/viewer'
 import { Eraser, Plus, RotateCcw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
+  type ActivePaintMaterial,
   buildResetSurfaceMaterialUpdates,
   resolvePaintTargetFromSelection,
 } from './../../../lib/material-paint'
+import { freezeHostMaterialCatalogItem } from './../../../lib/host-integration'
 import useEditor from './../../../store/use-editor'
 import { Button } from '../primitives/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../primitives/tooltip'
@@ -32,6 +39,31 @@ export type MaterialPaintPanelProps = {
   onCreateMaterialRequest?: () => void
 }
 
+export function resolveCurrentBrush(
+  activePaintMaterial: ActivePaintMaterial | null,
+  materials: Record<string, SceneMaterial>,
+) {
+  const activeSceneMaterialId = getSceneMaterialIdFromRef(activePaintMaterial?.materialPreset)
+  const activeSceneMaterial = activeSceneMaterialId ? materials[activeSceneMaterialId] : undefined
+  const activeCatalogId =
+    getLibraryMaterialIdFromRef(activePaintMaterial?.materialPreset) ?? activePaintMaterial?.material?.id
+  const activeCatalogMaterial = getCatalogMaterialById(activeCatalogId)
+
+  return {
+    name:
+      activeSceneMaterial?.name ??
+      activeCatalogMaterial?.label ??
+      activePaintMaterial?.material?.id ??
+      null,
+    color:
+      activeSceneMaterial?.material.properties?.color ??
+      activePaintMaterial?.material?.properties?.color ??
+      activeCatalogMaterial?.previewColor ??
+      activeCatalogMaterial?.preset.mapProperties.color ??
+      '#ffffff',
+  }
+}
+
 export function MaterialPaintPanel({ onCreateMaterialRequest }: MaterialPaintPanelProps) {
   const activePaintMaterial = useEditor((state) => state.activePaintMaterial)
   const activePaintTarget = useEditor((state) => state.activePaintTarget)
@@ -43,11 +75,13 @@ export function MaterialPaintPanel({ onCreateMaterialRequest }: MaterialPaintPan
   const [autoEditMaterialId, setAutoEditMaterialId] = useState<SceneMaterialId | null>(null)
   const selectedIds = useViewer((state) => state.selection.selectedIds)
   const nodes = useScene((state) => state.nodes)
-  const materialCount = useScene((state) => Object.keys(state.materials).length)
+  const materials = useScene((state) => state.materials)
+  const materialCount = Object.keys(materials).length
   const selectedId = selectedIds.length === 1 ? (selectedIds[0] ?? null) : null
   const selectedNode = selectedId ? nodes[selectedId as AnyNodeId] : null
   const canResetSelection =
     selectedNode != null && resolvePaintTargetFromSelection({ nodes, selectedId }) != null
+  const currentBrush = resolveCurrentBrush(activePaintMaterial, materials)
 
   useEffect(() => {
     const selectedPaintTarget = resolvePaintTargetFromSelection({ nodes, selectedId })
@@ -111,14 +145,43 @@ export function MaterialPaintPanel({ onCreateMaterialRequest }: MaterialPaintPan
         </Button>
       </div>
 
+      <div className="mb-2 flex shrink-0 items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-2">
+        <span
+          className="h-8 w-8 shrink-0 rounded-md border border-border/70"
+          style={{ backgroundColor: currentBrush.color }}
+        />
+        <div className="min-w-0">
+          <p className="font-medium text-[10px] text-primary uppercase tracking-[0.12em]">
+            Current brush
+          </p>
+          <p className="truncate font-medium text-sm">
+            {currentBrush.name ?? 'Select a material below'}
+          </p>
+        </div>
+      </div>
+
       {/* Scrolls: category tabs (fixed inside) + catalog grid (the scroll). */}
       <div className="min-h-0 flex-1">
         <MaterialPicker
           onCreateMaterialRequest={onCreateMaterialRequest}
           onSelectMaterialPreset={(materialPreset) => {
-            setActivePaintMaterial({ materialPreset, sourceTarget: activePaintTarget })
+            const catalogId = getLibraryMaterialIdFromRef(materialPreset)
+            const catalogItem = getCatalogMaterialById(catalogId ?? undefined)
+            setActivePaintMaterial(
+              catalogItem?.sourceRef
+                ? {
+                    material: freezeHostMaterialCatalogItem(catalogItem),
+                    sourceTarget: activePaintTarget,
+                  }
+                : { materialPreset, sourceTarget: activePaintTarget },
+            )
           }}
-          selectedMaterialPreset={activePaintMaterial?.materialPreset}
+          selectedMaterialPreset={
+            activePaintMaterial?.materialPreset ??
+            (activePaintMaterial?.material?.id
+              ? toLibraryMaterialRef(activePaintMaterial.material.id)
+              : undefined)
+          }
         />
       </div>
 

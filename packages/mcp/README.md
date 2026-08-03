@@ -222,6 +222,9 @@ console.log('available tools:', tools.tools.map((t) => t.name))
 
 const scene = await client.callTool({ name: 'get_scene', arguments: {} })
 console.log(scene)
+
+const diagnostics = await client.readResource({ uri: 'pascal://debug/state' })
+console.log(diagnostics)
 ```
 
 See [`examples/embed-in-agent.ts`](./examples/embed-in-agent.ts) for a

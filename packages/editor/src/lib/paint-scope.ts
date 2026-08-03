@@ -88,6 +88,8 @@ export function paintScopeLabel(scope: PaintScope, info: PaintHoverInfo): string
 export function nodeSlotRoles(node: AnyNode, meshSlotRoles: (node: AnyNode) => string[]): string[] {
   const declared = nodeRegistry.get(node.type)?.capabilities?.slots?.(node)
   if (declared && declared.length > 0) return declared.map((slot) => slot.slotId)
+  const objectRoles = nodeRegistry.get(node.type)?.capabilities?.paint?.objectRoles?.(node)
+  if (objectRoles && objectRoles.length > 0) return objectRoles
   return meshSlotRoles(node)
 }
 

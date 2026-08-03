@@ -8,13 +8,19 @@ import {
   Editor,
   type SceneGraph,
   type SidebarTab,
+  useT,
 } from '@pascal-app/editor'
-import { Hammer, Layers } from 'lucide-react'
+import { Armchair, Bot, Hammer, Layers, Lightbulb, PaintBucket, Settings } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { BuildTab } from './build-tab'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AiChatPanel } from './ai-chat-panel'
+import { FurnitureTab } from './furniture-tab'
+import { GuidedBuildTab } from './guided-build-tab'
+import { HostSettingsSection } from './host-settings-section'
+import { LightingTab } from './lighting-tab'
+import { PaintingTab } from './painting-tab'
 import { CommunityViewerToolbarLeft, CommunityViewerToolbarRight } from './viewer-toolbar'
 
 export interface SceneMeta {
@@ -30,40 +36,102 @@ export interface SceneMeta {
   nodeCount: number
 }
 
-const SIDEBAR_TABS: (SidebarTab & { component: React.ComponentType })[] = [
-  {
-    id: 'site',
-    label: 'Scene',
-    component: () => null, // Built-in SitePanel handles this
-    mobileDefaultSnap: 0.5,
-    mobileIcon: <Layers className="h-5 w-5" />,
-    icon: (
-      <Image
-        alt=""
-        className="h-8 w-8 object-contain"
-        height={32}
-        src="/icons/scene.webp"
-        width={32}
-      />
-    ),
-  },
-  {
-    id: 'build',
-    label: 'Build',
-    component: BuildTab,
-    mobileDefaultSnap: 0.5,
-    mobileIcon: <Hammer className="h-5 w-5" />,
-    icon: (
-      <Image
-        alt=""
-        className="h-8 w-8 object-contain"
-        height={32}
-        src="/icons/build.webp"
-        width={32}
-      />
-    ),
-  },
-]
+// Labels resolve from the current locale at render time (see `buildSidebarTabs`
+// below) — this array must not be read directly for `label`.
+function buildSidebarTabs(
+  t: ReturnType<typeof useT>,
+): (SidebarTab & { component: React.ComponentType })[] {
+  return [
+    {
+      id: 'site',
+      label: t('sidebarTabs.scene'),
+      component: () => null, // Built-in SitePanel handles this
+      mobileDefaultSnap: 0.5,
+      mobileIcon: <Layers className="h-5 w-5" />,
+      icon: (
+        <Image
+          alt=""
+          className="h-8 w-8 object-contain"
+          height={32}
+          src="/icons/scene.webp"
+          width={32}
+        />
+      ),
+    },
+    {
+      id: 'build',
+      label: t('sidebarTabs.modeling'),
+      component: GuidedBuildTab,
+      mobileDefaultSnap: 0.5,
+      mobileIcon: <Hammer className="h-5 w-5" />,
+      icon: (
+        <Image
+          alt=""
+          className="h-8 w-8 object-contain"
+          height={32}
+          src="/icons/build.webp"
+          width={32}
+        />
+      ),
+    },
+    {
+      id: 'furniture',
+      label: t('sidebarTabs.furniture'),
+      component: FurnitureTab,
+      mobileDefaultSnap: 0.75,
+      mobileIcon: <Armchair className="h-5 w-5" />,
+      icon: <Armchair className="h-5 w-5" />,
+    },
+    {
+      id: 'lighting',
+      label: t('sidebarTabs.lighting'),
+      component: LightingTab,
+      mobileDefaultSnap: 0.75,
+      mobileIcon: <Lightbulb className="h-5 w-5" />,
+      icon: <Lightbulb className="h-5 w-5" />,
+    },
+    {
+      id: 'painting',
+      label: t('sidebarTabs.painting'),
+      component: PaintingTab,
+      mobileDefaultSnap: 0.85,
+      mobileIcon: <PaintBucket className="h-5 w-5" />,
+      icon: (
+        <Image
+          alt=""
+          className="h-8 w-8 object-contain"
+          height={32}
+          src="/icons/paint.webp"
+          width={32}
+        />
+      ),
+    },
+    {
+      id: 'ai',
+      label: t('sidebarTabs.ai'),
+      component: AiChatPanel,
+      mobileDefaultSnap: 0.85,
+      mobileIcon: <Bot className="h-5 w-5" />,
+      icon: <Bot className="h-5 w-5" />,
+    },
+    {
+      id: 'settings',
+      label: t('sidebarTabs.settings'),
+      component: () => null,
+      mobileDefaultSnap: 0.5,
+      mobileIcon: <Settings className="h-5 w-5" />,
+      icon: (
+        <Image
+          alt=""
+          className="h-8 w-8 object-contain"
+          height={32}
+          src="/icons/settings.webp"
+          width={32}
+        />
+      ),
+    },
+  ]
+}
 
 interface SceneLoaderProps {
   initialScene: SceneGraph
@@ -99,6 +167,8 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
   const suppressRemoteSaveUntilRef = useRef(0)
   const [conflict, setConflict] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const t = useT()
+  const sidebarTabs = useMemo(() => buildSidebarTabs(t), [t])
 
   const handleLoad = useCallback(async () => initialScene, [initialScene])
 
@@ -237,7 +307,8 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
         onSave={handleSave}
         onThumbnailCapture={handleThumb}
         projectId={meta.projectId ?? 'default'}
-        sidebarTabs={SIDEBAR_TABS}
+        settingsPanelProps={{ hostSection: <HostSettingsSection /> }}
+        sidebarTabs={sidebarTabs}
         viewerToolbarLeft={<CommunityViewerToolbarLeft />}
         viewerToolbarRight={<CommunityViewerToolbarRight />}
       />

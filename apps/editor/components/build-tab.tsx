@@ -5,7 +5,6 @@ import {
   type FloorplanMode,
   getFloorplanNodeExtension,
   isFloorplanToolAvailableInMode,
-  MaterialPaintPanel,
   TerrainSculptPanel,
   triggerSFX,
   useEditor,
@@ -21,6 +20,8 @@ import {
   TooltipTrigger,
 } from '@/components/toolbar-tooltip'
 import { cn } from '@/lib/utils'
+import { BodyModelingTools } from './body-modeling-tools'
+import { BuildToolGrid } from './build-tool-grid'
 
 /**
  * MEP (mechanical / plumbing) tool kinds surfaced under the Build tab's "MEP"
@@ -38,16 +39,16 @@ type MepToolKind =
   | 'pipe-trap'
 
 type BuildType = {
-  /** Selection id — equals `kind` for tool types, `'painting'` for paint mode, `'mep'` for the MEP group. */
+  /** Selection id — equals `kind` for tool types or `'mep'` for the MEP group. */
   id: string
   label: string
   /** Raster asset tile (legacy Build sidebar artwork). */
   iconSrc: string
-  /** Present for structure-tool types (absent for paint mode and the MEP group). */
+  /** Present for structure-tool types (absent for special-mode and group tiles). */
   kind?: string
   paletteOrder?: number
   /** Non-placement special mode. */
-  mode?: 'material-paint' | 'terrain-sculpt'
+  mode?: 'terrain-sculpt'
 }
 
 type MepItem = {
@@ -74,17 +75,23 @@ const BASE_BUILD_TYPES: BuildType[] = [
   { id: 'spawn', label: 'Spawn Point', iconSrc: '/icons/spawn-point.webp', kind: 'spawn' },
   // Group tile — no tool of its own; opens the MEP sub-grid below (like Roof).
   { id: 'mep', label: 'MEP', iconSrc: '/icons/HVAC.webp' },
-  { id: 'painting', label: 'Painting', iconSrc: '/icons/paint.webp', mode: 'material-paint' },
   { id: 'terrain', label: 'Terrain', iconSrc: '/icons/mesh.webp', mode: 'terrain-sculpt' },
 ]
 
 function collectBuildTypes(floorplanMode: FloorplanMode): BuildType[] {
   const baseKinds = new Set(BASE_BUILD_TYPES.flatMap((type) => (type.kind ? [type.kind] : [])))
-  const tools = BASE_BUILD_TYPES.filter((type) => type.kind).map((type, index) => ({
-    ...type,
-    paletteOrder:
-      nodeRegistry.get(type.kind!)?.presentation?.paletteOrder ?? type.paletteOrder ?? index * 10,
-  }))
+  const tools = BASE_BUILD_TYPES.flatMap((type, index) => {
+    if (!type.kind) return []
+    return [
+      {
+        ...type,
+        paletteOrder:
+          nodeRegistry.get(type.kind)?.presentation?.paletteOrder ??
+          type.paletteOrder ??
+          index * 10,
+      },
+    ]
+  })
   for (const [kind, definition] of nodeRegistry.entries()) {
     const presentation = definition.presentation
     const extension = getFloorplanNodeExtension(definition)
@@ -150,14 +157,6 @@ function activateBuildTool(kind: string): void {
   ed.setTool(kind)
 }
 
-/** Enter material-paint mode — the Build tab's "Painting" category. */
-function activatePaintMode(): void {
-  const ed = useEditor.getState()
-  ed.setPhase('structure')
-  ed.setStructureLayer('elements')
-  ed.setMode('material-paint')
-}
-
 /**
  * Enter terrain-sculpt mode — the Build tab's "Terrain" category. No `setPhase`:
  * `setMode` moves to the site phase itself, since sculpting is a site-phase mode.
@@ -191,8 +190,7 @@ function activateRoofFeatureTool(kind: string): void {
 /**
  * Build tab for the open-source standalone editor — a preset-less replica of
  * the community Build sidebar. Clicking a type activates its raw tool, drawn
- * with the kind's own `def.defaults()`. The "Painting" type swaps in the
- * material-paint panel.
+ * with the kind's own `def.defaults()`.
  */
 // MEP tool kinds that, when active, mean the MEP group tile (and its sub-grid)
 // is what the user is working in.
@@ -267,11 +265,10 @@ export function BuildTab() {
       return mode === 'build' && (activeTool === 'roof' || isRoofFeatureActive)
     return mode === 'build' && activeTool === type.kind
   }
+  const activeBuildTypeId = buildTypes.find(isTypeActive)?.id ?? null
 
   const handleTypeClick = useCallback((type: BuildType) => {
-    if (type.mode === 'material-paint') {
-      activatePaintMode()
-    } else if (type.mode === 'terrain-sculpt') {
+    if (type.mode === 'terrain-sculpt') {
       activateTerrainSculptMode()
     } else if (type.id === 'mep') {
       // MEP is a group tile: arm its first tool so a usable tool is active
@@ -298,53 +295,34 @@ export function BuildTab() {
 
   return (
     <div className="flex h-full flex-col gap-3 p-3">
-      <TooltipProvider delayDuration={0} disableHoverableContent>
-        <div
-          className="grid gap-1.5"
-          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(56px, 1fr))' }}
-        >
-          {buildTypes.map((type) => {
-            const active = isTypeActive(type)
-            return (
-              <Tooltip key={type.id}>
-                <TooltipTrigger asChild>
-                  <button
-                    className={cn(
-                      'group relative flex aspect-square items-center justify-center rounded-xl p-1 transition-all duration-200',
-                      active
-                        ? 'bg-primary/10 ring-1 ring-primary/50'
-                        : 'bg-muted/40 opacity-70 grayscale hover:bg-muted hover:opacity-100 hover:grayscale-0',
-                    )}
-                    onClick={() => {
-                      triggerSFX('sfx:menu-click')
-                      handleTypeClick(type)
-                    }}
-                    onMouseEnter={() => triggerSFX('sfx:menu-hover')}
-                    type="button"
-                  >
-                    <Image
-                      alt={type.label}
-                      className="size-full object-contain transition-transform duration-200 group-hover:scale-110"
-                      height={48}
-                      src={type.iconSrc}
-                      width={48}
-                    />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="pointer-events-none" side="top">
-                  {type.label}
-                </TooltipContent>
-              </Tooltip>
-            )
-          })}
+      <div className="flex items-center justify-between px-0.5">
+        <div>
+          <h2 className="font-semibold text-xs">모델링 도구</h2>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
+            건축 요소를 배치하거나 Direct로 자유 형상을 만드세요
+          </p>
         </div>
-      </TooltipProvider>
+        <span className="rounded-md border border-border/70 px-1.5 py-1 font-mono text-[9px] text-muted-foreground">
+          B
+        </span>
+      </div>
+      <BuildToolGrid
+        activeId={activeBuildTypeId}
+        items={buildTypes}
+        onSelect={(id) => {
+          const type = buildTypes.find((item) => item.id === id)
+          if (!type) return
+          triggerSFX('sfx:menu-click')
+          handleTypeClick(type)
+        }}
+      />
 
-      {mode === 'material-paint' ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <MaterialPaintPanel />
-        </div>
-      ) : mode === 'terrain-sculpt' ? (
+      <BodyModelingTools
+        active={mode === 'build' && activeTool === 'body'}
+        onActivate={() => activateBuildTool('body')}
+      />
+
+      {mode === 'terrain-sculpt' ? (
         <div className="min-h-0 flex-1 overflow-y-auto">
           <TerrainSculptPanel />
         </div>

@@ -54,6 +54,12 @@ describe('room tools', () => {
     expect(parsed.ceilingId).toMatch(/^ceiling_/)
     expect(parsed.wallIds).toHaveLength(4)
     expect(parsed.areaSqMeters).toBe(12)
+    const firstWall = bridge.getNode(parsed.wallIds[0])
+    expect(
+      firstWall?.type === 'wall'
+        ? firstWall.faceBands?.construction?.upper?.layers.map((layer) => layer.kind)
+        : [],
+    ).toEqual(['timber-stud', 'cavity', 'gypsum-board', 'finish'])
     expect(bridge.validateScene().valid).toBe(true)
   })
 

@@ -288,6 +288,7 @@ export {
   type WalkthroughInteract,
 } from './components/walkthrough-hud'
 export type { SaveStatus } from './hooks/use-auto-save'
+export { useDraftLengthInput } from './hooks/use-draft-length-input'
 // useDragAction is the React-side glue for the registry's DragAction
 // primitive. Public so registry-driven kinds (Phase 5+ Stage D ports)
 // can express their affordances declaratively in their own folder.
@@ -296,6 +297,13 @@ export { type UseDragActionArgs, useDragAction } from './hooks/use-drag-action'
 export { markToolCancelConsumed } from './hooks/use-keyboard'
 export { useReducedMotion } from './hooks/use-reduced-motion'
 export { type Selection, useSelection } from './hooks/use-selection'
+// Shared UI locale — single source of truth for the editor's Korean/English
+// language switch, readable from `apps/editor` and `@pascal-app/nodes`
+// (which depends on this package) so flipping it moves every surface at
+// once. See `packages/editor/src/i18n/`.
+export { default as useLocale, type Locale } from './i18n/locale-store'
+export { type MessageId, translate } from './i18n/translate'
+export { useT } from './i18n/use-t'
 export {
   clearPlacementSurface,
   getPlacementSurface,
@@ -318,6 +326,14 @@ export {
   continuationContextOf,
   nextContinuation,
 } from './lib/continuation'
+export {
+  constrainPlanDraftPoint,
+  constrainSpatialDraftPoint,
+  formatDraftLengthInput,
+  type PlanDraftPoint,
+  parseDraftLength,
+  type SpatialDraftPoint,
+} from './lib/draft-length-input'
 export {
   clearStructuralElevationGuide,
   collectElevationSnapTargets,
@@ -392,6 +408,24 @@ export {
   runRedo,
   runUndo,
 } from './lib/history'
+export {
+  connectEditorHostIntegration,
+  type EditorHostAnnotation,
+  type EditorHostAnnotationMutation,
+  type EditorHostIntegrationAdapter,
+  type EditorHostIntegrationSession,
+  type EditorHostMaterialPage,
+  type EditorHostMaterialProduct,
+  type EditorHostMaterialSeamlessAsset,
+  type EditorHostMaterialSeamlessRequest,
+  type EditorHostMaterialSearch,
+  type EditorHostProjectContext,
+  type EditorHostViewpoint,
+  freezeHostMaterialCatalogItem,
+  requestSceneMaterialSeamless,
+  type SceneMaterialSeamlessResult,
+  toHostMaterialCatalogItem,
+} from './lib/host-integration'
 export {
   boundaryReshapeScope,
   curveReshapeScope,
@@ -611,6 +645,10 @@ export {
   useStairBuildPreview,
 } from './store/use-stair-build-preview'
 export { useUploadStore } from './store/use-upload'
+export {
+  useWallConstructionDisplay,
+  type WallConstructionDisplayMode,
+} from './store/use-wall-construction-display'
 export { useWallMoveGhosts, type WallMoveGhostBridge } from './store/use-wall-move-ghosts'
 export {
   default as useWallSnapIndicator,

@@ -55,7 +55,15 @@ describe('construction tools', () => {
       const wall = bridge.getNode(wallId)
       expect(wall?.parentId).toBe(level.id)
       expect(wall?.type).toBe('wall')
-      if (wall?.type === 'wall') expect(wall.height).toBe(2.8)
+      if (wall?.type === 'wall') {
+        expect(wall.height).toBe(2.8)
+        expect(wall.faceBands?.construction?.upper?.layers.map((layer) => layer.kind)).toEqual([
+          'timber-stud',
+          'cavity',
+          'gypsum-board',
+          'finish',
+        ])
+      }
     }
     expect(bridge.validateScene().valid).toBe(true)
   })

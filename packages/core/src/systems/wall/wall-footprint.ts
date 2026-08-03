@@ -1,3 +1,4 @@
+import { getWallConstructionEnvelopeThickness } from '../../lib/wall-construction'
 import type { WallNode } from '../../schema'
 import { getWallSurfacePolygon, isCurvedWall } from './wall-curve'
 import {
@@ -12,7 +13,7 @@ export const DEFAULT_WALL_HEIGHT = 2.5
 const CURVED_WALL_SURFACE_SEGMENTS = 24
 
 export function getWallThickness(wallNode: WallNode): number {
-  return wallNode.thickness ?? DEFAULT_WALL_THICKNESS
+  return getWallConstructionEnvelopeThickness(wallNode)
 }
 
 export function getWallPlanFootprint(wallNode: WallNode, miterData: WallMiterData): Point2D[] {

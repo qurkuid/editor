@@ -2,9 +2,16 @@ import type { CabinetModuleNode, CabinetNode, GeometryContext } from '@pascal-ap
 import type { ColorPreset, RenderShading } from '@pascal-app/viewer'
 import { Group, type Mesh } from 'three'
 import { getRunSpanEnds, getRunSpans } from '../run-layout'
-import { compartmentSinkLayout, stackForCabinet } from '../stack'
+import { compartmentSinkLayout, isCooktopCompartmentType, stackForCabinet } from '../stack'
+import { cooktopCutterGeometry, countertopCutoutGeometry } from './countertop-cutouts'
 import { addBox, getCabinetSlotMaterials } from './shared'
-import { cutSinkIntoCountertop, type SinkBowlSpec, sinkBowls } from './sink'
+import {
+  type CountertopCutterSpec,
+  cutSinkIntoCountertop,
+  type SinkBowlSpec,
+  sinkBowls,
+  subtractCuttersFromCountertop,
+} from './sink'
 
 export function getRunModules(ctx?: GeometryContext): CabinetModuleNode[] {
   return (ctx?.children ?? []).filter(
@@ -26,17 +33,22 @@ export function buildCabinetRunGeometry(
   const group = new Group()
   const materials = getCabinetSlotMaterials(node, ctx, shading, textures, colorPreset, sceneTheme)
   const plinth = node.showPlinth ? node.plinthHeight : 0
-  // A back-edge bar ledge occupies the back edge, superseding the seating
-  // overhang; side-edge bars leave it alone.
-  const backOverhang =
-    node.withCountertop && node.barLedge?.edge !== 'back' ? node.countertopBackOverhang : 0
   const spans = getRunSpans(modules, { runTier: node.runTier })
   const spanEnds = getRunSpanEnds(node, ctx, spans)
 
   for (const span of spans) {
     const spanIndex = spans.indexOf(span)
     const barEdge = node.barLedge?.edge
-    const { leftOverhang, rightOverhang, exposedLeft, exposedRight } = spanEnds[spanIndex]!
+    const { leftOverhang, rightOverhang, exposedLeft, exposedRight, backOverhangSuppressed } =
+      spanEnds[spanIndex]!
+    // A back-edge bar ledge occupies the back edge, superseding the seating
+    // overhang; side-edge bars leave it alone. A back-to-back island partner
+    // flush against this span's back edge suppresses it too — two
+    // independent slabs would otherwise each overhang into the same seam.
+    const backOverhang =
+      node.withCountertop && node.barLedge?.edge !== 'back' && !backOverhangSuppressed
+        ? node.countertopBackOverhang
+        : 0
     const toeKickDepth = node.showPlinth
       ? Math.min(node.toeKickDepth, span.depth - node.boardThickness * 2)
       : 0
@@ -170,25 +182,34 @@ export function buildCabinetRunGeometry(
       // Undermount sink modules cut their bowl openings out of the run's
       // slab (modules inside a run never own a countertop themselves).
       const sinkCuts: Array<{ bowls: SinkBowlSpec[]; x: number; z: number }> = []
+      const cooktopCuts: Array<{ module: CabinetModuleNode; x: number; z: number }> = []
       for (const module of modules) {
         if (module.position[0] < span.minX - 1e-4 || module.position[0] > span.maxX + 1e-4) {
           continue
         }
         const sink = stackForCabinet(module).find((compartment) => compartment.type === 'sink')
-        if (!sink) continue
-        sinkCuts.push({
-          bowls: sinkBowls(
-            compartmentSinkLayout(sink),
-            Math.max(0.01, module.width - 2 * module.boardThickness),
-            module.depth,
-          ),
-          x: module.position[0],
-          z: module.position[2],
-        })
+        if (sink) {
+          sinkCuts.push({
+            bowls: sinkBowls(
+              compartmentSinkLayout(sink),
+              Math.max(0.01, module.width - 2 * module.boardThickness),
+              module.depth,
+            ),
+            x: module.position[0],
+            z: module.position[2],
+          })
+        }
+        const cooktop = stackForCabinet(module).find((compartment) =>
+          isCooktopCompartmentType(compartment.type),
+        )
+        if (cooktop) {
+          cooktopCuts.push({ module, x: module.position[0], z: module.position[2] })
+        }
       }
+      let currentCountertop: Mesh = countertop
       if (sinkCuts.length > 0) {
-        group.remove(countertop)
-        let cut: Mesh = countertop
+        group.remove(currentCountertop)
+        let cut: Mesh = currentCountertop
         for (const sinkCut of sinkCuts) {
           const next = cutSinkIntoCountertop(
             cut,
@@ -201,6 +222,31 @@ export function buildCabinetRunGeometry(
           cut = next
         }
         group.add(cut)
+        currentCountertop = cut
+      }
+
+      // Cooktops cut their surface footprint out of the slab too, and any
+      // freeform openings declared on the run (outlets, custom appliance
+      // cutouts) — reusing the same CSG helper the sink cut uses above.
+      const slabCenterX = span.centerX + (rightOverhang - leftOverhang) / 2
+      const slabCenterZ = span.centerZ + (node.countertopOverhang - backOverhang) / 2
+      const extraCutters: CountertopCutterSpec[] = [
+        ...cooktopCuts.map(({ module, x, z }) => ({
+          geometry: cooktopCutterGeometry(module, node.countertopThickness),
+          x,
+          z,
+        })),
+        ...node.countertopCutouts.map((cutout) => ({
+          geometry: countertopCutoutGeometry(cutout, node.countertopThickness),
+          x: slabCenterX + cutout.position.x,
+          z: slabCenterZ + cutout.position.z,
+        })),
+      ]
+      if (extraCutters.length > 0) {
+        group.remove(currentCountertop)
+        const next = subtractCuttersFromCountertop(currentCountertop, extraCutters)
+        currentCountertop.geometry.dispose()
+        group.add(next)
       }
     }
   }

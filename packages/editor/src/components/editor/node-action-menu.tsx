@@ -3,6 +3,7 @@
 import { Icon } from '@iconify/react'
 import { Copy, Move, Search, Spline, Trash2 } from 'lucide-react'
 import type { MouseEventHandler, PointerEventHandler } from 'react'
+import type { WallConstructionDisplayMode } from '../../store/use-wall-construction-display'
 
 type NodeActionMenuProps = {
   onFind?: MouseEventHandler<HTMLButtonElement>
@@ -15,6 +16,10 @@ type NodeActionMenuProps = {
   onPointerUp?: PointerEventHandler<HTMLDivElement>
   onPointerEnter?: PointerEventHandler<HTMLDivElement>
   onPointerLeave?: PointerEventHandler<HTMLDivElement>
+  wallDisplay?: {
+    mode: WallConstructionDisplayMode
+    onChange: (mode: WallConstructionDisplayMode) => void
+  }
 }
 
 export function NodeActionMenu({
@@ -28,6 +33,7 @@ export function NodeActionMenu({
   onPointerUp,
   onPointerEnter,
   onPointerLeave,
+  wallDisplay,
 }: NodeActionMenuProps) {
   return (
     <div
@@ -37,6 +43,40 @@ export function NodeActionMenu({
       onPointerLeave={onPointerLeave}
       onPointerUp={onPointerUp}
     >
+      {wallDisplay && (
+        <div
+          aria-label="Wall display mode"
+          className="mr-0.5 flex items-center rounded-md bg-muted/70 p-0.5"
+          role="group"
+        >
+          {(
+            [
+              ['finish', '마감'],
+              ['frame', '골조'],
+              ['layers', '레이어'],
+            ] as const
+          ).map(([mode, label]) => (
+            <button
+              aria-label={`Wall display: ${label}`}
+              aria-pressed={wallDisplay.mode === mode}
+              className={`rounded px-2 py-1 text-[10px] transition-colors ${
+                wallDisplay.mode === mode
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+              key={mode}
+              onClick={(event) => {
+                event.stopPropagation()
+                wallDisplay.onChange(mode)
+              }}
+              title={`벽 표시: ${label}`}
+              type="button"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {onFind && (
         <button
           aria-label="Find in catalog"

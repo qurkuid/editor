@@ -10,12 +10,16 @@ import { moduleSideOpen, sideInsertX } from './run-layout'
 import {
   addCabinetModuleSide,
   addCornerRun,
+  addIslandBackRun,
   addWallChildAbove,
+  addWallSetRun,
   CABINET_BASE_WIDTH,
   CABINET_EDGE_EPSILON,
   cabinetModulesForRun,
+  findSetLinkWallRuns,
   planCabinetModuleSideAddition,
   previewCornerAdditionLayout,
+  removeIslandBackRun,
   resolveCabinetType,
   switchCabinetToBase,
   switchCabinetToTall,
@@ -266,6 +270,49 @@ export function cabinetQuickActions({
   pushCornerAction(rightCornerModule, 'right', !canAddCornerRight)
 
   pushSideAction('right', !rightAvailable)
+
+  // Run-level actions — apply to the whole run, so only offered when no
+  // specific module is drilled into.
+  if (!context.module && context.run.runTier === 'base') {
+    if (context.run.islandLink?.role === 'front') {
+      actions.push({
+        id: 'cabinet:remove-island-back-row',
+        label: 'Remove back row',
+        title: 'Remove the island back row',
+        history: 'single',
+        run: ({ sceneApi }) =>
+          removeIslandBackRun({ run: context.run, sceneApi })
+            ? { selectedIds: [context.run.id] }
+            : undefined,
+      })
+    } else if (!context.run.islandLink) {
+      actions.push({
+        id: 'cabinet:add-island-back-row',
+        label: 'Back row',
+        title: 'Add a back row to make this a two-sided island',
+        icon: cabinetBaseIcon,
+        history: 'single',
+        run: ({ sceneApi }) => {
+          const id = addIslandBackRun({ run: context.run, sceneApi })
+          return id ? { selectedIds: [context.run.id] } : undefined
+        },
+      })
+    }
+
+    if (findSetLinkWallRuns(context.run, nodes).length === 0) {
+      actions.push({
+        id: 'cabinet:add-wall-set',
+        label: 'Wall set',
+        title: "Add an upper wall run above, decoupled from this run's bays",
+        icon: cabinetWallIcon,
+        history: 'single',
+        run: ({ sceneApi }) => {
+          const id = addWallSetRun({ run: context.run, sceneApi })
+          return id ? { selectedIds: [id] } : undefined
+        },
+      })
+    }
+  }
 
   return actions
 }

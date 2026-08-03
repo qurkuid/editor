@@ -1,6 +1,12 @@
 import type { NextConfig } from 'next'
 
+// Served from a sub-path in production (intm.kr/floorplan) but from the root
+// in local dev, so this stays env-gated — hardcoding it would break the dev
+// server's existing scene URLs.
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || undefined
+
 const nextConfig: NextConfig = {
+  ...(basePath ? { basePath } : {}),
   logging: {
     browserToTerminal: true,
   },

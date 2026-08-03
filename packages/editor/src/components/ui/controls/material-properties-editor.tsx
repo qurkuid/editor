@@ -2,6 +2,7 @@
 
 import type { MaterialProperties, MaterialSchema } from '@pascal-app/core'
 import { Input } from '../primitives/input'
+import { MaterialSizeEditor } from './material-size-editor'
 import { SliderControl } from './slider-control'
 
 const DEFAULT_MATERIAL_PROPERTIES: MaterialProperties = {
@@ -66,6 +67,8 @@ export function MaterialPropertiesEditor({
         step={0.01}
         value={currentProps.roughness}
       />
+
+      <MaterialSizeEditor onChange={onChange} value={value} />
 
       <SliderControl
         label="Metalness"

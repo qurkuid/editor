@@ -19,6 +19,7 @@ import {
 import {
   CursorSphere,
   clearPlacementSurface,
+  constrainPlanDraftPoint,
   createFenceOnCurrentLevel,
   createSplineFenceOnCurrentLevel,
   EDITOR_LAYER,
@@ -41,6 +42,7 @@ import {
   snapScalarToGrid,
   triggerSFX,
   useAlignmentGuides,
+  useDraftLengthInput,
   useEditor,
   useFenceCurveDraft,
   useFloorplanDraftPreview,
@@ -489,6 +491,9 @@ const StraightFenceTool: React.FC = () => {
   const startingPoint = useRef(new Vector3(0, 0, 0))
   const endingPoint = useRef(new Vector3(0, 0, 0))
   const buildingState = useRef(0)
+  const { clear: clearDraftLength, getLengthMeters } = useDraftLengthInput(
+    () => buildingState.current === 1,
+  )
   const [draftMeasurement, setDraftMeasurement] = useState<DraftMeasurementState>(null)
   const [axisGuide, setAxisGuide] = useState<DraftAxisGuideState>(null)
   const measurementColor = isDark ? '#ffffff' : '#111111'
@@ -523,7 +528,14 @@ const StraightFenceTool: React.FC = () => {
         return point
       }
       const ar = resolveAlignment({
-        moving: [{ nodeId: '__fence-draft__', kind: 'corner', x: point[0], z: point[1] }],
+        moving: [
+          {
+            nodeId: '__fence-draft__',
+            kind: 'corner',
+            x: point[0],
+            z: point[1],
+          },
+        ],
         candidates: alignmentCandidates,
         threshold: ALIGNMENT_THRESHOLD_M,
       })
@@ -534,6 +546,7 @@ const StraightFenceTool: React.FC = () => {
     }
 
     const stopDrafting = () => {
+      clearDraftLength()
       buildingState.current = 0
       previewRef.current.visible = false
       setDraftMeasurement(null)
@@ -568,16 +581,20 @@ const StraightFenceTool: React.FC = () => {
 
       if (buildingState.current === 1) {
         const angleLocked = isAngleSnapActive()
-        const snappedLocal = alignPoint(
-          snapFenceDraftPoint({
-            point: localPoint,
-            walls,
-            fences,
-            start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
-            angleSnap: angleLocked,
-            magnetic: isMagneticSnapActive(),
-          }),
-          { applySnap: !angleLocked },
+        const snappedLocal = constrainPlanDraftPoint(
+          [startingPoint.current.x, startingPoint.current.z],
+          alignPoint(
+            snapFenceDraftPoint({
+              point: localPoint,
+              walls,
+              fences,
+              start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
+              angleSnap: angleLocked,
+              magnetic: isMagneticSnapActive(),
+            }),
+            { applySnap: !angleLocked },
+          ),
+          getLengthMeters(),
         )
         endingPoint.current.set(snappedLocal[0], event.localPosition[1], snappedLocal[1])
         const draftPreview = useFloorplanDraftPreview.getState()
@@ -671,16 +688,20 @@ const StraightFenceTool: React.FC = () => {
         })
       } else {
         const angleLocked = isAngleSnapActive()
-        const snappedEnd = alignPoint(
-          snapFenceDraftPoint({
-            point: localClick,
-            walls,
-            fences,
-            start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
-            angleSnap: angleLocked,
-            magnetic: isMagneticSnapActive(),
-          }),
-          { applySnap: !angleLocked },
+        const snappedEnd = constrainPlanDraftPoint(
+          [startingPoint.current.x, startingPoint.current.z],
+          alignPoint(
+            snapFenceDraftPoint({
+              point: localClick,
+              walls,
+              fences,
+              start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
+              angleSnap: angleLocked,
+              magnetic: isMagneticSnapActive(),
+            }),
+            { applySnap: !angleLocked },
+          ),
+          getLengthMeters(),
         )
         const dx = snappedEnd[0] - startingPoint.current.x
         const dz = snappedEnd[1] - startingPoint.current.z
@@ -692,6 +713,7 @@ const StraightFenceTool: React.FC = () => {
           { supportCap: pointed ? pointed.elevation : null },
         )
         if (!createdFence) return
+        clearDraftLength()
 
         // The new segment is now a real node — make it an alignment target
         // for the next segment, and drop the just-shown guide.
@@ -751,7 +773,7 @@ const StraightFenceTool: React.FC = () => {
       draftPreview.setFenceDraftStart(null)
       draftPreview.setFenceDraftEnd(null)
     }
-  }, [unit])
+  }, [clearDraftLength, getLengthMeters, unit])
 
   return (
     <group>

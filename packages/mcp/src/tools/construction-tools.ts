@@ -1,5 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { resolveStairTotalRise } from '@pascal-app/core'
+import { createDefaultWallFaceBands, resolveStairTotalRise } from '@pascal-app/core'
 import type { AnyNode, AnyNodeId } from '@pascal-app/core/schema'
 import {
   CeilingNode,
@@ -278,6 +278,7 @@ export function registerConstructionTools(server: McpServer, bridge: SceneOperat
           start: points[i],
           end: points[(i + 1) % points.length],
           thickness: wallThickness,
+          faceBands: createDefaultWallFaceBands(wallThickness),
           ...(wallHeight !== undefined ? { height: wallHeight } : {}),
           frontSide: 'exterior',
           backSide: 'interior',

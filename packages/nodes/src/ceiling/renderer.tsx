@@ -2,9 +2,7 @@
 
 import {
   type CeilingNode,
-  getMaterialPresetByRef,
   resolveCeilingHeight,
-  resolveMaterial,
   useLiveTransforms,
   useRegistry,
   useScene,
@@ -18,7 +16,7 @@ import {
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BackSide, type Mesh } from 'three/webgpu'
 import { createPlaceholderGeometry } from '../shared/placeholder-geometry'
-import { ceilingColorFromRef, getCeilingMaterials } from './materials'
+import { createCeilingSurfaceMaterial, getCeilingMaterials } from './materials'
 import { CEILING_SLOT_DEFAULT_COLOR } from './slots'
 
 function createEmptyGeometry() {
@@ -41,6 +39,7 @@ export const CeilingRenderer = ({ node }: { node: CeilingNode }) => {
     useScene.getState().markDirty(node.id)
   }, [node.id])
   const textures = useViewer((s) => s.textures)
+  const shading = useViewer((s) => s.shading)
   const colorPreset = useViewer((s) => s.colorPreset)
   const sceneTheme = useViewer((s) => s.sceneTheme)
   // Subscribe to the scene-material library so editing a `scene:` material the
@@ -83,22 +82,40 @@ export const CeilingRenderer = ({ node }: { node: CeilingNode }) => {
       }
     }
 
-    // Unified slot override — shared scene material or catalog `library:` finish
-    // (resolved to its base colour; a ceiling renders flat-tinted, not mapped).
-    const slotColor = ceilingColorFromRef(node.slots?.surface, sceneMaterials)
-    if (slotColor) return getCeilingMaterials(slotColor)
+    const slotMaterial = createCeilingSurfaceMaterial(
+      undefined,
+      node.slots?.surface,
+      sceneMaterials,
+      shading,
+    )
+    if (slotMaterial) {
+      return {
+        topMaterial: getCeilingMaterials(slotMaterial.color).topMaterial,
+        bottomMaterial: slotMaterial.material,
+      }
+    }
 
     // Legacy inline material / preset (scenes painted before the slot model).
     if (node.materialPreset || node.material) {
-      const preset = getMaterialPresetByRef(node.materialPreset)
-      const props = preset?.mapProperties ?? resolveMaterial(node.material)
-      return getCeilingMaterials(props.color || '#999999')
+      const legacyMaterial = createCeilingSurfaceMaterial(
+        node.material,
+        node.materialPreset,
+        sceneMaterials,
+        shading,
+      )
+      if (legacyMaterial) {
+        return {
+          topMaterial: getCeilingMaterials(legacyMaterial.color).topMaterial,
+          bottomMaterial: legacyMaterial.material,
+        }
+      }
     }
 
     // Declared slot default.
     return getCeilingMaterials(CEILING_SLOT_DEFAULT_COLOR)
   }, [
     textures,
+    shading,
     colorPreset,
     sceneTheme,
     sceneMaterials,

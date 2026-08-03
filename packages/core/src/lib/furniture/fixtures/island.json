@@ -1,0 +1,66 @@
+{
+  "schema_version": 0.5,
+  "type": "island",
+  "W": 1800,
+  "H": 900,
+  "D": 1200,
+  "frontD": 400,
+  "backD": 800,
+  "sideFinish": { "left": "ep18", "right": "stone", "color": "#F4F1EA" },
+  "bays": [
+    {
+      "width": 900,
+      "base": { "type": "plinth", "height": 50 },
+      "kickplate": true,
+      "tiers": [
+        {
+          "height": 800,
+          "door": "hinged2",
+          "face": "both",
+          "topPanel": { "enabled": true, "thickness": 18, "material": "stone", "overhang": 30 }
+        }
+      ]
+    },
+    {
+      "width": 900,
+      "base": { "type": "plinth", "height": 50 },
+      "kickplate": true,
+      "tiers": [
+        {
+          "height": 800,
+          "door": "open",
+          "face": "both",
+          "topPanel": { "enabled": true, "thickness": 18, "material": "stone", "overhang": 30 }
+        }
+      ]
+    }
+  ],
+  "backBays": [
+    {
+      "width": 900,
+      "base": { "type": "leg", "height": 100 },
+      "kickplate": true,
+      "tiers": [
+        {
+          "height": 800,
+          "door": "hinged2",
+          "face": "both",
+          "topPanel": { "enabled": true, "thickness": 18, "material": "stone", "overhang": 30 }
+        }
+      ]
+    },
+    {
+      "width": 900,
+      "base": { "type": "leg", "height": 100 },
+      "kickplate": true,
+      "tiers": [
+        {
+          "height": 800,
+          "door": "open",
+          "face": "both",
+          "topPanel": { "enabled": true, "thickness": 18, "material": "stone", "overhang": 30 }
+        }
+      ]
+    }
+  ]
+}

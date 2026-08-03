@@ -3,6 +3,7 @@
 import { emitter, type FenceNode, isCurvedWall, type WallNode } from '@pascal-app/core'
 import { type MouseEvent as ReactMouseEvent, useCallback } from 'react'
 import { resolveCeilingPlanPointSnap } from '../../lib/ceiling-plan-snap'
+import { constrainPlanDraftPoint } from '../../lib/draft-length-input'
 import { alignFloorplanDraftPoint, getPlanPointDistance } from '../../lib/floorplan'
 import { resolveSlabPlanPointSnap } from '../../lib/slab-plan-snap'
 import useAlignmentGuides from '../../store/use-alignment-guides'
@@ -37,6 +38,7 @@ type UseFloorplanBackgroundPlacementArgs = {
   } | null
   floorplanOpeningLocalY: number
   getSnappedFloorplanPoint: (point: WallPlanPoint) => WallPlanPoint
+  getDraftLengthMeters: () => number | null
   handleCeilingItemPlacementClick: (
     planPoint: WallPlanPoint,
     nativeEvent: ReactMouseEvent<SVGSVGElement>,
@@ -98,6 +100,7 @@ export function useFloorplanBackgroundPlacement({
   findClosestWallPoint,
   floorplanOpeningLocalY,
   getSnappedFloorplanPoint,
+  getDraftLengthMeters,
   handleCeilingItemPlacementClick,
   handleCeilingPlacementPoint,
   handleSlabPlacementPoint,
@@ -216,11 +219,18 @@ export function useFloorplanBackgroundPlacement({
         const fenceGridBase = worldGridSnap(planPoint, fenceStep)
         const fenceLocked =
           fenceSnapped[0] !== fenceGridBase[0] || fenceSnapped[1] !== fenceGridBase[1]
-        const snappedPoint = fenceLocked
+        let snappedPoint = fenceLocked
           ? fenceSnapped
           : alignFloorplanDraftPoint(fenceSnapped, {
               applySnap: isMagneticSnapActive() && !fenceAngleSnap,
             })
+        if (fenceDraftStart) {
+          snappedPoint = constrainPlanDraftPoint(
+            fenceDraftStart,
+            snappedPoint,
+            getDraftLengthMeters(),
+          )
+        }
 
         emitFloorplanGridEvent('click', snappedPoint, event)
         setCursorPoint(snappedPoint)
@@ -327,6 +337,9 @@ export function useFloorplanBackgroundPlacement({
             applySnap: isMagneticSnapActive() && !wallAngleSnap,
           })
         }
+        if (draftStart) {
+          snappedPoint = constrainPlanDraftPoint(draftStart, snappedPoint, getDraftLengthMeters())
+        }
 
         emitFloorplanGridEvent('click', snappedPoint, event)
 
@@ -377,6 +390,7 @@ export function useFloorplanBackgroundPlacement({
       findClosestWallPoint,
       floorplanOpeningLocalY,
       getSnappedFloorplanPoint,
+      getDraftLengthMeters,
       handleCeilingItemPlacementClick,
       handleCeilingPlacementPoint,
       handleSlabPlacementPoint,

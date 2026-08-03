@@ -1,0 +1,43 @@
+{
+  "schema_version": 0.5,
+  "type": "set",
+  "W": 2400,
+  "H": 850,
+  "D": 600,
+  "setUpper": {
+    "enabled": true,
+    "height": 700,
+    "depth": 350,
+    "gap": 100,
+    "totalW": 2400,
+    "anchor": "lower"
+  },
+  "bays": [
+    {
+      "width": 1200,
+      "base": { "type": "leg", "height": 150 },
+      "kickplate": true,
+      "tiers": [{ "height": 700, "door": "drawer_external", "face": "front" }]
+    },
+    {
+      "width": 1200,
+      "base": { "type": "leg", "height": 150 },
+      "kickplate": true,
+      "tiers": [{ "height": 700, "door": "hinged2", "face": "front" }]
+    }
+  ],
+  "upperBays": [
+    {
+      "width": 1200,
+      "base": { "type": "none", "height": 0 },
+      "kickplate": false,
+      "tiers": [{ "height": 700, "door": "hinged2", "face": "front" }]
+    },
+    {
+      "width": 1200,
+      "base": { "type": "none", "height": 0 },
+      "kickplate": false,
+      "tiers": [{ "height": 700, "door": "hinged2", "face": "front" }]
+    }
+  ]
+}

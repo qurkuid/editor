@@ -7,6 +7,7 @@ import {
 } from '@pascal-app/viewer'
 import {
   BoxGeometry,
+  type BufferGeometry,
   CylinderGeometry,
   Group,
   type Material,
@@ -59,35 +60,33 @@ export function sinkBowls(
   ]
 }
 
+/** One opening to punch out of a countertop slab, in the slab mesh's local
+ * X/Z frame (`y` follows the slab's own position). Shared by every kind of
+ * countertop cutout — sink bowls, cooktop footprints, freeform openings. */
+export type CountertopCutterSpec = { geometry: BufferGeometry; x: number; z: number }
+
 /**
- * Subtract the sink bowl openings from a countertop mesh via three-bvh-csg.
- * `cutCenterX/Z` position the sink footprint in the countertop mesh's local
- * frame (the run countertop spans several modules, so the sink is off-center
- * there). Returns a replacement mesh; the caller swaps it into the group.
+ * Subtract a set of openings from a countertop mesh via three-bvh-csg.
+ * Returns a replacement mesh; the caller swaps it into the group and disposes
+ * the original geometry (this function does not dispose `countertop`'s own
+ * geometry, since callers may still hold other references to it).
  */
-export function cutSinkIntoCountertop(
+export function subtractCuttersFromCountertop(
   countertop: Mesh,
-  bowls: SinkBowlSpec[],
-  cutCenterX: number,
-  cutCenterZ: number,
-  countertopThickness: number,
+  cutters: CountertopCutterSpec[],
 ): Mesh {
   const slotId = countertop.userData.slotId
   let result = new Brush(countertop.geometry, countertop.material)
   result.position.copy(countertop.position)
   prepareBrushForCSG(result)
 
-  for (const bowl of bowls) {
-    // Rim reveal: the opening is slightly smaller than the basin shell so
-    // the undermount lip tucks under the countertop.
-    const cutter = new Brush(
-      new BoxGeometry(bowl.width - BASIN_WALL, countertopThickness * 4, bowl.depth - BASIN_WALL),
-    )
-    cutter.position.set(cutCenterX + bowl.centerX, countertop.position.y, cutCenterZ)
-    prepareBrushForCSG(cutter)
-    const next = csgEvaluator.evaluate(result, cutter, SUBTRACTION) as Brush
+  for (const cutter of cutters) {
+    const brush = new Brush(cutter.geometry)
+    brush.position.set(cutter.x, countertop.position.y, cutter.z)
+    prepareBrushForCSG(brush)
+    const next = csgEvaluator.evaluate(result, brush, SUBTRACTION) as Brush
     prepareBrushForCSG(next)
-    cutter.geometry.dispose()
+    brush.geometry.dispose()
     if (result.geometry !== countertop.geometry) result.geometry.dispose()
     result = next
   }
@@ -101,6 +100,43 @@ export function cutSinkIntoCountertop(
   mesh.castShadow = true
   mesh.receiveShadow = true
   return mesh
+}
+
+function sinkBowlCutters(
+  bowls: SinkBowlSpec[],
+  cutCenterX: number,
+  cutCenterZ: number,
+  countertopThickness: number,
+): CountertopCutterSpec[] {
+  return bowls.map((bowl) => ({
+    // Rim reveal: the opening is slightly smaller than the basin shell so
+    // the undermount lip tucks under the countertop.
+    geometry: new BoxGeometry(
+      bowl.width - BASIN_WALL,
+      countertopThickness * 4,
+      bowl.depth - BASIN_WALL,
+    ),
+    x: cutCenterX + bowl.centerX,
+    z: cutCenterZ,
+  }))
+}
+
+/**
+ * Subtract the sink bowl openings from a countertop mesh. `cutCenterX/Z`
+ * position the sink footprint in the countertop mesh's local frame (the run
+ * countertop spans several modules, so the sink is off-center there).
+ */
+export function cutSinkIntoCountertop(
+  countertop: Mesh,
+  bowls: SinkBowlSpec[],
+  cutCenterX: number,
+  cutCenterZ: number,
+  countertopThickness: number,
+): Mesh {
+  return subtractCuttersFromCountertop(
+    countertop,
+    sinkBowlCutters(bowls, cutCenterX, cutCenterZ, countertopThickness),
+  )
 }
 
 function addBasinShell(

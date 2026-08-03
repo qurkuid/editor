@@ -1,4 +1,4 @@
-import type { AnyNodeId, NodeDefinition } from '@pascal-app/core'
+import { type AnyNodeId, createDefaultWallFaceBands, type NodeDefinition } from '@pascal-app/core'
 import type { FloorplanNodeExtension } from '@pascal-app/editor'
 import { buildWallContextualDimensions } from './contextual-dimensions'
 import { buildWallFloorplan, computeWallFloorplanLevelData } from './floorplan'
@@ -34,7 +34,7 @@ import { wallSlots } from './slots'
 export const wallDefinition: NodeDefinition<typeof WallNode> = {
   kind: 'wall',
   snapProfile: 'structural',
-  schemaVersion: 7,
+  schemaVersion: 8,
   schema: WallNode,
   category: 'structure',
   surfaceRole: 'wall',
@@ -62,6 +62,8 @@ export const wallDefinition: NodeDefinition<typeof WallNode> = {
     children: [],
     start: [0, 0],
     end: [3, 0],
+    thickness: 0.1,
+    faceBands: createDefaultWallFaceBands(0.1),
     frontSide: 'unknown',
     backSide: 'unknown',
   }),

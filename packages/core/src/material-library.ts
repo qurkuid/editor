@@ -20,6 +20,15 @@ export type MaterialCatalogItem = {
   description?: string
   previewThumbnailUrl?: string
   previewColor?: string
+  sourceRef?: { provider: string; externalId: string; revision?: string }
+  physicalSize?: { widthM: number; heightM: number }
+  commercial?: {
+    brand?: string
+    productCode?: string
+    unitPrice?: number
+    unit?: string
+  }
+  constructionKinds?: Array<'gypsum-board' | 'mdf' | 'timber-stud' | 'finish' | 'custom'>
   preset: MaterialPresetPayload
 }
 
