@@ -136,7 +136,11 @@ export default function FloorplanLightingFixtureTool({
         useAlignmentGuides.getState().clear()
         // Same continuation contract as the 3D tool — 2D/3D parity.
         if (getContinuation('point') === 'repeat') {
-          alignmentCandidates = collectAlignmentAnchors(useScene.getState().nodes, '', activeLevelId)
+          alignmentCandidates = collectAlignmentAnchors(
+            useScene.getState().nodes,
+            '',
+            activeLevelId,
+          )
         } else {
           finishTool()
         }

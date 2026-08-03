@@ -45,7 +45,13 @@ export function resolveFurnitureAlignedPosition(
     return { position: [position[0], position[1], position[2]], guides: [] }
   }
   const aabb = footprintAABBFrom(position, [footprint.width, 0, footprint.depth], rotationY)
-  const moving = bboxCornerAnchors('__furniture-draft__', aabb.minX, aabb.minZ, aabb.maxX, aabb.maxZ)
+  const moving = bboxCornerAnchors(
+    '__furniture-draft__',
+    aabb.minX,
+    aabb.minZ,
+    aabb.maxX,
+    aabb.maxZ,
+  )
   const result = resolveAlignment({
     moving,
     candidates,

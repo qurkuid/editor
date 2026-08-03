@@ -1,5 +1,5 @@
-import type { AlignmentAnchor } from '@pascal-app/core'
 import { describe, expect, test } from 'bun:test'
+import type { AlignmentAnchor } from '@pascal-app/core'
 import { lightingFixtureDefinition } from '../lighting-fixture/definition'
 import {
   LINEAR_LIGHT_FALLBACK_LENGTH,
