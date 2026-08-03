@@ -557,10 +557,12 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
               ).toneMappingExposure
               await renderer.init()
               // RectAreaLight (area + linear fixtures) reads LTC lookup
-              // textures at shader-graph build time. Without this one-time
-              // init they are null and every frame carrying such a light
-              // throws out of RectAreaLightNode, blacking out the viewport.
-              RectAreaLightTexturesLib.init()
+              // textures at shader-graph build time. `init()` only fills the
+              // lib's own statics — `setLTC` is what hands them to the node,
+              // and without it they stay null and every frame carrying such a
+              // light throws out of RectAreaLightNode, blacking out the
+              // viewport.
+              THREE.RectAreaLightNode.setLTC(RectAreaLightTexturesLib.init())
               installEmptyDrawGuard(renderer)
               return renderer
             } catch (err) {
