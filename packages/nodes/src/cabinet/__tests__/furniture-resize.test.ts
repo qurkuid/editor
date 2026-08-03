@@ -94,4 +94,27 @@ describe('furniture cabinet resize writes through to the assembly', () => {
     expect(patch.width).toBe(3)
     expect(patch.furniture).toBeUndefined()
   })
+
+  // The default furniture width (2.4m) already exceeds MAX_CABINET_WIDTH
+  // (1.2m, sized for a single module), so a bound that used the module cap
+  // pinned max === current width — the left/right handles could shrink the
+  // furniture but never grow it back or beyond its starting size.
+  test('width handle can grow a furniture cabinet past a single module width', () => {
+    const { node, sceneApi } = furnitureFixture()
+    const rightHandle = linearHandle(node, sceneApi, 'x', 'min')
+    const leftHandle = linearHandle(node, sceneApi, 'x', 'max')
+
+    expect(rightHandle.max(node, sceneApi)).toBeGreaterThan(node.width)
+    expect(leftHandle.max(node, sceneApi)).toBeGreaterThan(node.width)
+  })
+
+  test('depth handle can grow a furniture cabinet past a single module depth', () => {
+    const deepFixture = furnitureFixture()
+    deepFixture.node.depth = 0.85 // already beyond MAX_CABINET_DEPTH (0.8)
+    const handle = linearHandle(deepFixture.node, deepFixture.sceneApi, 'z')
+
+    expect(handle.max(deepFixture.node, deepFixture.sceneApi)).toBeGreaterThan(
+      deepFixture.node.depth,
+    )
+  })
 })

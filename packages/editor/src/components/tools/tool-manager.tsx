@@ -29,6 +29,7 @@ import { Elevation3DGuideLayer } from '../editor/elevation-3d-guide-layer'
 import { OpeningGuides3DLayer } from '../editor/opening-guides-3d-layer'
 import { WallSnapBeaconLayer } from '../editor/wall-snap-beacon-layer'
 import { ElevatorTool } from './elevator/elevator-tool'
+import { FurnitureTool } from './furniture/furniture-tool'
 import { MoveTool } from './item/move-tool'
 import { RoofTool } from './roof/roof-tool'
 import { getRegistryAffordanceTool } from './shared/affordance-dispatch'
@@ -95,7 +96,9 @@ const tools: Record<Phase, Partial<Record<Tool, React.FC>>> = {
     stair: StairTool,
     zone: ZoneTool,
   },
-  furnish: {},
+  furnish: {
+    furniture: FurnitureTool,
+  },
 }
 
 export const ToolManager: React.FC = () => {

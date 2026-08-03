@@ -3,6 +3,13 @@ export const MIN_CABINET_DEPTH = 0.3
 export const MAX_CABINET_WIDTH = 1.2
 export const MAX_CABINET_DEPTH = 0.8
 
+// A furniture assembly (wardrobe/tall/island/etc.) is a whole cabinet run
+// packed into one node, not a single module — it needs the furniture panel's
+// own, much larger bounds (see the "Overall dimensions" limits in
+// packages/nodes/src/cabinet/panel.tsx and apps/editor/components/furniture-tab.tsx).
+export const MAX_FURNITURE_WIDTH = 10
+export const MAX_FURNITURE_DEPTH = 4
+
 export function cabinetResizeUpperBound(currentValue: number, limit: number) {
   return Math.max(currentValue, limit)
 }

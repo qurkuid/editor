@@ -201,7 +201,7 @@ type BuiltInStructureTool =
 export type StructureTool = BuiltInStructureTool | (string & {})
 
 // Furnish mode tools (items and decoration)
-export type FurnishTool = 'item' | 'cabinet'
+export type FurnishTool = 'item' | 'cabinet' | 'furniture'
 
 // Site mode tools
 export type SiteTool = 'property-line'

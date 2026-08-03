@@ -33,6 +33,8 @@ import {
   cabinetResizeUpperBound,
   MAX_CABINET_DEPTH,
   MAX_CABINET_WIDTH,
+  MAX_FURNITURE_DEPTH,
+  MAX_FURNITURE_WIDTH,
   MIN_CABINET_DEPTH,
   MIN_CABINET_WIDTH,
 } from './resize-limits'
@@ -1111,7 +1113,13 @@ function cabinetWidthHandle(side: 'left' | 'right'): HandleDescriptor<CabinetEdi
       return Math.max(MIN_CABINET_WIDTH - gap, node.width - (connectedMax - connected.width))
     },
     max: (node, sceneApi) => {
-      const ownMax = cabinetResizeUpperBound(node.width, MAX_CABINET_WIDTH)
+      // A furniture assembly is one node standing in for a whole run, so its
+      // width routinely exceeds a single module's MAX_CABINET_WIDTH — using
+      // the module cap here pinned the resize ceiling at whatever width the
+      // furniture already had, making the handle unable to grow it further.
+      const widthLimit =
+        !isCabinetModule(node) && node.furniture ? MAX_FURNITURE_WIDTH : MAX_CABINET_WIDTH
+      const ownMax = cabinetResizeUpperBound(node.width, widthLimit)
       if (!isCabinetModule(node)) return ownMax
       const gap = cabinetWallWidthGap(node, side, sceneApi)
       const connected = cabinetWidthConnectedNeighbor(node, side, sceneApi)
@@ -1239,7 +1247,11 @@ function cabinetDepthHandle(): LinearResizeHandle<CabinetEditableNode> {
     axis: 'z',
     anchor: 'min',
     min: MIN_CABINET_DEPTH,
-    max: (node) => cabinetResizeUpperBound(node.depth, MAX_CABINET_DEPTH),
+    max: (node) =>
+      cabinetResizeUpperBound(
+        node.depth,
+        !isCabinetModule(node) && node.furniture ? MAX_FURNITURE_DEPTH : MAX_CABINET_DEPTH,
+      ),
     currentValue: (node) => node.depth,
     apply: (node, depth) => withFurnitureResize(node, cabinetDepthResizePatch(node, depth)),
     magneticSnap: snapCabinetDepth,

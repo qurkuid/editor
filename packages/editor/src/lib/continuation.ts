@@ -44,7 +44,15 @@ export const CONTINUATION_PROFILES: Record<
   },
 }
 
-const POINT_KINDS = new Set(['item', 'door', 'window', 'shelf', 'column', 'lighting-fixture'])
+const POINT_KINDS = new Set([
+  'item',
+  'door',
+  'window',
+  'shelf',
+  'column',
+  'lighting-fixture',
+  'furniture',
+])
 
 export function nextContinuation(
   context: ContinuationContext,

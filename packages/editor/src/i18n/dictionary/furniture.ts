@@ -18,8 +18,8 @@ export const furnitureDictionary = {
   'furniture.kind.upperRun': { ko: '상부장', en: 'Upper' },
   'furniture.kind.tall': { ko: '키큰장', en: 'Tall' },
   'furniture.kind.island': { ko: '아일랜드', en: 'Island' },
-  'furniture.kind.set': { ko: '세트', en: 'Set' },
-  'furniture.kind.sink': { ko: '싱크대', en: 'Sink' },
+  'furniture.kind.set': { ko: '상하부 세트', en: 'Upper + Lower Set' },
+  'furniture.kind.sink': { ko: '싱크장', en: 'Sink' },
   'furniture.kind.fallback': { ko: '가구', en: 'Furniture' },
 
   'furniture.dimension.width': { ko: '너비', en: 'Width' },
@@ -28,10 +28,9 @@ export const furnitureDictionary = {
   'furniture.bays.label': { ko: '통 수', en: 'Bays' },
   'furniture.bays.count': { ko: '{n}통', en: '{n} bays' },
 
-  'furniture.addAtLevelOrigin': { ko: '레벨 원점에 추가', en: 'Add at level origin' },
-  'furniture.addDesc': {
-    ko: '생성 후 뷰포트의 이동 핸들로 원하는 위치에 배치할 수 있습니다.',
-    en: 'After creation, drag the viewport move handle to place it where you want.',
+  'furniture.armed.hint': {
+    ko: '장면을 클릭해 배치하세요 · Esc로 취소',
+    en: 'Click in the scene to place it · Esc to cancel',
   },
 
   'furniture.onThisLevel': { ko: '이 레벨의 가구', en: 'Furniture on this level' },

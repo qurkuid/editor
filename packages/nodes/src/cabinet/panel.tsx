@@ -1125,6 +1125,39 @@ export default function CabinetPanel() {
           ))}
         </PanelSection>
         <PanelSection title="Bays">
+          <div className="mb-2 flex items-center justify-between gap-3 px-1">
+            <span className="text-xs">Bay count</span>
+            <div className="flex items-center gap-1 rounded-md border border-border/50 p-1">
+              <button
+                aria-label="Remove last bay"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
+                disabled={furniture.bays.length === 1}
+                onClick={() => {
+                  const lastBay = furniture.bays[furniture.bays.length - 1]
+                  if (!lastBay) return
+                  updateFurniture(deleteFurnitureBay(furniture, { bayId: lastBay.id }))
+                }}
+                type="button"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span aria-live="polite" className="w-5 text-center text-xs">
+                {furniture.bays.length}
+              </span>
+              <button
+                aria-label="Add bay"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground"
+                onClick={() => {
+                  const lastBay = furniture.bays[furniture.bays.length - 1]
+                  if (!lastBay) return
+                  updateFurniture(insertFurnitureBay(furniture, { afterBayId: lastBay.id }))
+                }}
+                type="button"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
           <div className="flex flex-col gap-2 px-1 pb-2">
             {furniture.bays.map((bay, index) => (
               <button

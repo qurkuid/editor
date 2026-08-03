@@ -108,6 +108,14 @@ export {
   type FencePlanPoint,
   snapFenceDraftPoint,
 } from './components/tools/fence/fence-drafting'
+export {
+  createFurnitureNode,
+  FURNITURE_KIND_LABEL_KEYS,
+} from './components/tools/furniture/furniture-factory'
+export {
+  type FurnitureDimensions,
+  useFurniturePlacementOptions,
+} from './components/tools/furniture/furniture-placement-options'
 export { MoveTool } from './components/tools/item/move-tool'
 // Placement-math helpers — shared by kind-owned placement tools in
 // `@pascal-app/nodes` (wall curve sagitta snap, door / window placement,
