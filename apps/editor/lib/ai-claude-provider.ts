@@ -138,7 +138,22 @@ const ClaudeCliOutputSchema = z.object({
   structured_output: z.unknown().optional(),
 })
 
-function parseClaudeCliOutput(stdout: string): unknown {
+// `--output-format json` returns a single result object on some CLI versions
+// and the whole stream of events as an array on others (2.1.212 does the
+// latter). Accept both rather than pinning a version — the last `result` event
+// carries the plan either way.
+function claudeResultEnvelope(decoded: unknown): unknown {
+  if (!Array.isArray(decoded)) return decoded
+  for (let index = decoded.length - 1; index >= 0; index -= 1) {
+    const entry = decoded[index]
+    if (entry && typeof entry === 'object' && (entry as { type?: unknown }).type === 'result') {
+      return entry
+    }
+  }
+  return decoded[decoded.length - 1] ?? {}
+}
+
+export function parseClaudeCliOutput(stdout: string): unknown {
   let decoded: unknown
   try {
     decoded = JSON.parse(stdout)
@@ -149,7 +164,7 @@ function parseClaudeCliOutput(stdout: string): unknown {
       cause instanceof Error ? cause : undefined,
     )
   }
-  const output = ClaudeCliOutputSchema.parse(decoded)
+  const output = ClaudeCliOutputSchema.parse(claudeResultEnvelope(decoded))
   if (output.is_error || output.structured_output === undefined) {
     throw new ClaudeCliExecutionError(
       output.result || 'Claude CLI did not return a structured plan',

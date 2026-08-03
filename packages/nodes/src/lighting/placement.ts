@@ -1,4 +1,9 @@
-import { snapPointToGrid } from '@pascal-app/core'
+import {
+  type AlignmentAnchor,
+  type AlignmentGuide,
+  resolveAlignment,
+  snapPointToGrid,
+} from '@pascal-app/core'
 
 export function resolveLightingGridPoint(
   point: readonly [number, number],
@@ -8,6 +13,45 @@ export function resolveLightingGridPoint(
   if (!gridSnapActive || !Number.isFinite(gridStep) || gridStep <= 0) return [point[0], point[1]]
   const snapped = snapPointToGrid(point, gridStep)
   return [snapped[0], snapped[1]]
+}
+
+/** Figma-style alignment-snap threshold (meters), matching wall/column/elevator placement. */
+export const LIGHTING_ALIGNMENT_THRESHOLD_M = 0.08
+
+export type LightingAlignmentResult = {
+  point: [number, number]
+  guides: AlignmentGuide[]
+}
+
+/**
+ * Snap a lighting placement point onto nearby reference-element anchors
+ * (wall corners/faces, other fixtures) — Figma-style alignment, mirroring
+ * wall / column / elevator floor placement. Pure — no store or DOM access —
+ * so it's testable without React. Treats the point as a single corner
+ * anchor; fixtures have no meaningful footprint to align by edges.
+ *
+ * `showGuides` gates whether guides are even computed (mirrors
+ * `isAlignmentGuideActive()`). `applySnap` additionally gates whether the
+ * matched delta is applied to the returned point (mirrors
+ * `isMagneticSnapActive()` — guides are shown passively otherwise).
+ */
+export function resolveLightingAlignedPoint(
+  point: readonly [number, number],
+  candidates: readonly AlignmentAnchor[],
+  options: { showGuides: boolean; applySnap: boolean; threshold?: number },
+): LightingAlignmentResult {
+  if (!options.showGuides || candidates.length === 0) {
+    return { point: [point[0], point[1]], guides: [] }
+  }
+  const result = resolveAlignment({
+    moving: [{ nodeId: '__lighting-draft__', kind: 'corner', x: point[0], z: point[1] }],
+    candidates,
+    threshold: options.threshold ?? LIGHTING_ALIGNMENT_THRESHOLD_M,
+  })
+  if (!result.snap || !options.applySnap) {
+    return { point: [point[0], point[1]], guides: result.guides }
+  }
+  return { point: [point[0] + result.snap.dx, point[1] + result.snap.dz], guides: result.guides }
 }
 
 // Preview/commit identity: the point already shown as the hover preview is

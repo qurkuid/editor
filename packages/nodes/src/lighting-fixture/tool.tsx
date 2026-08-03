@@ -1,13 +1,22 @@
 'use client'
 
-import { emitter, type GridEvent, LightingFixtureNode, useScene } from '@pascal-app/core'
+import {
+  collectAlignmentAnchors,
+  emitter,
+  type GridEvent,
+  LightingFixtureNode,
+  useScene,
+} from '@pascal-app/core'
 import {
   constrainPlanDraftPoint,
   EDITOR_LAYER,
   getContinuation,
+  isAlignmentGuideActive,
   isGridSnapActive,
+  isMagneticSnapActive,
   markToolCancelConsumed,
   triggerSFX,
+  useAlignmentGuides,
   useDraftLengthInput,
   useEditor,
 } from '@pascal-app/editor'
@@ -17,6 +26,7 @@ import { DoubleSide, type Group } from 'three'
 import { useLightingToolOptions } from '../lighting/options'
 import {
   LINEAR_LIGHT_MIN_LENGTH,
+  resolveLightingAlignedPoint,
   resolveLightingCommitPoint,
   resolveLightingGridPoint,
   resolveLinearLightSegment,
@@ -97,13 +107,26 @@ export default function LightingFixtureTool() {
 
   useEffect(() => {
     if (!levelId) return
+    // Alignment candidates — anchors of every alignable object on the active
+    // level, refreshed after each fixture commits so a run of fixtures can
+    // align to the ones already placed.
+    let alignmentCandidates = collectAlignmentAnchors(useScene.getState().nodes, '', levelId)
+    const alignPoint = (point: [number, number]): [number, number] => {
+      const { point: aligned, guides } = resolveLightingAlignedPoint(point, alignmentCandidates, {
+        showGuides: isAlignmentGuideActive(),
+        applySnap: isMagneticSnapActive(),
+      })
+      useAlignmentGuides.getState().set(guides)
+      return aligned
+    }
     const resolvePoint = (event: GridEvent): [number, number] => {
       const editor = useEditor.getState()
-      return resolveLightingGridPoint(
+      const grid = resolveLightingGridPoint(
         [event.localPosition[0], event.localPosition[2]],
         editor.gridSnapStep,
         isGridSnapActive(),
       )
+      return alignPoint(grid)
     }
     const onMove = (event: GridEvent) => {
       const point = resolvePoint(event)
@@ -150,9 +173,12 @@ export default function LightingFixtureTool() {
         draftingRef.current = false
         startRef.current = null
         setLinearDraft(null)
+        useAlignmentGuides.getState().clear()
         // 'repeat' keeps the tool armed so a run of fixtures is one gesture
         // per fixture instead of re-picking the tool every time.
-        if (getContinuation('point') !== 'repeat') {
+        if (getContinuation('point') === 'repeat') {
+          alignmentCandidates = collectAlignmentAnchors(useScene.getState().nodes, '', levelId)
+        } else {
           useEditor.getState().setTool(null)
           useEditor.getState().setMode('select')
         }
@@ -169,9 +195,12 @@ export default function LightingFixtureTool() {
       useScene.getState().createNode(node, levelId)
       useViewer.getState().setSelection({ selectedIds: [node.id] })
       triggerSFX('sfx:structure-build')
+      useAlignmentGuides.getState().clear()
       // 'repeat' keeps the tool armed so a run of downlights is one gesture
       // per fixture instead of re-picking the tool every time.
-      if (getContinuation('point') !== 'repeat') {
+      if (getContinuation('point') === 'repeat') {
+        alignmentCandidates = collectAlignmentAnchors(useScene.getState().nodes, '', levelId)
+      } else {
         useEditor.getState().setTool(null)
         useEditor.getState().setMode('select')
       }
@@ -183,6 +212,7 @@ export default function LightingFixtureTool() {
         draftingRef.current = false
         startRef.current = null
         setLinearDraft(null)
+        useAlignmentGuides.getState().clear()
       }
     }
     emitter.on('grid:move', onMove)
@@ -195,6 +225,7 @@ export default function LightingFixtureTool() {
       draftingRef.current = false
       startRef.current = null
       setLinearDraft(null)
+      useAlignmentGuides.getState().clear()
     }
   }, [circuitId, clearDraftLength, fixtureHeight, getLengthMeters, levelId, lightType])
 

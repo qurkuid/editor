@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import {
   ClaudeCliExecutionError,
   getClaudeCliStatus,
+  parseClaudeCliOutput,
   requestAiModelingPlanViaClaude,
 } from './ai-claude-provider'
 import { AiChatRequestSchema } from './ai-provider'
@@ -243,5 +244,38 @@ printf '%s' '{"is_error":false,"structured_output":{"message":"CLI plan ready.",
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
+  })
+})
+
+describe('claude CLI output envelope shapes', () => {
+  // 2.1.212 returns the whole event stream as an array from
+  // `--output-format json`; 2.1.220 returns just the result object.
+  test('reads the plan from a streamed event array', () => {
+    const stdout = JSON.stringify([
+      { type: 'system', subtype: 'init', session_id: 'abc' },
+      { type: 'assistant', message: { content: [] } },
+      { type: 'result', is_error: false, structured_output: { message: 'ok', patches: [] } },
+    ])
+
+    expect(parseClaudeCliOutput(stdout)).toEqual({ message: 'ok', patches: [] })
+  })
+
+  test('still reads a bare result object', () => {
+    const stdout = JSON.stringify({
+      type: 'result',
+      is_error: false,
+      structured_output: { message: 'ok', patches: [] },
+    })
+
+    expect(parseClaudeCliOutput(stdout)).toEqual({ message: 'ok', patches: [] })
+  })
+
+  test('surfaces a streamed error result', () => {
+    const stdout = JSON.stringify([
+      { type: 'system', subtype: 'init' },
+      { type: 'result', is_error: true, result: 'usage limit reached' },
+    ])
+
+    expect(() => parseClaudeCliOutput(stdout)).toThrow('usage limit reached')
   })
 })

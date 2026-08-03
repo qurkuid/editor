@@ -36,7 +36,13 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    unoptimized: process.env.NEXT_PUBLIC_ASSETS_CDN_URL?.startsWith('http://localhost') ?? false,
+    // Under a basePath the optimizer route is prefixed but its `url` param is
+    // not, so `<Image src="/icons/x.webp">` resolves against the origin root
+    // and every local asset 400s. These are already small webp files, so
+    // serving them unoptimized costs little next to losing all of them.
+    unoptimized:
+      Boolean(basePath) ||
+      (process.env.NEXT_PUBLIC_ASSETS_CDN_URL?.startsWith('http://localhost') ?? false),
     remotePatterns: [
       {
         protocol: 'https',
