@@ -1,5 +1,6 @@
 import type { MaterialCategory } from '@pascal-app/core'
 import type { EditorHostIntegrationAdapter, EditorHostMaterialProduct } from '@pascal-app/editor'
+import { withBasePath } from './base-path'
 import { getOrCreateSeamlessAsset } from './material-seamless-cache'
 import {
   type RawPainterCatalogPage,
@@ -113,9 +114,9 @@ export function normalizeRawPainterProduct(
     text(product.thumbnailUrl) || text(product.image) || text(product.img) || undefined
   const textureKind =
     text(product.seamlessImage) || product.hasSeamless === true ? 'seamless' : null
-  const texturePath = `/api/materials/rawpainter/asset/${externalId}${
-    textureKind ? '?kind=seamless' : ''
-  }`
+  const texturePath = withBasePath(
+    `/api/materials/rawpainter/asset/${externalId}${textureKind ? '?kind=seamless' : ''}`,
+  )
   const textureUrl = assetOrigin ? new URL(texturePath, assetOrigin).href : texturePath
   const brand = text(product.brand)
   const store = text(product.store)
@@ -147,7 +148,9 @@ export async function loadRawPainterCategories(
   fetcher: Fetcher = fetch,
   signal?: AbortSignal,
 ): Promise<readonly RawPainterCategory[]> {
-  const response = await fetcher('/api/materials/rawpainter?view=categories', { signal })
+  const response = await fetcher(withBasePath('/api/materials/rawpainter?view=categories'), {
+    signal,
+  })
   if (!response.ok) throw new RawPainterCatalogError(response.status)
   return rawPainterCategoryListSchema.parse(await response.json())
 }
@@ -160,7 +163,10 @@ export async function loadRawPainterPage(
   const searchParams = new URLSearchParams({ page: String(input.page) })
   if (input.categoryId !== null) searchParams.set('categoryId', String(input.categoryId))
   if (input.search) searchParams.set('search', input.search)
-  const response = await fetcher(`/api/materials/rawpainter?${searchParams.toString()}`, { signal })
+  const response = await fetcher(
+    withBasePath(`/api/materials/rawpainter?${searchParams.toString()}`),
+    { signal },
+  )
   if (!response.ok) throw new RawPainterCatalogError(response.status)
   return rawPainterCatalogPageSchema.parse(await response.json())
 }
@@ -177,7 +183,9 @@ export function createRawPainterIntegrationAdapter(
       },
       async search(input) {
         const page = input.cursor ?? '0'
-        const response = await fetcher(`/api/materials/rawpainter?page=${encodeURIComponent(page)}`)
+        const response = await fetcher(
+          withBasePath(`/api/materials/rawpainter?page=${encodeURIComponent(page)}`),
+        )
         if (response.status === 502) return { items: [], nextCursor: null }
         if (!response.ok) throw new RawPainterCatalogError(response.status)
         const payload = rawPainterCatalogPageSchema.parse(await response.json())

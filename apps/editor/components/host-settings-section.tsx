@@ -4,6 +4,7 @@ import { type Locale, SegmentedControl, useLocale, useT } from '@pascal-app/edit
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import useAiProvider, { type AiProviderKind } from '@/lib/ai-provider-store'
+import { withBasePath } from '@/lib/base-path'
 import { loadRawPainterCategories } from '@/lib/rawpainter-adapter'
 
 export type AiConnectionState =
@@ -155,7 +156,7 @@ export function HostSettingsSection() {
 
   useEffect(() => {
     const controller = new AbortController()
-    fetch('/api/ai/chat', { signal: controller.signal })
+    fetch(withBasePath('/api/ai/chat'), { signal: controller.signal })
       .then((response) =>
         response.ok ? response.json() : Promise.reject(new Error(String(response.status))),
       )

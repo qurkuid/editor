@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { type AiModelingPlan, AiModelingPlanSchema, buildAiSceneContext } from '@/lib/ai-control'
 import { applyAiModelingPlanWithAssets } from '@/lib/ai-control-assets'
 import useAiProvider from '@/lib/ai-provider-store'
+import { withBasePath } from '@/lib/base-path'
 
 type ChatMessage = {
   id: string
@@ -161,7 +162,7 @@ export function AiChatPanel() {
   const [imageError, setImageError] = useState<string | null>(null)
 
   useEffect(() => {
-    jsonRequest('GET', '/api/ai/chat')
+    jsonRequest('GET', withBasePath('/api/ai/chat'))
       .then((response) => setProviderStatuses(DualProviderStatusSchema.parse(response)))
       .catch(() =>
         setProviderStatuses({
@@ -252,7 +253,7 @@ export function AiChatPanel() {
     setIsThinking(true)
 
     try {
-      const response = await jsonRequest('POST', '/api/ai/chat', {
+      const response = await jsonRequest('POST', withBasePath('/api/ai/chat'), {
         messages: nextMessages.map(({ role, content: messageContent }) => ({
           role,
           content: messageContent,

@@ -15,6 +15,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { withBasePath } from '@/lib/base-path'
 import { AiChatPanel } from './ai-chat-panel'
 import { FurnitureTab } from './furniture-tab'
 import { GuidedBuildTab } from './guided-build-tab'
@@ -184,7 +185,7 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
       if (isRecentRemoteApply) return
 
       try {
-        const response = await fetch(`/api/scenes/${meta.id}`, {
+        const response = await fetch(withBasePath(`/api/scenes/${meta.id}`), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -219,7 +220,7 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
   )
 
   useEffect(() => {
-    const source = new EventSource(`/api/scenes/${meta.id}/events`)
+    const source = new EventSource(withBasePath(`/api/scenes/${meta.id}/events`))
 
     source.addEventListener('scene', (event) => {
       let payload: LiveSceneEvent
@@ -252,7 +253,7 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
     async (_blob: Blob) => {
       // TODO(phase7): upload thumbnail via POST /api/scenes/[id]/thumbnail.
       // Stub endpoint is not yet implemented in v0.1 — skip upload for now.
-      await fetch(`/api/scenes/${meta.id}/thumbnail`, {
+      await fetch(withBasePath(`/api/scenes/${meta.id}/thumbnail`), {
         method: 'POST',
         // Intentionally no body — endpoint is a stub.
       }).catch(() => {
