@@ -1,6 +1,6 @@
 'use client'
 
-import { Editor, ItemsPanel, type SaveStatus, useT } from '@pascal-app/editor'
+import { Editor, type SaveStatus, useT } from '@pascal-app/editor'
 import {
   Armchair,
   Bot,
@@ -20,6 +20,7 @@ import { GuidedBuildTab } from '@/components/guided-build-tab'
 import { HostSettingsSection } from '@/components/host-settings-section'
 import { LightingTab } from '@/components/lighting-tab'
 import { PaintingTab } from '@/components/painting-tab'
+import { SkpItemsPanel } from '@/components/skp-items-panel'
 import {
   CommunityViewerToolbarLeft,
   CommunityViewerToolbarRight,
@@ -27,12 +28,7 @@ import {
 import { localEditorSaveStatusLabel } from '@/lib/local-editor-save-status'
 import { rawPainterIntegrationAdapter } from '@/lib/rawpainter-adapter'
 
-// The open-source editor only ships the built-in catalog (no uploaded items),
-// so the Library/Community/Mine source chips and tag filters add nothing —
-// drop them and keep the panel to plain categories.
-function EditorItemsPanel() {
-  return <ItemsPanel showSourceFilter={false} showTagFilters={false} />
-}
+const EditorItemsPanel = SkpItemsPanel
 
 // Labels resolve from the current locale at render time (see `buildSidebarTabs`
 // below) — this array must not be read directly for `label`.

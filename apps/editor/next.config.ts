@@ -5,8 +5,25 @@ import type { NextConfig } from 'next'
 // server's existing scene URLs.
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || undefined
 
+// Local dev only. In production this app is served at intm.kr/floorplan and the
+// component API lives at intm.kr/api/sketchup — same origin, so the panel's
+// root-absolute `/api/sketchup/...` just works. In dev the two run on different
+// ports, which would make every call cross-origin and drop the INTM session
+// cookie that the edit actions need. Proxying keeps it same-origin instead.
+const componentApiOrigin = process.env.COMPONENT_API_ORIGIN
+
 const nextConfig: NextConfig = {
   ...(basePath ? { basePath } : {}),
+  ...(componentApiOrigin
+    ? {
+        rewrites: async () => [
+          {
+            source: '/api/sketchup/:path*',
+            destination: `${componentApiOrigin}/api/sketchup/:path*`,
+          },
+        ],
+      }
+    : {}),
   logging: {
     browserToTerminal: true,
   },

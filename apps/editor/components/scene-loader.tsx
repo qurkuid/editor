@@ -10,7 +10,16 @@ import {
   type SidebarTab,
   useT,
 } from '@pascal-app/editor'
-import { Armchair, Bot, Hammer, Layers, Lightbulb, PaintBucket, Settings } from 'lucide-react'
+import {
+  Armchair,
+  Bot,
+  Hammer,
+  Layers,
+  Lightbulb,
+  Package,
+  PaintBucket,
+  Settings,
+} from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -22,6 +31,7 @@ import { GuidedBuildTab } from './guided-build-tab'
 import { HostSettingsSection } from './host-settings-section'
 import { LightingTab } from './lighting-tab'
 import { PaintingTab } from './painting-tab'
+import { SkpItemsPanel } from './skp-items-panel'
 import { CommunityViewerToolbarLeft, CommunityViewerToolbarRight } from './viewer-toolbar'
 
 export interface SceneMeta {
@@ -36,6 +46,11 @@ export interface SceneMeta {
   sizeBytes: number
   nodeCount: number
 }
+
+// Matches the standalone editor's own Items panel (see `app/page.tsx`) — the
+// scene route registers its tabs separately, so anything added there has to be
+// added here too or it only exists on the home route.
+const EditorItemsPanel = SkpItemsPanel
 
 // Labels resolve from the current locale at render time (see `buildSidebarTabs`
 // below) — this array must not be read directly for `label`.
@@ -90,6 +105,22 @@ function buildSidebarTabs(
       mobileDefaultSnap: 0.75,
       mobileIcon: <Lightbulb className="h-5 w-5" />,
       icon: <Lightbulb className="h-5 w-5" />,
+    },
+    {
+      id: 'items',
+      label: t('sidebarTabs.items'),
+      component: EditorItemsPanel,
+      mobileDefaultSnap: 0.5,
+      mobileIcon: <Package className="h-5 w-5" />,
+      icon: (
+        <Image
+          alt=""
+          className="h-8 w-8 object-contain"
+          height={32}
+          src="/icons/couch.webp"
+          width={32}
+        />
+      ),
     },
     {
       id: 'painting',
