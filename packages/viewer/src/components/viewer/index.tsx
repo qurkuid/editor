@@ -16,6 +16,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { RectAreaLightTexturesLib } from 'three/examples/jsm/lights/RectAreaLightTexturesLib.js'
 import * as THREE from 'three/webgpu'
 import { hasDrawableGeometry } from '../../lib/drawable-geometry'
 import { PERF_OVERLAY_ENABLED, pushGpuSample } from '../../lib/gpu-perf'
@@ -555,6 +556,11 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
                 useViewer.getState().sceneTheme,
               ).toneMappingExposure
               await renderer.init()
+              // RectAreaLight (area + linear fixtures) reads LTC lookup
+              // textures at shader-graph build time. Without this one-time
+              // init they are null and every frame carrying such a light
+              // throws out of RectAreaLightNode, blacking out the viewport.
+              RectAreaLightTexturesLib.init()
               installEmptyDrawGuard(renderer)
               return renderer
             } catch (err) {
