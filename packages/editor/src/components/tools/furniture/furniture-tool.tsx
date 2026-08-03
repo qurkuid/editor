@@ -1,11 +1,25 @@
 'use client'
 
-import { type AnyNode, emitter, type GridEvent, snapPointToGrid, useScene } from '@pascal-app/core'
+import {
+  type AnyNode,
+  collectAlignmentAnchors,
+  emitter,
+  type GridEvent,
+  snapPointToGrid,
+  useScene,
+} from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import { useEffect, useRef, useState } from 'react'
 import { sfxEmitter } from '../../../lib/sfx-bus'
-import useEditor, { getContinuation, isGridSnapActive } from '../../../store/use-editor'
+import useAlignmentGuides from '../../../store/use-alignment-guides'
+import useEditor, {
+  getContinuation,
+  isAlignmentGuideActive,
+  isGridSnapActive,
+  isMagneticSnapActive,
+} from '../../../store/use-editor'
 import { PlacementBox } from '../shared/placement-box'
+import { resolveFurnitureAlignedPosition } from './furniture-alignment'
 import { createFurnitureNode, FURNITURE_KIND_MOUNT_HEIGHT } from './furniture-factory'
 import { useFurniturePlacementOptions } from './furniture-placement-options'
 
@@ -33,6 +47,11 @@ export const FurnitureTool = () => {
     yawRef.current = 0
     setYaw(0)
 
+    // Alignment candidates — anchors of every alignable object on the active
+    // level (walls, other furniture pieces), refreshed after each piece
+    // commits so a run of furniture can align to the ones already placed.
+    let alignmentCandidates = collectAlignmentAnchors(useScene.getState().nodes, '', activeLevelId)
+
     // Levels share the same local XZ origin (they only differ in world Y —
     // see roof-tool.tsx), so the building-local XZ the grid ray reports is
     // already the level-local XZ a floor-standing node needs.
@@ -40,7 +59,15 @@ export const FurnitureTool = () => {
       const [lx, , lz] = event.localPosition
       const step = useEditor.getState().gridSnapStep
       const [sx, sz] = isGridSnapActive() ? snapPointToGrid([lx, lz], step) : [lx, lz]
-      return [sx, 0, sz]
+      const { position: aligned, guides } = resolveFurnitureAlignedPosition(
+        [sx, 0, sz],
+        { width: dimensions.width, depth: dimensions.depth },
+        yawRef.current,
+        alignmentCandidates,
+        { showGuides: isAlignmentGuideActive(), applySnap: isMagneticSnapActive() },
+      )
+      useAlignmentGuides.getState().set(guides)
+      return aligned
     }
 
     const onMove = (event: GridEvent) => {
@@ -62,9 +89,12 @@ export const FurnitureTool = () => {
       useScene.getState().createNode(node as AnyNode, activeLevelId)
       useViewer.getState().setSelection({ selectedIds: [node.id] })
       sfxEmitter.emit('sfx:item-place')
+      useAlignmentGuides.getState().clear()
       // 'repeat' keeps the tool armed so placing a run of furniture is one
       // gesture per piece instead of re-picking the preset every time.
-      if (getContinuation('point') !== 'repeat') {
+      if (getContinuation('point') === 'repeat') {
+        alignmentCandidates = collectAlignmentAnchors(useScene.getState().nodes, '', activeLevelId)
+      } else {
         useEditor.getState().setTool(null)
         useEditor.getState().setMode('select')
       }
@@ -89,6 +119,7 @@ export const FurnitureTool = () => {
       emitter.off('grid:move', onMove)
       emitter.off('grid:click', onClick)
       window.removeEventListener('keydown', onKeyDown, true)
+      useAlignmentGuides.getState().clear()
     }
   }, [activeLevelId, bayCount, dimensions, kind])
 

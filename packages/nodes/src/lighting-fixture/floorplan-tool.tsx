@@ -1,19 +1,23 @@
 'use client'
 
-import { emitter, LightingFixtureNode } from '@pascal-app/core'
+import { collectAlignmentAnchors, emitter, LightingFixtureNode, useScene } from '@pascal-app/core'
 import {
   constrainPlanDraftPoint,
   type FloorplanToolContext,
   getContinuation,
+  isAlignmentGuideActive,
   isGridSnapActive,
+  isMagneticSnapActive,
   markToolCancelConsumed,
   triggerSFX,
+  useAlignmentGuides,
   useDraftLengthInput,
 } from '@pascal-app/editor'
 import { useEffect, useRef, useState } from 'react'
 import { useLightingToolOptions } from '../lighting/options'
 import {
   LINEAR_LIGHT_MIN_LENGTH,
+  resolveLightingAlignedPoint,
   resolveLightingCommitPoint,
   resolveLightingGridPoint,
   resolveLinearLightSegment,
@@ -58,11 +62,24 @@ export default function FloorplanLightingFixtureTool({
     const group = ref.current
     const svg = group?.ownerSVGElement
     if (!(activeLevelId && group && svg)) return
+    // Alignment candidates — anchors of every alignable object on the active
+    // level, refreshed after each fixture commits so a run of fixtures can
+    // align to the ones already placed. 2D/3D parity with the 3D tool.
+    let alignmentCandidates = collectAlignmentAnchors(useScene.getState().nodes, '', activeLevelId)
+    const alignPoint = (point: [number, number]): [number, number] => {
+      const { point: aligned, guides } = resolveLightingAlignedPoint(point, alignmentCandidates, {
+        showGuides: isAlignmentGuideActive(),
+        applySnap: isMagneticSnapActive(),
+      })
+      useAlignmentGuides.getState().set(guides)
+      return aligned
+    }
     const resolve = (event: MouseEvent | PointerEvent): [number, number] | null => {
       const matrix = group.getScreenCTM()
       if (!matrix) return null
       const local = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse())
-      return resolveLightingGridPoint([local.x, local.y], gridSnapStep, isGridSnapActive())
+      const grid = resolveLightingGridPoint([local.x, local.y], gridSnapStep, isGridSnapActive())
+      return alignPoint(grid)
     }
     const stop = (event: Event) => {
       event.preventDefault()
@@ -116,8 +133,11 @@ export default function FloorplanLightingFixtureTool({
         draftingRef.current = false
         startRef.current = null
         setLinearEnd(null)
+        useAlignmentGuides.getState().clear()
         // Same continuation contract as the 3D tool — 2D/3D parity.
-        if (getContinuation('point') !== 'repeat') {
+        if (getContinuation('point') === 'repeat') {
+          alignmentCandidates = collectAlignmentAnchors(useScene.getState().nodes, '', activeLevelId)
+        } else {
           finishTool()
         }
         return
@@ -134,8 +154,11 @@ export default function FloorplanLightingFixtureTool({
       sceneApi.upsert(node, activeLevelId)
       selectNode(node.id)
       triggerSFX('sfx:structure-build')
+      useAlignmentGuides.getState().clear()
       // Same continuation contract as the 3D tool — 2D/3D parity.
-      if (getContinuation('point') !== 'repeat') {
+      if (getContinuation('point') === 'repeat') {
+        alignmentCandidates = collectAlignmentAnchors(useScene.getState().nodes, '', activeLevelId)
+      } else {
         finishTool()
       }
     }
@@ -146,6 +169,7 @@ export default function FloorplanLightingFixtureTool({
         draftingRef.current = false
         startRef.current = null
         setLinearEnd(null)
+        useAlignmentGuides.getState().clear()
       }
     }
     svg.addEventListener('pointermove', onMove, true)
@@ -158,6 +182,7 @@ export default function FloorplanLightingFixtureTool({
       draftingRef.current = false
       startRef.current = null
       setLinearEnd(null)
+      useAlignmentGuides.getState().clear()
     }
   }, [
     activeLevelId,

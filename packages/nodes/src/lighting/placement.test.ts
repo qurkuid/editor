@@ -1,7 +1,9 @@
+import type { AlignmentAnchor } from '@pascal-app/core'
 import { describe, expect, test } from 'bun:test'
 import { lightingFixtureDefinition } from '../lighting-fixture/definition'
 import {
   LINEAR_LIGHT_FALLBACK_LENGTH,
+  resolveLightingAlignedPoint,
   resolveLightingCommitPoint,
   resolveLightingGridPoint,
   resolveLinearLightLength,
@@ -89,5 +91,58 @@ describe('linear light length resolution', () => {
 
   test('clamps a near-zero-length draft to the minimum instead of collapsing to zero', () => {
     expect(resolveLinearLightLength([0, 0], [0, 0])).toBeGreaterThan(0)
+  })
+})
+
+describe('lighting reference-element alignment', () => {
+  const wallCorner: AlignmentAnchor = { nodeId: 'wall_a', kind: 'corner', x: 2, z: 1.98 }
+
+  test('returns an aligned point when a candidate anchor is within threshold', () => {
+    const result = resolveLightingAlignedPoint([2.02, 3], [wallCorner], {
+      showGuides: true,
+      applySnap: true,
+    })
+    expect(result.point).toEqual([2, 3])
+    expect(result.guides).toHaveLength(1)
+  })
+
+  test('keeps the raw grid point when nothing is near', () => {
+    const result = resolveLightingAlignedPoint([2.02, 3], [wallCorner], {
+      showGuides: true,
+      applySnap: true,
+      threshold: 0.01,
+    })
+    expect(result.point).toEqual([2.02, 3])
+    expect(result.guides).toHaveLength(0)
+  })
+
+  test('skips alignment entirely when the alignment guide gate is off', () => {
+    const result = resolveLightingAlignedPoint([2.02, 3], [wallCorner], {
+      showGuides: false,
+      applySnap: true,
+    })
+    expect(result.point).toEqual([2.02, 3])
+    expect(result.guides).toHaveLength(0)
+  })
+
+  test('publishes a passive guide without pulling the point when the magnetic gate is off', () => {
+    const result = resolveLightingAlignedPoint([2.02, 3], [wallCorner], {
+      showGuides: true,
+      applySnap: false,
+    })
+    expect(result.point).toEqual([2.02, 3])
+    expect(result.guides).toHaveLength(1)
+  })
+
+  // The commit handler re-resolves the point through the same snapshot the
+  // preview already showed (`resolveLightingCommitPoint`), so an aligned
+  // preview point must commit unchanged rather than being re-aligned fresh.
+  test('preview/commit identity holds when the preview point was aligned', () => {
+    const previewed = resolveLightingAlignedPoint([2.02, 3], [wallCorner], {
+      showGuides: true,
+      applySnap: true,
+    }).point
+    const resolveFresh = () => [9.99, -3.5] as [number, number]
+    expect(resolveLightingCommitPoint(previewed, resolveFresh)).toEqual(previewed)
   })
 })

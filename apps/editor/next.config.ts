@@ -36,13 +36,10 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    // Under a basePath the optimizer route is prefixed but its `url` param is
-    // not, so `<Image src="/icons/x.webp">` resolves against the origin root
-    // and every local asset 400s. These are already small webp files, so
-    // serving them unoptimized costs little next to losing all of them.
-    unoptimized:
-      Boolean(basePath) ||
-      (process.env.NEXT_PUBLIC_ASSETS_CDN_URL?.startsWith('http://localhost') ?? false),
+    unoptimized: process.env.NEXT_PUBLIC_ASSETS_CDN_URL?.startsWith('http://localhost') ?? false,
+    // Only under a basePath: see image-loader.ts. A custom loader is the one
+    // place that reaches every <Image> without editing call sites.
+    ...(basePath ? { loader: 'custom' as const, loaderFile: './image-loader.ts' } : {}),
     remotePatterns: [
       {
         protocol: 'https',
