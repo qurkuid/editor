@@ -158,11 +158,28 @@ export function parseClaudeCliOutput(stdout: string): unknown {
   try {
     decoded = JSON.parse(stdout)
   } catch (cause) {
-    throw new ClaudeCliExecutionError(
-      'Claude CLI returned invalid JSON',
-      null,
-      cause instanceof Error ? cause : undefined,
-    )
+    // Some CLI versions print a plain-text notice (update banner, usage
+    // warning) ahead of the JSON document. Parsing from the first bracket
+    // rescues those; a genuinely broken payload still fails below.
+    const start = stdout.search(/[[{]/)
+    if (start > 0) {
+      try {
+        decoded = JSON.parse(stdout.slice(start))
+      } catch {
+        decoded = undefined
+      }
+    }
+    if (decoded === undefined) {
+      // Carry what actually came back — "invalid JSON" alone made this class
+      // of failure undiagnosable from the log.
+      const head = stdout.slice(0, 300).replace(/\s+/g, ' ')
+      const tail = stdout.length > 600 ? ` … ${stdout.slice(-300).replace(/\s+/g, ' ')}` : ''
+      throw new ClaudeCliExecutionError(
+        `Claude CLI returned invalid JSON (${stdout.length} bytes): ${head}${tail}`,
+        null,
+        cause instanceof Error ? cause : undefined,
+      )
+    }
   }
   const output = ClaudeCliOutputSchema.parse(claudeResultEnvelope(decoded))
   if (output.is_error || output.structured_output === undefined) {

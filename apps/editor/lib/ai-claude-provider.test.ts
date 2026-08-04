@@ -279,3 +279,31 @@ describe('claude CLI output envelope shapes', () => {
     expect(() => parseClaudeCliOutput(stdout)).toThrow('usage limit reached')
   })
 })
+
+describe('stdout that is not a bare JSON document', () => {
+  const RESULT =
+    '[{"type":"result","is_error":false,"structured_output":{"message":"m","patches":[]}}]'
+
+  // Some CLI versions print a plain-text notice ahead of the JSON document —
+  // an update banner or usage warning — which used to fail the whole request
+  // as "invalid JSON".
+  test('a leading notice line is skipped', () => {
+    const output = parseClaudeCliOutput(`Update available: 2.1.221\n${RESULT}`)
+    expect(output).toEqual({ message: 'm', patches: [] })
+  })
+
+  test('genuinely broken output names what came back', () => {
+    expect(() => parseClaudeCliOutput('segfault at 0x0')).toThrow(/segfault at 0x0/)
+  })
+
+  test('the error is bounded even for huge output', () => {
+    const big = 'x'.repeat(50_000)
+    try {
+      parseClaudeCliOutput(big)
+      throw new Error('should have thrown')
+    } catch (error) {
+      expect((error as Error).message.length).toBeLessThan(1000)
+      expect((error as Error).message).toContain('50000 bytes')
+    }
+  })
+})
