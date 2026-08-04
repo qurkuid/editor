@@ -21,8 +21,10 @@ export const WALL_CONSTRUCTION_LAYER_DEFAULTS: Record<
   mdf: {
     kind: 'mdf',
     thickness: 0.009,
-    sheetWidth: 1.22,
-    sheetHeight: 2.44,
+    // 9T 600×2400 — the stock size this trade actually orders, not the 4×8
+    // sheet the generic default assumed.
+    sheetWidth: 0.6,
+    sheetHeight: 2.4,
     wasteFactor: 0.1,
   },
   'timber-stud': {

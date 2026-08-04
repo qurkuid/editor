@@ -288,6 +288,12 @@ export {
   terrainSupportLift,
 } from './lib/terrain-support'
 export {
+  bestConstructionMaterial,
+  matchScore as constructionMaterialMatchScore,
+  sheetFromName as constructionSheetFromName,
+  thicknessFromName as constructionThicknessFromName,
+} from './lib/construction-material-match'
+export {
   buildWallConstructionLayerSpans,
   calculateWallConstructionQuantities,
   createDefaultWallFaceBands,

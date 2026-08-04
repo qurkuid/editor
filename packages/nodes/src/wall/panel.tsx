@@ -4,6 +4,7 @@ import {
   type AnyNode,
   type AnyNodeId,
   buildWallFaceBandCountPatch,
+  bestConstructionMaterial,
   calculateWallConstructionQuantities,
   createWallBandConstructionPreset,
   detectWallConstructionPreset,
@@ -681,7 +682,28 @@ export function WallBandConstructionEditor({
                         : kind === 'finish' || kind === 'custom'
                           ? { kind, thickness: kind === 'finish' ? 0.001 : 0.01, wasteFactor: 0.1 }
                           : next
-                  if (defaults) updateLayer(index, defaults)
+                  if (!defaults) return
+                  // Choosing a layer type should not then mean hunting the
+                  // matching product out of a few thousand catalogue rows: the
+                  // defaults state a thickness and sheet size, and the product
+                  // names carry both. Nothing is chosen when nothing agrees.
+                  const fit = bestConstructionMaterial(
+                    materials.filter((material) =>
+                      material.constructionKinds?.includes(kind as never),
+                    ),
+                    defaults,
+                  )
+                  updateLayer(
+                    index,
+                    fit
+                      ? {
+                          ...defaults,
+                          productRef: fit.id,
+                          brand: fit.commercial?.brand,
+                          unitPrice: fit.commercial?.unitPrice,
+                        }
+                      : defaults,
+                  )
                 }}
                 value={layer.kind}
               >
