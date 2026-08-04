@@ -1,4 +1,5 @@
 import type { AnyNode, CabinetModuleNode, CabinetNode } from '@pascal-app/core'
+import { type WallConstructionLayerLike, wallAssemblyLines } from './wall-assembly-takeoff'
 
 /**
  * Scene → quantities, for pricing an estimate.
@@ -238,6 +239,7 @@ export function deriveTakeoff(
         end?: readonly [number, number]
         height?: number
         slots?: Record<string, string>
+        construction?: Record<string, { mode?: string; layers?: WallConstructionLayerLike[] }>
       }
       const start = wall.start
       const end = wall.end
@@ -264,6 +266,18 @@ export function deriveTakeoff(
         quantity: length,
         nodeIds: [node.id],
       })
+
+      // The wall's own build-up: 각재 by the metre at its spacing, 석고보드 by
+      // the sheet. A face area is not something anyone orders — this is.
+      if (wall.construction) {
+        for (const assemblyLine of wallAssemblyLines(
+          wall.construction,
+          { area: faceArea * 2, length, height: wall.height ?? 0 },
+          node.id,
+        )) {
+          push(lines, assemblyLine)
+        }
+      }
 
       // Painted faces additionally group by material, so the estimate can
       // order by finish rather than by wall.
