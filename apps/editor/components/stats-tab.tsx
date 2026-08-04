@@ -10,6 +10,7 @@ import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
 import { toEstimateItems } from '@/lib/estimate-submit'
 import { canEditCoverage, type IntmMaterial, type IntmMaterialCategory } from '@/lib/intm-materials'
 import { deriveTakeoff, type TakeoffCategory } from '@/lib/quantity-takeoff'
+import { readSceneProjectId, sceneProjectPatch } from '@/lib/scene-project-link'
 
 const CATEGORY_LABEL: Record<TakeoffCategory, string> = {
   board: '목자재',
@@ -60,7 +61,14 @@ export function StatsTab() {
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [wholeScene, setWholeScene] = useState(false)
-  const [projectId, setProjectId] = useState('')
+  // The link lives on the scene, so reopening it remembers the project.
+  const rootNodeIds = useScene((state) => state.rootNodeIds)
+  const linkedProjectId = useMemo(
+    () => readSceneProjectId(nodes, rootNodeIds),
+    [nodes, rootNodeIds],
+  )
+  const [projectIdDraft, setProjectIdDraft] = useState<string | null>(null)
+  const projectId = projectIdDraft ?? linkedProjectId ?? ''
   const [projectName, setProjectName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState<string | null>(null)
@@ -130,6 +138,16 @@ export function StatsTab() {
     setSubmitting(true)
     setSubmitResult(null)
     try {
+      // Remember the project on the scene before submitting, so the next
+      // estimate from this drawing doesn't ask again.
+      if (projectId && projectId !== linkedProjectId) {
+        const patch = sceneProjectPatch(useScene.getState().nodes, projectId, rootNodeIds)
+        if (patch)
+          useScene.getState().updateNode(patch.nodeId as never, {
+            metadata: patch.metadata as never,
+          })
+      }
+
       const response = await fetch(withBasePath('/api/intm/estimates'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -146,7 +164,7 @@ export function StatsTab() {
     } finally {
       setSubmitting(false)
     }
-  }, [draft, projectId, projectName, t])
+  }, [draft, projectId, projectName, linkedProjectId, rootNodeIds, t])
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto p-3 text-sm">
@@ -230,7 +248,7 @@ export function StatsTab() {
           <div className="space-y-1.5">
             <input
               className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
-              onChange={(event) => setProjectId(event.target.value)}
+              onChange={(event) => setProjectIdDraft(event.target.value)}
               placeholder={t('stats.estimate.projectId')}
               value={projectId}
             />

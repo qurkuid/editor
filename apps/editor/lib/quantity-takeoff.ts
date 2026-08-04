@@ -232,8 +232,16 @@ export function deriveTakeoff(
     }
 
     if (node.type === 'slab' || node.type === 'ceiling') {
-      const points = (node as { points?: readonly (readonly [number, number])[] }).points ?? []
-      const area = polygonArea(points)
+      // The field is `polygon`, not `points` — reading the wrong name made
+      // every floor and ceiling measure zero. `holes` are real openings
+      // (stairwells, voids) and come off the area.
+      const surface = node as {
+        polygon?: readonly (readonly [number, number])[]
+        holes?: readonly (readonly (readonly [number, number])[])[]
+      }
+      const grossArea = polygonArea(surface.polygon ?? [])
+      const holeArea = (surface.holes ?? []).reduce((total, hole) => total + polygonArea(hole), 0)
+      const area = Math.max(0, grossArea - holeArea)
       const slots = (node as { slots?: Record<string, string> }).slots ?? {}
       const materialRef = slots.top ?? slots.surface ?? slots.bottom
       push(lines, {

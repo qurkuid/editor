@@ -118,8 +118,8 @@ describe('areas and finishes', () => {
     ]
     const report = deriveTakeoff(
       scene(
-        { id: 'slab_a', type: 'slab', points: square },
-        { id: 'ceiling_a', type: 'ceiling', points: square },
+        { id: 'slab_a', type: 'slab', polygon: square },
+        { id: 'ceiling_a', type: 'ceiling', polygon: square },
       ),
     )
 
@@ -187,7 +187,7 @@ describe('scoping', () => {
         id: 'slab_a',
         type: 'slab',
         parentId: 'level_1',
-        points: [
+        polygon: [
           [0, 0],
           [2, 0],
           [2, 2],
@@ -198,7 +198,7 @@ describe('scoping', () => {
         id: 'slab_b',
         type: 'slab',
         parentId: 'level_2',
-        points: [
+        polygon: [
           [0, 0],
           [4, 0],
           [4, 4],
@@ -306,5 +306,59 @@ describe('furniture run make-up', () => {
   test('a run with no bays reports no length or make-up', () => {
     const report = deriveTakeoff(scene({ id: 'cabinet_a', type: 'cabinet', children: [] }))
     expect(line(report, 'furniture', 'run-length')).toBeUndefined()
+  })
+})
+
+describe('floor and ceiling openings', () => {
+  const square = [
+    [0, 0],
+    [4, 0],
+    [4, 3],
+    [0, 3],
+  ]
+
+  // The schema field is `polygon`; reading `points` silently measured zero.
+  test('area comes from the polygon field', () => {
+    expect(
+      deriveTakeoff(scene({ id: 'slab_a', type: 'slab', polygon: square })).totals.floor,
+    ).toBeCloseTo(12)
+  })
+
+  test('holes are deducted — a stairwell is not floor', () => {
+    const report = deriveTakeoff(
+      scene({
+        id: 'slab_a',
+        type: 'slab',
+        polygon: square,
+        holes: [
+          [
+            [1, 1],
+            [2, 1],
+            [2, 2],
+            [1, 2],
+          ],
+        ],
+      }),
+    )
+    expect(report.totals.floor).toBeCloseTo(11)
+  })
+
+  test('holes larger than the slab clamp at zero rather than going negative', () => {
+    const report = deriveTakeoff(
+      scene({
+        id: 'slab_a',
+        type: 'slab',
+        polygon: square,
+        holes: [
+          [
+            [0, 0],
+            [10, 0],
+            [10, 10],
+            [0, 10],
+          ],
+        ],
+      }),
+    )
+    expect(report.totals.floor).toBe(0)
   })
 })
