@@ -48,6 +48,17 @@ export const lightingDictionary = {
   'lighting.lightType.linear.desc': { ko: 'T5·라인 조명', en: 'T5 line light' },
   'lighting.mountHeight': { ko: '설치 높이', en: 'Mount height' },
 
+  'lighting.placement.single': { ko: '한 개씩', en: 'One by one' },
+  'lighting.placement.array': { ko: '구간 등분', en: 'Divide a run' },
+  'lighting.placement.count': { ko: '개수', en: 'Count' },
+  'lighting.placement.arrayHint': {
+    ko: '시작점과 끝점을 클릭하면 사이를 개수만큼 등분해 배치합니다',
+    en: 'Click a start and an end point to fill the run evenly',
+  },
+
+  'lighting.item.heading': { ko: '조명 아이템 (선택)', en: 'Fixture model (optional)' },
+  'lighting.item.none': { ko: '없음', en: 'None' },
+
   'lighting.placeSwitch.heading': { ko: '스위치 배치', en: 'Place switch' },
   'lighting.placeSwitch.wallSwitch': { ko: '벽 스위치', en: 'Wall switch' },
   'lighting.placeSwitch.desc': {

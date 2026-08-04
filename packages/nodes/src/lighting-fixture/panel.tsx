@@ -43,6 +43,10 @@ export default function LightingFixturePanel() {
   if (!(selectedId && node?.type === 'lighting-fixture')) return null
 
   const update = (patch: Partial<LightingFixtureNode>) => updateNode(node.id, patch)
+  // A point/spot node carrying drafted endpoints is a divided run — one node,
+  // `count` lights. Its count is editable here; every other property already
+  // applies to the whole run because the run IS the node.
+  const isRun = (node.lightType === 'point' || node.lightType === 'spot') && node.start && node.end
   return (
     <PanelWrapper
       onClose={() => setSelection({ selectedIds: [] })}
@@ -120,6 +124,29 @@ export default function LightingFixturePanel() {
             value={node.linearWidth}
           />
         )}
+        {isRun && (
+          <SliderControl
+            label={t('panel.count')}
+            max={50}
+            min={2}
+            onChange={(count) => update({ count: Math.round(count) })}
+            step={1}
+            value={node.count ?? 2}
+          />
+        )}
+        <SliderControl
+          label={t('panel.rotation')}
+          max={180}
+          min={-180}
+          onChange={(degrees) =>
+            update({
+              rotation: [node.rotation[0], (degrees * Math.PI) / 180, node.rotation[2]],
+            })
+          }
+          step={5}
+          unit="°"
+          value={Math.round((node.rotation[1] * 180) / Math.PI)}
+        />
       </PanelSection>
       <PanelSection title={t('panel.circuit')}>
         <select

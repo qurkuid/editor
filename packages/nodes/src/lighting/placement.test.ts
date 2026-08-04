@@ -4,11 +4,60 @@ import { lightingFixtureDefinition } from '../lighting-fixture/definition'
 import {
   LINEAR_LIGHT_FALLBACK_LENGTH,
   resolveLightingAlignedPoint,
+  resolveLightingArrayPoints,
   resolveLightingCommitPoint,
   resolveLightingGridPoint,
+  resolveLightingRunOffsets,
   resolveLinearLightLength,
   resolveLinearLightSegment,
 } from './placement'
+
+describe('lighting run offsets', () => {
+  test('centres the divided run on the midpoint with endpoints included', () => {
+    expect(resolveLightingRunOffsets(3, 4)).toEqual([-1.5, -0.5, 0.5, 1.5])
+  })
+
+  test('matches the world-space division of the same run', () => {
+    const points = resolveLightingArrayPoints([1, 1], [4, 1], 3)
+    const offsets = resolveLightingRunOffsets(3, 3)
+    const midX = 2.5
+    expect(points.map(([x]) => x)).toEqual(offsets.map((offset) => midX + offset))
+  })
+
+  test('a degenerate length collapses to a single centred light', () => {
+    expect(resolveLightingRunOffsets(0, 5)).toEqual([0])
+  })
+})
+
+describe('lighting array placement', () => {
+  test('divides the run evenly with a light on each clicked endpoint', () => {
+    expect(resolveLightingArrayPoints([0, 0], [3, 0], 4)).toEqual([
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+    ])
+  })
+
+  test('interpolates both plan axes', () => {
+    expect(resolveLightingArrayPoints([1, 1], [3, 5], 3)).toEqual([
+      [1, 1],
+      [2, 3],
+      [3, 5],
+    ])
+  })
+
+  test('a degenerate run collapses to a single placement at the click', () => {
+    expect(resolveLightingArrayPoints([2, 2], [2, 2], 6)).toEqual([[2, 2]])
+  })
+
+  test('clamps the count to at least two lights on a real run', () => {
+    expect(resolveLightingArrayPoints([0, 0], [1, 0], 0)).toEqual([
+      [0, 0],
+      [1, 0],
+    ])
+  })
+})
 
 describe('lighting floor-grid placement', () => {
   test('declares the item snapping context so the visible floor grid activates', () => {

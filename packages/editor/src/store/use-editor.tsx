@@ -576,6 +576,7 @@ export const DEFAULT_PERSISTED_EDITOR_LAYOUT_STATE: PersistedEditorLayoutState =
     fence: CONTINUATION_PROFILES.fence.default,
     point: CONTINUATION_PROFILES.point.default,
     cabinet: CONTINUATION_PROFILES.cabinet.default,
+    lighting: CONTINUATION_PROFILES.lighting.default,
   },
   showReferenceFloor: false,
   referenceFloorOffset: 1,
@@ -730,6 +731,9 @@ function normalizeContinuationByContext(
     cabinet:
       migrateContinuationMode(state?.continuationByContext?.cabinet, 'cabinet') ??
       CONTINUATION_PROFILES.cabinet.default,
+    lighting:
+      migrateContinuationMode(state?.continuationByContext?.lighting, 'lighting') ??
+      CONTINUATION_PROFILES.lighting.default,
   }
 }
 

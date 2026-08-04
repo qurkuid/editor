@@ -75,7 +75,7 @@ export type LightEffect = z.infer<typeof lightEffectSchema>
 export type Effect = z.infer<typeof effectSchema>
 export type Interactive = z.infer<typeof interactiveSchema>
 
-const assetSchema = z.object({
+export const assetSchema = z.object({
   id: z.string(),
   category: z.string(),
   name: z.string(),

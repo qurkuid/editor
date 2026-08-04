@@ -165,18 +165,71 @@ describe('areas and finishes', () => {
 })
 
 describe('lighting', () => {
-  test('fixtures aggregate per kind', () => {
+  test('fixtures aggregate per light type', () => {
     const report = deriveTakeoff(
       scene(
-        { id: 'l1', type: 'lighting-fixture', fixtureKind: 'downlight' },
-        { id: 'l2', type: 'lighting-fixture', fixtureKind: 'downlight' },
-        { id: 'l3', type: 'lighting-fixture', fixtureKind: 'pendant' },
+        { id: 'l1', type: 'lighting-fixture', lightType: 'point' },
+        { id: 'l2', type: 'lighting-fixture', lightType: 'point' },
+        { id: 'l3', type: 'lighting-fixture', lightType: 'spot' },
       ),
     )
 
-    expect(line(report, 'lighting', 'downlight')?.quantity).toBe(2)
-    expect(line(report, 'lighting', 'pendant')?.quantity).toBe(1)
-    expect(report.totals.lighting).toBe(3)
+    expect(line(report, 'lighting', 'point')?.quantity).toBe(2)
+    expect(line(report, 'lighting', 'point')?.label).toBe('포인트 조명')
+    expect(line(report, 'lighting', 'spot')?.quantity).toBe(1)
+  })
+
+  test('a divided run counts its full fixture count from one node', () => {
+    const report = deriveTakeoff(
+      scene(
+        {
+          id: 'run1',
+          type: 'lighting-fixture',
+          lightType: 'point',
+          start: [0, 0],
+          end: [3, 0],
+          count: 5,
+        },
+        { id: 'l1', type: 'lighting-fixture', lightType: 'point' },
+      ),
+    )
+
+    expect(line(report, 'lighting', 'point')?.quantity).toBe(6)
+  })
+
+  test('a linked product groups by its ref and carries it as materialRef', () => {
+    const report = deriveTakeoff(
+      scene(
+        {
+          id: 'l1',
+          type: 'lighting-fixture',
+          lightType: 'point',
+          metadata: { productRef: 'intm:mat-1' },
+        },
+        { id: 'l2', type: 'lighting-fixture', lightType: 'point' },
+      ),
+    )
+
+    const linked = line(report, 'lighting', 'intm:mat-1')
+    expect(linked?.quantity).toBe(1)
+    expect(linked?.materialRef).toBe('intm:mat-1')
+    expect(line(report, 'lighting', 'point')?.quantity).toBe(1)
+  })
+
+  test('linear fixtures add a run-length measure', () => {
+    const report = deriveTakeoff(
+      scene({
+        id: 'l1',
+        type: 'lighting-fixture',
+        lightType: 'linear',
+        start: [0, 0],
+        end: [3, 4],
+      }),
+    )
+
+    const length = line(report, 'lighting', 'linear-length')
+    expect(length?.quantity).toBeCloseTo(5)
+    expect(length?.role).toBe('measure')
   })
 })
 

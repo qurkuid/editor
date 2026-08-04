@@ -3,20 +3,23 @@
 import { useScene } from '@pascal-app/core'
 import { useT } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
-import { BarChart3, ChevronDown, ChevronRight, FileText, Loader2, TriangleAlert } from 'lucide-react'
+import {
+  BarChart3,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  Loader2,
+  TriangleAlert,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { withBasePath } from '@/lib/base-path'
 import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
 import { toEstimateItems } from '@/lib/estimate-submit'
 import { constructionKindsFor } from '@/lib/intm-construction-materials'
-import { buildCoveragePatch, COVERAGE_UNIT_LABEL } from '@/lib/material-coverage'
 import { canEditCoverage, type IntmMaterial, type IntmMaterialCategory } from '@/lib/intm-materials'
+import { type IntmProject, projectSubtitle, searchProjects } from '@/lib/intm-projects'
 import { layerMaterialPatches } from '@/lib/link-layer-material'
-import {
-  type IntmProject,
-  projectSubtitle,
-  searchProjects,
-} from '@/lib/intm-projects'
+import { buildCoveragePatch, COVERAGE_UNIT_LABEL } from '@/lib/material-coverage'
 import { deriveTakeoff, type TakeoffCategory } from '@/lib/quantity-takeoff'
 import { intmOverridesFromSceneMaterials } from '@/lib/scene-material-overrides'
 import { readSceneProjectId, sceneProjectPatch } from '@/lib/scene-project-link'
@@ -137,7 +140,12 @@ export function StatsTab() {
 
   const draft = useMemo(
     () =>
-      buildEstimateDraft(report, catalogue?.materials ?? [], catalogue?.categories ?? [], overrides),
+      buildEstimateDraft(
+        report,
+        catalogue?.materials ?? [],
+        catalogue?.categories ?? [],
+        overrides,
+      ),
     [report, catalogue, overrides],
   )
 
@@ -190,15 +198,31 @@ export function StatsTab() {
    * next takeoff of this scene starts already priced.
    */
   const linkMaterial = useCallback((line: EstimateLine, material: IntmMaterial) => {
+    const store = useScene.getState()
+    // Lighting fixtures carry the product on the node itself — they have no
+    // build-up layers to stamp. Same `intm:<id>` ref shape either way.
+    if (line.takeoff.category === 'lighting') {
+      for (const nodeId of new Set(line.takeoff.nodeIds)) {
+        const node = store.nodes[nodeId as never] as
+          | { type?: string; metadata?: Record<string, unknown> }
+          | undefined
+        if (node?.type !== 'lighting-fixture') continue
+        store.updateNode(
+          nodeId as never,
+          {
+            metadata: { ...node.metadata, productRef: `intm:${material.id}` },
+          } as never,
+        )
+      }
+      return
+    }
     const kind = line.takeoff.layerKind
     if (!kind) return
-    const store = useScene.getState()
-    for (const { nodeId, patch } of layerMaterialPatches(
-      store.nodes,
-      line.takeoff.nodeIds,
-      kind,
-      { productRef: `intm:${material.id}`, unitPrice: material.unitPrice, name: material.name },
-    )) {
+    for (const { nodeId, patch } of layerMaterialPatches(store.nodes, line.takeoff.nodeIds, kind, {
+      productRef: `intm:${material.id}`,
+      unitPrice: material.unitPrice,
+      name: material.name,
+    })) {
       store.updateNode(nodeId as never, patch as never)
     }
   }, [])
@@ -418,7 +442,9 @@ function ProjectPicker({
         <div className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-md border border-border bg-[#252527] shadow-lg">
           {matches.length === 0 ? (
             <p className="p-2 text-[11px] text-muted-foreground">
-              {projects === null ? t('stats.estimate.projectLoading') : t('stats.estimate.noProject')}
+              {projects === null
+                ? t('stats.estimate.projectLoading')
+                : t('stats.estimate.noProject')}
             </p>
           ) : (
             matches.map((project) => (
@@ -536,12 +562,24 @@ function StatsRow({
   // How many scene elements this one order line came from.
   const places = new Set(line.takeoff.nodeIds).size
   // Products that can serve this line's layer, by the same rule the wall panel
-  // filters by. Absent for lines that are not part of a build-up.
+  // filters by. Absent for lines that are not part of a build-up. Lighting has
+  // no build-up — candidates come from the catalogue's lighting-ish rows.
+  // ponytail: name/category heuristic — INTM has no machine-readable lighting
+  // flag; add one there if this misses real products.
   const candidates = useMemo(() => {
+    if (line.takeoff.category === 'lighting' && line.takeoff.unit === 'ea') {
+      return materials.filter(
+        (item) =>
+          (item.productCategoryName ?? '').includes('조명') ||
+          /조명|램프|라이트|다운라이트|매입등|직부등|펜던트|팬던트|샹들리에|led|t5/i.test(
+            item.name,
+          ),
+      )
+    }
     const kind = line.takeoff.layerKind
     if (!kind) return []
     return materials.filter((item) => constructionKindsFor(item.name).includes(kind as never))
-  }, [line.takeoff.layerKind, materials])
+  }, [line.takeoff.category, line.takeoff.unit, line.takeoff.layerKind, materials])
 
   return (
     <div className="rounded-lg border border-border/40 bg-[#252527] px-2 py-2">
@@ -552,7 +590,9 @@ function StatsRow({
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-xs font-medium text-foreground">
-            {line.material && /(?:scene|library):/.test(line.takeoff.label)
+            {line.material &&
+            (/(?:scene|library):/.test(line.takeoff.label) ||
+              line.takeoff.materialRef?.startsWith('intm:'))
               ? line.material.name
               : line.takeoff.label}
           </span>
@@ -594,7 +634,9 @@ function StatsRow({
             {candidates.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
-                {item.unitPrice ? ` · ${item.unitPrice.toLocaleString('ko-KR')}원/${item.unit}` : ''}
+                {item.unitPrice
+                  ? ` · ${item.unitPrice.toLocaleString('ko-KR')}원/${item.unit}`
+                  : ''}
               </option>
             ))}
           </select>

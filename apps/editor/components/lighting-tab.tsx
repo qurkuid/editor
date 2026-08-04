@@ -3,9 +3,11 @@
 import {
   type AnyNode,
   type AnyNodeId,
+  type AssetInput,
   LightingCircuitNode,
   type LightingFixtureNode,
   type LightingSwitchNode,
+  resolveLightingFixtureCount,
   useScene,
 } from '@pascal-app/core'
 import { useEditor, useT } from '@pascal-app/editor'
@@ -22,7 +24,7 @@ import {
   ToggleLeft,
   Zap,
 } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 function activateLightingTool(tool: 'lighting-fixture' | 'lighting-switch') {
@@ -94,6 +96,80 @@ export function LightingWorkflowGuide({
   )
 }
 
+/**
+ * Optional GLB fixture model combined into each placed light. Sourced from the
+ * SKP catalog's '조명' category (same endpoint the items panel uses — root
+ * absolute path so the INTM session cookie rides along in prod and dev alike).
+ * Renders nothing when the catalog has no lighting items, so bare placement
+ * keeps working without it.
+ */
+function LightingItemPicker() {
+  const t = useT()
+  const itemAsset = useLightingToolOptions((state) => state.itemAsset)
+  const [items, setItems] = useState<AssetInput[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await fetch('/api/sketchup/pascal-catalog', { cache: 'no-store' })
+        if (!res.ok) return
+        const data = (await res.json()) as { items?: AssetInput[] }
+        if (!cancelled) {
+          setItems((data.items ?? []).filter((item) => item.category === '조명'))
+        }
+      } catch {
+        // No catalog — bare light placement keeps working without it.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (items.length === 0) return null
+  return (
+    <div className="mt-2">
+      <p className="mb-1 text-[10px] text-muted-foreground">{t('lighting.item.heading')}</p>
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <button
+          aria-pressed={itemAsset === null}
+          className={cn(
+            'flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md border border-border text-[9px] text-muted-foreground hover:bg-muted',
+            itemAsset === null && 'border-amber-400 bg-amber-500/10 text-amber-200',
+          )}
+          onClick={() => useLightingToolOptions.getState().setItemAsset(null)}
+          type="button"
+        >
+          {t('lighting.item.none')}
+        </button>
+        {items.map((item) => {
+          const selected = itemAsset?.id === item.id
+          return (
+            <button
+              aria-pressed={selected}
+              className={cn(
+                'h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border hover:bg-muted',
+                selected && 'border-amber-400 bg-amber-500/10',
+              )}
+              key={item.id}
+              onClick={() => useLightingToolOptions.getState().setItemAsset(selected ? null : item)}
+              title={item.name}
+              type="button"
+            >
+              {item.thumbnail ? (
+                <img alt={item.name} className="h-full w-full object-cover" src={item.thumbnail} />
+              ) : (
+                <span className="block truncate p-1 text-[9px]">{item.name}</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function LightingTab() {
   const t = useT()
   const levelId = useViewer((state) => state.selection.levelId)
@@ -103,6 +179,8 @@ export function LightingTab() {
   const circuitId = useLightingToolOptions((state) => state.circuitId)
   const fixtureHeight = useLightingToolOptions((state) => state.fixtureHeight)
   const switchHeight = useLightingToolOptions((state) => state.switchHeight)
+  const placement = useLightingToolOptions((state) => state.placement)
+  const arrayCount = useLightingToolOptions((state) => state.arrayCount)
   const nodes = useScene((state) => state.nodes)
   const updateNode = useScene((state) => state.updateNode)
   const circuits = useMemo(
@@ -208,7 +286,11 @@ export function LightingTab() {
             </div>
           )}
           {circuits.map((circuit) => {
-            const lightCount = fixtures.filter((fixture) => fixture.circuitId === circuit.id).length
+            // Counts lights, not nodes — a divided run is one node carrying
+            // `count` lights.
+            const lightCount = fixtures
+              .filter((fixture) => fixture.circuitId === circuit.id)
+              .reduce((total, fixture) => total + resolveLightingFixtureCount(fixture), 0)
             const switchCount = switches.filter((item) => item.circuitId === circuit.id).length
             const selected = circuit.id === circuitId
             const defaultCircuitName = t('lighting.circuits.defaultName').replace(
@@ -319,6 +401,47 @@ export function LightingTab() {
             </button>
           ))}
         </div>
+        {(lightType === 'point' || lightType === 'spot') && (
+          <div className="mt-2 rounded-md border border-border bg-background/40 p-2">
+            <div className="flex items-center gap-1.5">
+              {(['single', 'array'] as const).map((mode) => (
+                <button
+                  aria-pressed={placement === mode}
+                  className={cn(
+                    'flex-1 rounded border border-border px-2 py-1 text-[11px] hover:bg-muted',
+                    placement === mode && 'border-amber-400 bg-amber-500/10 text-amber-200',
+                  )}
+                  key={mode}
+                  onClick={() => useLightingToolOptions.getState().setPlacement(mode)}
+                  type="button"
+                >
+                  {t(mode === 'single' ? 'lighting.placement.single' : 'lighting.placement.array')}
+                </button>
+              ))}
+              {placement === 'array' && (
+                <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  {t('lighting.placement.count')}
+                  <input
+                    className="w-12 rounded-md border border-border bg-background px-1.5 py-1 text-right text-foreground"
+                    max={50}
+                    min={2}
+                    onChange={(event) =>
+                      useLightingToolOptions.getState().setArrayCount(Number(event.target.value))
+                    }
+                    type="number"
+                    value={arrayCount}
+                  />
+                </label>
+              )}
+            </div>
+            {placement === 'array' && (
+              <p className="mt-1.5 text-[10px] text-muted-foreground">
+                {t('lighting.placement.arrayHint')}
+              </p>
+            )}
+          </div>
+        )}
+        {(lightType === 'point' || lightType === 'spot') && <LightingItemPicker />}
         <label className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
           {t('lighting.mountHeight')}
           <input

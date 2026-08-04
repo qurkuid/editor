@@ -14,6 +14,26 @@ export function resolveLightingFixtureEnabled(
   return circuit?.enabled === true
 }
 
+export type LightingFixtureRunState = {
+  readonly lightType: string
+  readonly start?: readonly [number, number]
+  readonly end?: readonly [number, number]
+  readonly count?: number
+}
+
+/**
+ * How many physical lights one fixture node represents. A point/spot node
+ * carrying drafted endpoints is a divided run of `count` lights; everything
+ * else is a single fixture. The tab summaries and the estimate takeoff both
+ * count through this, so a run can never read as one light in one place and
+ * `count` lights in another.
+ */
+export function resolveLightingFixtureCount(fixture: LightingFixtureRunState): number {
+  const isRun =
+    (fixture.lightType === 'point' || fixture.lightType === 'spot') && fixture.start && fixture.end
+  return isRun ? Math.max(2, Math.round(fixture.count ?? 2)) : 1
+}
+
 export function lumensToCandela(lumens: number): number {
   return Math.max(0, lumens) / (4 * Math.PI)
 }

@@ -92,6 +92,36 @@ export function resolveLinearLightSegment(
   }
 }
 
+// Evenly divide a two-click run into `count` fixture points, endpoints
+// included — the first light lands on the start click, the last on the end
+// click. A degenerate run (both clicks in one spot) is a single placement,
+// which is also how a plain click places one light in array mode.
+export function resolveLightingArrayPoints(
+  start: readonly [number, number],
+  end: readonly [number, number],
+  count: number,
+): [number, number][] {
+  if (Math.hypot(end[0] - start[0], end[1] - start[1]) < LINEAR_LIGHT_MIN_LENGTH) {
+    return [[start[0], start[1]]]
+  }
+  const n = Math.max(2, Math.round(count))
+  return Array.from({ length: n }, (_, i) => {
+    const t = i / (n - 1)
+    return [start[0] + (end[0] - start[0]) * t, start[1] + (end[1] - start[1]) * t]
+  })
+}
+
+// Local +X offsets of each fixture in a divided run, centred on the node's
+// midpoint origin — endpoints included, the local-frame twin of
+// `resolveLightingArrayPoints`. The renderer and the 2D glyph both derive
+// light positions from these, so a moved/rotated run can never drift from
+// its lights.
+export function resolveLightingRunOffsets(length: number, count: number): number[] {
+  if (length < LINEAR_LIGHT_MIN_LENGTH) return [0]
+  const n = Math.max(2, Math.round(count))
+  return Array.from({ length: n }, (_, i) => -length / 2 + (length * i) / (n - 1))
+}
+
 // Length fed to the fixture body mesh and `RectAreaLight` width — both the 3D
 // visual and the 2D floor-plan glyph derive it from `start`/`end` rather than
 // storing it a second time, so it can never drift out of sync with the

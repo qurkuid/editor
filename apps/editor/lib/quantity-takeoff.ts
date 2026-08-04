@@ -4,6 +4,7 @@ import {
   type CabinetNode,
   DEFAULT_WALL_HEIGHT,
   getWallCurveLength,
+  resolveLightingFixtureCount,
   type WallNode,
 } from '@pascal-app/core'
 import {
@@ -68,6 +69,13 @@ export type TakeoffLineInput = Omit<TakeoffLine, 'role'> & { role?: TakeoffRole 
 export type TakeoffReport = {
   lines: TakeoffLine[]
   totals: Record<TakeoffCategory, number>
+}
+
+const LIGHT_TYPE_LABEL: Record<string, string> = {
+  point: '포인트 조명',
+  spot: '스팟 조명',
+  area: '에어리어 조명',
+  linear: '라인 조명',
 }
 
 const EMPTY_TOTALS: Record<TakeoffCategory, number> = {
@@ -248,15 +256,56 @@ export function deriveTakeoff(
     }
 
     if (node.type === 'lighting-fixture') {
-      const kind = (node as { fixtureKind?: string }).fixtureKind ?? node.type
+      const fixture = node as {
+        lightType?: string
+        metadata?: Record<string, unknown>
+        asset?: { id?: string; name?: string }
+        start?: readonly [number, number]
+        end?: readonly [number, number]
+        count?: number
+      }
+      const lightType = fixture.lightType ?? 'point'
+      // A point/spot node with drafted endpoints is a divided run — one node,
+      // `count` purchasable lights.
+      const quantity = resolveLightingFixtureCount({
+        lightType,
+        start: fixture.start,
+        end: fixture.end,
+        count: fixture.count,
+      })
+      // `metadata.productRef` is the INTM product the user linked in the stats
+      // panel — the same `intm:<id>` shape painted surfaces carry, so
+      // `matchMaterial` resolves it the same way. Grouped by ref so lights
+      // linked to different products stay separate order lines. A combined
+      // catalog model groups (and labels) by its asset instead of the bare
+      // light type — that is the thing being bought.
+      const productRef =
+        typeof fixture.metadata?.productRef === 'string' ? fixture.metadata.productRef : undefined
       push(lines, {
         category: 'lighting',
-        key: kind,
-        label: `조명 ${kind}`,
+        key: productRef ?? (fixture.asset?.id ? `asset:${fixture.asset.id}` : lightType),
+        label: fixture.asset?.name ?? LIGHT_TYPE_LABEL[lightType] ?? `조명 ${lightType}`,
         unit: 'ea',
-        quantity: 1,
+        quantity,
         nodeIds: [node.id],
+        materialRef: productRef,
       })
+      // Linear fixtures (T5 / LED strip) are bought by the metre — the run
+      // length is the number that order is derived from.
+      if (lightType === 'linear' && fixture.start && fixture.end) {
+        push(lines, {
+          category: 'lighting',
+          key: 'linear-length',
+          label: '라인 조명 길이',
+          unit: 'm',
+          quantity: Math.hypot(
+            fixture.end[0] - fixture.start[0],
+            fixture.end[1] - fixture.start[1],
+          ),
+          nodeIds: [node.id],
+          role: 'measure',
+        })
+      }
       continue
     }
 

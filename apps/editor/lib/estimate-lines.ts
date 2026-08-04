@@ -103,8 +103,9 @@ export function buildEstimateDraft(
     // takeoff divided the area by the layer's own sheet size and applied the
     // layer's waste. Sending it through the material's coverage as well would
     // convert twice — and, since that coverage is stated in m², it simply
-    // failed, reporting a linked material as 규격 미등록.
-    if (takeoff.layerKind && takeoff.unit === 'ea') {
+    // failed, reporting a linked material as 규격 미등록. Lighting counts are
+    // order quantities for the same reason: one fixture is one purchase.
+    if ((takeoff.layerKind || takeoff.category === 'lighting') && takeoff.unit === 'ea') {
       const unitPrice = material.unitPrice ?? 0
       return {
         takeoff,
@@ -145,8 +146,6 @@ export function buildEstimateDraft(
       0,
     ),
     // Measures are complete as they are; only lines that need a decision count.
-    unresolved: lines.filter(
-      (line) => line.status !== 'priced' && line.status !== 'measure',
-    ),
+    unresolved: lines.filter((line) => line.status !== 'priced' && line.status !== 'measure'),
   }
 }
