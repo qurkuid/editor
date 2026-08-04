@@ -23,6 +23,7 @@ import {
   ToggleControl,
   useEditor,
   useT,
+  useTLabel,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Plus, Trash } from 'lucide-react'
@@ -98,7 +99,12 @@ function moduleSummary(module: CabinetModuleNodeType, t: (key: MessageId) => str
   if ((module.cabinetType ?? 'base') === 'tall') return t('panel.tallCabinet')
   const stack = stackForCabinet(module)
   if (stack.length === 0) return t('panel.empty')
-  if (stack.length === 1) return stack[0]!.type
+  if (stack.length === 1) {
+    const type = stack[0]!.type
+    // Capitalized so the shared English-label translator can match it
+    // ('door' → 'Door' → '문'); unknown compound types pass through.
+    return type[0]!.toUpperCase() + type.slice(1)
+  }
   return `${stack.length} ${t('panel.compartments')}`
 }
 
@@ -262,6 +268,7 @@ export function CabinetRunPanel({
   onClose: () => void
 }) {
   const t = useT()
+  const tLabel = useTLabel()
   const setSelection = useViewer((s) => s.setSelection)
   const sortedModules = useMemo(
     () => [...modules].sort((a, b) => a.position[0] - b.position[0]),
@@ -534,7 +541,7 @@ export function CabinetRunPanel({
     <PanelWrapper
       icon="/icons/item.webp"
       onClose={onClose}
-      title={node.name || 'Modular Cabinet'}
+      title={tLabel(node.name || 'Modular Cabinet')}
       width={320}
     >
       <PanelSection title={t('panel.modules')}>
@@ -569,10 +576,10 @@ export function CabinetRunPanel({
                 type="button"
               >
                 <div className="truncate text-xs font-medium text-foreground">
-                  {module.name || `Module ${index + 1}`}
+                  {tLabel(module.name || `Module ${index + 1}`)}
                 </div>
                 <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {moduleSummary(module, t)}
+                  {tLabel(moduleSummary(module, t))}
                 </div>
               </button>
               <button
@@ -685,7 +692,7 @@ export function CabinetRunPanel({
                         {countertopSwatch.name}
                       </span>
                       <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">
-                        Countertop material — click to paint
+                        {t('panel.countertopMaterialHint')}
                       </span>
                     </span>
                   </button>
@@ -737,11 +744,11 @@ export function CabinetRunPanel({
                     type="button"
                   >
                     <div className="truncate text-xs font-medium text-foreground">
-                      {label.primary}
+                      {tLabel(label.primary)}
                       {selectedCutout?.id === cutout.id ? ' •' : ''}
                     </div>
                     <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {label.secondary}
+                      {tLabel(label.secondary)}
                     </div>
                   </button>
                   <button
@@ -774,7 +781,7 @@ export function CabinetRunPanel({
             <div className="space-y-2 px-1 pb-2">
               <div>
                 <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                  Kind
+                  {t('panel.kind')}
                 </div>
                 <SegmentedControl
                   onChange={(value) => patchSelectedCutout({ kind: value as CountertopCutoutKind })}
@@ -943,7 +950,7 @@ export function CabinetRunPanel({
         <div className="space-y-2 px-1 pb-2">
           <div>
             <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-              Style
+              {t('panel.style')}
             </div>
             <SegmentedControl
               onChange={(value) =>
@@ -958,7 +965,7 @@ export function CabinetRunPanel({
           </div>
           <div>
             <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-              Mounting
+              {t('panel.mounting')}
             </div>
             <SegmentedControl
               onChange={(value) =>
@@ -978,7 +985,7 @@ export function CabinetRunPanel({
         <div className="space-y-2 px-1 pb-2">
           <div>
             <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-              Style
+              {t('panel.style')}
             </div>
             <SegmentedControl
               onChange={(value) =>
@@ -994,7 +1001,7 @@ export function CabinetRunPanel({
           {(node.handleStyle === 'bar' || node.handleStyle === 'knob') && (
             <div>
               <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                Position
+                {t('common.position')}
               </div>
               <SegmentedControl
                 onChange={(value) =>

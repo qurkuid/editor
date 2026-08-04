@@ -21,6 +21,7 @@ import {
 import { useState } from 'react'
 import type { MessageId } from '../../../i18n/translate'
 import { useT } from '../../../i18n/use-t'
+import { resolveShortcutKey } from '../../../lib/keyboard-shortcuts'
 import type { CreatableMeasurementKind } from '../../../lib/measurement-kind'
 import { cn } from '../../../lib/utils'
 import useEditor from '../../../store/use-editor'
@@ -65,6 +66,9 @@ const constructionDimensionOptions = [
 export function MeasurementControl() {
   const [isOpen, setIsOpen] = useState(false)
   const t = useT()
+  const measurementShortcut = useEditor((state) =>
+    resolveShortcutKey('tool-measurement', state.shortcutOverrides).toUpperCase(),
+  )
   const mode = useEditor((state) => state.mode)
   const tool = useEditor((state) => state.tool)
   const floorplanMode = useFloorplanMode((state) => state.mode)
@@ -151,7 +155,7 @@ export function MeasurementControl() {
     <Popover onOpenChange={setIsOpen} open={isOpen}>
       <div className="flex items-center">
         <ActionButton
-          aria-label={`Measure: ${selectedLabel}`}
+          aria-label={`${t('actionMenu.measureWord')}: ${selectedLabel}`}
           aria-pressed={isControlActive}
           className={cn(
             'rounded-r-none p-0 text-muted-foreground',
@@ -159,9 +163,9 @@ export function MeasurementControl() {
               ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20'
               : 'hover:bg-cyan-500/15 hover:text-cyan-400',
           )}
-          label={`Measure: ${selectedLabel}`}
+          label={`${t('actionMenu.measureWord')}: ${selectedLabel}`}
           onClick={handlePrimaryClick}
-          shortcut="M"
+          shortcut={measurementShortcut}
           size="icon"
           variant="ghost"
         >

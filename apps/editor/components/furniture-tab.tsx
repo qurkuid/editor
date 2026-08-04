@@ -1,7 +1,13 @@
 'use client'
 
 import { type CabinetNode, useScene } from '@pascal-app/core'
-import { FURNITURE_KIND_LABEL_KEYS, type MessageId, useEditor, useT } from '@pascal-app/editor'
+import {
+  FURNITURE_KIND_LABEL_KEYS,
+  type MessageId,
+  useEditor,
+  useT,
+  useTLabel,
+} from '@pascal-app/editor'
 import { type CabinetPlacementType, useCabinetPlacementType } from '@pascal-app/nodes'
 import { useViewer } from '@pascal-app/viewer'
 import { Armchair } from 'lucide-react'
@@ -111,6 +117,7 @@ function activateFurnitureTool(type: CabinetPlacementType) {
 
 export function FurnitureTab() {
   const t = useT()
+  const tLabel = useTLabel()
   const levelId = useViewer((state) => state.selection.levelId)
   const unit = useViewer((state) => state.unit)
   const nodes = useScene((state) => state.nodes)
@@ -244,7 +251,7 @@ export function FurnitureTab() {
                 onClick={() => useViewer.getState().setSelection({ selectedIds: [node.id] })}
                 type="button"
               >
-                <span>{node.name || t('furniture.kind.fallback')}</span>
+                <span>{node.name ? tLabel(node.name) : t('furniture.kind.fallback')}</span>
                 <span className="text-muted-foreground">
                   {t('furniture.bays.count').replace(
                     '{n}',

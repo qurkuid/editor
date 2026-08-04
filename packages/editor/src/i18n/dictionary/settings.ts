@@ -51,6 +51,16 @@ export const settingsDictionary = {
 
   'settings.audio.label': { ko: '오디오', en: 'Audio' },
   'settings.keyboard.label': { ko: '키보드', en: 'Keyboard' },
+  'settings.keyboard.rotateShortcutTaken': {
+    ko: '이미 사용 중인 키입니다',
+    en: 'That key is already in use',
+  },
+  'settings.keyboard.rebindHint': {
+    ko: '키를 클릭한 뒤 새 키를 누르면 변경됩니다',
+    en: 'Click a key chip, then press a new key to rebind it',
+  },
+  'settings.keyboard.pressKey': { ko: '키 입력…', en: 'Press a key…' },
+  'settings.keyboard.resetShortcuts': { ko: '기본값 복원', en: 'Reset to defaults' },
 
   'settings.sceneGraph.label': { ko: '장면 그래프', en: 'Scene Graph' },
   'settings.sceneGraph.explore': { ko: '장면 그래프 탐색', en: 'Explore scene graph' },

@@ -7,6 +7,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import useEditor from '../../../store/use-editor'
 import { useT } from '../../../i18n/use-t'
+import { useTLabel } from '../../../i18n/use-t-label'
 
 interface MobilePanelSheetProps {
   open: boolean
@@ -21,6 +22,7 @@ const DRAG_CLOSE_THRESHOLD_PX = 120
 
 export function MobilePanelSheet({ open, onClose, icon, title, children }: MobilePanelSheetProps) {
   const t = useT()
+  const tLabel = useTLabel()
   const [mounted, setMounted] = useState(false)
   const setMobilePanelSheetHeight = useEditor((s) => s.setMobilePanelSheetHeight)
 
@@ -86,7 +88,7 @@ export function MobilePanelSheet({ open, onClose, icon, title, children }: Mobil
                 />
               )}
               <h2 className="truncate font-semibold text-foreground text-sm tracking-tight">
-                {title}
+                {tLabel(title)}
               </h2>
             </div>
             <button

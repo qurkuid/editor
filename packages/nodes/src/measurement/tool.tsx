@@ -49,7 +49,7 @@ import {
 import { SCENE_LAYER, useViewer } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { type FC, useEffect, useMemo, useRef, useState } from 'react'
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   BufferGeometry,
   type Camera,
@@ -768,9 +768,15 @@ export function closestMeasurementExtrusionHeight(
   return Number.isFinite(height) ? height : null
 }
 
-export function parseMeasurementExtrusionHeight(value: string, unit: LinearUnit): number | null {
+export function parseMeasurementExtrusionHeight(
+  value: string,
+  unit: LinearUnit,
+  metricNotation?: 'meters' | 'millimeters',
+): number | null {
   const numericValue = Number.parseFloat(value)
-  return Number.isFinite(numericValue) ? linearUnitToMeters(numericValue, unit) : null
+  if (!Number.isFinite(numericValue)) return null
+  if (unit === 'metric' && metricNotation === 'millimeters') return numericValue / 1000
+  return linearUnitToMeters(numericValue, unit)
 }
 
 function extrusionHeightFromPointer(
@@ -1230,29 +1236,33 @@ function DraftExtrusionControl({ position }: { position: Vector3 }) {
   const extrusionHeight = useMeasurementDraft((state) => state.extrusionHeight)
   const points = useMeasurementDraft((state) => state.points)
   const baseNormal = useMeasurementDraft((state) => state.baseNormal)
+  const isMillimeters = unit === 'metric' && metricNotation === 'millimeters'
+  const toDisplayHeight = useCallback(
+    (meters: number) =>
+      isMillimeters
+        ? Math.round(meters * 1000)
+        : Number(metersToLinearUnit(meters, unit).toFixed(3)),
+    [isMillimeters, unit],
+  )
   const [value, setValue] = useState(() =>
-    extrusionHeight === 0 ? '' : String(metersToLinearUnit(extrusionHeight, unit)),
+    extrusionHeight === 0 ? '' : String(toDisplayHeight(extrusionHeight)),
   )
   const isEditing = useRef(false)
 
   useEffect(() => {
     if (isEditing.current) return
-    setValue(
-      extrusionHeight === 0
-        ? ''
-        : String(Number(metersToLinearUnit(extrusionHeight, unit).toFixed(3))),
-    )
-  }, [extrusionHeight, unit])
+    setValue(extrusionHeight === 0 ? '' : String(toDisplayHeight(extrusionHeight)))
+  }, [extrusionHeight, toDisplayHeight])
 
   const updateHeight = (next: string) => {
     setValue(next)
     useMeasurementDraft
       .getState()
-      .setExtrusionHeight('3d', parseMeasurementExtrusionHeight(next, unit) ?? 0)
+      .setExtrusionHeight('3d', parseMeasurementExtrusionHeight(next, unit, metricNotation) ?? 0)
   }
 
   const commit = () => {
-    const height = parseMeasurementExtrusionHeight(value, unit)
+    const height = parseMeasurementExtrusionHeight(value, unit, metricNotation)
     if (height === null) {
       useMeasurementDraft.getState().setExtrusionHeight('3d', 0)
       return
@@ -1299,9 +1309,7 @@ function DraftExtrusionControl({ position }: { position: Vector3 }) {
             onBlur={() => {
               isEditing.current = false
               const height = useMeasurementDraft.getState().extrusionHeight
-              setValue(
-                height === 0 ? '' : String(Number(metersToLinearUnit(height, unit).toFixed(3))),
-              )
+              setValue(height === 0 ? '' : String(toDisplayHeight(height)))
             }}
             onChange={(event) => updateHeight(event.target.value)}
             onFocus={() => {
@@ -1320,7 +1328,7 @@ function DraftExtrusionControl({ position }: { position: Vector3 }) {
             value={value}
           />
           <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-muted-foreground text-xs">
-            {getLinearUnitLabel(unit)}
+            {isMillimeters ? 'mm' : getLinearUnitLabel(unit)}
           </span>
         </div>
         <span className="shrink-0 font-mono font-semibold text-[11px] tabular-nums text-foreground">
@@ -1612,6 +1620,7 @@ const MeasurementDraftPreview: FC<{
     surfaceQuery,
     unit,
     vertexDrag,
+    metricNotation,
   ])
 
   if (!preview) return null

@@ -30,7 +30,7 @@ export function AudioSettingsDialog() {
       <DialogTrigger asChild>
         <Button className="w-full justify-start gap-2" variant="outline">
           {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-          Audio Settings
+          {t('panel.audioSettings')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

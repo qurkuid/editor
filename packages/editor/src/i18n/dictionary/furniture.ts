@@ -40,6 +40,59 @@ export const furnitureDictionary = {
 
   'furniture.onThisLevel': { ko: '이 레벨의 가구', en: 'Furniture on this level' },
   'furniture.noneYet': { ko: '아직 가구가 없습니다.', en: 'No furniture assemblies yet.' },
+
+  // Cabinet quick-action bar labels/titles. Declared as plain English in the
+  // node registry (`cabinet/quick-actions.ts`) and reverse-translated at the
+  // render site through `useTLabel` — en strings here must match verbatim.
+  'furniture.quickAction.lLeft': { ko: 'ㄱ 왼쪽', en: 'L Left' },
+  'furniture.quickAction.lRight': { ko: 'ㄱ 오른쪽', en: 'L Right' },
+  'furniture.quickAction.wallCabinet': { ko: '상부장', en: 'Wall cabinet' },
+  'furniture.quickAction.baseCabinet': { ko: '하부장', en: 'Base cabinet' },
+  'furniture.quickAction.wallSet': { ko: '상부장 세트', en: 'Wall set' },
+  'furniture.quickAction.backRow': { ko: '뒷줄', en: 'Back row' },
+  'furniture.quickAction.removeBackRow': { ko: '뒷줄 제거', en: 'Remove back row' },
+  'furniture.quickAction.addCabinetLeft': {
+    ko: '왼쪽에 캐비닛 추가',
+    en: 'Add cabinet to the left',
+  },
+  'furniture.quickAction.addCabinetRight': {
+    ko: '오른쪽에 캐비닛 추가',
+    en: 'Add cabinet to the right',
+  },
+  'furniture.quickAction.turnCornerLeft': {
+    ko: '왼쪽으로 ㄱ자 코너 만들기',
+    en: 'Turn an L corner to the left',
+  },
+  'furniture.quickAction.turnCornerRight': {
+    ko: '오른쪽으로 ㄱ자 코너 만들기',
+    en: 'Turn an L corner to the right',
+  },
+  'furniture.quickAction.wallCabinetExists': {
+    ko: '이 캐비닛 위에 이미 상부장이 있습니다',
+    en: 'A wall cabinet already exists above this cabinet',
+  },
+  'furniture.quickAction.wallCabinetBlocked': {
+    ko: '위 공간 없음 — 기존 상부장과 겹칩니다',
+    en: 'No space above—overlaps an existing wall cabinet',
+  },
+  'furniture.quickAction.addWallCabinetAbove': {
+    ko: '위에 상부장 추가',
+    en: 'Add wall cabinet above',
+  },
+  'furniture.quickAction.switchToTall': { ko: '키큰장으로 전환', en: 'Switch to tall cabinet' },
+  'furniture.quickAction.switchToBase': { ko: '하부장으로 전환', en: 'Switch to base cabinet' },
+  'furniture.quickAction.removeIslandBackRow': {
+    ko: '아일랜드 뒷줄 제거',
+    en: 'Remove the island back row',
+  },
+  'furniture.quickAction.addIslandBackRow': {
+    ko: '뒷줄을 추가해 양면 아일랜드로 만들기',
+    en: 'Add a back row to make this a two-sided island',
+  },
+  'furniture.quickAction.addWallSetRun': {
+    ko: '이 런의 베이와 독립된 상부장 런을 위에 추가',
+    en: "Add an upper wall run above, decoupled from this run's bays",
+  },
 } as const satisfies Dictionary
 
 export const statsDictionary = {

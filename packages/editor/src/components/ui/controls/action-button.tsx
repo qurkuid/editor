@@ -1,5 +1,6 @@
 'use client'
 
+import { useTLabel } from '../../../i18n/use-t-label'
 import { cn } from '../../../lib/utils'
 
 interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -8,6 +9,7 @@ interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
 }
 
 export function ActionButton({ icon, label, className, ...props }: ActionButtonProps) {
+  const tLabel = useTLabel()
   return (
     <button
       {...props}
@@ -17,7 +19,7 @@ export function ActionButton({ icon, label, className, ...props }: ActionButtonP
       )}
     >
       {icon}
-      <span>{label}</span>
+      <span>{tLabel(label)}</span>
     </button>
   )
 }

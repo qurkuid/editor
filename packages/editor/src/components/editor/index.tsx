@@ -18,7 +18,15 @@ import {
   useViewer,
   Viewer,
 } from '@pascal-app/viewer'
-import { memo, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { ViewerOverlay } from '../../components/viewer-overlay'
 import { ViewerZoneSystem } from '../../components/viewer-zone-system'
 import { type SaveStatus, useAutoSave } from '../../hooks/use-auto-save'
@@ -40,6 +48,7 @@ import {
 import { disposeSFXBus, initSFXBus } from '../../lib/sfx-bus'
 import useEditor from '../../store/use-editor'
 import useFloorplanMode from '../../store/use-floorplan-mode'
+import usePivotRotate from '../../store/use-pivot-rotate'
 import { CeilingSelectionAffordanceSystem } from '../systems/ceiling/ceiling-selection-affordance-system'
 import { CeilingSystem } from '../systems/ceiling/ceiling-system'
 import { RoofEditSystem } from '../systems/roof/roof-edit-system'
@@ -81,6 +90,7 @@ import { GroupFloatingActionMenu } from './group-floating-action-menu'
 import { GroupRotateHandle } from './group-rotate-handle'
 import { GroupSelectionBox3D } from './group-selection-box-3d'
 import { NodeArrowHandles } from './node-arrow-handles'
+import { PivotRotateTool3D } from './pivot-rotate-tool-3d'
 import { QuickMeasurementHud } from './quick-measurement-hud'
 import { RiserDiagramPanel } from './riser-diagram-panel'
 import { SelectionManager } from './selection-manager'
@@ -760,18 +770,24 @@ const ViewerSceneContent = memo(function ViewerSceneContent({
   // boundary flags) so the framed shot stays clean.
   const isCaptureMode = useEditor((s) => s.isCaptureMode)
   const noEditing = isVersionPreviewMode || isFirstPersonMode || isStudioMode || isCaptureMode
+  // The pivot rotate keeps the selection highlighted for the whole gesture, so
+  // the selection-bound gizmos (arrow handles, group gizmos, wall handles)
+  // must step back explicitly — their R3F meshes would otherwise still catch
+  // the pivot/reference clicks.
+  const pivotRotateIdle = usePivotRotate((s) => s.stage === 'idle')
   return (
     <>
       <SceneEnvironment />
       {!(isFirstPersonMode || isStudioMode || isCaptureMode) && <SelectionManager />}
       {!noEditing && <BoxSelectTool />}
-      {!noEditing && <NodeArrowHandles />}
-      {!noEditing && <GroupRotateHandle />}
-      {!noEditing && <GroupSelectionBox3D />}
+      {!noEditing && pivotRotateIdle && <NodeArrowHandles />}
+      {!noEditing && pivotRotateIdle && <GroupRotateHandle />}
+      {!noEditing && <PivotRotateTool3D />}
+      {!noEditing && pivotRotateIdle && <GroupSelectionBox3D />}
       {!noEditing && <WallOpeningHighlights />}
       {!noEditing && <SlabHoleHighlights />}
-      {!noEditing && <WallMoveSideHandles />}
-      {!noEditing && <FenceTangentLines3D />}
+      {!noEditing && pivotRotateIdle && <WallMoveSideHandles />}
+      {!noEditing && pivotRotateIdle && <FenceTangentLines3D />}
       {!noEditing && <FloatingActionMenu />}
       {!noEditing && <GroupFloatingActionMenu />}
       {!noEditing && <FloatingBuildingActionMenu />}
@@ -1209,7 +1225,12 @@ export default function Editor({
     }
   }, [integrationAdapter])
 
-  useEffect(() => {
+  // Layout effect, not passive: every persist write BEFORE rehydrate saves
+  // the store's DEFAULTS over the stored preferences, and child components'
+  // passive mount effects (scene load, panels, coordinators) write to the
+  // store before a parent's passive effect would run. All layout effects run
+  // before any passive effect, so this restores the saved preferences first.
+  useLayoutEffect(() => {
     void useEditor.persist.rehydrate()
     void useSidebarStore.persist.rehydrate()
   }, [])

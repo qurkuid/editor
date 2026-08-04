@@ -106,6 +106,7 @@ const PropertyLineSection = memo(function PropertyLineSection() {
   const mode = useEditor((state) => state.mode)
   const setMode = useEditor((state) => state.setMode)
   const viewerUnit = useViewer((state) => state.unit)
+  const metricNotation = useViewer((state) => state.metricNotation)
 
   if (!siteNode) return null
 
@@ -114,11 +115,15 @@ const PropertyLineSection = memo(function PropertyLineSection() {
   const perimeter = calculatePerimeter(points)
   const isEditing = mode === 'edit'
 
-  // Property-line coordinates and readouts follow the metric/imperial toggle.
+  // Property-line coordinates and readouts follow the metric/imperial toggle
+  // and, within metric, the m/mm notation.
   const isImperial = viewerUnit === 'imperial'
-  const linearLabel = getLinearUnitLabel(viewerUnit)
-  const toDisplayLinear = (meters: number) => metersToLinearUnit(meters, viewerUnit)
-  const toStoredLinear = (display: number) => linearUnitToMeters(display, viewerUnit)
+  const isMillimeters = !isImperial && metricNotation === 'millimeters'
+  const linearLabel = isMillimeters ? 'mm' : getLinearUnitLabel(viewerUnit)
+  const toDisplayLinear = (meters: number) =>
+    isMillimeters ? meters * 1000 : metersToLinearUnit(meters, viewerUnit)
+  const toStoredLinear = (display: number) =>
+    isMillimeters ? display / 1000 : linearUnitToMeters(display, viewerUnit)
   const displayArea = squareMetersToAreaUnit(area, viewerUnit)
   const displayPerimeter = toDisplayLinear(perimeter)
 
@@ -195,7 +200,7 @@ const PropertyLineSection = memo(function PropertyLineSection() {
         <div className="text-muted-foreground text-xs">
           Perimeter:{' '}
           <span className="text-foreground">
-            {displayPerimeter.toFixed(1)} {linearLabel}
+            {displayPerimeter.toFixed(isMillimeters ? 0 : 1)} {linearLabel}
           </span>
         </div>
       </div>
@@ -213,9 +218,9 @@ const PropertyLineSection = memo(function PropertyLineSection() {
                   onChange={(e) =>
                     handlePointChange(index, 0, toStoredLinear(Number.parseFloat(e.target.value) || 0))
                   }
-                  step={0.5}
+                  step={isMillimeters ? 100 : 0.5}
                   type="number"
-                  value={Number(toDisplayLinear(point[0]).toFixed(2))}
+                  value={Number(toDisplayLinear(point[0]).toFixed(isMillimeters ? 0 : 2))}
                 />
                 <label className="shrink-0 text-muted-foreground">Z</label>
                 <input
@@ -223,9 +228,9 @@ const PropertyLineSection = memo(function PropertyLineSection() {
                   onChange={(e) =>
                     handlePointChange(index, 1, toStoredLinear(Number.parseFloat(e.target.value) || 0))
                   }
-                  step={0.5}
+                  step={isMillimeters ? 100 : 0.5}
                   type="number"
-                  value={Number(toDisplayLinear(point[1]).toFixed(2))}
+                  value={Number(toDisplayLinear(point[1]).toFixed(isMillimeters ? 0 : 2))}
                 />
                 <button
                   className={cn(

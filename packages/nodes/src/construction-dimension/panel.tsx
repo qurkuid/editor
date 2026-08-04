@@ -308,6 +308,7 @@ export default function ConstructionDimensionPanel() {
           onChange={(extensionStartGap) => update({ extensionStartGap })}
           precision={3}
           step={0.005}
+          unit="m"
           value={dimension.extensionStartGap}
         />
         <SliderControl
@@ -317,6 +318,7 @@ export default function ConstructionDimensionPanel() {
           onChange={(extensionOvershoot) => update({ extensionOvershoot })}
           precision={3}
           step={0.005}
+          unit="m"
           value={dimension.extensionOvershoot}
         />
       </PanelSection>

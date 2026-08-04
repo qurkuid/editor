@@ -112,6 +112,7 @@ export const viewerChromeDictionary = {
     en: 'Structure, finishes, and placed items, without guide references.',
   },
   'chrome.cancel': { ko: '취소', en: 'Cancel' },
+  'chrome.delete': { ko: '삭제', en: 'Delete' },
 
   'chrome.commandPalette': { ko: '명령 팔레트', en: 'Command Palette' },
   'chrome.paletteWallMode': { ko: '벽 표시 모드', en: 'Wall Mode' },
@@ -135,6 +136,7 @@ export const viewerChromeDictionary = {
   },
   'chrome.toggleSidebar': { ko: '사이드바 접기/펼치기', en: 'Toggle Sidebar' },
   'chrome.expandSidebar': { ko: '사이드바 펼치기', en: 'Expand sidebar' },
+  'chrome.collapseSidebar': { ko: '사이드바 접기', en: 'Collapse sidebar' },
 
   'chrome.sceneRenderFailed': {
     ko: '에디터 장면을 그리지 못했습니다',

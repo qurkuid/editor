@@ -65,6 +65,7 @@ import {
 import { replacePreviewOverrideIds } from './handles/preview-overrides'
 import { resolveResizeSnapValue } from './handles/resize-snap'
 import { type HandleDragControls, useHandleDrag } from './handles/use-handle-drag'
+import { formatMeasurement } from './measurement-pill'
 
 // Pooled scratch for the handle rig's world-relative pose mapping.
 const _rigRelative = new Matrix4()
@@ -151,19 +152,6 @@ function guideDecorationCenter(decoration: unknown, node: AnyNode, sceneApi: Sce
 
 function guideDecorationRadius(decoration: unknown, node: AnyNode, sceneApi: SceneApiForHandles) {
   return (decoration as CenteredGuideDecoration).radius(node, sceneApi)
-}
-
-// Mirrors the formatter used by wall / fence measurement labels so all
-// in-world dimension chips read consistently.
-function formatDimension(value: number, unit: 'metric' | 'imperial'): string {
-  if (unit === 'imperial') {
-    const feet = value * 3.280_84
-    const wholeFeet = Math.floor(feet)
-    const inches = Math.round((feet - wholeFeet) * 12)
-    if (inches === 12) return `${wholeFeet + 1}'0"`
-    return `${wholeFeet}'${inches}"`
-  }
-  return `${Number.parseFloat(value.toFixed(2))}m`
 }
 
 // In-world dimension chip rendered next to a resize arrow during hover
@@ -848,7 +836,7 @@ function LinearArrow({
   // `measureLabel` handles route their readout to the floating dimension
   // pill, so suppress the inline chip here to avoid showing it twice.
   const showLabel = (isHovered || isDragging) && !measureLabel
-  const labelText = showLabel ? formatDimension(descriptor.currentValue(node), unit) : ''
+  const labelText = showLabel ? formatMeasurement(descriptor.currentValue(node), unit) : ''
 
   // `tracker` shape on a linear-resize handle: render a dashed vertical
   // leader from the floor up to a small cube at `placement.position`. The
@@ -937,10 +925,12 @@ export function GuideRing({
   center,
   radius,
   y,
+  color = ARROW_COLOR,
 }: {
   center?: readonly [number, number, number]
   radius: number
   y: number
+  color?: string
 }) {
   const safeRadius = Math.max(radius, 0.01)
   const ringGeometry = useMemo(() => {
@@ -951,14 +941,14 @@ export function GuideRing({
   const ringMaterial = useMemo(
     () =>
       new MeshBasicNodeMaterial({
-        color: new Color(ARROW_COLOR),
+        color: new Color(color),
         side: DoubleSide,
         transparent: true,
         opacity: 0.95,
         depthTest: false,
         depthWrite: false,
       }),
-    [],
+    [color],
   )
   useEffect(() => () => ringGeometry.dispose(), [ringGeometry])
   useEffect(() => () => ringMaterial.dispose(), [ringMaterial])
@@ -994,7 +984,13 @@ export type RotationGuideData = {
   sweep: number
 }
 
-export function RotationGuide({ data }: { data: RotationGuideData }) {
+export function RotationGuide({
+  data,
+  color = ROTATION_GUIDE_COLOR,
+}: {
+  data: RotationGuideData
+  color?: string
+}) {
   const { center, startAngle, endAngle, radius, labelPos, sweep } = data
   const { outline, fill } = useMemo(() => {
     const span = endAngle - startAngle
@@ -1033,7 +1029,7 @@ export function RotationGuide({ data }: { data: RotationGuideData }) {
         renderOrder={1008}
       >
         <meshBasicMaterial
-          color={ROTATION_GUIDE_COLOR}
+          color={color}
           depthTest={false}
           depthWrite={false}
           opacity={0.18}
@@ -1041,18 +1037,24 @@ export function RotationGuide({ data }: { data: RotationGuideData }) {
           transparent
         />
       </mesh>
-      <RotationGuideOutline geometry={outline} />
+      <RotationGuideOutline color={color} geometry={outline} />
       <DimensionLabel position={labelPos} text={formatAngleRadians(sweep)} />
     </>
   )
 }
 
-function RotationGuideOutline({ geometry }: { geometry: BufferGeometry }) {
+function RotationGuideOutline({
+  geometry,
+  color = ROTATION_GUIDE_COLOR,
+}: {
+  geometry: BufferGeometry
+  color?: string
+}) {
   return (
     // @ts-expect-error - R3F accepts Three line primitives, matching the wall draft arc.
     <line frustumCulled={false} geometry={geometry} layers={EDITOR_LAYER} renderOrder={1009}>
       <lineBasicNodeMaterial
-        color={ROTATION_GUIDE_COLOR}
+        color={color}
         depthTest={false}
         depthWrite={false}
         linewidth={2}

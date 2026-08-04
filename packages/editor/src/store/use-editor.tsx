@@ -47,6 +47,14 @@ import {
   nextContinuation,
 } from '../lib/continuation'
 import {
+  DEFAULT_SHORTCUT_KEYS,
+  isValidShortcutKey,
+  normalizeShortcutOverrides,
+  type RebindableShortcutId,
+  type ShortcutOverrides,
+  shortcutKeyConflict,
+} from '../lib/keyboard-shortcuts'
+import {
   type ActivePaintMaterial,
   type PaintableMaterialTarget,
   resolveActivePaintMaterialFromSelection,
@@ -295,6 +303,15 @@ type EditorState = {
   setToolDefaults: (tool: Tool, defaults: ToolDefaults | null) => void
   lastMeasurementKind: CreatableMeasurementKind
   setLastMeasurementKind: (kind: CreatableMeasurementKind) => void
+  /**
+   * Rebindable-shortcut overrides, edited from the settings keyboard page —
+   * the single source every key handler and badge resolves through
+   * (`lib/keyboard-shortcuts.ts`).
+   */
+  shortcutOverrides: ShortcutOverrides
+  /** Returns false when the key is invalid or conflicts (reserved / taken). */
+  setShortcutOverride: (id: RebindableShortcutId, key: string) => boolean
+  resetShortcutOverrides: () => void
   structureLayer: StructureLayer
   setStructureLayer: (layer: StructureLayer) => void
   catalogCategory: CatalogCategory | null
@@ -540,6 +557,7 @@ type PersistedEditorLayoutState = Pick<
   | 'gridSnapStep'
   | 'magneticSnap'
   | 'lastMeasurementKind'
+  | 'shortcutOverrides'
   | 'snappingModeByContext'
   | 'continuationByContext'
   | 'showReferenceFloor'
@@ -566,6 +584,7 @@ export const DEFAULT_PERSISTED_EDITOR_LAYOUT_STATE: PersistedEditorLayoutState =
   gridSnapStep: 0.5,
   magneticSnap: true,
   lastMeasurementKind: DEFAULT_CREATABLE_MEASUREMENT_KIND,
+  shortcutOverrides: {},
   snappingModeByContext: {
     wall: defaultSnappingModeFor('wall'),
     item: defaultSnappingModeFor('item'),
@@ -754,6 +773,7 @@ function normalizePersistedEditorLayoutState(
     // Default on: only an explicit persisted `false` disables it.
     magneticSnap: state?.magneticSnap !== false,
     lastMeasurementKind: normalizeCreatableMeasurementKind(state?.lastMeasurementKind),
+    shortcutOverrides: normalizeShortcutOverrides(state?.shortcutOverrides),
     snappingModeByContext: {
       wall: migrateSnappingMode(state?.snappingModeByContext?.wall, 'wall'),
       item: migrateSnappingMode(state?.snappingModeByContext?.item, 'item'),
@@ -1047,6 +1067,19 @@ const useEditor = create<EditorState>()(
         }),
       lastMeasurementKind: DEFAULT_PERSISTED_EDITOR_LAYOUT_STATE.lastMeasurementKind,
       setLastMeasurementKind: (kind) => set({ lastMeasurementKind: kind }),
+      shortcutOverrides: DEFAULT_PERSISTED_EDITOR_LAYOUT_STATE.shortcutOverrides,
+      setShortcutOverride: (id, key) => {
+        const normalized = key.trim().toLowerCase()
+        if (!isValidShortcutKey(normalized)) return false
+        const overrides = get().shortcutOverrides
+        if (shortcutKeyConflict(id, normalized, overrides) !== null) return false
+        const next = { ...overrides }
+        if (normalized === DEFAULT_SHORTCUT_KEYS[id]) delete next[id]
+        else next[id] = normalized
+        set({ shortcutOverrides: next })
+        return true
+      },
+      resetShortcutOverrides: () => set({ shortcutOverrides: {} }),
       structureLayer: DEFAULT_PERSISTED_EDITOR_UI_STATE.structureLayer,
       setStructureLayer: (layer) => {
         const { mode } = get()
@@ -1480,6 +1513,7 @@ const useEditor = create<EditorState>()(
         gridSnapStep: state.gridSnapStep,
         magneticSnap: state.magneticSnap,
         lastMeasurementKind: state.lastMeasurementKind,
+        shortcutOverrides: state.shortcutOverrides,
         snappingModeByContext: state.snappingModeByContext,
         continuationByContext: state.continuationByContext,
         showReferenceFloor: state.showReferenceFloor,

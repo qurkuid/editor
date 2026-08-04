@@ -1,13 +1,16 @@
 'use client'
 
+import { useViewer } from '@pascal-app/viewer'
 import { type ForwardedRef, Fragment, forwardRef } from 'react'
 
 // Canonical in-world dimension formatter — metric metres or imperial
 // feet/inches. Shared by every measurement readout so they read the same.
+// When `metricNotation` is omitted it follows the viewer's current setting,
+// so callers that only carry `unit` still honor the mm toggle.
 export function formatMeasurement(
   value: number,
   unit: 'metric' | 'imperial',
-  metricNotation: 'meters' | 'millimeters' = 'meters',
+  metricNotation: 'meters' | 'millimeters' = useViewer.getState().metricNotation,
 ): string {
   if (unit === 'imperial') {
     const feet = value * 3.280_84

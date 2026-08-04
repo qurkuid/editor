@@ -218,6 +218,7 @@ function ViewModeControl() {
 }
 
 function CollapseSidebarButton() {
+  const t = useT()
   const isCollapsed = useSidebarStore((state) => state.isCollapsed)
   const setIsCollapsed = useSidebarStore((state) => state.setIsCollapsed)
 
@@ -227,9 +228,9 @@ function CollapseSidebarButton() {
 
   return (
     <div className={TOOLBAR_CONTAINER}>
-      <ToolbarTooltip label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+      <ToolbarTooltip label={isCollapsed ? t('chrome.expandSidebar') : t('chrome.collapseSidebar')}>
         <button
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={isCollapsed ? t('chrome.expandSidebar') : t('chrome.collapseSidebar')}
           className={TOOLBAR_BTN}
           onClick={toggle}
           type="button"

@@ -29,6 +29,7 @@ import { toggleDoorOpenState } from '../lib/door-interaction'
 import { guideEmitter } from '../lib/guide-events'
 import { runRedo, runUndo } from '../lib/history'
 import { isActive } from '../lib/interaction/scope'
+import { type RebindableShortcutId, resolveShortcutKey } from '../lib/keyboard-shortcuts'
 import { endMoveCopySession, toggleMoveCopy } from '../lib/move-copy-mode'
 import { copySelectedNodesToEditorClipboard } from '../lib/scene-clipboard'
 import { sfxEmitter } from '../lib/sfx-bus'
@@ -37,6 +38,7 @@ import { toggleWindowOpenState } from '../lib/window-interaction'
 import useDeleteConfirmation from '../store/use-delete-confirmation'
 import useEditor, { getActiveContinuationContext, getActiveSnapContext } from '../store/use-editor'
 import useInteractionScope, { getMovingNode } from '../store/use-interaction-scope'
+import usePivotRotate from '../store/use-pivot-rotate'
 
 // References (guide/scan) are selected via `useEditor.selectedReferenceId`, not
 // the viewer selection, so selection-based key arms (R/T rotate) need this
@@ -203,6 +205,10 @@ export const useKeyboard = ({
     let altTapClean = false
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Rebindable global shortcuts resolve through the settings keyboard
+      // page's override map — never compare their keys directly.
+      const shortcutKey = (id: RebindableShortcutId) =>
+        resolveShortcutKey(id, useEditor.getState().shortcutOverrides)
       if (e.key === 'Control' || e.key === 'Meta') {
         // Only a fresh, modifier-free press starts a clean-tap candidate;
         // ignore key-repeat and presses already part of a combo.
@@ -342,19 +348,19 @@ export const useKeyboard = ({
         if (!_toolCancelConsumed) {
           exitToSelectAfterUnconsumedCancel()
         }
-      } else if (e.key === '1' && !e.metaKey && !e.ctrlKey) {
+      } else if (e.key === shortcutKey('phase-site') && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
         useEditor.getState().setPhase('site')
         useEditor.getState().setMode('select')
-      } else if (e.key === '2' && !e.metaKey && !e.ctrlKey) {
+      } else if (e.key === shortcutKey('phase-structure') && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
         useEditor.getState().setPhase('structure')
         useEditor.getState().setMode('select')
-      } else if (e.key === '3' && !e.metaKey && !e.ctrlKey) {
+      } else if (e.key === shortcutKey('phase-furnish') && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
         useEditor.getState().setPhase('furnish')
         useEditor.getState().setMode('select')
-      } else if (e.key === 'f' && !e.metaKey && !e.ctrlKey) {
+      } else if (e.key === shortcutKey('tool-furnish') && !e.metaKey && !e.ctrlKey) {
         if (isVersionPreviewMode) return
         e.preventDefault()
         useEditor.getState().setPhase('furnish')
@@ -363,7 +369,7 @@ export const useKeyboard = ({
         // stale tool from a prior build session.
         useEditor.getState().setTool('item')
         useEditor.getState().setActiveSidebarPanel('items')
-      } else if (e.key === 'z' && !e.metaKey && !e.ctrlKey) {
+      } else if (e.key === shortcutKey('tool-zone') && !e.metaKey && !e.ctrlKey) {
         if (isVersionPreviewMode) return
         e.preventDefault()
         useEditor.getState().setPhase('structure')
@@ -371,7 +377,7 @@ export const useKeyboard = ({
         useEditor.getState().setMode('build')
         // Set the zone tool explicitly so it never inherits a stale tool.
         useEditor.getState().setTool('zone')
-      } else if (e.key === 'm' && !e.metaKey && !e.ctrlKey) {
+      } else if (e.key === shortcutKey('tool-measurement') && !e.metaKey && !e.ctrlKey) {
         if (isVersionPreviewMode) return
         e.preventDefault()
         const editor = useEditor.getState()
@@ -381,11 +387,19 @@ export const useKeyboard = ({
         editor.setMode('build')
         editor.setTool('measurement')
       }
-      if (e.key === 'v' && !e.metaKey && !e.ctrlKey) {
+      if (e.key === shortcutKey('mode-select') && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
         useEditor.getState().setMode('select')
         useEditor.getState().setFloorplanSelectionTool('click')
-      } else if (e.key === 'b' && !e.metaKey && !e.ctrlKey) {
+      } else if (e.key === shortcutKey('pivot-rotate') && !e.metaKey && !e.ctrlKey) {
+        if (isVersionPreviewMode) return
+        e.preventDefault()
+        // Toggle: the shortcut arms the pivot rotate on the current selection
+        // and cancels it when already active (mirrors the bottom-menu button).
+        const pivotRotate = usePivotRotate.getState()
+        if (pivotRotate.stage !== 'idle') pivotRotate.cancel()
+        else pivotRotate.start(useViewer.getState().selection.selectedIds)
+      } else if (e.key === shortcutKey('mode-build') && !e.metaKey && !e.ctrlKey) {
         if (isVersionPreviewMode) return
         e.preventDefault()
         useEditor.getState().setPhase('structure')
@@ -394,7 +408,7 @@ export const useKeyboard = ({
         // Set the wall tool explicitly so B never inherits a stale tool
         // (e.g. fence) left over from a prior build session.
         useEditor.getState().setTool('wall')
-      } else if (e.key === 'x' && !e.metaKey && !e.ctrlKey) {
+      } else if (e.key === shortcutKey('mode-delete') && !e.metaKey && !e.ctrlKey) {
         if (isVersionPreviewMode) return
         e.preventDefault()
         useEditor.getState().setMode('delete')

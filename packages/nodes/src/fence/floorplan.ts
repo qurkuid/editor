@@ -9,6 +9,8 @@ import {
   isSplineFence,
   sampleFenceCenterline,
 } from '@pascal-app/core'
+import { readFloorplanContext } from '@pascal-app/editor'
+import { formatConstructionLength } from '../shared/construction-length'
 import type { FenceNode } from './schema'
 
 /**
@@ -505,11 +507,14 @@ export function buildFenceFloorplan(node: FenceNode, ctx: GeometryContext): Floo
       const angle = labelFrame
         ? Math.atan2(labelFrame.tangent.y, labelFrame.tangent.x)
         : Math.atan2(node.end[1] - node.start[1], node.end[0] - node.start[0])
+      const { metricNotation } = readFloorplanContext(ctx)
       children.push({
         kind: 'dimension-label',
         cx: midX,
         cy: midZ,
-        text: `${Number.parseFloat(length.toFixed(2))}m`,
+        text: formatConstructionLength(length, view?.unit ?? 'metric', 'editor', {
+          metricNotation,
+        }),
         angle,
       })
     }

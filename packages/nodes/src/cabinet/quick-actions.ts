@@ -216,7 +216,7 @@ export function cabinetQuickActions({
     if (standardModule && selectedCabinetType === 'base') {
       actions.push({
         id: 'cabinet:add-wall',
-        label: 'Wall',
+        label: 'Wall cabinet',
         title: hasWallCabinet
           ? 'A wall cabinet already exists above this cabinet'
           : wallAdditionBlocked
@@ -252,7 +252,7 @@ export function cabinetQuickActions({
     } else if (standardModule) {
       actions.push({
         id: 'cabinet:to-base',
-        label: 'Base',
+        label: 'Base cabinet',
         title: 'Switch to base cabinet',
         icon: cabinetBaseIcon,
         run: ({ sceneApi }) =>

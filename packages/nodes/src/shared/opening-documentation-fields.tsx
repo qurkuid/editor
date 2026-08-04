@@ -158,7 +158,13 @@ function OptionalMeterInput({
 }) {
   const t = useT()
   const unit = useViewer((state) => state.unit)
-  const displayValue = value === undefined ? '' : roundForInput(metersToLinearUnit(value, unit))
+  const metricNotation = useViewer((state) => state.metricNotation)
+  const isMillimeters = unit === 'metric' && metricNotation === 'millimeters'
+  const toDisplay = (meters: number) =>
+    isMillimeters ? Math.round(meters * 1000) : roundForInput(metersToLinearUnit(meters, unit))
+  const fromDisplay = (display: number) =>
+    isMillimeters ? display / 1000 : linearUnitToMeters(display, unit)
+  const displayValue = value === undefined ? '' : toDisplay(value)
 
   return (
     <label className="flex flex-col gap-1">
@@ -178,7 +184,7 @@ function OptionalMeterInput({
             const next =
               raw === '' || !Number.isFinite(parsed) || parsed <= 0
                 ? undefined
-                : linearUnitToMeters(parsed, unit)
+                : fromDisplay(parsed)
             if (next !== value) onChange(next)
           }}
           onKeyDown={(event) => {
@@ -190,11 +196,11 @@ function OptionalMeterInput({
           }}
           onWheel={(event) => event.currentTarget.blur()}
           placeholder={t('nodeInspector.verify')}
-          step={unit === 'imperial' ? 0.01 : 0.001}
+          step={unit === 'imperial' ? 0.01 : isMillimeters ? 1 : 0.001}
           type="number"
         />
         <span className="pr-2 font-mono text-[10px] text-muted-foreground">
-          {getLinearUnitLabel(unit)}
+          {isMillimeters ? 'mm' : getLinearUnitLabel(unit)}
         </span>
       </div>
     </label>

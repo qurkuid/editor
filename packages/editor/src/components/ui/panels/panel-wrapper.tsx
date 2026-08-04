@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react'
 import { useIsMobile } from '../../../hooks/use-mobile'
+import { useTLabel } from '../../../i18n/use-t-label'
 import { cn } from '../../../lib/utils'
 
 const DRAG_MARGIN = 8
@@ -86,6 +87,7 @@ export function PanelWrapper({
   className,
   width = 320, // default width
 }: PanelWrapperProps) {
+  const tLabel = useTLabel()
   const isMobile = useIsMobile()
   const contextFooter = useContext(InspectorFooterContext)
   const resolvedFooter = footer ?? contextFooter
@@ -261,7 +263,7 @@ export function PanelWrapper({
                 <span className="flex shrink-0 items-center justify-center">{icon}</span>
               ))}
             <h2 className="truncate font-semibold text-foreground text-sm tracking-tight">
-              {title}
+              {tLabel(title)}
             </h2>
           </div>
 

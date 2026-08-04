@@ -124,6 +124,7 @@ import { FloorplanCursorIndicatorOverlay as Editor2dFloorplanCursorIndicatorOver
 import { FloorplanGroupActionMenu } from '../editor-2d/floorplan-group-action-menu'
 import { FloorplanSiteKeyHandler } from '../editor-2d/floorplan-hotkey-handlers'
 import { FloorplanMeasurementToolLayer } from '../editor-2d/floorplan-measurement-tool-layer'
+import { FloorplanPivotRotateLayer } from '../editor-2d/floorplan-pivot-rotate-layer'
 import { FloorplanRegisteredToolLayer } from '../editor-2d/floorplan-registered-tool-layer'
 import { FloorplanRegistryActionMenu } from '../editor-2d/floorplan-registry-action-menu'
 import { FloorplanRegistryMoveOverlay } from '../editor-2d/floorplan-registry-move-overlay'
@@ -7187,7 +7188,7 @@ export function FloorplanPanel({
     setReferenceScaleUnit(
       unit === 'imperial' ? 'feet' : metricNotation === 'millimeters' ? 'millimeters' : 'meters',
     )
-  }, [unit])
+  }, [unit, metricNotation])
 
   const startReferenceScaleForGuide = useCallback(
     (guideId: GuideNode['id']) => {
@@ -9981,12 +9982,15 @@ export function FloorplanPanel({
         })
         // Pre-fill with the drawn length in the pre-selected unit, so
         // confirming without editing is a no-op instead of a surprise
-        // rescale (plan units are meters; convert when defaulting to feet).
+        // rescale (plan units are meters; convert when defaulting to feet
+        // or millimeters).
         setReferenceScaleValue(
           formatNumber(
             unit === 'imperial'
               ? measuredLengthUnits / linearUnitToMeters(1, 'imperial')
-              : measuredLengthUnits,
+              : metricNotation === 'millimeters'
+                ? measuredLengthUnits * 1000
+                : measuredLengthUnits,
             2,
           ),
         )
@@ -11503,6 +11507,7 @@ export function FloorplanPanel({
                   <FloorplanWallMoveGhostLayer />
                 </g>
                 <FloorplanMeasurementToolLayer />
+                <FloorplanPivotRotateLayer />
                 <FloorplanRegisteredToolLayer />
                 {floorplanSceneSlot}
               </FloorplanRenderProvider>

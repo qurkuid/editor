@@ -3,6 +3,7 @@
 import NumberFlow from '@number-flow/react'
 import { useScene } from '@pascal-app/core'
 import { useCallback, useRef, useState } from 'react'
+import { useTLabel } from '../../../i18n/use-t-label'
 
 interface NumberInputProps {
   label: string
@@ -25,6 +26,7 @@ export function NumberInput({
   step = 0.1,
   className = '',
 }: NumberInputProps) {
+  const tLabel = useTLabel()
   const [isEditing, setIsEditing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [inputValue, setInputValue] = useState(value.toFixed(precision))
@@ -155,7 +157,7 @@ export function NumberInput({
           onMouseDown={handleLabelMouseDown}
           ref={labelRef}
         >
-          {label}
+          {tLabel(label)}
         </div>
         {isEditing ? (
           <input

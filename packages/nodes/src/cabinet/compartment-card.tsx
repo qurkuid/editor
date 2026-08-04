@@ -1,6 +1,6 @@
 'use client'
 
-import { SegmentedControl, SliderControl, ToggleControl } from '@pascal-app/editor'
+import { SegmentedControl, SliderControl, ToggleControl, useTLabel } from '@pascal-app/editor'
 import { ArrowDown, ArrowUp, Minus, Plus, Trash } from 'lucide-react'
 import {
   type CabinetCompartment,
@@ -113,9 +113,10 @@ function Stepper({
   min: number
   max: number
 }) {
+  const tLabel = useTLabel()
   return (
     <div className="flex items-center justify-between rounded-lg border border-border/30 bg-black/10 px-2 py-1.5">
-      <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
+      <span className="text-[11px] font-medium text-muted-foreground">{tLabel(label)}</span>
       <div className="flex items-center gap-1.5">
         <button
           className={STEPPER_BUTTON_CLASS}
@@ -150,6 +151,7 @@ function CompartmentTypeControl({
   includeHood?: boolean
   wallCabinet?: boolean
 }) {
+  const tLabel = useTLabel()
   const options = wallCabinet
     ? WALL_COMPARTMENT_TYPE_CONTROL_OPTIONS
     : includeHood
@@ -171,7 +173,7 @@ function CompartmentTypeControl({
             onClick={() => onChange(option.value)}
             type="button"
           >
-            {option.label}
+            {tLabel(option.label)}
           </button>
         )
       })}
@@ -212,14 +214,15 @@ export function CompartmentCard({
   const isFridge = isFridgeCompartmentType(type)
   const isHood = isHoodCompartmentType(type)
   const isCooktop = isCooktopCompartmentType(type)
+  const tLabel = useTLabel()
   return (
     <div className="rounded-lg border border-border/40 bg-[#252527] p-2">
       <div className="flex items-center justify-between pb-1.5">
         <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
           {displayIndex === 0
-            ? 'Top'
+            ? tLabel('Top')
             : displayIndex === total - 1
-              ? 'Bottom'
+              ? tLabel('Bottom')
               : `#${total - displayIndex}`}
         </span>
         <div className="flex items-center gap-1">
@@ -252,7 +255,7 @@ export function CompartmentCard({
 
       <div className="pb-2">
         <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-          Type
+          {tLabel('Type')}
         </div>
         <CompartmentTypeControl
           includeHood={allowHood || isHood}
@@ -314,7 +317,7 @@ export function CompartmentCard({
         <div className="space-y-2">
           <div>
             <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-              Style
+              {tLabel('Style')}
             </div>
             <SegmentedControl
               onChange={(value) => onReplace(patchCompartment(compartment, { doorType: value }))}
@@ -338,7 +341,7 @@ export function CompartmentCard({
       {isFridge && (
         <div>
           <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Style
+            {tLabel('Style')}
           </div>
           <SegmentedControl
             onChange={(value) =>
@@ -360,14 +363,14 @@ export function CompartmentCard({
 
       {isHood && (
         <div className="rounded-lg border border-border/30 bg-black/10 px-2 py-1.5 text-[11px] font-medium text-muted-foreground">
-          Chimney
+          {tLabel('Chimney')}
         </div>
       )}
 
       {isCooktop && (
         <div className="space-y-2">
           <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Surface
+            {tLabel('Surface')}
           </div>
           <SegmentedControl
             onChange={(value) =>
@@ -392,7 +395,7 @@ export function CompartmentCard({
           />
           <div>
             <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-              Layout
+              {tLabel('Layout')}
             </div>
             <SegmentedControl
               onChange={(value) =>
@@ -442,7 +445,7 @@ export function CompartmentCard({
       {type === 'sink' && (
         <div>
           <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Bowls
+            {tLabel('Bowls')}
           </div>
           <SegmentedControl
             onChange={(value) => onReplace(patchCompartment(compartment, { sinkLayout: value }))}
@@ -466,7 +469,7 @@ export function CompartmentCard({
           />
           <div>
             <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-              Rack
+              {tLabel('Rack')}
             </div>
             <SegmentedControl
               onChange={(value) =>

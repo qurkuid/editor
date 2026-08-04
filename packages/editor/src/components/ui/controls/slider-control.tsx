@@ -72,10 +72,11 @@ export function SliderControl({
   // stored unit (meters for `unit === 'm'`); the step, drag deltas, text field
   // and rendered number are in the DISPLAY unit (feet when imperial). For
   // metric and non-length units these conversions are the identity.
-  const { isImperial, displayUnit, displayPrecision, toDisplay, toStored } = useLinearDisplay(
-    unit,
-    precision,
-  )
+  const { isImperial, isMillimeters, displayUnit, displayPrecision, toDisplay, toStored } =
+    useLinearDisplay(unit, precision)
+  // A bare typed number means the DISPLAY unit — `4500` in mm notation is
+  // 4.5 m, not 4500 m. Explicit units (`180cm`) are honored regardless.
+  const bareUnit = isImperial ? 'ft' : isMillimeters ? 'mm' : undefined
   // Step is authored in the stored unit; drags and arrow keys move in DISPLAY
   // units, so a 0.01 m step becomes 10 mm rather than a 0.01 mm crawl.
   const displayStep = toDisplay(step)
@@ -230,7 +231,7 @@ export function SliderControl({
     const spec = lingoUnitSpec(unit)
     let stored = spec
       ? parseMeasurement(inputValue, spec, {
-          bareUnit: isImperial ? 'ft' : spec.unitId,
+          bareUnit: bareUnit ?? spec.unitId,
           system: isImperial ? 'us' : 'metric',
         })
       : null
@@ -249,16 +250,16 @@ export function SliderControl({
       onCommit?.(nextValue)
     }
     setIsEditing(false)
-  }, [inputValue, unit, isImperial, onChange, onCommit, clamp, displayPrecision, value, toDisplay, toStored])
+  }, [inputValue, unit, isImperial, bareUnit, onChange, onCommit, clamp, displayPrecision, value, toDisplay, toStored])
 
   const spec = lingoUnitSpec(unit)
   const hint =
     isEditing && spec
       ? measurementHint(inputValue, spec, {
-          bareUnit: isImperial ? 'ft' : spec.unitId,
+          bareUnit: bareUnit ?? spec.unitId,
           system: isImperial ? 'us' : 'metric',
-          displayUnit: isImperial ? 'ft' : spec.unitId,
-          precision,
+          displayUnit: bareUnit ?? spec.unitId,
+          precision: displayPrecision,
           clamp,
         })
       : null

@@ -147,11 +147,16 @@ function LevelRow({
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const updateNode = useScene((s) => s.updateNode)
-  const { isImperial, toDisplay, displayUnit } = useLinearDisplay('m', 2)
+  const { isImperial, isMillimeters, toDisplay, displayUnit, displayPrecision } = useLinearDisplay(
+    'm',
+    2,
+  )
 
   const storeyHeight = getStoredLevelHeight(level)
-  // toFixed(2) + strip one trailing zero: "2.50" → "2.5", "2.75" stays.
-  const storeyHeightLabel = `${toDisplay(storeyHeight).toFixed(2).replace(/0$/, '')} ${displayUnit}`
+  // toFixed + strip one trailing zero: "2.50" → "2.5", "2.75" stays. In mm
+  // notation the precision is 0, so there is no fraction to strip.
+  const storeyHeightRaw = toDisplay(storeyHeight).toFixed(displayPrecision)
+  const storeyHeightLabel = `${displayPrecision > 0 ? storeyHeightRaw.replace(/0$/, '') : storeyHeightRaw} ${displayUnit}`
 
   // Clean preset values per display system; imperial stores exact meters
   // for whole-foot storey heights.
@@ -161,11 +166,10 @@ function LevelRow({
         { label: '9 ft', height: 2.7432 },
         { label: '10 ft', height: 3.048 },
       ]
-    : [
-        { label: '2.5 m', height: 2.5 },
-        { label: '3.0 m', height: 3.0 },
-        { label: '3.5 m', height: 3.5 },
-      ]
+    : [2.5, 3.0, 3.5].map((height) => ({
+        label: isMillimeters ? `${Math.round(height * 1000)} mm` : `${height.toFixed(1)} m`,
+        height,
+      }))
 
   return (
     <div className="group/level">

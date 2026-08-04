@@ -42,6 +42,8 @@ import { useCallback, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useShallow } from 'zustand/react/shallow'
 import { useReducedMotion } from '../../hooks/use-reduced-motion'
+import { useT } from '../../i18n/use-t'
+import { useTLabel } from '../../i18n/use-t-label'
 import { resolveMoveActionNode } from '../../lib/direct-manipulation'
 import {
   createFreshPlacementSubtree,
@@ -61,7 +63,6 @@ import useInteractionScope, {
   useEndpointReshape,
   useIsCurveReshape,
 } from '../../store/use-interaction-scope'
-import { useT } from '../../i18n/use-t'
 import { useWallConstructionDisplay } from '../../store/use-wall-construction-display'
 import { IconRefGlyph } from '../ui/icon-ref'
 import { formatMeasurement, MeasurementPill } from './measurement-pill'
@@ -308,6 +309,7 @@ export function FloatingActionMenu() {
   const wallDisplayMode = useWallConstructionDisplay((s) => s.mode)
   const setWallDisplayMode = useWallConstructionDisplay((s) => s.setMode)
   const t = useT()
+  const tLabel = useTLabel()
   const menuStepBack = resolveOverlayPolicy(scope).conflictingControls === 'hidden'
 
   const groupRef = useRef<THREE.Group>(null)
@@ -847,7 +849,7 @@ export function FloatingActionMenu() {
                 {quickActions.map((action) => (
                   <button
                     aria-disabled={action.disabled || undefined}
-                    aria-label={action.title ?? action.label}
+                    aria-label={tLabel(action.title ?? action.label)}
                     className={cn(
                       'tooltip-trigger flex items-center rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground',
                       action.disabled &&
@@ -856,7 +858,7 @@ export function FloatingActionMenu() {
                     disabled={action.disabled && !action.blockedFeedback}
                     key={action.id}
                     onClick={handleQuickAction(action)}
-                    title={action.title ?? action.label}
+                    title={tLabel(action.title ?? action.label)}
                     type="button"
                   >
                     <span className="flex items-center gap-1.5" data-quick-action-feedback>
@@ -864,7 +866,7 @@ export function FloatingActionMenu() {
                         <QuickActionIcon action={action} />
                       </span>
                       <span className="whitespace-nowrap leading-none" data-quick-action-label>
-                        {action.label}
+                        {tLabel(action.label)}
                       </span>
                     </span>
                   </button>

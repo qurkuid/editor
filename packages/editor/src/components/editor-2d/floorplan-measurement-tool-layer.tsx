@@ -19,7 +19,7 @@ import {
   useScene,
 } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../../i18n/use-t'
 import { measurementPolygonLabelAnchor } from '../../lib/measurement-label'
 import {
@@ -638,17 +638,28 @@ function FloorplanExtrusionControl({
 }) {
   const t = useT()
   const unit = useViewer((state) => state.unit)
+  const metricNotation = useViewer((state) => state.metricNotation)
+  const isMillimeters = unit === 'metric' && metricNotation === 'millimeters'
+  const toDisplayHeight = useCallback(
+    (meters: number) =>
+      isMillimeters
+        ? Math.round(meters * 1000)
+        : Number(metersToLinearUnit(meters, unit).toFixed(3)),
+    [isMillimeters, unit],
+  )
+  const fromDisplayHeight = (display: number) =>
+    isMillimeters ? display / 1000 : linearUnitToMeters(display, unit)
   const extrusionHeight = useMeasurementDraft((state) => state.extrusionHeight)
   const points = useMeasurementDraft((state) => state.points)
   const baseNormal = useMeasurementDraft((state) => state.baseNormal)
   const [value, setValue] = useState(() =>
-    extrusionHeight === 0 ? '' : String(metersToLinearUnit(extrusionHeight, unit)),
+    extrusionHeight === 0 ? '' : String(toDisplayHeight(extrusionHeight)),
   )
 
   useEffect(() => {
     const height = useMeasurementDraft.getState().extrusionHeight
-    setValue(height === 0 ? '' : String(Number(metersToLinearUnit(height, unit).toFixed(3))))
-  }, [unit])
+    setValue(height === 0 ? '' : String(toDisplayHeight(height)))
+  }, [toDisplayHeight])
 
   const width = 260 * unitsPerPixel
   const height = 72 * unitsPerPixel
@@ -661,7 +672,7 @@ function FloorplanExtrusionControl({
       useMeasurementDraft.getState().setExtrusionHeight('2d', 0)
       return
     }
-    useMeasurementDraft.getState().setExtrusionHeight('2d', linearUnitToMeters(numericValue, unit))
+    useMeasurementDraft.getState().setExtrusionHeight('2d', fromDisplayHeight(numericValue))
     const draft = useMeasurementDraft.getState()
     if (draft.finishExtrusion('2d')) commitMeasurementDraft('2d')
   }
@@ -716,7 +727,7 @@ function FloorplanExtrusionControl({
                 if (Number.isFinite(numericValue)) {
                   useMeasurementDraft
                     .getState()
-                    .setExtrusionHeight('2d', linearUnitToMeters(numericValue, unit))
+                    .setExtrusionHeight('2d', fromDisplayHeight(numericValue))
                 } else {
                   useMeasurementDraft.getState().setExtrusionHeight('2d', 0)
                 }
@@ -734,7 +745,7 @@ function FloorplanExtrusionControl({
               value={value}
             />
             <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-muted-foreground text-xs">
-              {getLinearUnitLabel(unit)}
+              {isMillimeters ? 'mm' : getLinearUnitLabel(unit)}
             </span>
           </div>
           <span className="shrink-0 font-mono font-semibold text-[11px] tabular-nums text-foreground">

@@ -1,5 +1,6 @@
 import { Icon } from '@iconify/react'
 import type { ToolHint } from '@pascal-app/core'
+import { useViewer } from '@pascal-app/viewer'
 import { Fragment, useSyncExternalStore } from 'react'
 import {
   CONTINUATION_PROFILES,
@@ -7,6 +8,7 @@ import {
 } from '../../../lib/continuation'
 import type { ContextualShortcutHint } from '../../../lib/contextual-help'
 import { hasActivePaintMaterial } from '../../../lib/material-paint'
+import { formatLinearMeasurement } from '../../../lib/measurements'
 import { paintScopeLabel, type PaintScope } from '../../../lib/paint-scope'
 import { sfxEmitter } from '../../../lib/sfx-bus'
 import {
@@ -178,6 +180,9 @@ function SnappingChips({ context }: { context: SnapContext }) {
   const setSnappingMode = useEditor((s) => s.setSnappingMode)
   const gridSnapStep = useEditor((s) => s.gridSnapStep)
   const setGridSnapStep = useEditor((s) => s.setGridSnapStep)
+  const unit = useViewer((s) => s.unit)
+  const metricNotation = useViewer((s) => s.metricNotation)
+  const gridStepLabel = formatLinearMeasurement(gridSnapStep, unit, metricNotation)
 
   const gridActive = resolveSnapFlags(snappingMode).grid
 
@@ -196,8 +201,8 @@ function SnappingChips({ context }: { context: SnapContext }) {
       />
       {gridActive ? (
         <ChipRow
-          ariaLabel={`${tLabel('Grid step')}: ${gridSnapStep.toFixed(2)} m`}
-          label={`${tLabel('Grid')}: ${gridSnapStep.toFixed(2)} m`}
+          ariaLabel={`${tLabel('Grid step')}: ${gridStepLabel}`}
+          label={`${tLabel('Grid')}: ${gridStepLabel}`}
           onClick={() => {
             setGridSnapStep(nextGridSnapStep(gridSnapStep))
             sfxEmitter.emit('sfx:grid-snap')
@@ -226,7 +231,7 @@ function ToolHintChipRow({ hint }: { hint: ToolHint & { chip: NonNullable<ToolHi
       label={label}
       onClick={chip.cycle}
       shortcut={hint.key}
-      tooltip={chip.tooltip}
+      tooltip={chip.tooltip ? tLabel(chip.tooltip) : undefined}
     />
   )
 }

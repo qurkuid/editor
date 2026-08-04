@@ -52,4 +52,5 @@ export const actionMenuDictionary = {
   'actionMenu.dimArcLength': { ko: '호 길이', en: 'Arc length' },
   'actionMenu.dimAngular': { ko: '각도 치수', en: 'Angular dimension' },
   'actionMenu.dimCoordinate': { ko: '좌표 치수', en: 'Coordinate dimensions' },
+  'actionMenu.measureWord': { ko: '측정', en: 'Measure' },
 } as const satisfies Dictionary

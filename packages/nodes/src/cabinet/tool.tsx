@@ -1179,9 +1179,11 @@ const CabinetTool = () => {
     ? placement.valid
       ? // Span-first readout: the run is exactly as long as the span drawn, so
         // show that length and the equal bay width it divides into.
-        `${formatLinearMeasurement(stretch.length, unit, metricNotation)} · ${stretch.modules.length}${t('panel.runBayCount')} × ${(
-          (stretch.modules[0]?.width ?? 0) * 1000
-        ).toFixed(0)}mm · ${t('panel.runClickToContinue')}`
+        `${formatLinearMeasurement(stretch.length, unit, metricNotation)} · ${stretch.modules.length}${t('panel.runBayCount')} × ${formatLinearMeasurement(
+          stretch.modules[0]?.width ?? 0,
+          unit,
+          metricNotation,
+        )} · ${t('panel.runClickToContinue')}`
       : null
     : !placement.valid
       ? null

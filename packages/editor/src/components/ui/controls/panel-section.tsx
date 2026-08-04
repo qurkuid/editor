@@ -3,6 +3,7 @@
 import { ChevronDown } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
+import { useTLabel } from '../../../i18n/use-t-label'
 import { cn } from '../../../lib/utils'
 
 interface PanelSectionProps {
@@ -18,6 +19,7 @@ export function PanelSection({
   defaultExpanded = true,
   className,
 }: PanelSectionProps) {
+  const tLabel = useTLabel()
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
   return (
@@ -37,7 +39,7 @@ export function PanelSection({
         onClick={() => setIsExpanded(!isExpanded)}
         type="button"
       >
-        <span className="truncate font-medium text-sm">{title}</span>
+        <span className="truncate font-medium text-sm">{tLabel(title)}</span>
         <ChevronDown
           className={cn(
             'h-4 w-4 transition-transform duration-200',

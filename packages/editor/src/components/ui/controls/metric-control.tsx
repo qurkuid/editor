@@ -2,6 +2,7 @@
 
 import { useScene } from '@pascal-app/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTLabel } from '../../../i18n/use-t-label'
 import {
   lingoUnitSpec,
   measurementHint,
@@ -37,12 +38,18 @@ export function MetricControl({
   unit = '',
   restoreOnCommit = true,
 }: MetricControlProps) {
+  const tLabel = useTLabel()
   const {
     isImperial,
+    isMillimeters,
     displayUnit,
+    displayPrecision,
     toDisplay: toDisplayValue,
     toStored: toStoredValue,
   } = useLinearDisplay(unit, precision)
+  // A bare typed number means the DISPLAY unit — `4500` in mm notation is
+  // 4.5 m, not 4500 m. Explicit units (`180cm`) are honored regardless.
+  const bareUnit = isImperial ? 'ft' : isMillimeters ? 'mm' : undefined
 
   const clamp = useCallback(
     (val: number) => {
@@ -226,7 +233,7 @@ export function MetricControl({
     const spec = lingoUnitSpec(unit)
     let stored = spec
       ? parseMeasurement(inputValue, spec, {
-          bareUnit: isImperial ? 'ft' : spec.unitId,
+          bareUnit: bareUnit ?? spec.unitId,
           system: isImperial ? 'us' : 'metric',
         })
       : null
@@ -244,6 +251,7 @@ export function MetricControl({
     inputValue,
     unit,
     isImperial,
+    bareUnit,
     applyCommittedValue,
     clamp,
     toStoredValue,
@@ -256,10 +264,10 @@ export function MetricControl({
   const hint =
     isEditing && spec
       ? measurementHint(inputValue, spec, {
-          bareUnit: isImperial ? 'ft' : spec.unitId,
+          bareUnit: bareUnit ?? spec.unitId,
           system: isImperial ? 'us' : 'metric',
-          displayUnit: isImperial ? 'ft' : spec.unitId,
-          precision,
+          displayUnit: bareUnit ?? spec.unitId,
+          precision: displayPrecision,
           clamp,
         })
       : null
@@ -310,7 +318,7 @@ export function MetricControl({
         )}
         onPointerDown={handlePointerDown}
       >
-        {label}
+        {typeof label === 'string' ? tLabel(label) : label}
       </div>
 
       <div className="flex shrink-0 justify-end">

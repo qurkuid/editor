@@ -38,6 +38,7 @@ import {
   translate,
   useLocale,
   useT,
+  useTLabel,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Minus, Pause, Play, Plus } from 'lucide-react'
@@ -310,7 +311,9 @@ export function FurnitureTierInteriorControls({
         type="button"
       >
         <span>{t('panel.hangerRod')}</span>
-        <span className="text-muted-foreground">{draft.hanger ? 'On' : 'Off'}</span>
+        <span className="text-muted-foreground">
+          {draft.hanger ? t('chrome.on') : t('chrome.off')}
+        </span>
       </button>
       <div className="flex gap-2">
         <ActionButton label={t('chrome.cancel')} onClick={onCancel} />
@@ -371,7 +374,9 @@ export function FurnitureTierFrontControls({
             type="button"
           >
             <span>{t('panel.glass')}</span>
-            <span className="text-muted-foreground">{draft.glass ? 'On' : 'Off'}</span>
+            <span className="text-muted-foreground">
+              {draft.glass ? t('chrome.on') : t('chrome.off')}
+            </span>
           </button>
         </>
       )}
@@ -438,7 +443,7 @@ export function FurnitureTierFrontControls({
       {draft.kind === 'pull-out' && (
         <div>
           <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Style
+            {t('panel.style')}
           </div>
           <SegmentedControl
             onChange={(value) =>
@@ -466,9 +471,11 @@ export function FurnitureTierFrontControls({
 
 export default function CabinetPanel() {
   const t = useT()
+  const tLabel = useTLabel()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
   const unit = useViewer((s) => s.unit)
+  const metricNotation = useViewer((state) => state.metricNotation)
   const [isAnimating, setIsAnimating] = useState(false)
   const [furnitureNavigation, setFurnitureNavigation] = useState<FurnitureNavigation>(
     INITIAL_FURNITURE_NAVIGATION,
@@ -890,7 +897,6 @@ export default function CabinetPanel() {
   }
 
   const unitLabel = getLinearUnitLabel(unit)
-  const metricNotation = useViewer((state) => state.metricNotation)
 
   if (node.type === 'cabinet' && node.furniture) {
     const furniture = node.furniture
@@ -918,11 +924,12 @@ export default function CabinetPanel() {
             icon="/icons/item.webp"
             onBack={cancelFurnitureInterior}
             onClose={close}
-            title={`Tier ${tierIndex + 1} Interior`}
+            title={`${t('panel.tierN').replace('{n}', String(tierIndex + 1))} ${t('panel.interior')}`}
             width={320}
           >
             <div className="px-1 pb-2 text-[11px] text-muted-foreground">
-              Bay {bayIndex + 1} → Tier {tierIndex + 1} → Interior
+              {t('panel.bayN').replace('{n}', String(bayIndex + 1))} →{' '}
+              {t('panel.tierN').replace('{n}', String(tierIndex + 1))} → {t('panel.interior')}
             </div>
             <PanelSection title={t('panel.interior')}>
               <FurnitureTierInteriorControls
@@ -946,11 +953,12 @@ export default function CabinetPanel() {
             icon="/icons/item.webp"
             onBack={cancelFurnitureFront}
             onClose={close}
-            title={`Tier ${tierIndex + 1} Front`}
+            title={`${t('panel.tierN').replace('{n}', String(tierIndex + 1))} ${t('panel.front')}`}
             width={320}
           >
             <div className="px-1 pb-2 text-[11px] text-muted-foreground">
-              Bay {bayIndex + 1} → Tier {tierIndex + 1} → Front
+              {t('panel.bayN').replace('{n}', String(bayIndex + 1))} →{' '}
+              {t('panel.tierN').replace('{n}', String(tierIndex + 1))} → {t('panel.front')}
             </div>
             <PanelSection title={t('panel.front')}>
               <FurnitureTierFrontControls
@@ -973,11 +981,12 @@ export default function CabinetPanel() {
           icon="/icons/item.webp"
           onBack={() => setFurnitureNavigation((current) => ({ ...current, tierId: null }))}
           onClose={close}
-          title={`Tier ${tierIndex + 1}`}
+          title={t('panel.tierN').replace('{n}', String(tierIndex + 1))}
           width={320}
         >
           <div className="px-1 pb-2 text-[11px] text-muted-foreground">
-            Bay {bayIndex + 1} → Tier {tierIndex + 1}
+            {t('panel.bayN').replace('{n}', String(bayIndex + 1))} →{' '}
+            {t('panel.tierN').replace('{n}', String(tierIndex + 1))}
           </div>
           <PanelSection title={t('panel.tier')}>
             <div className="space-y-2 px-1 pb-2">
@@ -1140,7 +1149,7 @@ export default function CabinetPanel() {
                   }
                   type="button"
                 >
-                  <span>Tier {index + 1}</span>
+                  <span>{t('panel.tierN').replace('{n}', String(index + 1))}</span>
                   <span className="text-muted-foreground">
                     {formatLinearMeasurement(tier.height, unit, metricNotation)}
                   </span>
@@ -1156,7 +1165,7 @@ export default function CabinetPanel() {
       <PanelWrapper
         icon="/icons/item.webp"
         onClose={close}
-        title={node.name || 'Furniture Assembly'}
+        title={tLabel(node.name || 'Furniture Assembly')}
         width={320}
       >
         <PanelSection title={t('panel.furnitureType')}>
@@ -1204,10 +1213,10 @@ export default function CabinetPanel() {
             <button
               aria-label={
                 isAnimating
-                  ? 'Stop animation'
+                  ? t('panel.stopAnimation')
                   : (node.operationState ?? 0) >= 0.99
-                    ? 'Close cabinet'
-                    : 'Open cabinet'
+                    ? t('panel.closeCabinet')
+                    : t('panel.openCabinet')
               }
               className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-border/40 bg-[#2C2C2E] px-2.5 text-[11px] font-medium text-foreground transition-colors hover:bg-[#3e3e3e]"
               onClick={() => {
@@ -1219,16 +1228,20 @@ export default function CabinetPanel() {
               }}
               title={
                 isAnimating
-                  ? 'Stop animation'
+                  ? t('panel.stopAnimation')
                   : (node.operationState ?? 0) >= 0.99
-                    ? 'Close cabinet'
-                    : 'Play animation'
+                    ? t('panel.closeCabinet')
+                    : t('panel.playAnimation')
               }
               type="button"
             >
               {isAnimating ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               <span>
-                {isAnimating ? 'Stop' : (node.operationState ?? 0) >= 0.99 ? 'Close' : 'Play'}
+                {isAnimating
+                  ? t('panel.stop')
+                  : (node.operationState ?? 0) >= 0.99
+                    ? t('common.close')
+                    : t('panel.play')}
               </span>
             </button>
           </div>
@@ -1303,7 +1316,7 @@ export default function CabinetPanel() {
                 }
                 type="button"
               >
-                <span>Bay {index + 1}</span>
+                <span>{t('panel.bayN').replace('{n}', String(index + 1))}</span>
                 <span className="text-muted-foreground">
                   {formatLinearMeasurement(bay.width, unit, metricNotation)}
                 </span>
@@ -1320,7 +1333,7 @@ export default function CabinetPanel() {
       icon="/icons/item.webp"
       onBack={node.type === 'cabinet-module' ? backToRun : undefined}
       onClose={close}
-      title={node.name || 'Modular Cabinet'}
+      title={tLabel(node.name || 'Modular Cabinet')}
       width={320}
     >
       {node.type === 'cabinet' && !node.furniture && (
@@ -1343,7 +1356,7 @@ export default function CabinetPanel() {
                 onClick={() => applyPreset(preset.id)}
                 type="button"
               >
-                <span className="truncate">{preset.label}</span>
+                <span className="truncate">{tLabel(preset.label)}</span>
               </button>
             ))}
           </div>
@@ -1445,10 +1458,10 @@ export default function CabinetPanel() {
             <button
               aria-label={
                 isAnimating
-                  ? 'Stop animation'
+                  ? t('panel.stopAnimation')
                   : (node.operationState ?? 0) >= 0.99
-                    ? 'Close cabinet'
-                    : 'Open cabinet'
+                    ? t('panel.closeCabinet')
+                    : t('panel.openCabinet')
               }
               className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-border/40 bg-[#2C2C2E] px-2.5 text-[11px] font-medium text-foreground transition-colors hover:bg-[#3e3e3e]"
               onClick={() => {
@@ -1460,16 +1473,20 @@ export default function CabinetPanel() {
               }}
               title={
                 isAnimating
-                  ? 'Stop animation'
+                  ? t('panel.stopAnimation')
                   : (node.operationState ?? 0) >= 0.99
-                    ? 'Close cabinet'
-                    : 'Play animation'
+                    ? t('panel.closeCabinet')
+                    : t('panel.playAnimation')
               }
               type="button"
             >
               {isAnimating ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               <span>
-                {isAnimating ? 'Stop' : (node.operationState ?? 0) >= 0.99 ? 'Close' : 'Play'}
+                {isAnimating
+                  ? t('panel.stop')
+                  : (node.operationState ?? 0) >= 0.99
+                    ? t('common.close')
+                    : t('panel.play')}
               </span>
             </button>
           </div>

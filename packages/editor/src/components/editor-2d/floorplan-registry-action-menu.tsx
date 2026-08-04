@@ -19,6 +19,7 @@ import { type MouseEvent, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useShallow } from 'zustand/react/shallow'
 import { useReducedMotion } from '../../hooks/use-reduced-motion'
+import { useTLabel } from '../../i18n/use-t-label'
 import { resolveMoveActionNode } from '../../lib/direct-manipulation'
 import { getFloorplanNodeExtension } from '../../lib/floorplan/floorplan-extension'
 import {
@@ -36,6 +37,7 @@ import useInteractionScope, {
   useIsCurveReshape,
   useMovingNode,
 } from '../../store/use-interaction-scope'
+import usePivotRotate from '../../store/use-pivot-rotate'
 import { NodeActionMenu } from '../editor/node-action-menu'
 import { IconRefGlyph } from '../ui/icon-ref'
 
@@ -126,6 +128,7 @@ function collectQuickActionNodes(
  */
 export function FloorplanRegistryActionMenu() {
   const reducedMotion = useReducedMotion()
+  const tLabel = useTLabel()
   // Sole selection only — a multi-selection gets the group menu
   // (`FloorplanGroupActionMenu`), whose actions target the whole selection.
   const selectedId = useViewer((s) =>
@@ -133,6 +136,10 @@ export function FloorplanRegistryActionMenu() {
   ) as AnyNodeId | undefined
   const movingNode = useMovingNode()
   const isCurveReshape = useIsCurveReshape()
+  // The pivot rotate keeps the node selected (and highlighted) for the whole
+  // gesture; this menu's buttons would be dead clicks under the rotate
+  // layer's capture listeners, so hide it instead.
+  const isPivotRotating = usePivotRotate((s) => s.stage !== 'idle')
   const setMovingNode = useEditor((s) => s.setMovingNode)
   const setMovingNodeOrigin = useEditor((s) => s.setMovingNodeOrigin)
   // Gate on floorplan hover so this 2D menu never coexists with the 3D
@@ -169,6 +176,7 @@ export function FloorplanRegistryActionMenu() {
     def?.presentation?.actionMenu !== false &&
     !movingNode &&
     !isCurveReshape &&
+    !isPivotRotating &&
     isFloorplanHovered
   const isWall = selectedKind === 'wall'
   const quickActionNodes = useScene(
@@ -396,7 +404,7 @@ export function FloorplanRegistryActionMenu() {
           {quickActions.map((action) => (
             <button
               aria-disabled={action.disabled || undefined}
-              aria-label={action.title ?? action.label}
+              aria-label={tLabel(action.title ?? action.label)}
               className={cn(
                 'tooltip-trigger flex items-center rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground',
                 action.disabled &&
@@ -405,7 +413,7 @@ export function FloorplanRegistryActionMenu() {
               disabled={action.disabled && !action.blockedFeedback}
               key={action.id}
               onClick={(event) => handleQuickAction(action, event)}
-              title={action.title ?? action.label}
+              title={tLabel(action.title ?? action.label)}
               type="button"
             >
               <span className="flex items-center gap-1.5" data-quick-action-feedback>
@@ -413,7 +421,7 @@ export function FloorplanRegistryActionMenu() {
                   <QuickActionIcon action={action} />
                 </span>
                 <span className="whitespace-nowrap leading-none" data-quick-action-label>
-                  {action.label}
+                  {tLabel(action.label)}
                 </span>
               </span>
             </button>

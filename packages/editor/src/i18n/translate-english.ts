@@ -25,6 +25,16 @@ function invertedMap(): Map<string, string> {
 export function translateEnglishLabel(label: string, locale: Locale): string {
   if (locale === 'en') return label
   const key = invertedMap().get(label)
-  if (!key) return label
-  return (DICTIONARY as Record<string, { ko: string }>)[key]?.ko ?? label
+  if (key) return (DICTIONARY as Record<string, { ko: string }>)[key]?.ko ?? label
+  // Auto-named scene nodes carry a trailing counter ("Base Cabinet 2") — keep
+  // the counter and translate the stem when the dictionary knows it.
+  const counted = /^(.*\S)(\s+\d+)$/.exec(label)
+  if (counted) {
+    const stemKey = invertedMap().get(counted[1]!)
+    if (stemKey) {
+      const ko = (DICTIONARY as Record<string, { ko: string }>)[stemKey]?.ko
+      if (ko) return ko + counted[2]!
+    }
+  }
+  return label
 }

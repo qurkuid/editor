@@ -10,6 +10,7 @@ import {
 } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import { memo, useMemo } from 'react'
+import { createFloorplanContextExtensions } from '../../../lib/floorplan/floorplan-extension'
 import usePlacementPreview from '../../../store/use-placement-preview'
 import { useFloorplanRender } from '../floorplan-render-context'
 import { FloorplanGeometryRenderer } from './floorplan-geometry-renderer'
@@ -42,6 +43,7 @@ export const FloorplanNodePreview = memo(function FloorplanNodePreview({
 }: FloorplanNodePreviewProps) {
   const nodes = useScene((state) => state.nodes)
   const unit = useViewer((state) => state.unit)
+  const metricNotation = useViewer((state) => state.metricNotation)
   const renderContext = useFloorplanRender()
 
   const geometry = useMemo(() => {
@@ -77,6 +79,7 @@ export const FloorplanNodePreview = memo(function FloorplanNodePreview({
       siblings,
       parent: resolvedParent,
       levelData,
+      extensions: createFloorplanContextExtensions({ metricNotation }),
       viewState: renderContext
         ? {
             selected,
@@ -90,7 +93,7 @@ export const FloorplanNodePreview = memo(function FloorplanNodePreview({
     }
 
     return (builder as (n: AnyNode, c: GeometryContext) => FloorplanGeometry | null)(node, ctx)
-  }, [highlighted, hovered, moving, node, nodes, parentNode, renderContext, selected, unit])
+  }, [highlighted, hovered, metricNotation, moving, node, nodes, parentNode, renderContext, selected, unit])
   if (!geometry) return null
 
   return (
