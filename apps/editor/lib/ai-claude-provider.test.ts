@@ -98,6 +98,32 @@ printf '%s' '{"is_error":false,"structured_output":{"message":"Claude CLI plan r
     }
   })
 
+  test('a response larger than the stderr diagnostic cap comes through intact', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'pascal-claude-large-'))
+    const command = join(directory, 'claude-fixture')
+    await writeFile(
+      command,
+      `#!/bin/sh
+cat > /dev/null
+printf '%s' '{"is_error":false,"padding":"'
+head -c 100000 /dev/zero | tr '\\0' 'x'
+printf '%s' '","structured_output":{"message":"large plan ready.","patches":[]}}'
+`,
+    )
+    await chmod(command, 0o755)
+
+    try {
+      const plan = await requestAiModelingPlanViaClaude(AiChatRequestSchema.parse(baseRequest), {
+        command,
+        model: null,
+      })
+
+      expect(plan).toEqual({ message: 'large plan ready.', patches: [] })
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
   test('retries once when the structured output fails the zod contract, without loosening it', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'pascal-claude-retry-'))
     const command = join(directory, 'claude-fixture')

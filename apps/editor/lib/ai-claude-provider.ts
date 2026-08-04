@@ -68,8 +68,11 @@ function runClaudeCli(
       resolve({ stdout, stderr })
     }
 
+    // stdout is the payload channel — the whole plan rides on it. Capping it
+    // like stderr silently chopped the front off any response past 64KB and
+    // every large plan failed as "invalid JSON".
     child.stdout.on('data', (chunk) => {
-      stdout = `${stdout}${String(chunk)}`.slice(-MAX_DIAGNOSTIC_LENGTH)
+      stdout += String(chunk)
     })
     child.stderr.on('data', (chunk) => {
       stderr = `${stderr}${String(chunk)}`.slice(-MAX_DIAGNOSTIC_LENGTH)
