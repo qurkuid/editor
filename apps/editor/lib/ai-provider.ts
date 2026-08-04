@@ -210,6 +210,20 @@ export const modelingPlanJsonSchema = {
   },
 } as const
 
+/**
+ * The CLI bin this app ships as an npm dependency. Checked from the app dir
+ * and the workspace root — bun hoists workspace bins to the root
+ * `node_modules/.bin`, and pm2 may start the server from either directory.
+ */
+function bundledCliCommand(binary: string): string | null {
+  const cwd = process.cwd()
+  for (const base of [cwd, join(cwd, '..', '..'), join(cwd, 'apps', 'editor')]) {
+    const candidate = join(base, 'node_modules', '.bin', binary)
+    if (existsSync(candidate)) return candidate
+  }
+  return null
+}
+
 export function resolveAiProviderConfig(
   environment: Record<string, string | undefined>,
 ): AiProviderConfig {
@@ -222,6 +236,7 @@ export function resolveAiProviderConfig(
   return {
     command:
       environment.CODEX_CLI_PATH ??
+      bundledCliCommand('codex') ??
       (siblingCommand && existsSync(siblingCommand) ? siblingCommand : null) ??
       pathCommand ??
       'codex',
@@ -236,7 +251,7 @@ export function resolveClaudeCliConfig(
     .map((directory) => join(directory, 'claude'))
     .find((candidate) => existsSync(candidate))
   return {
-    command: environment.CLAUDE_CLI_PATH ?? pathCommand ?? 'claude',
+    command: environment.CLAUDE_CLI_PATH ?? bundledCliCommand('claude') ?? pathCommand ?? 'claude',
     model: environment.PASCAL_CLAUDE_MODEL ?? null,
   }
 }

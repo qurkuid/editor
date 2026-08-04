@@ -1,7 +1,7 @@
 'use client'
 
 import { type Locale, SegmentedControl, useLocale, useT } from '@pascal-app/editor'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
 import {
   CLAUDE_EFFORT_OPTIONS,
@@ -71,6 +71,7 @@ export function HostSettingsSectionView({
   aiEffort,
   onAiEffortChange,
   aiState,
+  onAiConnected,
   materialsState,
 }: {
   language: Locale
@@ -82,6 +83,7 @@ export function HostSettingsSectionView({
   aiEffort: string | null
   onAiEffortChange: (effort: string | null) => void
   aiState: AiConnectionState
+  onAiConnected: () => void
   materialsState: MaterialsConnectionState
 }) {
   const t = useT()
@@ -182,6 +184,10 @@ export function HostSettingsSectionView({
         source={aiSourceLabel}
       />
 
+      {!aiConnected && aiState.status !== 'loading' && (
+        <AiCliLoginControl onConnected={onAiConnected} provider={aiProvider} />
+      )}
+
       <StatusRow
         detail={materialsDetail}
         dotClassName={materialsConnected ? 'bg-emerald-500' : 'bg-amber-500'}
@@ -189,6 +195,171 @@ export function HostSettingsSectionView({
         label={t('hostSettings.materials')}
         source={t('hostSettings.materialsSource')}
       />
+    </div>
+  )
+}
+
+const LoginViewSchema = z.object({
+  status: z.enum(['idle', 'starting', 'awaiting', 'exited', 'failed', 'succeeded']),
+  url: z.string().nullable().optional(),
+  userCode: z.string().nullable().optional(),
+  needsCode: z.boolean().optional(),
+  detail: z.string().nullable().optional(),
+})
+
+type LoginView = z.infer<typeof LoginViewSchema>
+
+async function postAiAuth(body: Record<string, unknown>): Promise<LoginView | null> {
+  const response = await fetch(withBasePath('/api/ai/auth'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) return null
+  return LoginViewSchema.parse(await response.json())
+}
+
+/**
+ * Sign the server's bundled CLI in from the browser. Claude prints an OAuth
+ * URL whose hosted page hands the user a code to paste back; Codex uses its
+ * device-auth flow (URL + one-time code) and polls on its own.
+ */
+function AiCliLoginControl({
+  provider,
+  onConnected,
+}: {
+  provider: AiProviderKind
+  onConnected: () => void
+}) {
+  const t = useT()
+  const [view, setView] = useState<LoginView | null>(null)
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  // Whatever the flow state, a provider switch means a different login.
+  useEffect(() => {
+    setView(null)
+    setCode('')
+  }, [provider])
+
+  const pending = view?.status === 'starting' || view?.status === 'awaiting'
+  useEffect(() => {
+    if (!pending) return
+    const timer = setInterval(async () => {
+      try {
+        const response = await fetch(withBasePath(`/api/ai/auth?provider=${provider}`))
+        if (!response.ok) return
+        const next = LoginViewSchema.parse(await response.json())
+        setView(next)
+        if (next.status === 'succeeded') onConnected()
+      } catch {
+        // Transient poll failure — the next tick retries.
+      }
+    }, 2500)
+    return () => clearInterval(timer)
+  }, [pending, provider, onConnected])
+
+  async function run(body: Record<string, unknown>) {
+    setBusy(true)
+    try {
+      const next = await postAiAuth(body)
+      setView(next)
+      if (next?.status === 'succeeded') onConnected()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!view || view.status === 'idle') {
+    return (
+      <button
+        className="rounded-md border px-2.5 py-1.5 font-medium text-xs hover:bg-accent"
+        disabled={busy}
+        onClick={() => run({ provider, action: 'start' })}
+        type="button"
+      >
+        {t('hostSettings.cliLogin')}
+      </button>
+    )
+  }
+
+  if (view.status === 'succeeded') {
+    return <div className="text-emerald-600 text-xs">{t('hostSettings.connected')}</div>
+  }
+
+  if (view.status === 'failed' || view.status === 'exited') {
+    return (
+      <div className="space-y-1.5">
+        <div className="text-amber-600 text-xs">
+          {t('hostSettings.cliLoginFailed')}
+          {view.detail ? ` — ${view.detail.slice(-160)}` : ''}
+        </div>
+        <button
+          className="rounded-md border px-2.5 py-1.5 font-medium text-xs hover:bg-accent"
+          disabled={busy}
+          onClick={() => run({ provider, action: 'start' })}
+          type="button"
+        >
+          {t('hostSettings.cliLogin')}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-1.5 rounded-md border p-2.5 text-xs">
+      {view.url ? (
+        <div>
+          <a
+            className="font-medium text-blue-600 underline"
+            href={view.url}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {t('hostSettings.cliLoginOpen')}
+          </a>
+        </div>
+      ) : (
+        <div className="text-muted-foreground">{t('hostSettings.checking')}</div>
+      )}
+      {view.userCode && (
+        <div>
+          {t('hostSettings.cliLoginCode')}{' '}
+          <code className="rounded bg-muted px-1.5 py-0.5 font-semibold">{view.userCode}</code>
+        </div>
+      )}
+      {view.needsCode && (
+        <div className="flex items-center gap-1.5">
+          <input
+            className="w-full rounded-md border px-2 py-1"
+            onChange={(event) => setCode(event.target.value)}
+            placeholder={t('hostSettings.cliLoginPaste')}
+            value={code}
+          />
+          <button
+            className="rounded-md border px-2.5 py-1 font-medium hover:bg-accent"
+            disabled={busy || code.trim().length < 8}
+            onClick={() => run({ provider, action: 'submit', code: code.trim() })}
+            type="button"
+          >
+            {t('hostSettings.cliLoginSubmit')}
+          </button>
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground">{t('hostSettings.cliLoginWaiting')}</span>
+        <button
+          className="text-muted-foreground hover:text-foreground"
+          onClick={() => {
+            void postAiAuth({ provider, action: 'cancel' })
+            setView(null)
+            setCode('')
+          }}
+          type="button"
+        >
+          {t('hostSettings.cliLoginCancel')}
+        </button>
+      </div>
     </div>
   )
 }
@@ -219,9 +390,8 @@ export function HostSettingsSection() {
   const [claudeState, setClaudeState] = useState<AiConnectionState>({ status: 'loading' })
   const [materialsState, setMaterialsState] = useState<MaterialsConnectionState>('loading')
 
-  useEffect(() => {
-    const controller = new AbortController()
-    fetch(withBasePath('/api/ai/chat'), { signal: controller.signal })
+  const refreshAiStatus = useCallback((signal?: AbortSignal) => {
+    fetch(withBasePath('/api/ai/chat'), { signal })
       .then((response) =>
         response.ok ? response.json() : Promise.reject(new Error(String(response.status))),
       )
@@ -231,13 +401,18 @@ export function HostSettingsSection() {
         setClaudeState(toConnectionState(parsed.claude))
       })
       .catch(() => {
-        if (!controller.signal.aborted) {
+        if (!signal?.aborted) {
           setCodexState({ status: 'not-connected' })
           setClaudeState({ status: 'not-connected' })
         }
       })
-    return () => controller.abort()
   }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    refreshAiStatus(controller.signal)
+    return () => controller.abort()
+  }, [refreshAiStatus])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -259,6 +434,7 @@ export function HostSettingsSection() {
       aiState={aiProvider === 'claude' ? claudeState : codexState}
       language={locale}
       materialsState={materialsState}
+      onAiConnected={refreshAiStatus}
       onAiEffortChange={(effort) => setEffort(aiProvider, effort)}
       onAiModelChange={(model) => setModel(aiProvider, model)}
       onAiProviderChange={setAiProvider}

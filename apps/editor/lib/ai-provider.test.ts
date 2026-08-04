@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -27,7 +27,10 @@ describe('AI provider boundary', () => {
     })
   })
 
-  test('resolves the Codex executable from the server PATH', async () => {
+  // This repo ships `@openai/codex` and `@anthropic-ai/claude-code` as app
+  // dependencies, so without an explicit env override the bundled bin under
+  // `node_modules/.bin` wins over PATH and runtime-sibling candidates.
+  test('prefers the bundled Codex bin over PATH and the Node sibling', async () => {
     // Given
     const directory = await mkdtemp(join(tmpdir(), 'pascal-codex-path-'))
     const command = join(directory, 'codex')
@@ -35,34 +38,13 @@ describe('AI provider boundary', () => {
 
     try {
       // When
-      const config = resolveAiProviderConfig({ PATH: directory })
-
-      // Then
-      expect(config.command).toBe(command)
-    } finally {
-      await rm(directory, { recursive: true, force: true })
-    }
-  })
-
-  test('prefers the Codex binary beside the running Node executable', async () => {
-    // Given
-    const directory = await mkdtemp(join(tmpdir(), 'pascal-codex-runtime-'))
-    const pathDirectory = join(directory, 'path-bin')
-    const runtimeDirectory = join(directory, 'runtime-bin')
-    await mkdir(pathDirectory)
-    await mkdir(runtimeDirectory)
-    await writeFile(join(pathDirectory, 'codex'), '')
-    await writeFile(join(runtimeDirectory, 'codex'), '')
-
-    try {
-      // When
       const config = resolveAiProviderConfig({
-        PATH: pathDirectory,
-        PASCAL_NODE_EXEC_PATH: join(runtimeDirectory, 'node'),
+        PATH: directory,
+        PASCAL_NODE_EXEC_PATH: join(directory, 'node'),
       })
 
       // Then
-      expect(config.command).toBe(join(runtimeDirectory, 'codex'))
+      expect(config.command).toContain(join('node_modules', '.bin', 'codex'))
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
@@ -75,7 +57,7 @@ describe('AI provider boundary', () => {
     })
   })
 
-  test('resolves the Claude executable from the server PATH', async () => {
+  test('prefers the bundled Claude bin over the server PATH', async () => {
     // Given
     const directory = await mkdtemp(join(tmpdir(), 'pascal-claude-path-'))
     const command = join(directory, 'claude')
@@ -86,7 +68,7 @@ describe('AI provider boundary', () => {
       const config = resolveClaudeCliConfig({ PATH: directory })
 
       // Then
-      expect(config.command).toBe(command)
+      expect(config.command).toContain(join('node_modules', '.bin', 'claude'))
     } finally {
       await rm(directory, { recursive: true, force: true })
     }

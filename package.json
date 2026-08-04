@@ -57,5 +57,8 @@
     "apps/*",
     "packages/*",
     "tooling/*"
+  ],
+  "trustedDependencies": [
+    "@anthropic-ai/claude-code"
   ]
 }

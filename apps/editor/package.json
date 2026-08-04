@@ -8,11 +8,14 @@
     "build": "dotenv -e ../../.env.local -- next build",
     "start": "next start",
     "lint": "biome lint",
-    "check-types": "next typegen && tsgo --noEmit"
+    "check-types": "next typegen && tsgo --noEmit",
+    "postinstall": "node node_modules/@anthropic-ai/claude-code/install.cjs || true"
   },
   "dependencies": {
+    "@anthropic-ai/claude-code": "^2.1.220",
     "@iconify/react": "^6.0.2",
     "@number-flow/react": "^0.6.0",
+    "@openai/codex": "^0.145.0",
     "@pascal-app/core": "*",
     "@pascal-app/editor": "*",
     "@pascal-app/mcp": "*",
