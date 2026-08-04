@@ -117,6 +117,30 @@ export async function POST(request: Request) {
       console.error('[AI] Modeling request failed with a non-error value')
     }
     const failure = describeAiFailure(error)
+
+    // Codex out of usage is not a dead end while Claude is signed in on this
+    // server — answer with the other provider instead of bouncing the user to
+    // a settings toggle they may not know exists. The note in the reply keeps
+    // it honest about who did the work.
+    if (failure.error === 'ai_usage_limit') {
+      const claudeConfig = claudeProviderConfig()
+      const claudeStatus = await getClaudeCliStatus(claudeConfig)
+      if (claudeStatus.connected) {
+        try {
+          const plan = await requestAiModelingPlanViaClaude(parsed.data, {
+            ...claudeConfig,
+            command: claudeStatus.command,
+          })
+          return NextResponse.json({
+            ...plan,
+            message: `(Codex 사용 한도 초과 — Claude가 대신 처리했습니다)\n\n${plan.message}`,
+          })
+        } catch (fallbackError) {
+          console.error('[AI] Claude fallback after Codex usage limit failed', fallbackError)
+        }
+      }
+    }
+
     return NextResponse.json(
       { error: failure.error, message: failure.message },
       { status: failure.status },
