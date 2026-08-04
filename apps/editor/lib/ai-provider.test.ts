@@ -218,6 +218,8 @@ describe('AI provider boundary', () => {
     expect(prompt).toContain('insertFurnitureBay')
     expect(prompt).toContain('resizeFurnitureTier')
     expect(prompt).toContain('stable bayId and tierId')
+    expect(prompt).toContain('structural stages')
+    expect(prompt).toContain('propose the alternatives with a recommendation')
     expect(prompt).toContain('fully actionable')
     expect(prompt).toContain('stages of roughly 30 patches')
     expect(prompt).toContain('answer with just the number')
