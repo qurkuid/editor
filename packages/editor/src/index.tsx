@@ -467,6 +467,7 @@ export {
   measurementPolygonLabelAnchor,
   triangulateMeasurementPolygon,
 } from './lib/measurement-label'
+export type { MetricNotation } from './lib/measurements'
 export {
   buildMeasurementAngleArcPoints,
   cubicMetersToVolumeUnit,

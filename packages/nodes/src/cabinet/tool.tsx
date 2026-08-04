@@ -23,6 +23,7 @@ import {
 } from '@pascal-app/core'
 import {
   clearPlacementSurface,
+  formatLinearMeasurement,
   getFloorStackPreviewPosition,
   getSideFromNormal,
   isAlignmentGuideActive,
@@ -38,6 +39,7 @@ import {
   useEditor,
   useFacingPose,
   usePlacementPreview,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
@@ -263,8 +265,10 @@ function wallHitFromWallEvent(event: WallEvent): WallHit | null {
 }
 
 const CabinetTool = () => {
+  const t = useT()
   const activeLevelId = useViewer((s) => s.selection.levelId)
   const unit = useViewer((s) => s.unit)
+  const metricNotation = useViewer((s) => s.metricNotation)
   const [placement, setPlacement] = useState<CabinetPlacement | null>(null)
   const [draftSegments, setDraftSegments] = useState<DraftSegment[]>([])
   const [yaw, setYaw] = useState(0)
@@ -1175,18 +1179,18 @@ const CabinetTool = () => {
     ? placement.valid
       ? // Span-first readout: the run is exactly as long as the span drawn, so
         // show that length and the equal bay width it divides into.
-        `${stretch.length.toFixed(2)} m · ${stretch.modules.length}통 × ${(
+        `${formatLinearMeasurement(stretch.length, unit, metricNotation)} · ${stretch.modules.length}${t('panel.runBayCount')} × ${(
           (stretch.modules[0]?.width ?? 0) * 1000
-        ).toFixed(0)} mm · Click to continue · Double-click/Esc to finish`
+        ).toFixed(0)}mm · ${t('panel.runClickToContinue')}`
       : null
     : !placement.valid
       ? null
       : placement.snappedToWall
         ? placement.snapReason === 'cabinet-edge'
-          ? 'Edge snap'
+          ? t('panel.snapEdge')
           : placement.snapReason === 'corner'
-            ? 'Corner snap'
-            : 'Wall snap'
+            ? t('panel.snapCorner')
+            : t('panel.snapWall')
         : null
   const labelPosition = stretch
     ? runLocalToPlan({ position: placement.position, rotation: placement.yaw }, [
@@ -1230,7 +1234,7 @@ const CabinetTool = () => {
       {placement.guide && <WallSnapGuide blocked={!placement.valid} guide={placement.guide} />}
       <PlacementBox
         dimensions={placementBoxDimensions}
-        measurements={{ unit }}
+        measurements={{ unit, metricNotation }}
         position={placementBoxPosition}
         rotationY={placementRotationY}
         valid={placement.valid}

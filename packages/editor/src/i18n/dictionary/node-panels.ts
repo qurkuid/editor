@@ -1001,4 +1001,53 @@ export const nodePanelsDictionary = {
   'panel.nounGutter': { ko: '물받이', en: 'gutter' },
   'panel.chimneyWord': { ko: '굴뚝 후드', en: 'Chimney' },
   'panel.toolDirect': { ko: '직접 모델링', en: 'Direct' },
+  'panel.scaleDialogIntro': {
+    ko: '방금 그린 선의 실제 길이를 입력하세요. 이미지가 그에 맞게 조정됩니다.',
+    en: 'Enter the real-world length of the line you just drew. The image will resize to match it.',
+  },
+  'panel.scaleDrawnLine': { ko: '그린 선', en: 'Drawn line' },
+  'panel.scaleRealLength': { ko: '실제 길이', en: 'Real length' },
+  'panel.scaleAnyDecimal': {
+    ko: '소수점 입력 가능. 그린 값이 아니라 실제로 아는 길이를 넣으세요.',
+    en: 'Any decimal works. Use the known real length, not the drawn value.',
+  },
+  'panel.scaleWillScalePrefix': { ko: '이미지가 첫 점 기준 ', en: 'Image will scale ' },
+  'panel.scaleWillScaleSuffix': { ko: '배로 조정됩니다.', en: 'x from the first point.' },
+  'panel.scaleEnterPositive': {
+    ko: '0보다 큰 길이를 입력하세요.',
+    en: 'Enter a length greater than 0.',
+  },
+  'panel.scaleSave': { ko: '배율 저장', en: 'Save Scale' },
+  'panel.scaleErrEmpty': {
+    ko: '선의 실제 길이를 입력하세요.',
+    en: 'Enter the real length of the line.',
+  },
+  'panel.scaleErrUnreadable': {
+    ko: '3.5, 180cm, 5\'11" 같은 길이를 입력하세요.',
+    en: 'Enter a length like 3.5, 180cm or 5\'11".',
+  },
+  'panel.scaleErrPositive': {
+    ko: '길이는 0보다 커야 합니다.',
+    en: 'Length must be greater than 0.',
+  },
+  'panel.scaleClickOtherEnd': {
+    ko: '그 거리의 반대쪽 끝을 클릭하세요',
+    en: 'Click the other end of that distance',
+  },
+  'panel.scaleClickOneEnd': {
+    ko: '아는 거리의 한쪽 끝을 클릭하세요 — 예: 도면에 적힌 치수',
+    en: 'Click one end of a distance you know — e.g. a dimension printed on the plan',
+  },
+  'panel.switchToBuildingLevel': {
+    ko: '평면도를 보고 편집하려면 건물 층으로 전환하세요.',
+    en: 'Switch to a building level to view and edit the floorplan.',
+  },
+  'panel.runClickToContinue': {
+    ko: '클릭해 계속 · 더블클릭/Esc 로 완료',
+    en: 'Click to continue · Double-click/Esc to finish',
+  },
+  'panel.runBayCount': { ko: '통', en: 'bays' },
+  'panel.snapEdge': { ko: '모서리 스냅', en: 'Edge snap' },
+  'panel.snapCorner': { ko: '코너 스냅', en: 'Corner snap' },
+  'panel.snapWall': { ko: '벽 스냅', en: 'Wall snap' },
 } as const satisfies Dictionary

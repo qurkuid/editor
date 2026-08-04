@@ -68,8 +68,8 @@ describe('angle arc presentation', () => {
 
 describe('linear measurements', () => {
   test('formats metric measurements in meters', () => {
-    expect(formatLinearMeasurement(3, 'metric')).toBe('3m')
-    expect(formatLinearMeasurement(3.456, 'metric')).toBe('3.46m')
+    expect(formatLinearMeasurement(3, 'metric', 'meters')).toBe('3m')
+    expect(formatLinearMeasurement(3.456, 'metric', 'meters')).toBe('3.46m')
   })
 
   test('formats metric measurements in whole millimeters', () => {
@@ -78,32 +78,32 @@ describe('linear measurements', () => {
   })
 
   test('formats imperial measurements as feet and inches', () => {
-    expect(formatLinearMeasurement(3.048, 'imperial')).toBe(`10'0"`)
-    expect(formatLinearMeasurement(3.2004, 'imperial')).toBe(`10'6"`)
+    expect(formatLinearMeasurement(3.048, 'imperial', 'meters')).toBe(`10'0"`)
+    expect(formatLinearMeasurement(3.2004, 'imperial', 'meters')).toBe(`10'6"`)
   })
 
   test('carries rounded 12 inches into the next foot', () => {
-    expect(formatLinearMeasurement(3.047, 'imperial')).toBe(`10'0"`)
+    expect(formatLinearMeasurement(3.047, 'imperial', 'meters')).toBe(`10'0"`)
   })
 
   test('returns a placeholder for non-finite measurements', () => {
-    expect(formatLinearMeasurement(NaN, 'imperial')).toBe('--')
-    expect(formatLinearMeasurement(Infinity, 'imperial')).toBe('--')
-    expect(formatLinearMeasurement(NaN, 'metric')).toBe('--')
+    expect(formatLinearMeasurement(NaN, 'imperial', 'meters')).toBe('--')
+    expect(formatLinearMeasurement(Infinity, 'imperial', 'meters')).toBe('--')
+    expect(formatLinearMeasurement(NaN, 'metric', 'meters')).toBe('--')
   })
 
   test('formats zero measurements', () => {
-    expect(formatLinearMeasurement(0, 'imperial')).toBe(`0'0"`)
-    expect(formatLinearMeasurement(0, 'metric')).toBe('0m')
+    expect(formatLinearMeasurement(0, 'imperial', 'meters')).toBe(`0'0"`)
+    expect(formatLinearMeasurement(0, 'metric', 'meters')).toBe('0m')
   })
 
   test('formats sub-foot imperial measurements', () => {
-    expect(formatLinearMeasurement(0.1524, 'imperial')).toBe(`0'6"`)
+    expect(formatLinearMeasurement(0.1524, 'imperial', 'meters')).toBe(`0'6"`)
   })
 
   test('formats negative measurements with a sign', () => {
-    expect(formatLinearMeasurement(-0.1524, 'imperial')).toBe(`-0'6"`)
-    expect(formatLinearMeasurement(-0.1524, 'metric')).toBe('-0.15m')
+    expect(formatLinearMeasurement(-0.1524, 'imperial', 'meters')).toBe(`-0'6"`)
+    expect(formatLinearMeasurement(-0.1524, 'metric', 'meters')).toBe('-0.15m')
   })
 
   test('converts between meters and the active linear unit', () => {

@@ -1226,6 +1226,7 @@ function DraftLabel({
 function DraftExtrusionControl({ position }: { position: Vector3 }) {
   const t = useT()
   const unit = useViewer((state) => state.unit)
+  const metricNotation = useViewer((state) => state.metricNotation)
   const extrusionHeight = useMeasurementDraft((state) => state.extrusionHeight)
   const points = useMeasurementDraft((state) => state.points)
   const baseNormal = useMeasurementDraft((state) => state.baseNormal)
@@ -1355,6 +1356,7 @@ const MeasurementDraftPreview: FC<{
   const extrusionHeight = useMeasurementDraft((state) => state.extrusionHeight)
   const error = useMeasurementDraft((state) => state.error)
   const unit = useViewer((state) => state.unit)
+  const metricNotation = useViewer((state) => state.metricNotation)
   const axisIntersectionCache = useRef<{
     intersections: QueriedAxisSurfaceIntersection[]
     key: string
@@ -1527,7 +1529,7 @@ const MeasurementDraftPreview: FC<{
       const end = livePoints[livePoints.length - 1]!
       label = {
         position: localToPreviewFrame(levelObject, buildingObject, midpoint(start, end)),
-        text: formatLinearMeasurement(measurementDistance(start, end), unit),
+        text: formatLinearMeasurement(measurementDistance(start, end), unit, metricNotation),
       }
     } else if (kind === 'angle' && livePoints.length >= 3) {
       const anglePoints = livePoints.slice(0, 3) as [
@@ -1549,7 +1551,7 @@ const MeasurementDraftPreview: FC<{
           text:
             kind === 'area'
               ? `A ${formatAreaLabel(measurementArea(livePoints), unit)}`
-              : `P ${formatLinearMeasurement(measurementPerimeter(livePoints), unit)}`,
+              : `P ${formatLinearMeasurement(measurementPerimeter(livePoints), unit, metricNotation)}`,
         }
       }
     } else if (kind === 'volume' && points.length >= 3 && baseNormal) {

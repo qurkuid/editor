@@ -13,6 +13,7 @@ import {
   formatLinearMeasurement,
   formatVolumeLabel,
   MetricControl,
+  type MetricNotation,
   PanelSection,
   ToggleControl,
   useT,
@@ -25,10 +26,12 @@ type Point2D = readonly [number, number]
 
 function ZonePlanSketch({
   edgeLengths,
+  metricNotation,
   polygon,
   unit,
 }: {
   edgeLengths: readonly number[]
+  metricNotation: MetricNotation
   polygon: readonly Point2D[]
   unit: 'metric' | 'imperial'
 }) {
@@ -94,7 +97,7 @@ function ZonePlanSketch({
           midpoint[0] + (fromCenter[0] / directionLength) * 15,
           midpoint[1] + (fromCenter[1] / directionLength) * 15,
         ]
-        const label = formatLinearMeasurement(edgeLengths[index] ?? 0, unit)
+        const label = formatLinearMeasurement(edgeLengths[index] ?? 0, unit, metricNotation)
         const labelWidth = Math.max(24, label.length * 5.5 + 8)
 
         return (
@@ -321,6 +324,7 @@ export default function ZoneQuantitiesPanel() {
   const t = useT()
   const selectedZoneId = useViewer((state) => state.selection.zoneId)
   const unit = useViewer((state) => state.unit)
+  const metricNotation = useViewer((state) => state.metricNotation)
   const nodes = useScene((state) => state.nodes)
   const zone = selectedZoneId ? (nodes[selectedZoneId] as ZoneNode | undefined) : undefined
   const livePolygon = useLiveNodeOverrides((state) =>
@@ -376,11 +380,12 @@ export default function ZoneQuantitiesPanel() {
             <span className="text-cyan-800">A</span>
             <span>{formatAreaLabel(report.footprintArea, unit, 2)}</span>
             <span className="ml-auto text-slate-600">P</span>
-            <span>{formatLinearMeasurement(report.perimeter, unit)}</span>
+            <span>{formatLinearMeasurement(report.perimeter, unit, metricNotation)}</span>
           </div>
         </div>
 
         <ZonePlanSketch
+          metricNotation={metricNotation}
           edgeLengths={report.edgeLengths}
           polygon={effectiveZone.polygon}
           unit={unit}

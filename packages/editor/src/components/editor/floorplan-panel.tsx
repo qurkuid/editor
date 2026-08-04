@@ -482,7 +482,7 @@ type GuideTransformDraft = {
   rotation: number
 }
 
-type ReferenceScaleUnit = 'meters' | 'centimeters' | 'feet' | 'inches'
+type ReferenceScaleUnit = 'meters' | 'centimeters' | 'millimeters' | 'feet' | 'inches'
 
 // The in-flight reference-scale measurement. Only the per-CLICK fields live
 // here (guide + start anchor); the rubber-band's moving END is the shared
@@ -2666,6 +2666,8 @@ function formatNumber(value: number, fractionDigits = 2) {
 
 function convertReferenceLengthToMeters(value: number, unit: ReferenceScaleUnit) {
   switch (unit) {
+    case 'millimeters':
+      return value / 1000
     case 'centimeters':
       return value / 100
     case 'feet':
@@ -2677,9 +2679,10 @@ function convertReferenceLengthToMeters(value: number, unit: ReferenceScaleUnit)
   }
 }
 
-const REFERENCE_SCALE_LINGO_UNIT: Record<ReferenceScaleUnit, 'm' | 'cm' | 'ft' | 'in'> = {
+const REFERENCE_SCALE_LINGO_UNIT: Record<ReferenceScaleUnit, 'm' | 'cm' | 'mm' | 'ft' | 'in'> = {
   meters: 'm',
   centimeters: 'cm',
+  millimeters: 'mm',
   feet: 'ft',
   inches: 'in',
 }
@@ -2712,6 +2715,8 @@ function referenceScaleLengthHint(raw: string, unit: ReferenceScaleUnit): string
 
 function getReferenceScaleUnitLabel(unit: ReferenceScaleUnit) {
   switch (unit) {
+    case 'millimeters':
+      return 'mm'
     case 'centimeters':
       return 'cm'
     case 'feet':
@@ -7179,7 +7184,9 @@ export function FloorplanPanel({
   latestFloorplanRenderUnitsPerPixelRef.current = floorplanUnitsPerPixel
 
   useEffect(() => {
-    setReferenceScaleUnit(unit === 'imperial' ? 'feet' : 'meters')
+    setReferenceScaleUnit(
+      unit === 'imperial' ? 'feet' : metricNotation === 'millimeters' ? 'millimeters' : 'meters',
+    )
   }, [unit])
 
   const startReferenceScaleForGuide = useCallback(
@@ -9983,7 +9990,13 @@ export function FloorplanPanel({
             2,
           ),
         )
-        setReferenceScaleUnit(unit === 'imperial' ? 'feet' : 'meters')
+        setReferenceScaleUnit(
+          unit === 'imperial'
+            ? 'feet'
+            : metricNotation === 'millimeters'
+              ? 'millimeters'
+              : 'meters',
+        )
         setReferenceScaleDraft(null)
         setCursorPoint(null)
         return
@@ -11122,12 +11135,12 @@ export function FloorplanPanel({
       : null
   const referenceScaleInputError =
     referenceScaleValue.trim() === ''
-      ? 'Enter the real length of the line.'
+      ? t('panel.scaleErrEmpty')
       : Number.isNaN(pendingReferenceDisplayLength)
-        ? `Enter a length like 3.5, 180cm or 5'11".`
+        ? t('panel.scaleErrUnreadable')
         : pendingReferenceDisplayLength > 0
           ? null
-          : 'Length must be greater than 0.'
+          : t('panel.scaleErrPositive')
   const referenceScaleHint = referenceScaleInputError
     ? null
     : referenceScaleLengthHint(referenceScaleValue, referenceScaleUnit)
@@ -11189,8 +11202,8 @@ export function FloorplanPanel({
         {referenceScaleDraft && (
           <div className="pointer-events-none absolute top-3 left-1/2 z-30 -translate-x-1/2 rounded-md border bg-background/95 px-3 py-2 text-center text-sm shadow-sm">
             {referenceScaleDraft.start
-              ? 'Click the other end of that distance'
-              : 'Click one end of a distance you know — e.g. a dimension printed on the plan'}
+              ? t('panel.scaleClickOtherEnd')
+              : t('panel.scaleClickOneEnd')}
           </div>
         )}
 
@@ -11218,15 +11231,14 @@ export function FloorplanPanel({
               <div className="min-w-0">
                 <div className="font-medium text-sm">{t('panel.setOverlayScale')}</div>
                 <div className="mt-0.5 text-muted-foreground text-xs leading-4">
-                  Enter the real-world length of the line you just drew. The image will resize to
-                  match it.
+                  {t('panel.scaleDialogIntro')}
                 </div>
               </div>
             </div>
 
             <div className="mb-3 rounded-xl border border-border/70 bg-white/5 px-3 py-2">
               <div className="text-[11px] text-muted-foreground uppercase tracking-wide">
-                Drawn line
+                {t('panel.scaleDrawnLine')}
               </div>
               <div className="mt-1 font-medium text-sm">
                 {formatMeasurement(
@@ -11240,7 +11252,7 @@ export function FloorplanPanel({
 
             <label className="block">
               <span className="mb-1.5 block font-medium text-muted-foreground text-xs">
-                Real length
+                {t('panel.scaleRealLength')}
               </span>
               <div className="grid grid-cols-[1fr_8.25rem] gap-2">
                 <input
@@ -11261,8 +11273,9 @@ export function FloorplanPanel({
                   }
                   value={referenceScaleUnit}
                 >
-                  <option value="meters">{t('chrome.unitMeters')}</option>
+                  <option value="millimeters">{t('chrome.unitMillimeters')}</option>
                   <option value="centimeters">{t('panel.centimeters')}</option>
+                  <option value="meters">{t('chrome.unitMeters')}</option>
                   <option value="feet">{t('panel.feet')}</option>
                   <option value="inches">{t('panel.inches')}</option>
                 </select>
@@ -11273,16 +11286,14 @@ export function FloorplanPanel({
                   referenceScaleInputError ? 'text-destructive' : 'text-muted-foreground',
                 )}
               >
-                {referenceScaleInputError ??
-                  referenceScaleHint ??
-                  'Any decimal works. Use the known real length, not the drawn value.'}
+                {referenceScaleInputError ?? referenceScaleHint ?? t('panel.scaleAnyDecimal')}
               </span>
             </label>
 
             <div className="mt-3 rounded-lg bg-muted/45 px-3 py-2 text-muted-foreground text-xs">
               {pendingReferenceImageScaleFactor
-                ? `Image will scale ${formatNumber(pendingReferenceImageScaleFactor, 3)}x from the first point.`
-                : 'Enter a length greater than 0.'}
+                ? `${t('panel.scaleWillScalePrefix')}${formatNumber(pendingReferenceImageScaleFactor, 3)}${t('panel.scaleWillScaleSuffix')}`
+                : t('panel.scaleEnterPositive')}
             </div>
 
             <div className="mt-4 flex justify-end gap-2">
@@ -11291,14 +11302,14 @@ export function FloorplanPanel({
                 onClick={() => setPendingReferenceScale(null)}
                 type="button"
               >
-                Cancel
+                {t('chrome.cancel')}
               </button>
               <button
                 className="h-8 rounded-lg bg-foreground px-3 font-medium text-background text-xs transition hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!pendingReferenceMetersPerUnit}
                 type="submit"
               >
-                Save Scale
+                {t('panel.scaleSave')}
               </button>
             </div>
           </form>
@@ -11306,7 +11317,7 @@ export function FloorplanPanel({
 
         {levelNode?.type !== 'level' && !hasAmbientBuildingLevel ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-muted-foreground text-sm">
-            Switch to a building level to view and edit the floorplan.
+            {t('panel.switchToBuildingLevel')}
           </div>
         ) : isFloorplanOpen ? (
           // The panel stays mounted in 3D mode (display:none) to keep the

@@ -38,6 +38,7 @@ export function CeilingPanel() {
   const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const unit = useViewer((s) => s.unit)
+  const metricNotation = useViewer((s) => s.metricNotation)
   const setSelection = useViewer((s) => s.setSelection)
   const editingHole = useEditingHole()
   const setMovingNode = useEditor((s) => s.setMovingNode)
@@ -256,7 +257,7 @@ export function CeilingPanel() {
         />
         {isFollows ? (
           <div className="px-1 text-[11px] text-muted-foreground">
-            Currently {formatLinearMeasurement(resolvedHeight, unit)}
+            Currently {formatLinearMeasurement(resolvedHeight, unit, metricNotation)}
           </div>
         ) : (
           <SliderControl

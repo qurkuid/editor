@@ -33,6 +33,7 @@ import {
   isAlignmentGuideActive,
   isAngleSnapActive,
   isMagneticSnapActive,
+  type MetricNotation,
   markToolCancelConsumed,
   publishHorizontalConstructionPlane,
   publishPlacementSurface,
@@ -365,13 +366,14 @@ function getDraftMeasurementState(
   unit: 'metric' | 'imperial',
   baseY: number,
   previewHeight: number,
+  metricNotation: MetricNotation,
 ): DraftMeasurementState {
   const dx = end[0] - start[0]
   const dz = end[1] - start[1]
   const length = Math.hypot(dx, dz)
   if (length < 0.01) return null
   return {
-    lengthLabel: formatLinearMeasurement(length, unit),
+    lengthLabel: formatLinearMeasurement(length, unit, metricNotation),
     lengthPosition: [
       (start[0] + end[0]) / 2,
       baseY + previewHeight + DRAFT_LABEL_Y_OFFSET,
@@ -450,6 +452,7 @@ function getBelowLevelWalls(): WallNode[] {
 
 export const WallTool: React.FC = () => {
   const unit = useViewer((state) => state.unit)
+  const metricNotation = useViewer((state) => state.metricNotation)
   const isDark = useViewer((state) => getSceneTheme(state.sceneTheme).appearance === 'dark')
   const activeLevelId = useViewer((state) => state.selection.levelId)
   const activeLevelHeight = useScene((state) => {
@@ -733,6 +736,7 @@ export const WallTool: React.FC = () => {
             unit,
             startingPoint.current.y,
             previewHeightRef.current,
+            metricNotation,
           ),
         )
       } else {

@@ -32,6 +32,7 @@ const ROTATE_STEP_RAD = Math.PI / 4
 export const FurnitureTool = () => {
   const activeLevelId = useViewer((s) => s.selection.levelId)
   const unit = useViewer((s) => s.unit)
+  const metricNotation = useViewer((s) => s.metricNotation)
   const kind = useFurniturePlacementOptions((s) => s.kind)
   const dimensions = useFurniturePlacementOptions((s) => s.dimensions)
   const bayCount = useFurniturePlacementOptions((s) => s.bayCount)
@@ -128,7 +129,7 @@ export const FurnitureTool = () => {
   return (
     <PlacementBox
       dimensions={[dimensions.width, dimensions.height, dimensions.depth]}
-      measurements={{ unit }}
+      measurements={{ unit, metricNotation }}
       position={[position[0], position[1] + mountHeight, position[2]]}
       rotationY={yaw}
       valid

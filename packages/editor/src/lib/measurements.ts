@@ -177,7 +177,7 @@ export function formatVolumeLabel(
 export function formatLinearMeasurement(
   meters: number,
   unit: LinearUnit,
-  metricNotation: MetricNotation = 'meters',
+  metricNotation: MetricNotation,
 ): string {
   if (!Number.isFinite(meters)) return '--'
 
