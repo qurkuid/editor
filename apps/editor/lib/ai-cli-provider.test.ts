@@ -352,6 +352,63 @@ describe('Codex CLI provider boundary', () => {
     ])
   })
 
+  test('retries once with validation feedback when the plan fails the contract', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'pascal-codex-retry-'))
+    const command = join(directory, 'codex-fixture')
+    const counterPath = join(directory, 'count')
+    await writeFile(
+      command,
+      `#!/bin/sh
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "-o" ]; then shift; output="$1"; fi
+  shift
+done
+count=0
+[ -f ${JSON.stringify(counterPath)} ] && count=$(cat ${JSON.stringify(counterPath)})
+count=$((count + 1))
+printf '%s' "$count" > ${JSON.stringify(counterPath)}
+cat > ${JSON.stringify(directory)}/prompt-$count
+if [ "$count" = "1" ]; then
+  printf '%s' '{"message":"first try","patches":[{"op":"update","id":"zone_1","nodeJson":null,"dataJson":null,"parentId":null,"cascade":null,"faceId":null,"distance":null,"translation":null,"rotationY":null,"uniformScale":null,"pivot":null}]}' > "$output"
+else
+  printf '%s' '{"message":"second try ready.","patches":[]}' > "$output"
+fi
+`,
+    )
+    await chmod(command, 0o755)
+
+    try {
+      const plan = await requestAiModelingPlan(
+        AiChatRequestSchema.parse({
+          messages: [{ role: 'user', content: 'Inspect the scene' }],
+          scene: {
+            coordinateSystem: { groundPlane: 'XZ', upAxis: 'Y', unit: 'm' },
+            nodeCount: 0,
+            nodes: {},
+            rootNodeIds: [],
+            materials: {},
+            selection: {
+              buildingId: null,
+              levelId: null,
+              zoneId: null,
+              selectedIds: [],
+              selectedNodes: [],
+            },
+          },
+        }),
+        { command, model: null },
+      )
+
+      expect(plan).toEqual({ message: 'second try ready.', patches: [] })
+      expect(await readFile(counterPath, 'utf8')).toBe('2')
+      const retryPrompt = await readFile(join(directory, 'prompt-2'), 'utf8')
+      expect(retryPrompt).toContain('failed schema validation')
+      expect(retryPrompt).toContain('first try')
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
   test('returns a structured plan from a Codex CLI process', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'pascal-codex-test-'))
     const command = join(directory, 'codex-fixture')

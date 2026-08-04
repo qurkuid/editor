@@ -22,10 +22,19 @@ describe('what a failed modeling request tells the user', () => {
     expect(failure.message).not.toContain('한도 리셋')
   })
 
-  // A model that produced an invalid plan is still the generic case — there
-  // is nothing for the user to fix, retrying is the remedy.
+  // Two failed schema attempts mean the instruction did not survive the trip
+  // into a plan — ask the user to make it concrete instead of dead-ending.
+  test('a plan that failed validation asks for a more concrete instruction', () => {
+    const zodError = new Error('expected string, received null')
+    zodError.name = 'ZodError'
+    const failure = describeAiFailure(zodError)
+    expect(failure.status).toBe(502)
+    expect(failure.error).toBe('ai_invalid_plan')
+    expect(failure.message).toContain('구체적으로')
+  })
+
   test('anything else stays the generic sentence', () => {
-    const failure = describeAiFailure(new Error('ZodError: expected string, received null'))
+    const failure = describeAiFailure(new Error('spawn failure'))
     expect(failure.status).toBe(502)
     expect(failure.message).toBe('The modeling agent could not produce a valid plan.')
   })

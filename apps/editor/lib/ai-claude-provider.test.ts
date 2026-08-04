@@ -131,11 +131,11 @@ printf '%s' '","structured_output":{"message":"large plan ready.","patches":[]}}
     await writeFile(
       command,
       `#!/bin/sh
-cat > /dev/null
 count=0
 [ -f ${JSON.stringify(counterPath)} ] && count=$(cat ${JSON.stringify(counterPath)})
 count=$((count + 1))
 printf '%s' "$count" > ${JSON.stringify(counterPath)}
+cat > ${JSON.stringify(directory)}/prompt-$count
 if [ "$count" = "1" ]; then
   printf '%s' '{"is_error":false,"structured_output":{"message":"first try","patches":[{"op":"pushPullBodyFace","id":null,"nodeJson":null,"dataJson":null,"parentId":null,"cascade":null,"faceId":"face:0","distance":1,"translation":null,"rotationY":null,"uniformScale":null,"pivot":null}]}}'
 else
@@ -153,6 +153,14 @@ fi
 
       expect(plan).toEqual({ message: 'second try ready.', patches: [] })
       expect(await readFile(counterPath, 'utf8')).toBe('2')
+
+      // The second attempt carries the validation error and the offending
+      // plan, not just the same prompt again.
+      const firstPrompt = await readFile(join(directory, 'prompt-1'), 'utf8')
+      const retryPrompt = await readFile(join(directory, 'prompt-2'), 'utf8')
+      expect(firstPrompt).not.toContain('failed schema validation')
+      expect(retryPrompt).toContain('failed schema validation')
+      expect(retryPrompt).toContain('first try')
     } finally {
       await rm(directory, { recursive: true, force: true })
     }

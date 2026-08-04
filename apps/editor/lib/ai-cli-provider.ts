@@ -157,29 +157,49 @@ export async function requestAiModelingPlan(
   try {
     await writeFile(schemaPath, JSON.stringify(modelingPlanJsonSchema))
     const imagePaths = await materializeAiChatImages(directory, input.images ?? [])
-    await runCodexCli(
-      config,
-      [
-        'exec',
-        '--ephemeral',
-        '--sandbox',
-        'read-only',
-        '--ignore-user-config',
-        '--skip-git-repo-check',
-        '--color',
-        'never',
-        ...modelArgs,
-        ...imagePaths.flatMap((filePath) => ['--image', filePath]),
-        '--output-schema',
-        schemaPath,
-        '-o',
-        outputPath,
-        '-',
-      ],
-      buildAiModelingPrompt(input),
-    )
-    const decoded: unknown = JSON.parse(await readFile(outputPath, 'utf8'))
-    return parseCodexCliPlan(decoded)
+    const codexArgs = [
+      'exec',
+      '--ephemeral',
+      '--sandbox',
+      'read-only',
+      '--ignore-user-config',
+      '--skip-git-repo-check',
+      '--color',
+      'never',
+      ...modelArgs,
+      ...imagePaths.flatMap((filePath) => ['--image', filePath]),
+      '--output-schema',
+      schemaPath,
+      '-o',
+      outputPath,
+      '-',
+    ]
+    const prompt = buildAiModelingPrompt(input)
+
+    let lastRawPlan: unknown
+    async function runOnce(validationFeedback: string | null): Promise<unknown> {
+      const attemptPrompt = validationFeedback
+        ? `${prompt}\n\nYour previous plan failed schema validation. Fix exactly these issues and return a corrected plan:\n${validationFeedback}`
+        : prompt
+      await runCodexCli(config, codexArgs, attemptPrompt)
+      lastRawPlan = JSON.parse(await readFile(outputPath, 'utf8'))
+      return lastRawPlan
+    }
+
+    try {
+      return parseCodexCliPlan(await runOnce(null))
+    } catch (error) {
+      if (error instanceof CodexCliExecutionError) throw error
+      // Same second chance the Claude path gets: the plan came back but
+      // failed the zod contract — retry once with the validation error and
+      // the offending plan spelled out.
+      const offendingPlan = JSON.stringify(lastRawPlan).slice(0, 4000)
+      console.error('[AI] Codex plan failed validation, retrying. Offending plan:', offendingPlan)
+      const feedback = `${
+        error instanceof Error ? error.message.slice(0, 2000) : 'schema validation failed'
+      }\nYour previous (invalid) plan was: ${offendingPlan}`
+      return parseCodexCliPlan(await runOnce(feedback))
+    }
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

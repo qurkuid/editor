@@ -226,27 +226,32 @@ export async function requestAiModelingPlanViaClaude(
     ]
 
     let lastRawPlan: unknown
-    async function runOnce(): Promise<unknown> {
-      const result = await runClaudeCli(config, args, prompt)
+    async function runOnce(validationFeedback: string | null): Promise<unknown> {
+      const attemptPrompt = validationFeedback
+        ? `${prompt}\n\nYour previous plan failed schema validation. Fix exactly these issues and return a corrected plan:\n${validationFeedback}`
+        : prompt
+      const result = await runClaudeCli(config, args, attemptPrompt)
       lastRawPlan = parseClaudeCliOutput(result.stdout)
       return lastRawPlan
     }
 
     try {
-      return parseCodexCliPlan(await runOnce())
+      return parseCodexCliPlan(await runOnce(null))
     } catch (error) {
       if (error instanceof ClaudeCliExecutionError) throw error
       // The CLI honored --json-schema but the plan still failed our
       // stricter zod contract (e.g. a material id not starting with
-      // `mat_`) — retry once before giving up. Log what the model actually
-      // sent: a bare ZodError with an empty path says a field was null
-      // without saying in which patch, which made this class of failure
+      // `mat_`) — retry once, telling the model what was wrong instead of
+      // hoping it guesses differently. Log what the model actually sent: a
+      // bare ZodError with an empty path says a field was null without
+      // saying in which patch, which made this class of failure
       // undiagnosable from the server side.
-      console.error(
-        '[AI] Claude plan failed validation, retrying. Offending plan:',
-        JSON.stringify(await Promise.resolve(lastRawPlan)).slice(0, 4000),
-      )
-      return parseCodexCliPlan(await runOnce())
+      const offendingPlan = JSON.stringify(lastRawPlan).slice(0, 4000)
+      console.error('[AI] Claude plan failed validation, retrying. Offending plan:', offendingPlan)
+      const feedback = `${
+        error instanceof Error ? error.message.slice(0, 2000) : 'schema validation failed'
+      }\nYour previous (invalid) plan was: ${offendingPlan}`
+      return parseCodexCliPlan(await runOnce(feedback))
     }
   } finally {
     await rm(directory, { recursive: true, force: true })

@@ -36,6 +36,18 @@ export function describeAiFailure(raw: unknown): AiFailure {
     }
   }
 
+  // Both plan attempts came back but failed the schema contract — the model
+  // understood something, just not precisely enough. Asking the user for a
+  // more concrete instruction beats a dead-end sentence.
+  if (raw instanceof Error && raw.name === 'ZodError') {
+    return {
+      status: 502,
+      error: 'ai_invalid_plan',
+      message:
+        '요청을 실행 계획으로 옮기지 못했습니다. 대상(어떤 요소인지)·위치·치수를 조금 더 구체적으로 적어 다시 요청해 주세요.',
+    }
+  }
+
   return {
     status: 502,
     error: 'ai_request_failed',
