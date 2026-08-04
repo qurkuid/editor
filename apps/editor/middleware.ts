@@ -35,7 +35,12 @@ function publicUrl(request: NextRequest): string {
   const url = new URL(request.url)
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
   const proto = request.headers.get('x-forwarded-proto')
-  if (host) url.host = host
+  if (host) {
+    // Assigning `host` keeps any existing port, so the internal 3022 survived
+    // and the return URL still pointed somewhere the browser can't reach.
+    url.host = host
+    if (!host.includes(':')) url.port = ''
+  }
   if (proto) url.protocol = `${proto}:`
   return url.toString()
 }

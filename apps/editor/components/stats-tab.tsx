@@ -18,6 +18,8 @@ const CATEGORY_LABEL: Record<TakeoffCategory, string> = {
   finish: '마감재',
   floor: '바닥재',
   ceiling: '천장재',
+  wall: '벽체',
+  item: '배치 모델',
 }
 
 const STATUS_NOTE: Record<EstimateLine['status'], string | null> = {

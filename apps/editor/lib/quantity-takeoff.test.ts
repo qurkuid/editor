@@ -211,3 +211,56 @@ describe('scoping', () => {
     expect(deriveTakeoff(nodes).totals.floor).toBeCloseTo(20)
   })
 })
+
+describe('walls are a quantity even before anyone picks a finish', () => {
+  const wall = {
+    id: 'wall_a',
+    type: 'wall',
+    start: [0, 0],
+    end: [4, 0],
+    height: 2.5,
+  }
+
+  test('an unpainted wall still reports face area and length', () => {
+    const report = deriveTakeoff(scene(wall))
+
+    // Both faces: 4 m × 2.5 m × 2.
+    expect(line(report, 'wall', 'face')?.quantity).toBeCloseTo(20)
+    expect(line(report, 'wall', 'length')?.quantity).toBeCloseTo(4)
+    expect(report.totals.finish).toBe(0)
+  })
+
+  test('painting it adds finish lines without removing the wall quantity', () => {
+    const report = deriveTakeoff(scene({ ...wall, slots: { interior: 'library:paint-white' } }))
+
+    expect(line(report, 'wall', 'face')?.quantity).toBeCloseTo(20)
+    expect(line(report, 'finish', 'library:paint-white')?.quantity).toBeCloseTo(10)
+  })
+
+  test('wall areas aggregate across walls', () => {
+    const report = deriveTakeoff(scene(wall, { ...wall, id: 'wall_b', end: [2, 0] }))
+    expect(line(report, 'wall', 'face')?.quantity).toBeCloseTo(30)
+    expect(line(report, 'wall', 'length')?.quantity).toBeCloseTo(6)
+  })
+})
+
+describe('placed models', () => {
+  test('items count per product, aggregating duplicates', () => {
+    const report = deriveTakeoff(
+      scene(
+        { id: 'item_1', type: 'item', asset: { name: '식탁', category: 'furniture' } },
+        { id: 'item_2', type: 'item', asset: { name: '식탁', category: 'furniture' } },
+        { id: 'item_3', type: 'item', asset: { name: '스툴', category: 'furniture' } },
+      ),
+    )
+
+    expect(line(report, 'item', 'furniture:식탁')?.quantity).toBe(2)
+    expect(line(report, 'item', 'furniture:스툴')?.quantity).toBe(1)
+    expect(report.totals.item).toBe(3)
+  })
+
+  test('an item with no asset metadata still gets counted', () => {
+    const report = deriveTakeoff(scene({ id: 'item_1', type: 'item' }))
+    expect(report.totals.item).toBe(1)
+  })
+})

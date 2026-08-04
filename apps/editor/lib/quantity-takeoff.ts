@@ -19,6 +19,8 @@ export type TakeoffCategory =
   | 'finish' // 마감재
   | 'floor' // 바닥재
   | 'ceiling' // 천장재
+  | 'wall' // 벽체 (면적)
+  | 'item' // 배치 모델
 
 export type TakeoffUnit = 'm2' | 'm3' | 'm' | 'ea'
 
@@ -47,6 +49,8 @@ const EMPTY_TOTALS: Record<TakeoffCategory, number> = {
   finish: 0,
   floor: 0,
   ceiling: 0,
+  wall: 0,
+  item: 0,
 }
 
 function polygonArea(points: readonly (readonly [number, number])[]): number {
@@ -212,8 +216,22 @@ export function deriveTakeoff(
       continue
     }
 
-    // Painted wall faces — one line per material so the estimate can order by
-    // finish rather than by wall.
+    // Placed models (item catalogue / SketchUp components) — counted per
+    // product, since that is how they are bought.
+    if (node.type === 'item') {
+      const asset = (node as { asset?: { name?: string; category?: string } }).asset
+      const name = asset?.name ?? '배치 모델'
+      push(lines, {
+        category: 'item',
+        key: asset?.category ? `${asset.category}:${name}` : name,
+        label: name,
+        unit: 'ea',
+        quantity: 1,
+        nodeIds: [node.id],
+      })
+      continue
+    }
+
     if (node.type === 'wall') {
       const wall = node as {
         start?: readonly [number, number]
@@ -226,6 +244,29 @@ export function deriveTakeoff(
       if (!start || !end) continue
       const length = Math.hypot(end[0] - start[0], end[1] - start[1])
       const faceArea = length * (wall.height ?? 0)
+
+      // A wall is a quantity in its own right — plaster, board and labour are
+      // priced off it whether or not anyone has chosen a finish yet. Reporting
+      // it only once painted made unfinished walls look like nothing at all.
+      push(lines, {
+        category: 'wall',
+        key: 'face',
+        label: '벽면 (양면)',
+        unit: 'm2',
+        quantity: faceArea * 2,
+        nodeIds: [node.id],
+      })
+      push(lines, {
+        category: 'wall',
+        key: 'length',
+        label: '벽 길이',
+        unit: 'm',
+        quantity: length,
+        nodeIds: [node.id],
+      })
+
+      // Painted faces additionally group by material, so the estimate can
+      // order by finish rather than by wall.
       for (const [slot, ref] of Object.entries(wall.slots ?? {})) {
         if (!ref || (slot !== 'interior' && slot !== 'exterior')) continue
         push(lines, {
