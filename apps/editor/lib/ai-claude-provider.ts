@@ -204,9 +204,11 @@ export async function requestAiModelingPlanViaClaude(
         : []),
     ]
 
+    let lastRawPlan: unknown
     async function runOnce(): Promise<unknown> {
       const result = await runClaudeCli(config, args, prompt)
-      return parseClaudeCliOutput(result.stdout)
+      lastRawPlan = parseClaudeCliOutput(result.stdout)
+      return lastRawPlan
     }
 
     try {
@@ -215,7 +217,14 @@ export async function requestAiModelingPlanViaClaude(
       if (error instanceof ClaudeCliExecutionError) throw error
       // The CLI honored --json-schema but the plan still failed our
       // stricter zod contract (e.g. a material id not starting with
-      // `mat_`) — retry once before giving up.
+      // `mat_`) — retry once before giving up. Log what the model actually
+      // sent: a bare ZodError with an empty path says a field was null
+      // without saying in which patch, which made this class of failure
+      // undiagnosable from the server side.
+      console.error(
+        '[AI] Claude plan failed validation, retrying. Offending plan:',
+        JSON.stringify(await Promise.resolve(lastRawPlan)).slice(0, 4000),
+      )
       return parseCodexCliPlan(await runOnce())
     }
   } finally {
