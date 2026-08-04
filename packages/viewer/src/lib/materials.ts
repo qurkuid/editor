@@ -14,7 +14,7 @@ import * as THREE from 'three'
 import { float, mix, positionViewDirection, transformedNormalView } from 'three/tsl'
 import { MeshLambertNodeMaterial, MeshStandardNodeMaterial } from 'three/webgpu'
 
-import { resolveCdnUrl } from './asset-url'
+import { resolveAssetUrl, resolveCdnUrl } from './asset-url'
 import { isKtx2Url, ktx2Loader, whenKtx2Ready } from './ktx2-loader'
 import { getSceneTheme } from './scene-themes'
 import { stampPascalTextureRef } from './texture-reference'
@@ -111,6 +111,14 @@ const surfaceRoleMaterialCache = new Map<string, THREE.Material>()
 const textureCache = new Map<string, THREE.Texture>()
 const textureLoadPromises = new Map<string, Promise<THREE.Texture | null>>()
 const textureLoader = new THREE.TextureLoader()
+const imageLoader = new THREE.ImageLoader()
+
+// `asset://` (IndexedDB-stored, e.g. seamless-processed finishes) cannot go
+// through a THREE loader directly — it must first resolve to a blob URL.
+// Cache keys stay on the `asset://` form so they are stable across sessions.
+function isStoredAssetUrl(url: string): boolean {
+  return url.startsWith('asset://')
+}
 
 // `.ktx2` finish maps transcode through the shared KTX2 loader (support is
 // detected once at viewer init); everything else loads as a normal image.
@@ -216,7 +224,19 @@ function getTexture(material?: MaterialSchema): THREE.Texture | undefined {
   const resolvedUrl = /^(?:asset|blob|data):/.test(textureConfig.url)
     ? textureConfig.url
     : (resolveCdnUrl(textureConfig.url) ?? textureConfig.url)
-  const texture = pickTextureLoader(resolvedUrl).load(resolvedUrl)
+  let texture: THREE.Texture
+  if (isStoredAssetUrl(resolvedUrl)) {
+    texture = new THREE.Texture()
+    void resolveAssetUrl(resolvedUrl).then((blobUrl) => {
+      if (!blobUrl) return
+      imageLoader.load(blobUrl, (image) => {
+        texture.image = image
+        texture.needsUpdate = true
+      })
+    })
+  } else {
+    texture = pickTextureLoader(resolvedUrl).load(resolvedUrl)
+  }
   texture.wrapS = THREE.RepeatWrapping
   texture.wrapT = THREE.RepeatWrapping
 
@@ -329,7 +349,7 @@ async function loadPresetTexture(
   props: MaterialMapProperties,
   slot?: TextureSlot,
 ): Promise<THREE.Texture | null> {
-  const resolvedPath = resolveCdnUrl(path) ?? path
+  const resolvedPath = isStoredAssetUrl(path) ? path : (resolveCdnUrl(path) ?? path)
   const cacheKey = getPresetTextureCacheKey(resolvedPath, props, slot)
   const cached = textureCache.get(cacheKey)
   if (cached) return cached
@@ -341,11 +361,16 @@ async function loadPresetTexture(
   // materials can be created while a capture canvas's renderer is still
   // initializing, and failing here would cache the material permanently
   // texture-less (white).
-  const load = isKtx2Url(resolvedPath)
-    ? whenKtx2Ready().then(() =>
-        (ktx2Loader as unknown as THREE.TextureLoader).loadAsync(resolvedPath),
-      )
-    : textureLoader.loadAsync(resolvedPath)
+  const load = isStoredAssetUrl(resolvedPath)
+    ? resolveAssetUrl(resolvedPath).then((blobUrl) => {
+        if (!blobUrl) throw new Error(`Stored asset not found: ${resolvedPath}`)
+        return textureLoader.loadAsync(blobUrl)
+      })
+    : isKtx2Url(resolvedPath)
+      ? whenKtx2Ready().then(() =>
+          (ktx2Loader as unknown as THREE.TextureLoader).loadAsync(resolvedPath),
+        )
+      : textureLoader.loadAsync(resolvedPath)
 
   const promise = load
     .then((texture) => {
@@ -389,7 +414,7 @@ function queueTextureAssignment(
     return
   }
 
-  const resolvedPath = resolveCdnUrl(path) ?? path
+  const resolvedPath = isStoredAssetUrl(path) ? path : (resolveCdnUrl(path) ?? path)
   const cacheKey = getPresetTextureCacheKey(resolvedPath, props, slot)
 
   if (textureMaterial[slot]?.userData.pascalTextureCacheKey === cacheKey) {

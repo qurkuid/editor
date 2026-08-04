@@ -15,4 +15,8 @@ test('makes the RawPainter catalog the visible Painting entry point', () => {
   expect(markup).toContain('이 면')
   expect(markup).toContain('전체 요소')
   expect(markup).toContain('Shift')
+
+  // And: the workflow guide copy is gone — the tab leads with the controls.
+  expect(markup).not.toContain('자재 선택')
+  expect(markup).not.toContain('벽·바닥·천장 클릭')
 })

@@ -9,7 +9,9 @@ type SeamlessCacheDependencies = {
 }
 
 const pendingAssets = new Map<string, Promise<string>>()
-const seamlessAssetUrlPattern = /^asset:\/\/seamless-[0-9a-f]{64}$/
+// `seamless2` = the illumination-flatten + wrap-shift pipeline; the version
+// keys the cache so results of the retired edge-blur-only pass are not reused.
+const seamlessAssetUrlPattern = /^asset:\/\/seamless2-[0-9a-f]{64}$/
 
 export class SeamlessMaterialError extends Error {
   readonly status: number | null
@@ -61,7 +63,7 @@ export async function getOrCreateSeamlessAsset(
   if (seamlessAssetUrlPattern.test(sourceUrl)) return sourceUrl
   const source = await dependencies.readSource(sourceUrl)
   const digest = await digestBlob(source)
-  const assetId = `seamless-${digest}`
+  const assetId = `seamless2-${digest}`
   const stored = await dependencies.loadStored(assetId)
   if (stored) return stored
 

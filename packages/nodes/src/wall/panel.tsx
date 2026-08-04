@@ -13,11 +13,14 @@ import {
   getLibraryMaterialsVersion,
   getMaxWallCurveOffset,
   getWallBandConstruction,
+  getWallBandSlotId,
   getWallConstructionEnvelopeThickness,
   getWallCurveLength,
   getWallFaceBandConfig,
   normalizeWallBandConstructionToThickness,
   normalizeWallCurveOffset,
+  parseMaterialRef,
+  type SceneMaterialId,
   subscribeLibraryMaterials,
   useLiveNodeOverrides,
   useScene,
@@ -38,6 +41,7 @@ import {
   ActionButton,
   ActionGroup,
   curveReshapeScope,
+  freezeHostMaterialCatalogItem,
   getLinearUnitLabel,
   linearControlValueToMeters,
   metersToLinearUnit,
@@ -54,6 +58,7 @@ import { Plus, Spline, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
 import { resolveWallOpeningCeiling } from '../shared/wall-opening-ceiling'
 import { WALL_LAYER_COLORS } from './construction-visual'
+import { wallPaint } from './paint'
 
 type WallTrimKey = 'skirting' | 'crown' | 'chairRail'
 
@@ -570,6 +575,62 @@ export function WallBandConstructionEditor({
   wallHeightMeters: number
 }) {
   const t = useT()
+  const sceneMaterials = useScene((s) => s.materials)
+  // 표면마감의 시각 재질은 이 밴드의 interior 슬롯이 담당한다 — 도장 모드가
+  // 쓰는 슬롯과 동일하므로 어느 쪽에서 고르든 같은 표면이 갱신된다. 스펙·
+  // 가격(INTM productRef)과 표면 이미지(RawPainter 슬롯 재질)는 서로 독립.
+  const bandConfig = getWallFaceBandConfig(node, wallHeightMeters)
+  const surfaceSlotId = bandConfig.enabled ? getWallBandSlotId('interior', band) : 'interior'
+  const surfaceRef = node.slots?.[surfaceSlotId]
+  const surfaceMaterials = materials.filter(
+    (material) => material.sourceRef?.provider === 'rawpainter',
+  )
+  const parsedSurfaceRef = parseMaterialRef(surfaceRef)
+  const surfaceSceneMaterial =
+    parsedSurfaceRef?.kind === 'scene'
+      ? sceneMaterials[parsedSurfaceRef.id as SceneMaterialId]
+      : undefined
+  const surfaceSceneSource =
+    surfaceSceneMaterial?.material.source?.provider === 'rawpainter'
+      ? surfaceSceneMaterial.material.source
+      : undefined
+  const surfaceCatalogItem =
+    parsedSurfaceRef?.kind === 'library'
+      ? surfaceMaterials.find((item) => item.id === parsedSurfaceRef.id)
+      : surfaceSceneSource
+        ? surfaceMaterials.find(
+            (item) => item.id === `${surfaceSceneSource.provider}:${surfaceSceneSource.externalId}`,
+          )
+        : undefined
+  const surfaceValue =
+    surfaceCatalogItem?.id ?? (surfaceSceneSource && surfaceRef ? surfaceRef : '')
+  const surfaceLabel =
+    surfaceCatalogItem?.label ?? (surfaceSceneSource ? surfaceSceneMaterial?.name : undefined)
+
+  const applySurfaceMaterial = (value: string) => {
+    if (!value) {
+      wallPaint.commit?.({
+        node,
+        role: surfaceSlotId,
+        material: undefined,
+        materialPreset: undefined,
+      })
+      return
+    }
+    if (value.startsWith('scene:')) {
+      wallPaint.commit?.({ node, role: surfaceSlotId, material: undefined, materialPreset: value })
+      return
+    }
+    const item = surfaceMaterials.find((entry) => entry.id === value)
+    if (!item) return
+    wallPaint.commit?.({
+      node,
+      role: surfaceSlotId,
+      material: freezeHostMaterialCatalogItem(item),
+      materialPreset: undefined,
+    })
+  }
+
   const assemblyThickness = construction.layers.reduce((sum, layer) => sum + layer.thickness, 0)
   const cavityThickness = construction.layers
     .filter((layer) => layer.kind === 'cavity')
@@ -658,6 +719,8 @@ export function WallBandConstructionEditor({
         const quantity = quantities.find((item) => item.layerIndex === index)
         const materialsForLayer = materials.filter((material) => {
           if (layer.kind === 'cavity') return false
+          // RawPainter 항목은 표면 재질 전용 — 스펙/가격 목록(INTM)에서 제외.
+          if (material.sourceRef?.provider === 'rawpainter') return false
           if (material.constructionKinds?.includes(layer.kind)) return true
           if (material.constructionKinds?.length) return false
           if (layer.kind === 'timber-stud' || layer.kind === 'mdf') {
@@ -850,6 +913,45 @@ export function WallBandConstructionEditor({
           </div>
         )
       })}
+      <div className="space-y-1.5 rounded-md bg-muted/40 p-2">
+        <label className="block text-[10px] text-muted-foreground">
+          표면 재질 (RawPainter)
+          {surfaceMaterials.length > 0 || surfaceValue ? (
+            <select
+              aria-label={`${t(WALL_BAND_LABELS[band])} RawPainter surface`}
+              className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
+              onChange={(event) => applySurfaceMaterial(event.target.value)}
+              value={surfaceValue}
+            >
+              <option value="">재질 선택</option>
+              {surfaceValue && !surfaceCatalogItem && (
+                <option value={surfaceValue}>{surfaceLabel ?? '적용된 재질'}</option>
+              )}
+              {surfaceMaterials.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="mt-0.5 block rounded border border-dashed border-border/70 px-1.5 py-1 text-[10px]">
+              도장 탭에서 RawPainter 자재를 선택하면 여기서 고를 수 있습니다.
+            </span>
+          )}
+        </label>
+        {surfaceLabel && (
+          <div className="flex items-center gap-1.5 rounded border border-border/60 bg-background/70 px-2 py-1.5">
+            {surfaceCatalogItem?.previewThumbnailUrl ? (
+              <img
+                alt=""
+                className="h-6 w-6 shrink-0 rounded object-cover"
+                src={surfaceCatalogItem.previewThumbnailUrl}
+              />
+            ) : null}
+            <span className="truncate text-[10px] text-foreground">{surfaceLabel}</span>
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-1.5">
         <button
           className="flex items-center justify-center gap-1 rounded-md border border-dashed border-border py-1.5 text-[11px] text-muted-foreground hover:text-foreground"

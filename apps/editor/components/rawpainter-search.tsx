@@ -19,7 +19,7 @@ export function RawPainterSearch({ value, onChange, onSubmit, onClear }: RawPain
   }
 
   return (
-    <form className="relative mt-2 flex items-center" onSubmit={submit}>
+    <form className="relative flex items-center" onSubmit={submit}>
       <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
       <input
         aria-label={t('rawpainter.search.ariaLabel')}

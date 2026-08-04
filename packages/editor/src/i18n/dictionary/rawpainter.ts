@@ -10,12 +10,6 @@ export const rawpainterDictionary = {
     ko: 'RawPainter 서버에 연결할 수 없습니다.',
     en: "Couldn't connect to the RawPainter server.",
   },
-  'rawpainter.header.title': { ko: 'RawPainter 자재', en: 'RawPainter materials' },
-  'rawpainter.header.summary': {
-    ko: '카테고리 {categories}개 · 자재 {total}개',
-    en: '{categories} categories · {total} materials',
-  },
-  'rawpainter.header.liveCatalog': { ko: '실시간 카탈로그', en: 'Live catalog' },
   'rawpainter.categories.all': { ko: '전체', en: 'All' },
   'rawpainter.loading': { ko: '자재 목록 불러오는 중', en: 'Loading materials' },
   'rawpainter.retry': { ko: '다시 시도', en: 'Retry' },
@@ -46,4 +40,5 @@ export const rawpainterDictionary = {
   'rawpainter.card.noSizeInfo': { ko: '규격 정보 없음', en: 'No size info' },
   'rawpainter.card.noImage': { ko: '이미지 없음', en: 'No image' },
   'rawpainter.card.otherCategory': { ko: '기타', en: 'Other' },
+  'rawpainter.card.processingSeamless': { ko: '심리스 처리 중', en: 'Making seamless' },
 } as const satisfies Dictionary

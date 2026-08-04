@@ -1,10 +1,11 @@
 import { useT } from '@pascal-app/editor'
-import { BadgeDollarSign, Check } from 'lucide-react'
+import { BadgeDollarSign, Check, LoaderCircle } from 'lucide-react'
 import type { RawPainterProduct } from '@/lib/rawpainter-contract'
 
 type RawPainterProductCardProps = {
   readonly product: RawPainterProduct
   readonly selected: boolean
+  readonly processing?: boolean
   readonly onSelect: (product: RawPainterProduct) => void
 }
 
@@ -15,7 +16,12 @@ function productPrice(product: RawPainterProduct, priceInquiryLabel: string): st
   return Number.isFinite(price) ? `${price.toLocaleString('ko-KR')}원` : priceInquiryLabel
 }
 
-export function RawPainterProductCard({ product, selected, onSelect }: RawPainterProductCardProps) {
+export function RawPainterProductCard({
+  product,
+  selected,
+  processing = false,
+  onSelect,
+}: RawPainterProductCardProps) {
   const t = useT()
   const image = product.thumbnailUrl ?? product.image ?? product.img
   const brand = product.brand?.trim() || t('rawpainter.card.unbrandedLabel')
@@ -33,6 +39,8 @@ export function RawPainterProductCard({ product, selected, onSelect }: RawPainte
           ? 'border-primary bg-primary/8 shadow-[0_0_0_1px_var(--primary)]'
           : 'border-border/70 bg-background/65 hover:border-foreground/35 hover:bg-sidebar-accent'
       }`}
+      aria-busy={processing}
+      disabled={processing}
       onClick={() => onSelect(product)}
       type="button"
     >
@@ -49,7 +57,12 @@ export function RawPainterProductCard({ product, selected, onSelect }: RawPainte
             {t('rawpainter.card.noImage')}
           </div>
         )}
-        {selected ? (
+        {processing ? (
+          <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/45 text-white backdrop-blur-[1px]">
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <span className="text-[9px] font-medium">{t('rawpainter.card.processingSeamless')}</span>
+          </span>
+        ) : selected ? (
           <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
             <Check className="h-3.5 w-3.5" />
           </span>

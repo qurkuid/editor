@@ -144,6 +144,33 @@ export function normalizeRawPainterProduct(
   }
 }
 
+export function hasVendorSeamlessTexture(product: RawPainterProduct): boolean {
+  return Boolean(text(product.seamlessImage) || product.hasSeamless === true)
+}
+
+/**
+ * Normalize with a seamless surface guaranteed: a vendor-provided seamless
+ * image is used as-is (the asset proxy already serves it), otherwise the raw
+ * texture runs through the local seamless pipeline and the processed
+ * `asset://` result replaces the albedo map.
+ */
+export async function normalizeRawPainterProductSeamless(
+  product: RawPainterProduct,
+  assetOrigin?: string,
+  resolveSeamlessAsset: SeamlessAssetResolver = getOrCreateSeamlessAsset,
+): Promise<EditorHostMaterialProduct> {
+  const normalized = normalizeRawPainterProduct(product, assetOrigin)
+  const albedoMap = normalized.appearance.maps.albedoMap
+  if (hasVendorSeamlessTexture(product) || !albedoMap) return normalized
+  return {
+    ...normalized,
+    appearance: {
+      ...normalized.appearance,
+      maps: { ...normalized.appearance.maps, albedoMap: await resolveSeamlessAsset(albedoMap) },
+    },
+  }
+}
+
 export async function loadRawPainterCategories(
   fetcher: Fetcher = fetch,
   signal?: AbortSignal,

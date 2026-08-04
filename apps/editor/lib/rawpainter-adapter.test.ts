@@ -3,6 +3,7 @@ import {
   createRawPainterIntegrationAdapter,
   loadRawPainterPage,
   normalizeRawPainterProduct,
+  normalizeRawPainterProductSeamless,
   parseRawPainterPhysicalSize,
 } from './rawpainter-adapter'
 
@@ -120,6 +121,39 @@ describe('RawPainter host adapter', () => {
       items: [],
       nextCursor: null,
     })
+  })
+
+  test('runs the local seamless pipeline when the vendor provides no seamless asset', async () => {
+    // Given: a product with only an original texture.
+    const resolvedUrls: string[] = []
+    const resolve = async (textureUrl: string) => {
+      resolvedUrls.push(textureUrl)
+      return 'asset://seamless-def456'
+    }
+
+    // When: the product is normalized with the seamless guarantee.
+    const material = await normalizeRawPainterProductSeamless(product, undefined, resolve)
+
+    // Then: the albedo map is the locally processed asset; the thumbnail stays original.
+    expect(resolvedUrls).toEqual(['/api/materials/rawpainter/asset/70225'])
+    expect(material.appearance.maps.albedoMap).toBe('asset://seamless-def456')
+    expect(material.previewThumbnailUrl).toBe(product.thumbnailUrl)
+  })
+
+  test('skips local seamless processing when the vendor already ships one', async () => {
+    // Given: a product whose proxy already serves a vendor seamless image.
+    const seamlessProduct = { ...product, id: 12619, hasSeamless: true }
+    const resolve = async () => {
+      throw new Error('must not run the local pipeline')
+    }
+
+    // When: the product is normalized with the seamless guarantee.
+    const material = await normalizeRawPainterProductSeamless(seamlessProduct, undefined, resolve)
+
+    // Then: the vendor seamless proxy URL is used as-is.
+    expect(material.appearance.maps.albedoMap).toBe(
+      '/api/materials/rawpainter/asset/12619?kind=seamless',
+    )
   })
 
   test('stores a scene texture through the shared local seamless cache', async () => {

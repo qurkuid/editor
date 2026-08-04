@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react'
 import {
   loadRawPainterCategories,
   loadRawPainterPage,
-  normalizeRawPainterProduct,
+  normalizeRawPainterProductSeamless,
   RawPainterCatalogError,
 } from '@/lib/rawpainter-adapter'
 import type {
@@ -44,7 +44,7 @@ function errorMessage(error: unknown): string {
   throw error
 }
 
-export function RawPainterCatalog() {
+export function RawPainterCatalog({ onApplied }: { onApplied?: () => void } = {}) {
   const t = useT()
   const [categories, setCategories] = useState<readonly RawPainterCategory[]>([])
   const [catalogRequest, setCatalogRequest] = useState<CatalogRequest>({
@@ -55,11 +55,11 @@ export function RawPainterCatalog() {
   const [searchInput, setSearchInput] = useState('')
   const [products, setProducts] = useState<readonly RawPainterProduct[]>([])
   const [nextPage, setNextPage] = useState<number | null>(null)
-  const [total, setTotal] = useState(0)
   const [status, setStatus] = useState<CatalogStatus>('loading')
   const [error, setError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [processingId, setProcessingId] = useState<string | null>(null)
   const activePaintTarget = useEditor((state) => state.activePaintTarget)
   const setActivePaintMaterial = useEditor((state) => state.setActivePaintMaterial)
   const categoryId = catalogRequest.categoryId
@@ -89,7 +89,6 @@ export function RawPainterCatalog() {
     )
       .then((page) => {
         setProducts(page.products)
-        setTotal(page.total)
         setNextPage(typeof page.next === 'number' ? page.next : null)
         setStatus('ready')
       })
@@ -101,16 +100,30 @@ export function RawPainterCatalog() {
     return () => controller.abort()
   }, [catalogRequest])
 
-  const selectProduct = (product: RawPainterProduct) => {
-    const catalogItem = toHostMaterialCatalogItem(
-      normalizeRawPainterProduct(product, globalThis.location.origin),
-    )
-    registerLibraryMaterials([catalogItem])
-    setActivePaintMaterial({
-      material: freezeHostMaterialCatalogItem(catalogItem),
-      sourceTarget: activePaintTarget,
-    })
-    setSelectedId(String(product.id))
+  // Selecting a product runs the full pipeline in one step: seamless image
+  // (vendor-provided or locally generated), library registration, brush
+  // activation, then the host moves on to the material library view.
+  const selectProduct = async (product: RawPainterProduct) => {
+    if (processingId !== null) return
+    const id = String(product.id)
+    setProcessingId(id)
+    setError(null)
+    try {
+      const catalogItem = toHostMaterialCatalogItem(
+        await normalizeRawPainterProductSeamless(product, globalThis.location.origin),
+      )
+      registerLibraryMaterials([catalogItem])
+      setActivePaintMaterial({
+        material: freezeHostMaterialCatalogItem(catalogItem),
+        sourceTarget: activePaintTarget,
+      })
+      setSelectedId(id)
+      onApplied?.()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setProcessingId(null)
+    }
   }
 
   const appendPage = (page: RawPainterCatalogPage) => {
@@ -146,19 +159,6 @@ export function RawPainterCatalog() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="shrink-0 rounded-xl border border-border/70 bg-background/65 p-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="font-semibold text-sm">{t('rawpainter.header.title')}</p>
-            <p className="text-[10px] text-muted-foreground">
-              {t('rawpainter.header.summary')
-                .replace('{categories}', categories.length.toLocaleString('ko-KR'))
-                .replace('{total}', total.toLocaleString('ko-KR'))}
-            </p>
-          </div>
-          <span className="rounded-full bg-emerald-500/12 px-2 py-1 font-semibold text-[9px] text-emerald-600 uppercase tracking-wider dark:text-emerald-400">
-            {t('rawpainter.header.liveCatalog')}
-          </span>
-        </div>
         <RawPainterSearch
           onChange={setSearchInput}
           onClear={clearSearch}
@@ -223,7 +223,8 @@ export function RawPainterCatalog() {
               {products.map((product) => (
                 <RawPainterProductCard
                   key={String(product.id)}
-                  onSelect={selectProduct}
+                  onSelect={(item) => void selectProduct(item)}
+                  processing={processingId === String(product.id)}
                   product={product}
                   selected={selectedId === String(product.id)}
                 />

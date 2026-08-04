@@ -15,13 +15,24 @@ describe('getMaterialSeamlessAvailability', () => {
 
   test('marks a cached seamless asset as complete', () => {
     // Given: a texture stored under the content-addressed seamless asset scheme.
-    const textureUrl = `asset://seamless-${'a'.repeat(64)}`
+    const textureUrl = `asset://seamless2-${'a'.repeat(64)}`
 
     // When: the material row determines which seamless action to show.
     const availability = getMaterialSeamlessAvailability(textureUrl)
 
     // Then: the action is complete and cannot be run twice.
     expect(availability).toBe('complete')
+  })
+
+  test('offers reprocessing for assets from the retired seamless pipeline', () => {
+    // Given: a texture produced by the old edge-blur-only pass.
+    const textureUrl = `asset://seamless-${'a'.repeat(64)}`
+
+    // When: the material row determines which seamless action to show.
+    const availability = getMaterialSeamlessAvailability(textureUrl)
+
+    // Then: the action is ready so the better pipeline can replace it.
+    expect(availability).toBe('ready')
   })
 
   test('disables seamless processing when a material has no texture image', () => {

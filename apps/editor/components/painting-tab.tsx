@@ -2,14 +2,12 @@
 
 import { MaterialPaintPanel, useEditor, useT } from '@pascal-app/editor'
 import { useEffect, useState } from 'react'
-import { BuildWorkflowGuide } from './build-workflow-guide'
 import { RawPainterCatalog } from './rawpainter-catalog'
 
 type CatalogView = 'rawpainter' | 'library'
 
 export function PaintingTab() {
   const t = useT()
-  const activePaintMaterial = useEditor((state) => state.activePaintMaterial)
   const paintScope = useEditor((state) => state.paintScope)
   const setPaintScope = useEditor((state) => state.setPaintScope)
   const [catalogView, setCatalogView] = useState<CatalogView>('rawpainter')
@@ -23,15 +21,7 @@ export function PaintingTab() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 bg-sidebar/95 px-3 pt-3 pb-2">
-        <BuildWorkflowGuide
-          activeLabel={null}
-          activeTool={null}
-          hasPaintMaterial={activePaintMaterial !== null}
-          mode="material-paint"
-        />
-      </div>
-      <div className="mx-3 mb-2 rounded-xl border border-border/70 bg-background/35 p-2.5">
+      <div className="mx-3 mt-3 mb-2 rounded-xl border border-border/70 bg-background/35 p-2.5">
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="font-semibold text-xs">{t('painting.scope.heading')}</span>
           <span className="text-[9px] text-muted-foreground">{t('painting.scope.shiftHint')}</span>
@@ -76,7 +66,11 @@ export function PaintingTab() {
         </button>
       </div>
       <div className="min-h-0 flex-1 px-3 pb-3">
-        {catalogView === 'rawpainter' ? <RawPainterCatalog /> : <MaterialPaintPanel />}
+        {catalogView === 'rawpainter' ? (
+          <RawPainterCatalog onApplied={() => setCatalogView('library')} />
+        ) : (
+          <MaterialPaintPanel />
+        )}
       </div>
     </div>
   )
