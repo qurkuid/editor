@@ -9,6 +9,7 @@ import {
   CODEX_EFFORT_OPTIONS,
   CODEX_MODEL_OPTIONS,
 } from '@/lib/ai-model-options'
+import useAiPromptPresets from '@/lib/ai-prompt-presets-store'
 import useAiProvider, { type AiProviderKind } from '@/lib/ai-provider-store'
 import { withBasePath } from '@/lib/base-path'
 import { loadRawPainterCategories } from '@/lib/rawpainter-adapter'
@@ -188,6 +189,8 @@ export function HostSettingsSectionView({
         <AiCliLoginControl onConnected={onAiConnected} provider={aiProvider} />
       )}
 
+      <AiPromptPresetsSection />
+
       <StatusRow
         detail={materialsDetail}
         dotClassName={materialsConnected ? 'bg-emerald-500' : 'bg-amber-500'}
@@ -360,6 +363,55 @@ function AiCliLoginControl({
           {t('hostSettings.cliLoginCancel')}
         </button>
       </div>
+    </div>
+  )
+}
+
+/** The operator's saved situation prompts, edited in place. */
+function AiPromptPresetsSection() {
+  const t = useT()
+  const presets = useAiPromptPresets((state) => state.presets)
+  const addPreset = useAiPromptPresets((state) => state.addPreset)
+  const updatePreset = useAiPromptPresets((state) => state.updatePreset)
+  const removePreset = useAiPromptPresets((state) => state.removePreset)
+
+  return (
+    <div className="space-y-1.5">
+      <label className="font-medium text-muted-foreground text-xs uppercase">
+        {t('hostSettings.promptPresets')}
+      </label>
+      {presets.map((preset) => (
+        <div className="space-y-1 rounded-md border border-border/60 p-2" key={preset.id}>
+          <div className="flex items-center gap-1.5">
+            <input
+              className="w-full rounded border border-border/60 bg-transparent px-2 py-1 text-xs"
+              onChange={(event) => updatePreset(preset.id, { title: event.target.value })}
+              placeholder={t('hostSettings.promptPresetTitle')}
+              value={preset.title}
+            />
+            <button
+              className="shrink-0 text-muted-foreground text-xs hover:text-foreground"
+              onClick={() => removePreset(preset.id)}
+              type="button"
+            >
+              {t('hostSettings.promptPresetDelete')}
+            </button>
+          </div>
+          <textarea
+            className="min-h-16 w-full resize-y rounded border border-border/60 bg-transparent px-2 py-1 text-xs"
+            onChange={(event) => updatePreset(preset.id, { prompt: event.target.value })}
+            placeholder={t('hostSettings.promptPresetText')}
+            value={preset.prompt}
+          />
+        </div>
+      ))}
+      <button
+        className="rounded-md border px-2.5 py-1.5 font-medium text-xs hover:bg-accent"
+        onClick={addPreset}
+        type="button"
+      >
+        {t('hostSettings.promptPresetAdd')}
+      </button>
     </div>
   )
 }

@@ -28,6 +28,17 @@ export const hostSettingsDictionary = {
   'hostSettings.cliLoginCancel': { ko: '취소', en: 'Cancel' },
   'hostSettings.cliLoginWaiting': { ko: '승인 대기 중…', en: 'Waiting for approval…' },
   'hostSettings.cliLoginFailed': { ko: '로그인 실패', en: 'Sign-in failed' },
+  'hostSettings.promptPresets': { ko: '상황별 프롬프트', en: 'Saved prompts' },
+  'hostSettings.promptPresetAdd': { ko: '프롬프트 추가', en: 'Add prompt' },
+  'hostSettings.promptPresetTitle': {
+    ko: '제목 (예: 도면 벽 세우기)',
+    en: 'Title (e.g. Trace walls from plan)',
+  },
+  'hostSettings.promptPresetText': {
+    ko: '이 상황에서 보낼 지시문을 적어두세요',
+    en: 'Write the instruction to send in this situation',
+  },
+  'hostSettings.promptPresetDelete': { ko: '삭제', en: 'Delete' },
   'hostSettings.materials': { ko: '자재', en: 'Materials' },
   'hostSettings.materialsSource': { ko: 'RawPainter', en: 'RawPainter' },
   'hostSettings.connected': { ko: '연결됨', en: 'Connected' },

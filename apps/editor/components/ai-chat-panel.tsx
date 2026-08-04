@@ -18,6 +18,7 @@ import { z } from 'zod'
 import useAiChatHistory, { type AiChatHistoryMessage } from '@/lib/ai-chat-history'
 import { type AiModelingPlan, AiModelingPlanSchema, buildAiSceneContext } from '@/lib/ai-control'
 import { applyAiModelingPlanWithAssets } from '@/lib/ai-control-assets'
+import useAiPromptPresets from '@/lib/ai-prompt-presets-store'
 import useAiProvider from '@/lib/ai-provider-store'
 import { AI_TASK_FLOWS, type AiTaskFlow } from '@/lib/ai-task-flows'
 import { withBasePath } from '@/lib/base-path'
@@ -187,6 +188,7 @@ export function AiChatPanel() {
   const [activeFlowId, setActiveFlowId] = useState<string | null>(null)
   const [flowStep, setFlowStep] = useState(0)
   const activeFlow = AI_TASK_FLOWS.find((flow) => flow.id === activeFlowId) ?? null
+  const promptPresets = useAiPromptPresets((state) => state.presets)
 
   function runFlowStep(flow: AiTaskFlow, index: number) {
     const step = flow.steps[index]
@@ -544,6 +546,19 @@ export function AiChatPanel() {
                   {flow.title[locale] || flow.title.ko}
                 </button>
               ))}
+              {promptPresets
+                .filter((preset) => preset.title.trim() && preset.prompt.trim())
+                .map((preset) => (
+                  <button
+                    className="rounded-full border border-dashed border-border/70 px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                    key={preset.id}
+                    onClick={() => setDraft(preset.prompt)}
+                    title={preset.prompt}
+                    type="button"
+                  >
+                    {preset.title}
+                  </button>
+                ))}
             </>
           )}
         </div>
