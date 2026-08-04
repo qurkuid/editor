@@ -100,3 +100,49 @@ describe('what must not be invented', () => {
     ).toEqual([])
   })
 })
+
+describe('the sheet size follows the product', () => {
+  // Sheets are counted against the LAYER's size, so a 4x8 product on a layer
+  // still set to 3x6 would order the right board in the wrong quantity.
+  test('a product that states its size corrects the layer', () => {
+    const nodes = scene(
+      wall('wall_a', [{ kind: 'gypsum-board', thickness: 0.0095, sheetWidth: 0.9, sheetHeight: 1.8 }]),
+    )
+    const [patch] = layerMaterialPatches(nodes, ['wall_a'], 'gypsum-board', {
+      ...CHOICE,
+      name: '석고보드 9.5T 4x8 (1220x2440)',
+    })
+    const layers = (patch?.patch.faceBands as { construction: Record<string, { layers: Array<Record<string, unknown>> }> })
+      .construction.upper.layers
+
+    expect(layers[0]?.sheetWidth).toBeCloseTo(1.22)
+    expect(layers[0]?.sheetHeight).toBeCloseTo(2.44)
+  })
+
+  test('a name with no size leaves the layer as the user set it', () => {
+    const nodes = scene(
+      wall('wall_a', [{ kind: 'gypsum-board', thickness: 0.0095, sheetWidth: 0.9, sheetHeight: 1.8 }]),
+    )
+    const [patch] = layerMaterialPatches(nodes, ['wall_a'], 'gypsum-board', {
+      ...CHOICE,
+      name: '방수석고',
+    })
+    const layers = (patch?.patch.faceBands as { construction: Record<string, { layers: Array<Record<string, unknown>> }> })
+      .construction.upper.layers
+
+    expect(layers[0]?.sheetWidth).toBeCloseTo(0.9)
+  })
+
+  // 각재 40x40 3600mm states millimetres too, but framing is bought by length.
+  test('framing never acquires a sheet size', () => {
+    const nodes = scene(wall('wall_a', [{ kind: 'timber-stud', thickness: 0.033 }]))
+    const [patch] = layerMaterialPatches(nodes, ['wall_a'], 'timber-stud', {
+      ...CHOICE,
+      name: '각재 40x40 3600mm',
+    })
+    const layers = (patch?.patch.faceBands as { construction: Record<string, { layers: Array<Record<string, unknown>> }> })
+      .construction.upper.layers
+
+    expect(layers[0]?.sheetWidth).toBeUndefined()
+  })
+})

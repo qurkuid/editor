@@ -16,14 +16,41 @@ export type LayerMaterialChoice = {
   productRef: string
   brand?: string
   unitPrice?: number
+  /** Product name, read for the sheet size it states. */
+  name?: string
 }
 
-type LayerLike = { kind?: string; productRef?: string; brand?: string; unitPrice?: number }
+/**
+ * The sheet size a product name states, in metres.
+ *
+ * Sheet goods are counted by dividing the area by the LAYER's sheet size, so
+ * choosing `석고보드 9.5T 4x8 (1220x2440)` for a layer still set to 900×1800
+ * would order the right product in the wrong quantity. The catalogue writes the
+ * millimetres in the name; when it does, the layer is corrected to match.
+ * When it does not, the layer is left exactly as the user set it.
+ */
+export function sheetSizeFromName(name: string | undefined): { w: number; h: number } | null {
+  const match = name?.match(/(\d{3,4})\s*[x×X]\s*(\d{3,4})/)
+  if (!match) return null
+  const w = Number(match[1]) / 1000
+  const h = Number(match[2]) / 1000
+  return w > 0 && h > 0 ? { w, h } : null
+}
+
+type LayerLike = {
+  kind?: string
+  productRef?: string
+  brand?: string
+  unitPrice?: number
+  sheetWidth?: number
+  sheetHeight?: number
+}
 type BandLike = { mode?: string; layers?: LayerLike[] }
 
 export type NodePatch = { nodeId: string; patch: Record<string, unknown> }
 
 function stampLayers(layers: readonly LayerLike[], kind: string, choice: LayerMaterialChoice) {
+  const sheet = sheetSizeFromName(choice.name)
   let changed = false
   const next = layers.map((layer) => {
     if (layer.kind !== kind) return layer
@@ -33,6 +60,9 @@ function stampLayers(layers: readonly LayerLike[], kind: string, choice: LayerMa
       productRef: choice.productRef,
       ...(choice.brand === undefined ? {} : { brand: choice.brand }),
       ...(choice.unitPrice === undefined ? {} : { unitPrice: choice.unitPrice }),
+      // Only for layers already counted by the sheet: framing has no sheet size
+      // and must not acquire one.
+      ...(sheet && layer.sheetWidth ? { sheetWidth: sheet.w, sheetHeight: sheet.h } : {}),
     }
   })
   return changed ? next : null

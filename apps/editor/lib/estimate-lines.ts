@@ -99,6 +99,24 @@ export function buildEstimateDraft(
     const material = matchMaterial(takeoff, materials, overrides)
     if (!material) return { takeoff, status: 'no-material' }
 
+    // A build-up line counted in whole units is already an order quantity: the
+    // takeoff divided the area by the layer's own sheet size and applied the
+    // layer's waste. Sending it through the material's coverage as well would
+    // convert twice — and, since that coverage is stated in m², it simply
+    // failed, reporting a linked material as 규격 미등록.
+    if (takeoff.layerKind && takeoff.unit === 'ea') {
+      const unitPrice = material.unitPrice ?? 0
+      return {
+        takeoff,
+        status: unitPrice > 0 ? 'priced' : 'no-price',
+        material,
+        withWaste: takeoff.quantity,
+        quantity: takeoff.quantity,
+        unitPrice,
+        amount: takeoff.quantity * unitPrice,
+      }
+    }
+
     const category = material.productCategoryId
       ? categoryById.get(material.productCategoryId)
       : undefined

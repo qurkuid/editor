@@ -70,6 +70,58 @@ describe('measures are not priced', () => {
   })
 })
 
+describe('a line already counted in whole units', () => {
+  // The takeoff divided the wall area by the LAYER's sheet size and applied the
+  // layer's waste, so 15장 is the order. The material's coverage is stated in
+  // m², so converting again both double-counted and — because the units did not
+  // match — failed outright, reporting a linked material as 규격 미등록.
+  test('is priced directly rather than converted a second time', () => {
+    const draft = buildEstimateDraft(
+      report(
+        finishLine({
+          category: 'wall',
+          key: 'gypsum-board:0.9x1.8',
+          label: '석고보드 900×1800',
+          unit: 'ea',
+          quantity: 15,
+          layerKind: 'gypsum-board',
+          materialRef: 'library:mat_wall',
+        }),
+      ),
+      [{ ...WALLPAPER, unit: '장', unitPrice: 5200, coverageValue: 2.9768, coverageUnit: 'm2' }],
+      [CATEGORY],
+    )
+
+    expect(draft.lines[0]?.status).toBe('priced')
+    expect(draft.lines[0]?.quantity).toBe(15)
+    expect(draft.lines[0]?.amount).toBe(15 * 5200)
+  })
+
+  test('a material with no price still reports as no-price, not as priced', () => {
+    const draft = buildEstimateDraft(
+      report(
+        finishLine({ unit: 'ea', quantity: 15, layerKind: 'gypsum-board', label: '석고보드' }),
+      ),
+      [{ ...WALLPAPER, unitPrice: 0 }],
+      [CATEGORY],
+    )
+    expect(draft.lines[0]?.status).toBe('no-price')
+  })
+
+  // A running-metre line is NOT an order quantity: 각재 is sold by the 3.6 m
+  // length, so it still needs the material to say how long one piece is.
+  test('a running-metre line still goes through coverage', () => {
+    const draft = buildEstimateDraft(
+      report(
+        finishLine({ unit: 'm', quantity: 96.86, layerKind: 'timber-stud', label: '각재 33mm' }),
+      ),
+      [{ ...WALLPAPER, coverageValue: null, coverageUnit: null }],
+      [{ ...CATEGORY, coverageValue: null, coverageUnit: null }],
+    )
+    expect(draft.lines[0]?.status).toBe('no-coverage')
+  })
+})
+
 describe('material matching', () => {
   test('a painted surface matches by the ref it was painted with', () => {
     expect(matchMaterial(finishLine(), [WALLPAPER])?.id).toBe('mat_wall')

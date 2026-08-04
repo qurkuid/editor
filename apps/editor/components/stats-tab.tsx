@@ -186,7 +186,7 @@ export function StatsTab() {
       store.nodes,
       line.takeoff.nodeIds,
       kind,
-      { productRef: `intm:${material.id}`, unitPrice: material.unitPrice },
+      { productRef: `intm:${material.id}`, unitPrice: material.unitPrice, name: material.name },
     )) {
       store.updateNode(nodeId as never, patch as never)
     }
