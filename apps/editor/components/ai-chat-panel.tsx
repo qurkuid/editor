@@ -182,6 +182,16 @@ export function AiChatPanel() {
   const [draft, setDraft] = useState('')
   const [pendingPlan, setPendingPlan] = useState<AiModelingPlan | null>(null)
   const [isThinking, setIsThinking] = useState(false)
+  const [thinkingSeconds, setThinkingSeconds] = useState(0)
+
+  // The only signal during a long build is this indicator — without a clock a
+  // multi-minute generation is indistinguishable from a dead request.
+  useEffect(() => {
+    if (!isThinking) return
+    setThinkingSeconds(0)
+    const timer = setInterval(() => setThinkingSeconds((seconds) => seconds + 1), 1000)
+    return () => clearInterval(timer)
+  }, [isThinking])
   const [isReadingImages, setIsReadingImages] = useState(false)
   const [imageAttachments, setImageAttachments] = useState<AiImageAttachment[]>([])
   const [imageError, setImageError] = useState<string | null>(null)
@@ -399,6 +409,13 @@ export function AiChatPanel() {
         {isThinking && (
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> {t('aiChat.thinking')}
+            {thinkingSeconds >= 5 && (
+              <span>
+                · {Math.floor(thinkingSeconds / 60)}:
+                {String(thinkingSeconds % 60).padStart(2, '0')}
+              </span>
+            )}
+            {thinkingSeconds >= 60 && <span>{t('aiChat.thinkingLong')}</span>}
           </div>
         )}
         {pendingPlan && (

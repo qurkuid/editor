@@ -221,6 +221,7 @@ describe('AI provider boundary', () => {
     expect(prompt).toContain('structural stages')
     expect(prompt).toContain('propose the alternatives with a recommendation')
     expect(prompt).toContain('fully actionable')
+    expect(prompt).toContain('bundles several distinct jobs')
     expect(prompt).toContain('stages of roughly 30 patches')
     expect(prompt).toContain('answer with just the number')
     expect(prompt).toContain('trace the exterior boundary')

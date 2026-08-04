@@ -29,6 +29,10 @@ export const aiChatDictionary = {
     en: 'I read the scene graph and node schemas directly. Ask for changes in terms of model structure — wall length, creating elements, material slots.',
   },
   'aiChat.thinking': { ko: '장면 구조 분석 중', en: 'Analyzing scene structure' },
+  'aiChat.thinkingLong': {
+    ko: '— 큰 작업은 최대 10분까지 걸릴 수 있어요',
+    en: '— large builds can take up to 10 minutes',
+  },
 
   'aiChat.pendingPlan.pending': { ko: '실행 대기 · {op}', en: 'Pending · {op}' },
   'aiChat.pendingPlan.desc': {
