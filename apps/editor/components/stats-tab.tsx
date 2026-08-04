@@ -59,6 +59,8 @@ type Catalogue = {
   connected: boolean
   reason?: CatalogueReason
   status?: number
+  /** Which INTM account the server resolved the session to, if any. */
+  account?: string | null
 }
 
 /**
@@ -227,6 +229,15 @@ export function StatsTab() {
           </div>
         ) : (
           <>
+            {/* Always visible, so a screenshot says who was signed in and how
+                much came back rather than leaving both to be inferred. */}
+            {catalogue?.connected && (
+              <p className="mb-3 truncate rounded-md border border-border/50 bg-[#252527] px-2 py-1 text-[10px] text-muted-foreground">
+                {t('stats.connectedAs')
+                  .replace('{account}', catalogue.account ?? '—')
+                  .replace('{n}', String(catalogue.materials.length))}
+              </p>
+            )}
             {catalogue && !catalogue.connected && (
               <p className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-200">
                 {t(`stats.noCatalogue.${catalogue.reason ?? 'error'}`).replace(

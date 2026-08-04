@@ -69,6 +69,10 @@ export const statsDictionary = {
     ko: 'INTM 자재를 불러오지 못했습니다 ({status}).',
     en: 'Could not load INTM materials ({status}).',
   },
+  'stats.connectedAs': {
+    ko: 'INTM 연결됨 · {account} · 자재 {n}건',
+    en: 'INTM connected · {account} · {n} materials',
+  },
   'stats.total': { ko: '합계 (확정 항목만)', en: 'Total (priced lines only)' },
   'stats.unresolved': {
     ko: '{n}개 항목이 확정되지 않았습니다. 아래에서 규격을 보정하세요.',

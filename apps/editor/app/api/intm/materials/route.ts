@@ -4,7 +4,7 @@ import {
   fetchIntmMaterials,
   saveIntmMaterialCoverage,
 } from '@/lib/intm-materials'
-import { intmAuthEnabled } from '@/lib/intm-session'
+import { fetchIntmUser, intmAuthEnabled } from '@/lib/intm-session'
 
 /**
  * The browser's window onto INTM's catalogue.
@@ -30,9 +30,13 @@ export async function GET(request: NextRequest) {
   }
 
   const cookie = request.headers.get('cookie')
-  const [materials, categories] = await Promise.all([
+  const [materials, categories, user] = await Promise.all([
     fetchIntmMaterials(cookie),
     fetchIntmCategories(cookie),
+    // Which INTM account this resolved to. Shown in the panel so a screenshot
+    // says who was signed in and how much came back, instead of leaving both
+    // to be guessed at from the far end of a support thread.
+    fetchIntmUser(cookie),
   ])
 
   // "Configured" is not "working". Reporting a reachable-but-empty catalogue as
@@ -42,7 +46,8 @@ export async function GET(request: NextRequest) {
     materials,
     categories,
     connected: materials.length > 0,
-    ...(materials.length === 0 ? { reason: 'empty' } : {}),
+    account: user?.email ?? null,
+    ...(materials.length === 0 ? { reason: user ? 'empty' : 'signed-out' } : {}),
   })
 }
 
