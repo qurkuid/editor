@@ -1,4 +1,9 @@
-import { type AnyNodeId, createDefaultWallFaceBands, type NodeDefinition } from '@pascal-app/core'
+import {
+  type AnyNodeId,
+  createDefaultWallFaceBands,
+  type NodeDefinition,
+  withDefaultConstructionMaterials,
+} from '@pascal-app/core'
 import type { FloorplanNodeExtension } from '@pascal-app/editor'
 import { buildWallContextualDimensions } from './contextual-dimensions'
 import { buildWallFloorplan, computeWallFloorplanLevelData } from './floorplan'
@@ -63,7 +68,9 @@ export const wallDefinition: NodeDefinition<typeof WallNode> = {
     start: [0, 0],
     end: [3, 0],
     thickness: 0.1,
-    faceBands: createDefaultWallFaceBands(0.1),
+    // A new wall arrives with its standard products already named, so it is
+    // priceable the moment it is drawn rather than after re-picking layers.
+    faceBands: withDefaultConstructionMaterials(createDefaultWallFaceBands(0.1)),
     frontSide: 'unknown',
     backSide: 'unknown',
   }),
