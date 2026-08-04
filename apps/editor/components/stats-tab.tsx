@@ -3,7 +3,7 @@
 import { useScene } from '@pascal-app/core'
 import { useT } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
-import { BarChart3, FileText, Loader2, TriangleAlert } from 'lucide-react'
+import { BarChart3, ChevronDown, ChevronRight, FileText, Loader2, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { withBasePath } from '@/lib/base-path'
 import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
@@ -25,6 +25,7 @@ const CATEGORY_LABEL: Record<TakeoffCategory, string> = {
 
 const STATUS_NOTE: Record<EstimateLine['status'], string | null> = {
   priced: null,
+  measure: null,
   'no-material': '자재 미연결',
   'no-coverage': '규격 미등록',
   'no-price': '단가 없음',
@@ -103,12 +104,25 @@ export function StatsTab() {
     [report, catalogue],
   )
 
+  /**
+   * Category → what to order / what it was measured from, mirroring the scene
+   * tree's shape. The split matters: 석고보드 14장 is a purchase order line,
+   * 벽면 40㎡ is the number it was derived from.
+   */
   const grouped = useMemo(() => {
-    const byCategory = new Map<TakeoffCategory, EstimateLine[]>()
+    const byCategory = new Map<
+      TakeoffCategory,
+      { material: EstimateLine[]; measure: EstimateLine[]; amount: number }
+    >()
     for (const line of draft.lines) {
-      const list = byCategory.get(line.takeoff.category) ?? []
-      list.push(line)
-      byCategory.set(line.takeoff.category, list)
+      const group = byCategory.get(line.takeoff.category) ?? {
+        material: [],
+        measure: [],
+        amount: 0,
+      }
+      group[line.takeoff.role].push(line)
+      if (line.status === 'priced') group.amount += line.amount ?? 0
+      byCategory.set(line.takeoff.category, group)
     }
     return byCategory
   }, [draft])
@@ -214,22 +228,16 @@ export function StatsTab() {
                 {t('stats.empty')}
               </p>
             ) : (
-              [...grouped.entries()].map(([category, lines]) => (
-                <div className="mb-3" key={category}>
-                  <h3 className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {CATEGORY_LABEL[category]}
-                  </h3>
-                  <div className="space-y-1.5">
-                    {lines.map((line) => (
-                      <StatsRow
-                        key={`${line.takeoff.category}:${line.takeoff.key}`}
-                        line={line}
-                        onSave={saveSpec}
-                        saving={savingId === line.material?.id}
-                      />
-                    ))}
-                  </div>
-                </div>
+              [...grouped.entries()].map(([category, group]) => (
+                <CategoryGroup
+                  amount={group.amount}
+                  key={category}
+                  label={CATEGORY_LABEL[category]}
+                  material={group.material}
+                  measure={group.measure}
+                  onSave={saveSpec}
+                  savingId={savingId}
+                />
               ))
             )}
           </>
@@ -278,6 +286,71 @@ export function StatsTab() {
   )
 }
 
+/**
+ * One heading in the takeoff tree, collapsible like a scene-tree branch, with
+ * its orderables above the measures they came from.
+ */
+function CategoryGroup({
+  amount,
+  label,
+  material,
+  measure,
+  onSave,
+  savingId,
+}: {
+  amount: number
+  label: string
+  material: EstimateLine[]
+  measure: EstimateLine[]
+  onSave: (material: IntmMaterial, patch: Record<string, number>) => void
+  savingId: string | null
+}) {
+  const t = useT()
+  const [open, setOpen] = useState(true)
+  const Chevron = open ? ChevronDown : ChevronRight
+
+  const rows = (lines: EstimateLine[], heading: string) =>
+    lines.length === 0 ? null : (
+      <div className="mt-1.5">
+        <p className="mb-1 pl-1 text-[10px] text-muted-foreground/70">
+          {heading} · {lines.length}
+        </p>
+        <div className="space-y-1.5">
+          {lines.map((line) => (
+            <StatsRow
+              key={`${line.takeoff.category}:${line.takeoff.key}`}
+              line={line}
+              onSave={onSave}
+              saving={savingId === line.material?.id}
+            />
+          ))}
+        </div>
+      </div>
+    )
+
+  return (
+    <div className="mb-2 border-l border-border/40 pl-2">
+      <button
+        className="flex w-full items-center gap-1 py-1 text-left"
+        onClick={() => setOpen((value) => !value)}
+        type="button"
+      >
+        <Chevron className="h-3 w-3 shrink-0 text-muted-foreground" />
+        <span className="flex-1 text-[11px] font-semibold text-foreground">{label}</span>
+        {amount > 0 && (
+          <span className="text-[10px] text-muted-foreground">{formatAmount(amount)}</span>
+        )}
+      </button>
+      {open && (
+        <div className="pl-3">
+          {rows(material, t('stats.group.material'))}
+          {rows(measure, t('stats.group.measure'))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function StatsRow({
   line,
   onSave,
@@ -291,6 +364,8 @@ function StatsRow({
   const [open, setOpen] = useState(false)
   const note = STATUS_NOTE[line.status]
   const editable = line.material ? canEditCoverage(line.material) : false
+  // How many scene elements this one order line came from.
+  const places = new Set(line.takeoff.nodeIds).size
 
   return (
     <div className="rounded-lg border border-border/40 bg-[#252527] px-2 py-2">
@@ -309,6 +384,7 @@ function StatsRow({
               ? ` → ${line.quantity.toLocaleString('ko-KR')}${line.material.unit}`
               : ''}
             {line.wasteRate ? ` · 손실 ${Math.round(line.wasteRate * 100)}%` : ''}
+            {places > 1 ? ` · ${t('stats.places').replace('{n}', String(places))}` : ''}
           </span>
         </span>
         <span className="shrink-0 text-right">
@@ -317,7 +393,10 @@ function StatsRow({
               {note}
             </span>
           ) : (
-            <span className="text-xs text-foreground">{formatAmount(line.amount ?? 0)}</span>
+            // A measure carries no price by design — "0원" would read as free.
+            line.status !== 'measure' && (
+              <span className="text-xs text-foreground">{formatAmount(line.amount ?? 0)}</span>
+            )
           )}
         </span>
       </button>

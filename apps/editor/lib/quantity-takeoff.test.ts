@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { AnyNode } from '@pascal-app/core'
+import { type AnyNode, createDefaultWallFaceBands, DEFAULT_WALL_HEIGHT } from '@pascal-app/core'
 import { deriveTakeoff, type TakeoffCategory } from './quantity-takeoff'
 
 function scene(...nodes: Array<Record<string, unknown>>): Record<string, AnyNode> {
@@ -241,6 +241,74 @@ describe('walls are a quantity even before anyone picks a finish', () => {
     const report = deriveTakeoff(scene(wall, { ...wall, id: 'wall_b', end: [2, 0] }))
     expect(line(report, 'wall', 'face')?.quantity).toBeCloseTo(30)
     expect(line(report, 'wall', 'length')?.quantity).toBeCloseTo(6)
+  })
+})
+
+describe('a wall expands into what actually gets ordered', () => {
+  // Exactly what the wall tool stamps on every new wall — 각재 + 석고보드 + 마감.
+  const wall = {
+    id: 'wall_a',
+    type: 'wall',
+    start: [0, 0],
+    end: [4, 0],
+    height: 2.5,
+    thickness: 0.1,
+    faceBands: createDefaultWallFaceBands(0.1),
+  }
+
+  test('the default build-up yields its materials, not just an area', () => {
+    const labels = deriveTakeoff(scene(wall))
+      .lines.filter((l) => l.category === 'wall')
+      .map((l) => l.label)
+
+    expect(labels.some((l) => l.includes('각재'))).toBe(true)
+    expect(labels.some((l) => l.includes('석고보드'))).toBe(true)
+  })
+
+  test('각재 is ordered by the metre and 석고보드 by the sheet', () => {
+    const lines = deriveTakeoff(scene(wall)).lines
+    const stud = lines.find((l) => l.label.includes('각재'))
+    const board = lines.find((l) => l.label.includes('석고보드'))
+
+    expect(stud?.unit).toBe('m')
+    expect(board?.unit).toBe('ea')
+    // 4 m at 300 mm = 15 studs of 2.5 m, plus top and bottom plates, +10%.
+    expect(stud?.quantity).toBeCloseTo((15 * 2.5 + 4 * 2) * 1.1)
+    // One face, 10 m² over 900×1800 sheets, +10% → 6.79 → 7.
+    expect(board?.quantity).toBe(7)
+  })
+
+  test('a cavity is not ordered — it is empty space', () => {
+    const labels = deriveTakeoff(scene(wall)).lines.map((l) => l.label)
+    expect(labels.some((l) => l.includes('공기층'))).toBe(false)
+  })
+
+  test('the same layer aggregates across walls', () => {
+    const report = deriveTakeoff(scene(wall, { ...wall, id: 'wall_b' }))
+    const stud = report.lines.find((l) => l.label.includes('각재'))
+    expect(stud?.quantity).toBeCloseTo((15 * 2.5 + 4 * 2) * 1.1 * 2)
+    expect(stud?.nodeIds).toEqual(['wall_a', 'wall_b'])
+  })
+
+  // Areas and lengths inform an order; they are not lines on one.
+  test('face area and run length are marked as measures, materials are not', () => {
+    const report = deriveTakeoff(scene(wall))
+    expect(line(report, 'wall', 'face')?.role).toBe('measure')
+    expect(line(report, 'wall', 'length')?.role).toBe('measure')
+    expect(report.lines.find((l) => l.label.includes('석고보드'))?.role).toBe('material')
+  })
+
+  test('a wall with no build-up recorded still reports its area', () => {
+    const report = deriveTakeoff(scene({ ...wall, faceBands: undefined }))
+    expect(line(report, 'wall', 'face')?.quantity).toBeCloseTo(20)
+    expect(report.lines.some((l) => l.label.includes('석고보드'))).toBe(false)
+  })
+
+  // The store and the build-up both stand an unset wall at DEFAULT_WALL_HEIGHT.
+  // Measuring it as zero here dropped the face area of every such wall.
+  test('a wall with no height set is measured at the same default core uses', () => {
+    const report = deriveTakeoff(scene({ ...wall, height: undefined }))
+    expect(line(report, 'wall', 'face')?.quantity).toBeCloseTo(4 * DEFAULT_WALL_HEIGHT * 2)
   })
 })
 

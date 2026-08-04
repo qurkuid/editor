@@ -1,16 +1,21 @@
-import type { TakeoffLine } from './quantity-takeoff'
+import {
+  calculateWallConstructionQuantities,
+  getWallBandConstruction,
+  type WallNode,
+} from '@pascal-app/core'
+import type { TakeoffLineInput } from './quantity-takeoff'
 
 /**
- * A wall's build-up, expanded into the materials that actually get ordered.
+ * A build-up, expanded into the materials that actually get ordered.
  *
  * "20㎡ of wall" is not something anyone buys. What gets bought is so many
- * lengths of 각재 at a given spacing and so many sheets of 석고보드 — and the
- * wall already carries that recipe in `construction[band].layers`
- * (`WallConstructionLayer`: member width, stud spacing, sheet size, waste).
- * This turns the recipe plus the wall's dimensions into per-material lines.
+ * lengths of 각재 at a given spacing and so many sheets of 석고보드 — and every
+ * wall already carries that recipe, per band, in `faceBands.construction`.
  *
- * Layers with no recipe fall back to area, which is still more useful than
- * nothing; a `cavity` layer is empty space and yields nothing at all.
+ * Walls delegate the arithmetic to core's own `calculateWallConstructionQuantities`,
+ * which already handles bands, curved runs and plates. Floors and ceilings have
+ * no core equivalent, so `surfaceAssemblyLines` does the same job for their flat
+ * layer list. Both drop `cavity` layers — empty space is not a material.
  */
 
 export type WallConstructionLayerLike = {
@@ -67,8 +72,8 @@ function studLines(
   layer: WallConstructionLayerLike,
   face: WallFace,
   nodeId: string,
-  category: TakeoffLine['category'],
-): TakeoffLine[] {
+  category: TakeoffLineInput['category'],
+): TakeoffLineInput[] {
   const spacing = layer.studSpacing ?? layer.memberSpacing
   if (!spacing || spacing <= 0 || face.length <= 0 || face.height <= 0) return []
 
@@ -92,8 +97,8 @@ function sheetLines(
   layer: WallConstructionLayerLike,
   face: WallFace,
   nodeId: string,
-  category: TakeoffLine['category'],
-): TakeoffLine[] {
+  category: TakeoffLineInput['category'],
+): TakeoffLineInput[] {
   const waste = 1 + (layer.wasteFactor ?? 0)
   const sheetArea = layer.sheetWidth && layer.sheetHeight ? layer.sheetWidth * layer.sheetHeight : 0
 
@@ -129,31 +134,67 @@ function sheetLines(
 }
 
 /**
- * Expand every layer of every band into takeoff lines.
+ * Expand a wall's bands into takeoff lines.
  *
- * `construction` is keyed by band; a wall with no construction recorded
- * produces nothing here and is left to the plain face-area line.
+ * The counting is core's: it walks the active bands at their heights, measures
+ * the curved run length, and returns studs (with their top and bottom plates),
+ * sheets and areas already multiplied by each layer's waste factor. All that is
+ * left here is naming and grouping them for an order.
+ *
+ * A wall with no build-up recorded falls back, in core, to a single cavity
+ * layer — so it produces nothing here and is left to its plain face-area line.
  */
-export function wallAssemblyLines(
-  construction: Readonly<Record<string, { mode?: string; layers?: WallConstructionLayerLike[] }>>,
-  face: WallFace,
-  nodeId: string,
-): TakeoffLine[] {
-  const lines: TakeoffLine[] = []
+export function wallAssemblyLines(wall: WallNode): TakeoffLineInput[] {
+  const lines: TakeoffLineInput[] = []
 
-  for (const band of Object.values(construction ?? {})) {
-    // Only an `assembly` band describes a real build-up; `finish`/`overlay`
-    // bands are surface treatments already counted as finishes.
-    if (band?.mode !== 'assembly') continue
+  for (const quantity of calculateWallConstructionQuantities(wall)) {
+    const layer = getWallBandConstruction(wall, quantity.band).layers[quantity.layerIndex]
+    if (!layer || layer.kind === 'cavity') continue
+    // The build-up's own `finish` skin is the same surface the wall's material
+    // slots already price. Counting both would order the finish twice.
+    if (layer.kind === 'finish') continue
 
-    for (const layer of band.layers ?? []) {
-      if (layer.kind === 'cavity') continue // empty space is not a material
-      lines.push(
-        ...(FRAMING_KINDS.has(layer.kind)
-          ? studLines(layer, face, nodeId, 'wall')
-          : sheetLines(layer, face, nodeId, 'wall')),
-      )
+    // Bands are deliberately absent from the key: the same board in the lower
+    // and upper band is one line on the order, not two.
+    if (quantity.linearM != null) {
+      lines.push({
+        category: 'wall',
+        key: `${layer.kind}:${layer.memberWidth ?? 'std'}:${layer.studSpacing ?? 'std'}`,
+        label: `${layerLabel(layer)} (@${Math.round((layer.studSpacing ?? 0) * 1000)}mm)`,
+        unit: 'm',
+        quantity: quantity.linearM,
+        nodeIds: [wall.id],
+        materialRef: layer.productRef,
+      })
+      continue
     }
+
+    if (quantity.sheetCount != null) {
+      lines.push({
+        category: 'wall',
+        key: `${layer.kind}:${layer.sheetWidth}x${layer.sheetHeight}`,
+        label: `${layerLabel(layer)} ${Math.round((layer.sheetWidth ?? 0) * 1000)}×${Math.round(
+          (layer.sheetHeight ?? 0) * 1000,
+        )}`,
+        unit: 'ea',
+        quantity: quantity.sheetCount,
+        nodeIds: [wall.id],
+        materialRef: layer.productRef,
+      })
+      continue
+    }
+
+    // No sheet size on record — an area line is still priceable, and better
+    // than a layer that silently vanishes.
+    lines.push({
+      category: 'wall',
+      key: `${layer.kind}:area`,
+      label: layerLabel(layer),
+      unit: 'm2',
+      quantity: quantity.areaM2 * (1 + layer.wasteFactor),
+      nodeIds: [wall.id],
+      materialRef: layer.productRef,
+    })
   }
 
   return lines
@@ -168,9 +209,9 @@ export function surfaceAssemblyLines(
   layers: readonly WallConstructionLayerLike[] | undefined,
   face: WallFace,
   nodeId: string,
-  category: TakeoffLine['category'],
-): TakeoffLine[] {
-  const lines: TakeoffLine[] = []
+  category: TakeoffLineInput['category'],
+): TakeoffLineInput[] {
+  const lines: TakeoffLineInput[] = []
   for (const layer of layers ?? []) {
     if (layer.kind === 'cavity') continue
     // Screed is poured, so it is bought by volume, not by area or by sheet.

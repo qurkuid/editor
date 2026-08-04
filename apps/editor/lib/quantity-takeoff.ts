@@ -1,4 +1,11 @@
-import type { AnyNode, CabinetModuleNode, CabinetNode } from '@pascal-app/core'
+import {
+  type AnyNode,
+  type CabinetModuleNode,
+  type CabinetNode,
+  DEFAULT_WALL_HEIGHT,
+  getWallCurveLength,
+  type WallNode,
+} from '@pascal-app/core'
 import {
   surfaceAssemblyLines,
   type WallConstructionLayerLike,
@@ -29,6 +36,13 @@ export type TakeoffCategory =
 
 export type TakeoffUnit = 'm2' | 'm3' | 'm' | 'ea'
 
+/**
+ * `material` lines go on a purchase order. `measure` lines — face area, run
+ * length, bay count — are the numbers an order is derived from, and would be
+ * nonsense as order lines themselves.
+ */
+export type TakeoffRole = 'material' | 'measure'
+
 export type TakeoffLine = {
   category: TakeoffCategory
   /** Stable grouping key — the material ref when known, else the kind. */
@@ -40,7 +54,11 @@ export type TakeoffLine = {
   nodeIds: string[]
   /** Material reference (`library:…` / `scene:…`) when the surface is painted. */
   materialRef?: string
+  role: TakeoffRole
 }
+
+/** A line before `push` fills in its role — most lines are materials. */
+export type TakeoffLineInput = Omit<TakeoffLine, 'role'> & { role?: TakeoffRole }
 
 export type TakeoffReport = {
   lines: TakeoffLine[]
@@ -102,7 +120,7 @@ function moduleBoardArea(module: CabinetModuleNode): { carcass: number; front: n
   }
 }
 
-function push(lines: Map<string, TakeoffLine>, line: TakeoffLine) {
+function push(lines: Map<string, TakeoffLine>, line: TakeoffLineInput) {
   if (line.quantity <= 0) return
   const id = `${line.category}:${line.key}`
   const existing = lines.get(id)
@@ -111,7 +129,7 @@ function push(lines: Map<string, TakeoffLine>, line: TakeoffLine) {
     existing.nodeIds.push(...line.nodeIds)
     return
   }
-  lines.set(id, { ...line, nodeIds: [...line.nodeIds] })
+  lines.set(id, { ...line, role: line.role ?? 'material', nodeIds: [...line.nodeIds] })
 }
 
 /**
@@ -186,6 +204,7 @@ export function deriveTakeoff(
           unit: 'ea',
           quantity: bays,
           nodeIds: [run.id],
+          role: 'measure',
         })
       }
 
@@ -204,6 +223,7 @@ export function deriveTakeoff(
           unit: 'm',
           quantity: widths.reduce((total, width) => total + width, 0),
           nodeIds: [run.id],
+          role: 'measure',
         })
 
         // Bays group by width, since that is what a shop cuts and prices.
@@ -290,18 +310,13 @@ export function deriveTakeoff(
     }
 
     if (node.type === 'wall') {
-      const wall = node as {
-        start?: readonly [number, number]
-        end?: readonly [number, number]
-        height?: number
-        slots?: Record<string, string>
-        construction?: Record<string, { mode?: string; layers?: WallConstructionLayerLike[] }>
-      }
-      const start = wall.start
-      const end = wall.end
-      if (!start || !end) continue
-      const length = Math.hypot(end[0] - start[0], end[1] - start[1])
-      const faceArea = length * (wall.height ?? 0)
+      const wall = node as WallNode
+      if (!wall.start || !wall.end) continue
+      // Curved walls measure along the arc, not across the chord. A wall drawn
+      // without an explicit height stands at the same default the store and the
+      // build-up use — measuring it as zero made whole walls disappear.
+      const length = getWallCurveLength(wall)
+      const faceArea = length * (wall.height ?? DEFAULT_WALL_HEIGHT)
 
       // A wall is a quantity in its own right — plaster, board and labour are
       // priced off it whether or not anyone has chosen a finish yet. Reporting
@@ -313,6 +328,7 @@ export function deriveTakeoff(
         unit: 'm2',
         quantity: faceArea * 2,
         nodeIds: [node.id],
+        role: 'measure',
       })
       push(lines, {
         category: 'wall',
@@ -321,19 +337,12 @@ export function deriveTakeoff(
         unit: 'm',
         quantity: length,
         nodeIds: [node.id],
+        role: 'measure',
       })
 
       // The wall's own build-up: 각재 by the metre at its spacing, 석고보드 by
       // the sheet. A face area is not something anyone orders — this is.
-      if (wall.construction) {
-        for (const assemblyLine of wallAssemblyLines(
-          wall.construction,
-          { area: faceArea * 2, length, height: wall.height ?? 0 },
-          node.id,
-        )) {
-          push(lines, assemblyLine)
-        }
-      }
+      for (const assemblyLine of wallAssemblyLines(wall)) push(lines, assemblyLine)
 
       // Painted faces additionally group by material, so the estimate can
       // order by finish rather than by wall.

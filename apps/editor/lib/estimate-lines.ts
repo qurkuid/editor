@@ -14,6 +14,7 @@ import type { TakeoffLine, TakeoffReport } from './quantity-takeoff'
 
 export type EstimateLineStatus =
   | 'priced'
+  | 'measure' // 발주 대상이 아닌 산출 물량 — 값을 매기지 않음
   | 'no-material' // 씬 재질에 대응하는 INTM 자재를 못 찾음
   | 'no-coverage' // 자재는 찾았으나 환산 규격 미등록
   | 'no-price' // 환산은 됐으나 단가가 0
@@ -91,6 +92,10 @@ export function buildEstimateDraft(
   const categoryById = new Map(categories.map((category) => [category.id, category]))
 
   const lines = report.lines.map<EstimateLine>((takeoff) => {
+    // A measure is the input to an order, not a line on one. Pricing it would
+    // bill the same wall twice — once as area, once as the board covering it.
+    if (takeoff.role === 'measure') return { takeoff, status: 'measure' }
+
     const material = matchMaterial(takeoff, materials, overrides)
     if (!material) return { takeoff, status: 'no-material' }
 
@@ -121,6 +126,9 @@ export function buildEstimateDraft(
       (sum, line) => sum + (line.status === 'priced' ? (line.amount ?? 0) : 0),
       0,
     ),
-    unresolved: lines.filter((line) => line.status !== 'priced'),
+    // Measures are complete as they are; only lines that need a decision count.
+    unresolved: lines.filter(
+      (line) => line.status !== 'priced' && line.status !== 'measure',
+    ),
   }
 }

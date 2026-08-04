@@ -40,9 +40,35 @@ function finishLine(overrides: Partial<TakeoffLine> = {}): TakeoffLine {
     quantity: 33.0578,
     nodeIds: ['wall_a'],
     materialRef: 'library:mat_wall',
+    role: 'material',
     ...overrides,
   }
 }
+
+describe('measures are not priced', () => {
+  // 벽면 면적 and the 석고보드 covering it describe the same wall. Pricing both
+  // bills it twice, and name matching would happily do exactly that.
+  test('a measure is reported as such rather than matched to a material', () => {
+    const draft = buildEstimateDraft(
+      report(finishLine({ label: '벽면 (양면)', materialRef: undefined, role: 'measure' })),
+      [{ ...WALLPAPER, name: '벽면' }],
+      [CATEGORY],
+    )
+
+    expect(draft.lines[0]?.status).toBe('measure')
+    expect(draft.lines[0]?.amount).toBeUndefined()
+    expect(draft.total).toBe(0)
+  })
+
+  test('a measure is not something to fix, so it is not flagged unresolved', () => {
+    const draft = buildEstimateDraft(
+      report(finishLine({ materialRef: undefined, role: 'measure' })),
+      [],
+      [],
+    )
+    expect(draft.unresolved).toHaveLength(0)
+  })
+})
 
 describe('material matching', () => {
   test('a painted surface matches by the ref it was painted with', () => {
