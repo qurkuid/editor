@@ -11,8 +11,8 @@ import {
   type AiProviderConfig,
   buildAiModelingPrompt,
   type ClaudeCliStatus,
+  claudeModelingPlanJsonSchema,
   decodeAiChatImageDataUrl,
-  modelingPlanJsonSchema,
   parseClaudeLoginStatus,
 } from './ai-provider'
 
@@ -211,7 +211,7 @@ export async function requestAiModelingPlanViaClaude(
       '--output-format',
       'json',
       '--json-schema',
-      JSON.stringify(modelingPlanJsonSchema),
+      JSON.stringify(claudeModelingPlanJsonSchema),
       ...(config.model ? ['--model', config.model] : []),
       ...(config.effort ? ['--effort', config.effort] : []),
       // Isolate this call from this machine's own CLAUDE.md, skills, and

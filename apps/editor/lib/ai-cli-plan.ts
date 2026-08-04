@@ -21,17 +21,25 @@ export const CodexCliPatchSchema = z.object({
     'deleteFurnitureTier',
     'resizeFurnitureTier',
   ]),
-  id: z.string().nullable(),
-  nodeJson: z.string().nullable(),
-  dataJson: z.string().nullable(),
-  parentId: z.string().nullable(),
-  cascade: z.boolean().nullable(),
-  faceId: z.string().nullable(),
-  distance: z.number().finite().nullable(),
-  translation: z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]).nullable(),
-  rotationY: z.number().finite().nullable(),
-  uniformScale: z.number().finite().positive().nullable(),
-  pivot: z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]).nullable(),
+  // `.default(null)` accepts patches that omit inapplicable fields entirely —
+  // Claude's lean output schema only requires `op`.
+  id: z.string().nullable().default(null),
+  nodeJson: z.string().nullable().default(null),
+  dataJson: z.string().nullable().default(null),
+  parentId: z.string().nullable().default(null),
+  cascade: z.boolean().nullable().default(null),
+  faceId: z.string().nullable().default(null),
+  distance: z.number().finite().nullable().default(null),
+  translation: z
+    .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+    .nullable()
+    .default(null),
+  rotationY: z.number().finite().nullable().default(null),
+  uniformScale: z.number().finite().positive().nullable().default(null),
+  pivot: z
+    .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+    .nullable()
+    .default(null),
 })
 
 export const CodexCliPlanSchema = z.object({

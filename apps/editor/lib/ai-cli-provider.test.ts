@@ -95,6 +95,15 @@ describe('Codex CLI provider boundary', () => {
     })
   })
 
+  test('accepts a lean patch that omits every inapplicable field', () => {
+    const plan = parseCodexCliPlan({
+      message: 'Lean update.',
+      patches: [{ op: 'update', id: 'zone_1', dataJson: '{"wallFinish":"도배지"}' }],
+    })
+
+    expect(plan.patches).toEqual([{ op: 'update', id: 'zone_1', data: { wallFinish: '도배지' } }])
+  })
+
   test('an update with neither dataJson nor nodeJson still fails validation', () => {
     expect(() =>
       parseCodexCliPlan({

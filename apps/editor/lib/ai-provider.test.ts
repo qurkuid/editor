@@ -12,6 +12,7 @@ import {
   parseCodexLoginStatus,
   resolveAiProviderConfig,
   resolveClaudeCliConfig,
+  selectRelevantNodeTypes,
 } from './ai-provider'
 
 describe('AI provider boundary', () => {
@@ -156,6 +157,67 @@ describe('AI provider boundary', () => {
 
   test('serializes transformed node schemas for the model context', () => {
     expect(() => buildAiSceneNodeSchema()).not.toThrow()
+  })
+
+  test('scopes the node schema to core types, scene types, and keyword matches', () => {
+    const baseRequest = AiChatRequestSchema.parse({
+      messages: [{ role: 'user', content: '벽 색 바꿔줘' }],
+      scene: {
+        coordinateSystem: { groundPlane: 'XZ', upAxis: 'Y', unit: 'm' },
+        nodeCount: 1,
+        nodes: { stair_1: { id: 'stair_1', type: 'stair' } },
+        rootNodeIds: [],
+        materials: {},
+        selection: {
+          buildingId: null,
+          levelId: null,
+          zoneId: null,
+          selectedIds: [],
+          selectedNodes: [],
+        },
+      },
+    })
+
+    const selected = selectRelevantNodeTypes(baseRequest)
+    expect(selected.has('wall')).toBe(true)
+    expect(selected.has('zone')).toBe(true)
+    expect(selected.has('stair')).toBe(true) // present in the scene
+    expect(selected.has('roof')).toBe(false) // no roof anywhere in the request
+
+    const keyworded = selectRelevantNodeTypes(
+      AiChatRequestSchema.parse({
+        ...baseRequest,
+        messages: [{ role: 'user', content: '지붕 올려줘' }],
+      }),
+    )
+    expect(keyworded.has('roof')).toBe(true)
+
+    const scoped = JSON.stringify(buildAiSceneNodeSchema(selected))
+    const full = JSON.stringify(buildAiSceneNodeSchema())
+    expect(scoped.length).toBeLessThan(full.length / 2)
+  })
+
+  test('the prompt names every node type even when its schema is scoped out', () => {
+    const request = AiChatRequestSchema.parse({
+      messages: [{ role: 'user', content: '벽 만들어' }],
+      scene: {
+        coordinateSystem: { groundPlane: 'XZ', upAxis: 'Y', unit: 'm' },
+        nodeCount: 0,
+        nodes: {},
+        rootNodeIds: [],
+        materials: {},
+        selection: {
+          buildingId: null,
+          levelId: null,
+          zoneId: null,
+          selectedIds: [],
+          selectedNodes: [],
+        },
+      },
+    })
+    const prompt = buildAiModelingPrompt(request)
+    expect(prompt).toContain('Every node type that exists:')
+    expect(prompt).toContain('stair')
   })
 
   test('defaults the request provider to codex and accepts an explicit claude selection', () => {

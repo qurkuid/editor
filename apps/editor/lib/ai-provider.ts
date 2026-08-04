@@ -224,6 +224,26 @@ function bundledCliCommand(binary: string): string | null {
   return null
 }
 
+/**
+ * Claude's structured output honors optional fields, so its plan schema only
+ * requires `op` per patch — omitting the ~10 inapplicable nulls per patch
+ * meaningfully shortens what the model has to write. Codex strict output
+ * requires every property listed, so it keeps the all-required variant.
+ */
+export const claudeModelingPlanJsonSchema = {
+  ...modelingPlanJsonSchema,
+  properties: {
+    ...modelingPlanJsonSchema.properties,
+    patches: {
+      ...modelingPlanJsonSchema.properties.patches,
+      items: {
+        ...modelingPlanJsonSchema.properties.patches.items,
+        required: ['op'],
+      },
+    },
+  },
+}
+
 export function resolveAiProviderConfig(
   environment: Record<string, string | undefined>,
 ): AiProviderConfig {
@@ -280,8 +300,129 @@ export function parseClaudeLoginStatus(output: string): ClaudeCliStatus {
   return { connected: false, authMethod: null }
 }
 
-export function buildAiSceneNodeSchema(): Record<string, unknown> {
-  return z.toJSONSchema(AnyNode, { unrepresentable: 'any' })
+/**
+ * The full AnyNode JSON schema is ~180KB across 44 node types — sent whole, it
+ * dominated every request's prompt (~80k tokens) and with it the latency. A
+ * request only ever touches a handful of types, so the prompt carries full
+ * schemas for the relevant subset and just the names of the rest.
+ */
+const CORE_NODE_TYPES: readonly string[] = [
+  'site',
+  'building',
+  'level',
+  'zone',
+  'wall',
+  'door',
+  'window',
+  'slab',
+  'ceiling',
+  'cabinet',
+  'item',
+  'body',
+]
+
+const NODE_TYPE_KEYWORDS: ReadonlyArray<readonly [RegExp, readonly string[]]> = [
+  [/계단|stair/i, ['stair']],
+  [
+    /지붕|박공|처마|천창|roof|dormer|skylight/i,
+    [
+      'roof',
+      'roof-segment',
+      'dormer',
+      'skylight',
+      'cupola',
+      'ridge-vent',
+      'eyebrow-vent',
+      'box-vent',
+    ],
+  ],
+  [/기둥|column/i, ['column']],
+  [/펜스|울타리|fence/i, ['fence']],
+  [/엘리베이터|승강기|elevator/i, ['elevator']],
+  [/조명|램프|light/i, ['lighting-fixture', 'lighting-circuit', 'lighting-switch']],
+  [
+    /덕트|환기|공조|duct|hvac/i,
+    ['duct-segment', 'duct-fitting', 'duct-terminal', 'hvac-equipment'],
+  ],
+  [
+    /배관|파이프|pipe|lineset/i,
+    ['pipe-segment', 'pipe-fitting', 'pipe-trap', 'lineset', 'liquid-line'],
+  ],
+  [/태양광|solar/i, ['solar-panel']],
+  [/홈통|물받이|낙수|gutter|downspout/i, ['gutter', 'downspout']],
+  [/치수|측정|가이드|dimension|measure|guide/i, ['measurement', 'construction-dimension', 'guide']],
+  [/굴뚝|chimney/i, ['chimney']],
+  [
+    /붙박이|수납장|상부장|하부장|캐비닛|가구|cabinet|wardrobe|furniture/i,
+    ['cabinet', 'cabinet-module'],
+  ],
+]
+
+type NodeSchemaParts = {
+  variants: Map<string, Record<string, unknown>>
+  defs: Record<string, unknown>
+}
+
+let cachedNodeSchemaParts: NodeSchemaParts | null = null
+
+function nodeSchemaParts(): NodeSchemaParts {
+  if (!cachedNodeSchemaParts) {
+    const full = z.toJSONSchema(AnyNode, { unrepresentable: 'any' }) as {
+      anyOf?: Array<Record<string, unknown>>
+      oneOf?: Array<Record<string, unknown>>
+      $defs?: Record<string, unknown>
+    }
+    const variants = new Map<string, Record<string, unknown>>()
+    for (const variant of full.oneOf ?? full.anyOf ?? []) {
+      const typeProperty = (variant.properties as Record<string, { const?: unknown }> | undefined)
+        ?.type
+      const name = typeProperty?.const
+      if (typeof name === 'string') variants.set(name, variant)
+    }
+    cachedNodeSchemaParts = { variants, defs: full.$defs ?? {} }
+  }
+  return cachedNodeSchemaParts
+}
+
+function nodeSchemaVariants(): Map<string, Record<string, unknown>> {
+  return nodeSchemaParts().variants
+}
+
+export function listNodeTypeNames(): string[] {
+  return [...nodeSchemaVariants().keys()]
+}
+
+export function selectRelevantNodeTypes(input: AiChatRequest): Set<string> {
+  const known = nodeSchemaVariants()
+  const selected = new Set<string>()
+  for (const type of CORE_NODE_TYPES) {
+    if (known.has(type)) selected.add(type)
+  }
+  for (const node of Object.values(input.scene.nodes)) {
+    const type = (node as { type?: unknown } | null)?.type
+    if (typeof type === 'string' && known.has(type)) selected.add(type)
+  }
+  const text = input.messages.map((message) => message.content).join('\n')
+  for (const [pattern, types] of NODE_TYPE_KEYWORDS) {
+    if (pattern.test(text)) {
+      for (const type of types) {
+        if (known.has(type)) selected.add(type)
+      }
+    }
+  }
+  return selected
+}
+
+export function buildAiSceneNodeSchema(
+  relevantTypes?: ReadonlySet<string>,
+): Record<string, unknown> {
+  const { variants, defs } = nodeSchemaParts()
+  const chosen = relevantTypes
+    ? [...variants.entries()].filter(([type]) => relevantTypes.has(type)).map(([, v]) => v)
+    : [...variants.values()]
+  // The shared $defs are a few hundred bytes — always carried so the
+  // variants' $ref pointers stay resolvable.
+  return { oneOf: chosen, $defs: defs }
 }
 
 export function buildAiModelingPrompt(input: AiChatRequest): string {
@@ -303,7 +444,7 @@ export function buildAiModelingPrompt(input: AiChatRequest): string {
     'When reference images are attached, inspect each one explicitly and use it to infer the outcome the user wants: shapes, proportions, layout, style, and colors. Read the current scene state only from the structured scene graph provided with this request; never guess it from screenshots or image pixels.',
     ...imageManifest,
     'When an attached image is a floor plan and the user asks to build from it, work in two passes. First simplify the drawing internally: trace the exterior boundary, then interior walls, then door and window openings — ignore furniture, appliances, dimension text, hatching, and decoration. Then build: return create patches for wall nodes along the traced segments on the target level, closing each room outline so zones can form.',
-    'Derive the floor plan\'s real-world scale from dimensions stated in the image or by the user. If no scale is available, do not build at a guessed size — ask for one overall measurement (for example the total width) as a numbered question, then build on the reply.',
+    "Derive the floor plan's real-world scale from dimensions stated in the image or by the user. If no scale is available, do not build at a guessed size — ask for one overall measurement (for example the total width) as a numbered question, then build on the reply.",
     'Coordinates use X/Z as the ground plane, Y as up, metres as the canonical unit, and radians for rotations.',
     'Return the smallest valid create/update/delete patch set that satisfies the user.',
     'For create, nodeJson is the complete node JSON string. For update, dataJson is a JSON string holding only the changed fields — never echo the whole node and never use nodeJson for an update. For delete, use id plus optional cascade.',
@@ -318,12 +459,13 @@ export function buildAiModelingPrompt(input: AiChatRequest): string {
     'upper-run is a wall-hung cabinet: it has no plinth and must not sit on the floor. Give it a position Y of about 1.5 metres (or the height the user asked for) instead of 0. Every other furnitureKind is floor-standing, so its position Y is 0. An island stands in the middle of the room rather than against a wall.',
     'For a furniture tier interior edit, return op setFurnitureTierInterior. Put the required cabinet node id in id and dataJson as {"bayId":"bay-0","tierId":"bay-0-tier-0","shelfCount":3,"hanger":true}. Use stable bayId and tierId values from the cabinet furniture assembly, shelfCount must be an integer from 0 to 8, and use the same operation for shelves and the hanger rod instead of rewriting the assembly.',
     'For furniture structure edits, use insertFurnitureBay/deleteFurnitureBay/resizeFurnitureBay or insertFurnitureTier/deleteFurnitureTier/resizeFurnitureTier with the cabinet node id in id. Bay dataJson examples are {"afterBayId":"bay-0","newWidth":0.4}, {"bayId":"bay-0-copy"}, and {"bayId":"bay-0","width":0.7}. Tier examples are {"bayId":"bay-0","afterTierId":"bay-0-tier-0","newHeight":0.8}, {"bayId":"bay-0","tierId":"bay-0-tier-0-copy"}, and {"bayId":"bay-0","tierId":"bay-0-tier-0","height":1.2}. Dimensions are metres; omit optional newWidth/newHeight to split the anchor equally. These operations preserve total furniture dimensions and compensate the adjacent bay or tier.',
-    'Every flat patch field is required by the output schema. Use null for fields that do not apply to that operation.',
+    'Include only the fields that apply to each operation; when the output schema still requires a field that does not apply, set it to null.',
     'When the user refers to selected or current elements, use scene.selection as the exact target and hierarchy context.',
     'Use parentId only when that id exists in scene.nodes or is created earlier in the same plan. A stale selection levelId is not a valid parent. For createRoundedRectangularFrameBody, prefer a valid level parent; if none exists, omit parentId and the editor will attach the Body to the nearest existing structural container.',
     'Preserve node ids and semantic parent relationships. Do not change id or type in update patches.',
     'Do not run tools or modify files. Only return the requested structured modeling plan.',
     'If no scene mutation is needed, return an empty patches array and explain in message.',
+    `nodeSchema below carries full schemas only for the node types relevant to this request and scene. Every node type that exists: ${listNodeTypeNames().join(', ')}. If the request needs a type whose schema is missing, build what the included types cover and name the missing type in message so the user can re-ask.`,
     'Open message with one sentence restating exactly what you are about to change — the target element, its location, and the key values — so the user can confirm the interpretation before applying the plan. Write message in the language the user wrote in.',
     'If the request is ambiguous, or it names an item, room, or material you cannot find in the scene, do not guess blindly and do not give up: return an empty patches array, say what you understood, list the closest matching elements that do exist in the scene, and ask the one concrete question you need answered to proceed.',
     'When several concrete interpretations exist, offer them as a short numbered list — "혹시 요청하신 것이 다음 중 하나인가요? 1. … 2. …" — so the user can answer with just the number. When the conversation shows you asked such a question and the user replied with a bare number or a short pick, resolve it against those exact options and return the plan; do not ask again.',
@@ -331,6 +473,10 @@ export function buildAiModelingPrompt(input: AiChatRequest): string {
     'A whole apartment or floor does not fit one plan comfortably. Deliver big builds in stages of roughly 30 patches or fewer: return the first coherent stage (for example exterior and interior walls), and end message by saying what the next stage is (바닥/천장/문 등) so the user applies this stage and replies to continue. Keep each nodeJson compact — only fields the schema requires or that differ from their defaults.',
     'The same staging applies when one request bundles several distinct jobs (for example 문 + 창문 + 가구 배치): complete the first job now, list the remaining jobs as numbered next stages in message, and continue as the user replies. A fast, correct first stage beats one slow answer that attempts everything.',
     'Never reply that you cannot produce a plan. Either return patches, or return empty patches with a specific clarifying question that lets the user re-issue an actionable instruction.',
-    JSON.stringify({ conversation, scene: input.scene, nodeSchema: buildAiSceneNodeSchema() }),
+    JSON.stringify({
+      conversation,
+      scene: input.scene,
+      nodeSchema: buildAiSceneNodeSchema(selectRelevantNodeTypes(input)),
+    }),
   ].join('\n')
 }
