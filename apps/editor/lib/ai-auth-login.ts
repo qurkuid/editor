@@ -1,4 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import type { AiProviderKind } from './ai-provider'
 
 /**
@@ -29,7 +32,30 @@ type LoginSession = {
   exitCode: number | null
   exited: boolean
   timedOut: boolean
+  canceled: boolean
+  authSnapshot: string | null
   timer: NodeJS.Timeout
+}
+
+function codexAuthPath(): string {
+  return join(process.env.CODEX_HOME ?? join(homedir(), '.codex'), 'auth.json')
+}
+
+/**
+ * `codex login --device-auth` deletes the existing `auth.json` the moment the
+ * flow starts, so a canceled or failed login must put the previous session
+ * back — losing a working ChatGPT login to a mis-click is not acceptable.
+ * Restore only when the file is still gone: a completed login wrote a new one.
+ */
+function restoreCodexAuth(snapshot: string | null): void {
+  if (snapshot !== null && !existsSync(codexAuthPath())) {
+    try {
+      writeFileSync(codexAuthPath(), snapshot, { mode: 0o600 })
+    } catch {
+      // Nothing sane to do from a child-exit handler; the login UI will show
+      // the provider as signed out and the user can sign in again.
+    }
+  }
 }
 
 export type LoginSessionView = {
@@ -82,6 +108,15 @@ export function parseCodexDeviceAuth(output: string): {
 export function startLoginSession(provider: AiProviderKind, command: string): void {
   cancelLoginSession(provider)
 
+  let authSnapshot: string | null = null
+  if (provider === 'codex') {
+    try {
+      authSnapshot = readFileSync(codexAuthPath(), 'utf8')
+    } catch {
+      authSnapshot = null
+    }
+  }
+
   const args = provider === 'claude' ? ['auth', 'login'] : ['login', '--device-auth']
   const child = spawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] })
   const session: LoginSession = {
@@ -91,6 +126,8 @@ export function startLoginSession(provider: AiProviderKind, command: string): vo
     exitCode: null,
     exited: false,
     timedOut: false,
+    canceled: false,
+    authSnapshot,
     timer: setTimeout(() => {
       session.timedOut = true
       child.kill('SIGTERM')
@@ -112,6 +149,9 @@ export function startLoginSession(provider: AiProviderKind, command: string): vo
     session.exited = true
     session.exitCode = code
     clearTimeout(session.timer)
+    if (provider === 'codex' && (session.canceled || session.timedOut || code !== 0)) {
+      restoreCodexAuth(session.authSnapshot)
+    }
   })
   child.stdin?.on('error', () => undefined)
 
@@ -131,7 +171,12 @@ export function cancelLoginSession(provider: AiProviderKind): void {
   const session = sessions.get(provider)
   if (session) {
     clearTimeout(session.timer)
+    session.canceled = true
     if (!session.exited) session.child.kill('SIGTERM')
+    // The child's stdio can stay open long after the SIGTERM (a lingering
+    // grandchild inherits it), so don't wait for its close event to put a
+    // deleted codex login back.
+    if (provider === 'codex') restoreCodexAuth(session.authSnapshot)
     sessions.delete(provider)
   }
 }

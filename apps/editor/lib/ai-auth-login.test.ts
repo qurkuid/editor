@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -127,6 +128,45 @@ sleep 30
       cancelLoginSession('codex')
       expect(getLoginSessionView('codex').status).toBe('idle')
     } finally {
+      cancelLoginSession('codex')
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  // `codex login --device-auth` deletes the existing auth.json when the flow
+  // starts — observed live: a canceled login left the host signed out.
+  test('cancelling a codex login restores the auth.json the CLI deleted', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'pascal-login-restore-'))
+    const codexHome = join(directory, 'codex-home')
+    const authPath = join(codexHome, 'auth.json')
+    await mkdir(codexHome)
+    await writeFile(authPath, '{"auth_mode":"chatgpt"}')
+    const command = join(directory, 'codex-fixture')
+    await writeFile(
+      command,
+      `#!/bin/sh
+rm -f ${JSON.stringify(authPath)}
+printf 'Open this link\\n   https://auth.openai.com/codex/device\\n   AAAA-BBBB\\n'
+sleep 30
+`,
+    )
+    await chmod(command, 0o755)
+
+    const previousHome = process.env.CODEX_HOME
+    process.env.CODEX_HOME = codexHome
+    try {
+      startLoginSession('codex', command)
+      await waitForStatus('codex', (status) => status !== 'starting')
+      expect(existsSync(authPath)).toBe(false)
+
+      cancelLoginSession('codex')
+      for (let i = 0; i < 40 && !existsSync(authPath); i += 1) {
+        await Bun.sleep(100)
+      }
+
+      expect(await Bun.file(authPath).text()).toBe('{"auth_mode":"chatgpt"}')
+    } finally {
+      process.env.CODEX_HOME = previousHome
       cancelLoginSession('codex')
       await rm(directory, { recursive: true, force: true })
     }
