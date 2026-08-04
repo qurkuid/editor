@@ -50,6 +50,10 @@ export const MaterialSchema = z.object({
       url: AssetUrl,
       repeat: z.tuple([z.number(), z.number()]).optional(),
       scale: z.number().optional(),
+      /** UV-space sampling offset — SketchUp-style texture repositioning. */
+      offset: z.tuple([z.number(), z.number()]).optional(),
+      /** Texture rotation in degrees around the tile centre. */
+      rotationDeg: z.number().optional(),
     })
     .optional(),
 })

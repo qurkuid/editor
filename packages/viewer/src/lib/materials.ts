@@ -210,7 +210,9 @@ export function getTextureKey(material?: MaterialSchema): string {
   const texture = material?.texture
   if (!texture) return 'none'
   const [repeatX, repeatY] = resolveTextureRepeat(texture.repeat, texture.scale)
-  return `${texture.url}-${repeatX}x${repeatY}`
+  const [offsetX, offsetY] = texture.offset ?? [0, 0]
+  const rotation = texture.rotationDeg ?? 0
+  return `${texture.url}-${repeatX}x${repeatY}-${offsetX},${offsetY}r${rotation}`
 }
 
 function getTexture(material?: MaterialSchema): THREE.Texture | undefined {
@@ -242,6 +244,12 @@ function getTexture(material?: MaterialSchema): THREE.Texture | undefined {
 
   const [repeatX, repeatY] = resolveTextureRepeat(textureConfig.repeat, textureConfig.scale)
   texture.repeat.set(repeatX, repeatY)
+  const [offsetX, offsetY] = textureConfig.offset ?? [0, 0]
+  texture.offset.set(offsetX, offsetY)
+  if (textureConfig.rotationDeg) {
+    texture.center.set(0.5, 0.5)
+    texture.rotation = (textureConfig.rotationDeg * Math.PI) / 180
+  }
   texture.updateMatrix()
   texture.colorSpace = THREE.SRGBColorSpace
   stampPascalTextureRef(texture, {
