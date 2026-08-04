@@ -134,4 +134,94 @@ export const AI_TASK_FLOWS: readonly AiTaskFlow[] = [
       },
     ],
   },
+  {
+    id: 'lighting',
+    title: { ko: '조명 배치', en: 'Lighting' },
+    steps: [
+      {
+        id: 'main',
+        label: { ko: '방별 메인 조명', en: 'Main lights' },
+        prompt: {
+          ko: '방마다 메인 조명을 배치해줘. 거실은 중앙 매입등 배열, 침실은 중앙 등 1개, 주방은 작업대 위주로. (방·형태를 원하는 대로 고쳐 쓰세요)',
+          en: 'Place a main light per room: a recessed grid in the living room, one center fixture per bedroom, task-oriented lights over the kitchen counters. (Edit as you like.)',
+        },
+      },
+      {
+        id: 'accent',
+        label: { ko: '간접·포인트 조명', en: 'Accent lights' },
+        prompt: {
+          ko: '간접·포인트 조명을 더해줘. 거실 커튼박스 간접등, 복도 다운라이트, 식탁 위 펜던트. (원하는 위치로 고쳐 쓰세요)',
+          en: 'Add indirect and accent lighting: cove lighting at the living-room curtain box, hallway downlights, a pendant over the dining table. (Edit as you like.)',
+        },
+      },
+      {
+        id: 'circuits',
+        label: { ko: '스위치·회로', en: 'Switches' },
+        prompt: {
+          ko: '조명을 회로별로 묶고 동선에 맞는 위치에 스위치를 배치해줘. 방 입구마다 1개, 거실은 복도·소파 양쪽.',
+          en: 'Group the lights into circuits and place switches where the circulation needs them: one at each room entrance, both hallway and sofa side for the living room.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'kitchen',
+    title: { ko: '주방 구성', en: 'Kitchen' },
+    steps: [
+      {
+        id: 'base',
+        label: { ko: '하부장 라인', en: 'Base run' },
+        prompt: {
+          ko: '주방 벽면을 따라 하부장 라인을 배치해줘. 싱크 구간을 포함해서. (길이·벽면을 원하는 대로 고쳐 쓰세요)',
+          en: 'Place the base-cabinet run along the kitchen wall, including the sink section. (Edit the length and wall as you like.)',
+        },
+      },
+      {
+        id: 'upper',
+        label: { ko: '상부장', en: 'Upper run' },
+        prompt: {
+          ko: '하부장 위로 상부장을 배치해줘. 창문 구간은 비우고.',
+          en: 'Hang the upper cabinets above the base run, leaving the window section open.',
+        },
+      },
+      {
+        id: 'island',
+        label: { ko: '아일랜드·키큰장', en: 'Island and tall' },
+        prompt: {
+          ko: '주방 중앙에 아일랜드를, 라인 끝에는 키큰장(냉장고장)을 배치해줘. (크기·위치를 원하는 대로 고쳐 쓰세요)',
+          en: 'Add an island in the middle of the kitchen and a tall (fridge) cabinet at the end of the run. (Edit sizes and positions.)',
+        },
+      },
+    ],
+  },
+  {
+    id: 'storage',
+    title: { ko: '붙박이 수납', en: 'Built-in storage' },
+    steps: [
+      {
+        id: 'place',
+        label: { ko: '붙박이장 배치', en: 'Place wardrobes' },
+        prompt: {
+          ko: '안방 가장 긴 벽에 붙박이장을 배치해줘. 다른 침실에도 폭에 맞는 붙박이장을 하나씩. (방·크기를 원하는 대로 고쳐 쓰세요)',
+          en: 'Place a built-in wardrobe along the longest master-bedroom wall, and one sized to fit in each other bedroom. (Edit rooms and sizes.)',
+        },
+      },
+      {
+        id: 'interior',
+        label: { ko: '내부 구성', en: 'Interiors' },
+        prompt: {
+          ko: '붙박이장 내부를 구성해줘. 안방은 행거 구간 + 선반 구간 반반, 나머지는 선반 위주로.',
+          en: 'Configure the wardrobe interiors: half hanger, half shelves in the master bedroom, shelf-heavy elsewhere.',
+        },
+      },
+      {
+        id: 'bays',
+        label: { ko: '베이 폭 조정', en: 'Bay widths' },
+        prompt: {
+          ko: '붙박이장 베이 폭을 조정해줘. 예: 안방 행거 베이는 900mm, 선반 베이는 600mm. (원하는 폭으로 고쳐 쓰세요)',
+          en: 'Adjust the wardrobe bay widths: for example 900mm hanger bays and 600mm shelf bays in the master bedroom. (Edit widths as you like.)',
+        },
+      },
+    ],
+  },
 ]
