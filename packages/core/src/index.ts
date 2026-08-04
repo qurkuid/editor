@@ -294,7 +294,10 @@ export {
   sheetFromName as constructionSheetFromName,
   thicknessFromName as constructionThicknessFromName,
 } from './lib/construction-material-match'
-export { withDefaultConstructionMaterials } from './lib/link-default-construction'
+export {
+  withBandConstructionMaterials,
+  withDefaultConstructionMaterials,
+} from './lib/link-default-construction'
 export {
   buildWallConstructionLayerSpans,
   calculateWallConstructionQuantities,

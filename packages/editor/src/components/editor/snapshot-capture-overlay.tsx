@@ -5,6 +5,8 @@ import { Check, Crop, Loader2, Maximize2, Monitor, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useIsMobile } from '../../hooks/use-mobile'
 import { triggerSFX } from '../../lib/sfx-bus'
+import type { MessageId } from '../../i18n/translate'
+import { useT } from '../../i18n/use-t'
 import useEditor, {
   type SnapshotCropMode,
   type SnapshotStandardAspect,
@@ -92,13 +94,14 @@ function CornerAccents() {
 const HUD_CHIP_CLASS =
   'flex flex-col gap-px rounded-lg border border-white/10 bg-neutral-950/85 px-3 py-1.5 backdrop-blur-md'
 
-const CROP_LABELS: Record<CropMode, string> = {
-  standard: 'Standard',
-  viewport: 'Viewport',
-  area: 'Area',
+const CROP_LABEL_KEYS: Record<CropMode, MessageId> = {
+  standard: 'chrome.snapshotCropStandard',
+  viewport: 'chrome.snapshotCropViewport',
+  area: 'chrome.snapshotCropArea',
 }
 
 export function SnapshotCaptureOverlay({ projectId }: { projectId: string }) {
+  const t = useT()
   const isCaptureMode = useEditor((s) => s.isCaptureMode)
   const captureMode = useEditor((s) => s.captureMode)
   const setCaptureMode = useEditor((s) => s.setCaptureMode)
@@ -445,7 +448,7 @@ export function SnapshotCaptureOverlay({ projectId }: { projectId: string }) {
           {!selectionStyle && !isPreset && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <span className="rounded-full border border-white/10 bg-neutral-950/80 px-4 py-2 text-sm text-white backdrop-blur-md">
-                Drag the area you want to capture
+                {t('chrome.snapshotDragArea')}
               </span>
             </div>
           )}
@@ -506,15 +509,15 @@ export function SnapshotCaptureOverlay({ projectId }: { projectId: string }) {
         <div className="pointer-events-none absolute top-4 left-1/2 flex -translate-x-1/2 gap-2">
           <div className={HUD_CHIP_CLASS}>
             <span className="font-mono text-[8.5px] text-white/50 uppercase tracking-[0.14em]">
-              Crop
+              {t('chrome.snapshotCrop')}
             </span>
             <span className="font-semibold text-white text-xs">
-              {isPreset ? 'Preset · square' : CROP_LABELS[mode]}
+              {isPreset ? t('chrome.snapshotCropPreset') : t(CROP_LABEL_KEYS[mode])}
             </span>
           </div>
           <div className={HUD_CHIP_CLASS}>
             <span className="font-mono text-[8.5px] text-white/50 uppercase tracking-[0.14em]">
-              Format
+              {t('chrome.snapshotFormat')}
             </span>
             <span className="font-semibold text-white text-xs tabular-nums">
               {resolution ? `${resolution.w} × ${resolution.h}` : '—'}
@@ -526,7 +529,7 @@ export function SnapshotCaptureOverlay({ projectId }: { projectId: string }) {
       {/* Top-right dismiss button (icon-only on mobile) */}
       <div className="pointer-events-auto absolute top-4 right-4">
         <button
-          aria-label="Close capture mode"
+          aria-label={t('chrome.closeCaptureMode')}
           className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-neutral-950/85 px-3 py-1.5 text-white/80 text-xs backdrop-blur-md transition-colors hover:bg-neutral-950 hover:text-white"
           onClick={dismiss}
           type="button"
@@ -608,13 +611,14 @@ export function SnapshotCaptureOverlay({ projectId }: { projectId: string }) {
             snapshot pitch only applies to the studio/reference flow. */}
         {!isMobile && !isPreset && (
           <span className="pointer-events-none max-w-90 rounded-lg border border-white/10 bg-neutral-950/85 px-3.5 py-1.5 text-center text-[11.5px] text-white/85 leading-relaxed backdrop-blur-md">
-            A <b className="font-semibold text-white">snapshot</b>
-            {' freezes this exact camera angle as a reusable reference for renders & videos.'}
+            {t('chrome.snapshotPitchPrefix')}
+            <b className="font-semibold text-white">{t('chrome.snapshotPitchWord')}</b>
+            {t('chrome.snapshotPitchSuffix')}
           </span>
         )}
 
         <button
-          aria-label={isPreset ? 'Capture' : 'Take snapshot'}
+          aria-label={isPreset ? t('chrome.snapshotCapture') : t('chrome.snapshotTake')}
           className="group pointer-events-auto relative grid h-14 w-14 place-items-center rounded-full disabled:opacity-50"
           disabled={captureDisabled}
           onClick={handleCapture}
@@ -637,12 +641,12 @@ export function SnapshotCaptureOverlay({ projectId }: { projectId: string }) {
         </button>
         <span className="pointer-events-none font-mono text-[10.5px] text-white uppercase tracking-[0.12em] drop-shadow">
           {captureState === 'capturing'
-            ? 'Capturing…'
+            ? t('chrome.snapshotCapturing')
             : captureState === 'saved'
-              ? 'Saved'
+              ? t('chrome.snapshotSaved')
               : isPreset
-                ? 'Capture'
-                : 'Take snapshot'}
+                ? t('chrome.snapshotCapture')
+                : t('chrome.snapshotTake')}
         </span>
       </div>
     </div>

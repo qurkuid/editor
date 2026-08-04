@@ -9,7 +9,9 @@ type MaterialSizeEditorProps = {
   readonly onChange: (next: MaterialSchema) => void
 }
 
+import { useT } from '../../../i18n/use-t'
 export function MaterialSizeEditor({ value, onChange }: MaterialSizeEditorProps) {
+  const t = useT()
   const physicalSize = value.physicalSize ?? { widthM: 1, heightM: 1 }
   const [widthDraft, setWidthDraft] = useState(String(Math.round(physicalSize.widthM * 1000)))
   const [heightDraft, setHeightDraft] = useState(String(Math.round(physicalSize.heightM * 1000)))
@@ -41,7 +43,7 @@ export function MaterialSizeEditor({ value, onChange }: MaterialSizeEditorProps)
       </label>
       <div className="grid grid-cols-2 gap-2">
         <Input
-          aria-label="Material width in millimetres"
+          aria-label={t('materials.widthMillimetres')}
           min={1}
           onBlur={() => commit('widthM', widthDraft)}
           onChange={(event) => setWidthDraft(event.currentTarget.value)}
@@ -53,7 +55,7 @@ export function MaterialSizeEditor({ value, onChange }: MaterialSizeEditorProps)
           value={widthDraft}
         />
         <Input
-          aria-label="Material height in millimetres"
+          aria-label={t('materials.heightMillimetres')}
           min={1}
           onBlur={() => commit('heightM', heightDraft)}
           onChange={(event) => setHeightDraft(event.currentTarget.value)}

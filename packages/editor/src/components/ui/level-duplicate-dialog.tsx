@@ -4,6 +4,8 @@ import type { LevelNode } from '@pascal-app/core'
 import { useEffect, useState } from 'react'
 import type { LevelDuplicatePreset } from '../../lib/level-duplication'
 import { getLevelDisplayName } from '@pascal-app/core'
+import type { MessageId } from '../../i18n/translate'
+import { useT } from '../../i18n/use-t'
 import { cn } from '../../lib/utils'
 import {
   Dialog,
@@ -16,33 +18,33 @@ import {
 
 const DUPLICATE_PRESETS: Array<{
   id: LevelDuplicatePreset
-  label: string
-  description: string
+  labelKey: MessageId
+  descriptionKey: MessageId
 }> = [
   {
     id: 'everything',
-    label: 'Everything',
-    description: 'Structure, materials, furniture, and references.',
+    labelKey: 'chrome.duplicateLevelEverything',
+    descriptionKey: 'chrome.duplicateLevelEverythingDesc',
   },
   {
     id: 'structure',
-    label: 'Structure only',
-    description: 'Walls, slabs, roofs, stairs, windows, and doors without finishes.',
+    labelKey: 'chrome.duplicateLevelStructure',
+    descriptionKey: 'chrome.duplicateLevelStructureDesc',
   },
   {
     id: 'structure-materials',
-    label: 'Structure + materials',
-    description: 'Structure with the current material and finish assignments.',
+    labelKey: 'chrome.duplicateLevelStructureMaterials',
+    descriptionKey: 'chrome.duplicateLevelStructureMaterialsDesc',
   },
   {
     id: 'structure-furniture',
-    label: 'Structure + furniture',
-    description: 'Structure, finishes, and placed items, without guide references.',
+    labelKey: 'chrome.duplicateLevelStructureFurniture',
+    descriptionKey: 'chrome.duplicateLevelStructureFurnitureDesc',
   },
 ]
 
-function getLevelLabel(level: LevelNode | null) {
-  if (!level) return 'this level'
+function getLevelLabel(level: LevelNode | null, fallback: string) {
+  if (!level) return fallback
   return getLevelDisplayName(level)
 }
 
@@ -57,6 +59,7 @@ export function LevelDuplicateDialog({
   onConfirm: (preset: LevelDuplicatePreset) => void
   onOpenChange: (open: boolean) => void
 }) {
+  const t = useT()
   const [preset, setPreset] = useState<LevelDuplicatePreset>('everything')
 
   useEffect(() => {
@@ -69,8 +72,10 @@ export function LevelDuplicateDialog({
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="sm:max-w-md" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Duplicate Level</DialogTitle>
-          <DialogDescription>Choose what to copy from {getLevelLabel(level)}.</DialogDescription>
+          <DialogTitle>{t('chrome.duplicateLevel')}</DialogTitle>
+          <DialogDescription>
+            {`${t('chrome.duplicateLevelFromPrefix')}${getLevelLabel(level, t('chrome.duplicateLevelThisLevel'))}${t('chrome.duplicateLevelFromSuffix')}`}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-2">
@@ -86,8 +91,8 @@ export function LevelDuplicateDialog({
               onClick={() => setPreset(option.id)}
               type="button"
             >
-              <div className="font-medium text-sm">{option.label}</div>
-              <div className="mt-1 text-muted-foreground text-xs">{option.description}</div>
+              <div className="font-medium text-sm">{t(option.labelKey)}</div>
+              <div className="mt-1 text-muted-foreground text-xs">{t(option.descriptionKey)}</div>
             </button>
           ))}
         </div>
@@ -98,14 +103,14 @@ export function LevelDuplicateDialog({
             onClick={() => onOpenChange(false)}
             type="button"
           >
-            Cancel
+            {t('chrome.cancel')}
           </button>
           <button
             className="cursor-pointer rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm transition-opacity hover:opacity-90"
             onClick={() => onConfirm(preset)}
             type="button"
           >
-            Duplicate
+            {t('common.duplicate')}
           </button>
         </DialogFooter>
       </DialogContent>

@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogTitle } from './../../../components/ui/pri
 import { getLevelDisplayName } from '@pascal-app/core'
 import { useCommandRegistry } from '../../../store/use-command-registry'
 import { usePaletteViewRegistry } from '../../../store/use-palette-view-registry'
+import type { MessageId } from '../../../i18n/translate'
+import { useT } from '../../../i18n/use-t'
 
 // ---------------------------------------------------------------------------
 // Open + navigation state store
@@ -147,11 +149,11 @@ function OptionItem({
 // ---------------------------------------------------------------------------
 // Sub-page label map
 // ---------------------------------------------------------------------------
-const PAGE_LABEL: Record<string, string> = {
-  'wall-mode': 'Wall Mode',
-  'level-mode': 'Level Mode',
-  'rename-level': 'Rename Level',
-  'goto-level': 'Go to Level',
+const PAGE_LABEL_KEY: Record<string, MessageId> = {
+  'wall-mode': 'chrome.paletteWallMode',
+  'level-mode': 'chrome.paletteLevelMode',
+  'rename-level': 'chrome.paletteRenameLevel',
+  'goto-level': 'chrome.paletteGotoLevel',
 }
 
 // ---------------------------------------------------------------------------
@@ -189,6 +191,7 @@ function EmptyActionItem({ action }: { action: CommandPaletteEmptyAction }) {
 // Main component
 // ---------------------------------------------------------------------------
 export function CommandPalette({ emptyAction }: { emptyAction?: CommandPaletteEmptyAction }) {
+  const t = useT()
   const { open, setOpen, mode, setMode, pages, inputValue, setInputValue, navigateTo, goBack } =
     useCommandPalette()
 
@@ -293,7 +296,7 @@ export function CommandPalette({ emptyAction }: { emptyAction?: CommandPaletteEm
   return (
     <Dialog onOpenChange={setOpen} open={open}>
       <DialogContent className="max-w-lg gap-0 overflow-hidden p-0" showCloseButton={false}>
-        <DialogTitle className="sr-only">Command Palette</DialogTitle>
+        <DialogTitle className="sr-only">{t('chrome.commandPalette')}</DialogTitle>
 
         {modeView && <modeView.Component onBack={onBack} onClose={onClose} />}
 
@@ -317,7 +320,7 @@ export function CommandPalette({ emptyAction }: { emptyAction?: CommandPaletteEm
                   onClick={goBack}
                   type="button"
                 >
-                  {PAGE_LABEL[page] ?? views.get(page)?.label ?? page}
+                  {(PAGE_LABEL_KEY[page] ? t(PAGE_LABEL_KEY[page]) : undefined) ?? views.get(page)?.label ?? page}
                 </button>
               )}
               <Command.Input
@@ -326,10 +329,10 @@ export function CommandPalette({ emptyAction }: { emptyAction?: CommandPaletteEm
                 onValueChange={setInputValue}
                 placeholder={
                   page === 'rename-level'
-                    ? 'Type a new name…'
+                    ? t('chrome.paletteTypeNewName')
                     : page
-                      ? 'Filter options…'
-                      : 'Search actions…'
+                      ? t('chrome.paletteFilterOptions')
+                      : t('chrome.paletteSearchActions')
                 }
                 value={inputValue}
               />
@@ -338,7 +341,7 @@ export function CommandPalette({ emptyAction }: { emptyAction?: CommandPaletteEm
             <Command.List className="max-h-100 overflow-y-auto p-1.5">
               {(!emptyAction || page) && (
                 <Command.Empty className="py-8 text-center text-muted-foreground text-sm">
-                  No commands found.
+                  {t('chrome.paletteNoCommands')}
                 </Command.Empty>
               )}
               {emptyAction && !page && <EmptyActionItem action={emptyAction} />}
@@ -443,10 +446,11 @@ export function CommandPalette({ emptyAction }: { emptyAction?: CommandPaletteEm
                     <span className="flex-1 truncate">
                       {inputValue.trim() ? (
                         <>
-                          Rename to <span className="font-medium">"{inputValue.trim()}"</span>
+                          <span className="font-medium">"{inputValue.trim()}"</span>
+                          {t('chrome.paletteRenameTo')}
                         </>
                       ) : (
-                        <span className="text-muted-foreground">Type a new name above…</span>
+                        <span className="text-muted-foreground">{t('chrome.typeNewNameAbove')}</span>
                       )}
                     </span>
                   </Command.Item>
@@ -457,18 +461,18 @@ export function CommandPalette({ emptyAction }: { emptyAction?: CommandPaletteEm
             {/* Footer hint */}
             <div className="flex items-center justify-between border-border/50 border-t px-3 py-2">
               <span className="text-[11px] text-muted-foreground">
-                <Shortcut keys={['↑', '↓']} /> navigate
+                <Shortcut keys={['↑', '↓']} /> {t('chrome.paletteNavigate')}
               </span>
               <span className="text-[11px] text-muted-foreground">
-                <Shortcut keys={['↵']} /> select
+                <Shortcut keys={['↵']} /> {t('chrome.paletteSelect')}
               </span>
               {page ? (
                 <span className="text-[11px] text-muted-foreground">
-                  <Shortcut keys={['⌫']} /> back
+                  <Shortcut keys={['⌫']} /> {t('chrome.paletteBack')}
                 </span>
               ) : (
                 <span className="text-[11px] text-muted-foreground">
-                  <Shortcut keys={['Esc']} /> close
+                  <Shortcut keys={['Esc']} /> {t('common.close')}
                 </span>
               )}
             </div>

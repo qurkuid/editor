@@ -5,6 +5,7 @@ import {
   type AnyNodeId,
   buildWallFaceBandCountPatch,
   bestConstructionMaterial,
+  withBandConstructionMaterials,
   calculateWallConstructionQuantities,
   createWallBandConstructionPreset,
   detectWallConstructionPreset,
@@ -614,10 +615,15 @@ export function WallBandConstructionEditor({
           onChange={(event) => {
             const preset = event.target.value
             if (preset !== 'custom') {
+              // A preset rebuilds the layers from scratch, which dropped every
+              // product the wall had named. Re-link them so switching preset
+              // does not quietly unprice the wall.
               onChange(
-                createWallBandConstructionPreset(
-                  preset as WallConstructionPresetId,
-                  targetThickness,
+                withBandConstructionMaterials(
+                  createWallBandConstructionPreset(
+                    preset as WallConstructionPresetId,
+                    targetThickness,
+                  ),
                 ),
               )
             }

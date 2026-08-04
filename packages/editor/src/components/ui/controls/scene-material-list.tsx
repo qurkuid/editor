@@ -16,6 +16,7 @@ import { Input } from '../primitives/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../primitives/tooltip'
 import { MaterialPropertiesEditor } from './material-properties-editor'
 import { SceneMaterialSeamlessAction } from './scene-material-seamless-action'
+import { useT } from '../../../i18n/use-t'
 
 type SlotRecord = Record<string, string | undefined>
 
@@ -109,6 +110,7 @@ function SceneMaterialRow({
   removeSceneMaterial: ReturnType<typeof useScene.getState>['removeSceneMaterial']
   setActivePaintMaterial: ReturnType<typeof useEditor.getState>['setActivePaintMaterial']
 }) {
+  const t = useT()
   // A freshly-created material (via "+ Custom") mounts with its editor open.
   const [isEditingMaterial, setIsEditingMaterial] = useState(autoEdit)
   const [draftName, setDraftName] = useState(sceneMaterial.name)
@@ -173,7 +175,7 @@ function SceneMaterialRow({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                aria-label="Paint with"
+                aria-label={t('materials.paintWith')}
                 onClick={() =>
                   setActivePaintMaterial({
                     materialPreset: toSceneMaterialRef(id),
@@ -188,12 +190,12 @@ function SceneMaterialRow({
                 {isActive ? 'Selected' : 'Use'}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Paint with</TooltipContent>
+            <TooltipContent>{t('materials.paintWith')}</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                aria-label="Edit"
+                aria-label={t('common.edit')}
                 aria-pressed={isEditingMaterial}
                 onClick={() => setIsEditingMaterial((value) => !value)}
                 size="icon-sm"
@@ -203,12 +205,12 @@ function SceneMaterialRow({
                 <Pencil />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Edit</TooltipContent>
+            <TooltipContent>{t('common.edit')}</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                aria-label="Duplicate"
+                aria-label={t('common.duplicate')}
                 onClick={duplicateMaterial}
                 size="icon-sm"
                 type="button"
@@ -217,12 +219,12 @@ function SceneMaterialRow({
                 <Copy />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Duplicate</TooltipContent>
+            <TooltipContent>{t('common.duplicate')}</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                aria-label="Delete"
+                aria-label={t('common.delete')}
                 onClick={() => removeSceneMaterial(id)}
                 size="icon-sm"
                 type="button"
@@ -231,7 +233,7 @@ function SceneMaterialRow({
                 <Trash2 />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Delete</TooltipContent>
+            <TooltipContent>{t('common.delete')}</TooltipContent>
           </Tooltip>
         </div>
       </div>

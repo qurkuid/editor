@@ -61,6 +61,7 @@ import useInteractionScope, {
   useEndpointReshape,
   useIsCurveReshape,
 } from '../../store/use-interaction-scope'
+import { useT } from '../../i18n/use-t'
 import { useWallConstructionDisplay } from '../../store/use-wall-construction-display'
 import { IconRefGlyph } from '../ui/icon-ref'
 import { formatMeasurement, MeasurementPill } from './measurement-pill'
@@ -306,6 +307,7 @@ export function FloatingActionMenu() {
   const scope = useInteractionScope((s) => s.scope)
   const wallDisplayMode = useWallConstructionDisplay((s) => s.mode)
   const setWallDisplayMode = useWallConstructionDisplay((s) => s.setMode)
+  const t = useT()
   const menuStepBack = resolveOverlayPolicy(scope).conflictingControls === 'hidden'
 
   const groupRef = useRef<THREE.Group>(null)
@@ -901,7 +903,7 @@ export function FloatingActionMenu() {
                     <span aria-hidden className="text-muted-foreground">
                       ·
                     </span>
-                    <span className="text-muted-foreground">R/T rotate</span>
+                    <span className="text-muted-foreground">{t('common.rotateHint')}</span>
                     <span aria-hidden className="text-muted-foreground">
                       ·
                     </span>

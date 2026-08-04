@@ -26,6 +26,8 @@ import {
   Square,
   SwatchBook,
 } from 'lucide-react'
+import type { MessageId } from '../../i18n/translate'
+import { useT } from '../../i18n/use-t'
 import { assetPath } from '../../lib/asset-path'
 import { cn } from '../../lib/utils'
 import { ActionButton } from '../ui/action-menu/action-button'
@@ -41,49 +43,59 @@ import {
 } from '../ui/primitives/dropdown-menu'
 import { TooltipProvider } from '../ui/primitives/tooltip'
 
-const levelModeLabels: Record<'stacked' | 'exploded' | 'solo', string> = {
-  stacked: 'Stacked',
-  exploded: 'Exploded',
-  solo: 'Solo',
+const levelModeLabelKeys: Record<'stacked' | 'exploded' | 'solo', MessageId> = {
+  stacked: 'chrome.levelModeStacked',
+  exploded: 'chrome.levelModeExploded',
+  solo: 'chrome.levelModeSolo',
 }
 
 const wallModeConfig = {
   up: {
     icon: (props: any) => (
       <img
-        alt="Full height"
+        alt=""
         height={28}
         src={assetPath('/icons/room.webp')}
         width={28}
         {...props}
       />
     ),
-    label: 'Full height',
+    labelKey: 'chrome.wallModeUp' as MessageId,
   },
   cutaway: {
     icon: (props: any) => (
-      <img alt="Cutaway" height={28} src={assetPath('/icons/wallcut.webp')} width={28} {...props} />
+      <img alt="" height={28} src={assetPath('/icons/wallcut.webp')} width={28} {...props} />
     ),
-    label: 'Cutaway',
+    labelKey: 'chrome.wallModeCutaway' as MessageId,
   },
   down: {
     icon: (props: any) => (
-      <img alt="Low" height={28} src={assetPath('/icons/walllow.webp')} width={28} {...props} />
+      <img alt="" height={28} src={assetPath('/icons/walllow.webp')} width={28} {...props} />
     ),
-    label: 'Low',
+    labelKey: 'chrome.wallModeDown' as MessageId,
   },
 }
 
 const SHADING_OPTIONS = [
-  { id: 'solid', name: 'Solid', detail: 'Flat and fast — no ambient occlusion', icon: Box },
-  { id: 'rendered', name: 'Rendered', detail: 'Full ambient occlusion', icon: Sparkles },
+  {
+    id: 'solid',
+    nameKey: 'chrome.shadingSolid',
+    detailKey: 'chrome.shadingSolidDetail',
+    icon: Box,
+  },
+  {
+    id: 'rendered',
+    nameKey: 'chrome.shadingRendered',
+    detailKey: 'chrome.shadingRenderedDetail',
+    icon: Sparkles,
+  },
 ] as const
 
 const EDGE_OPTIONS = [
-  { id: 'off', name: 'Off', detail: 'No edge lines' },
-  { id: 'soft', name: 'Soft', detail: 'Faint outline of major creases' },
-  { id: 'strong', name: 'Strong', detail: 'Crisp, opaque edge lines' },
-] as const satisfies readonly { id: EdgeMode; name: string; detail: string }[]
+  { id: 'off', nameKey: 'chrome.edgesOff', detailKey: 'chrome.edgesOffDetail' },
+  { id: 'soft', nameKey: 'chrome.edgesSoft', detailKey: 'chrome.edgesSoftDetail' },
+  { id: 'strong', nameKey: 'chrome.edgesStrong', detailKey: 'chrome.edgesStrongDetail' },
+] as const satisfies readonly { id: EdgeMode; nameKey: MessageId; detailKey: MessageId }[]
 
 // Keep the dropdown open when flipping an in-place toggle row.
 const keepOpen = (event: Event, fn: () => void) => {
@@ -101,6 +113,7 @@ function VisibilityMenu({
   canShowScans: boolean
   canShowGuides: boolean
 }) {
+  const t = useT()
   const showScans = useViewer((s) => s.showScans)
   const showGuides = useViewer((s) => s.showGuides)
   return (
@@ -108,7 +121,7 @@ function VisibilityMenu({
       <DropdownMenuTrigger asChild>
         <ActionButton
           className="hover:bg-white/5 hover:text-foreground"
-          label="Visibility"
+          label={t('chrome.visibility')}
           size="icon"
           tooltipSide="top"
           variant="ghost"
@@ -122,7 +135,7 @@ function VisibilityMenu({
             onSelect={(e) => keepOpen(e, () => useViewer.getState().setShowScans(!showScans))}
           >
             <img alt="" className="h-4 w-4 object-contain" src={assetPath('/icons/mesh.webp')} />
-            <span>Scans</span>
+            <span>{t('common.scans')}</span>
             {showScans ? (
               <Eye className="ml-auto h-4 w-4 text-foreground" />
             ) : (
@@ -139,7 +152,7 @@ function VisibilityMenu({
               className="h-4 w-4 object-contain"
               src={assetPath('/icons/floorplan.webp')}
             />
-            <span>Guides</span>
+            <span>{t('common.guides')}</span>
             {showGuides ? (
               <Eye className="ml-auto h-4 w-4 text-foreground" />
             ) : (
@@ -155,6 +168,7 @@ function VisibilityMenu({
 // One "Display" button gathering shadows, camera projection, colors, render
 // mode, scene theme and edges.
 function DisplayMenu() {
+  const t = useT()
   const cameraMode = useViewer((s) => s.cameraMode)
   const shading = useViewer((s) => s.shading)
   const textures = useViewer((s) => s.textures)
@@ -169,7 +183,7 @@ function DisplayMenu() {
       <DropdownMenuTrigger asChild>
         <ActionButton
           className="hover:bg-white/5 hover:text-foreground"
-          label="Display settings"
+          label={t('common.displaySettings')}
           size="icon"
           tooltipSide="top"
           variant="ghost"
@@ -182,7 +196,7 @@ function DisplayMenu() {
           onSelect={(e) => keepOpen(e, () => useViewer.getState().setShadows(!shadows))}
         >
           <Contrast className="h-4 w-4" />
-          <span>Shadows</span>
+          <span>{t('common.shadows')}</span>
           <span className="ml-auto text-muted-foreground text-xs">{shadows ? 'On' : 'Off'}</span>
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -195,7 +209,7 @@ function DisplayMenu() {
           }
         >
           <Camera className="h-4 w-4" />
-          <span>Camera</span>
+          <span>{t('common.camera')}</span>
           <span className="ml-auto text-muted-foreground text-xs">
             {cameraMode === 'perspective' ? 'Perspective' : 'Orthographic'}
           </span>
@@ -204,7 +218,7 @@ function DisplayMenu() {
           onSelect={(e) => keepOpen(e, () => useViewer.getState().setTextures(!textures))}
         >
           {textures ? <Palette className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-          <span>Colors</span>
+          <span>{t('common.colors')}</span>
           <span className="ml-auto text-muted-foreground text-xs">
             {textures ? 'Colored' : 'Monochrome'}
           </span>
@@ -215,8 +229,8 @@ function DisplayMenu() {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <activeShading.icon className="h-4 w-4" />
-            <span>Render</span>
-            <span className="ml-auto text-muted-foreground text-xs">{activeShading.name}</span>
+            <span>{t('common.render')}</span>
+            <span className="ml-auto text-muted-foreground text-xs">{t(activeShading.nameKey)}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="min-w-56">
             {SHADING_OPTIONS.map((option) => {
@@ -228,8 +242,8 @@ function DisplayMenu() {
                 >
                   <OptionIcon className="h-4 w-4" />
                   <div className="flex flex-col">
-                    <span className="text-foreground">{option.name}</span>
-                    <span className="text-muted-foreground text-xs">{option.detail}</span>
+                    <span className="text-foreground">{t(option.nameKey)}</span>
+                    <span className="text-muted-foreground text-xs">{t(option.detailKey)}</span>
                   </div>
                   {shading === option.id ? (
                     <Check className="ml-auto h-4 w-4 text-foreground" />
@@ -243,32 +257,32 @@ function DisplayMenu() {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <SwatchBook className="h-4 w-4" />
-            <span>Theme</span>
+            <span>{t('common.theme')}</span>
             <span className="ml-auto truncate text-muted-foreground text-xs">
               {activeTheme.name}
             </span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="min-w-48">
-            {SCENE_THEMES.map((t) => {
+            {SCENE_THEMES.map((theme) => {
               const swatches = (['wall', 'roof', 'floor', 'glazing'] as const).map(
-                (role) => t.clayTints?.[role] ?? CLAY_PALETTE[role],
+                (role) => theme.clayTints?.[role] ?? CLAY_PALETTE[role],
               )
               return (
                 <DropdownMenuItem
                   className="gap-2"
-                  key={t.id}
-                  onSelect={() => useViewer.getState().setSceneTheme(t.id)}
+                  key={theme.id}
+                  onSelect={() => useViewer.getState().setSceneTheme(theme.id)}
                 >
                   <span
                     className="grid h-5 w-5 shrink-0 grid-cols-2 overflow-hidden rounded-sm border border-black/10"
-                    style={{ backgroundColor: t.background }}
+                    style={{ backgroundColor: theme.background }}
                   >
                     {swatches.map((color, index) => (
-                      <span key={`${t.id}-${index}`} style={{ backgroundColor: color }} />
+                      <span key={`${theme.id}-${index}`} style={{ backgroundColor: color }} />
                     ))}
                   </span>
-                  <span>{t.name}</span>
-                  {sceneTheme === t.id ? <Check className="ml-auto h-4 w-4" /> : null}
+                  <span>{theme.name}</span>
+                  {sceneTheme === theme.id ? <Check className="ml-auto h-4 w-4" /> : null}
                 </DropdownMenuItem>
               )
             })}
@@ -278,8 +292,8 @@ function DisplayMenu() {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <PenLine className="h-4 w-4" />
-            <span>Edges</span>
-            <span className="ml-auto text-muted-foreground text-xs">{activeEdges.name}</span>
+            <span>{t('common.edges')}</span>
+            <span className="ml-auto text-muted-foreground text-xs">{t(activeEdges.nameKey)}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="min-w-56">
             {EDGE_OPTIONS.map((option) => (
@@ -288,8 +302,8 @@ function DisplayMenu() {
                 onSelect={() => useViewer.getState().setEdges(option.id)}
               >
                 <div className="flex flex-col">
-                  <span className="text-foreground">{option.name}</span>
-                  <span className="text-muted-foreground text-xs">{option.detail}</span>
+                  <span className="text-foreground">{t(option.nameKey)}</span>
+                  <span className="text-muted-foreground text-xs">{t(option.detailKey)}</span>
                 </div>
                 {edges === option.id ? <Check className="ml-auto h-4 w-4 text-foreground" /> : null}
               </DropdownMenuItem>
@@ -327,6 +341,7 @@ export const ViewerControlsBar = ({
   onWalkthroughToggle,
   className,
 }: ViewerControlsBarProps) => {
+  const t = useT()
   const levelMode = useViewer((s) => s.levelMode)
   const wallMode = useViewer((s) => s.wallMode)
   // Sessions may carry a stale mode outside the cycle (e.g. the retired
@@ -363,7 +378,7 @@ export const ViewerControlsBar = ({
                 ? 'hover:bg-white/5 hover:text-amber-400'
                 : 'bg-amber-500/20 text-amber-400'
             }
-            label={`Levels: ${levelMode === 'manual' ? 'Manual' : levelModeLabels[levelMode as keyof typeof levelModeLabels]}`}
+            label={`${t('chrome.levels')}: ${levelMode === 'manual' ? t('chrome.levelModeManual') : t(levelModeLabelKeys[levelMode as keyof typeof levelModeLabelKeys])}`}
             onClick={() => {
               if (levelMode === 'manual') return useViewer.getState().setLevelMode('stacked')
               const modes: ('stacked' | 'exploded' | 'solo')[] = ['stacked', 'exploded', 'solo']
@@ -387,7 +402,7 @@ export const ViewerControlsBar = ({
                   ? 'opacity-60 grayscale hover:bg-white/5 hover:opacity-100 hover:grayscale-0'
                   : 'bg-white/10'
               }
-              label={`Walls: ${wallModeConfig[safeWallMode].label}`}
+              label={`${t('chrome.walls')}: ${t(wallModeConfig[safeWallMode].labelKey)}`}
               onClick={() => {
                 const modes: ('cutaway' | 'up' | 'down')[] = ['cutaway', 'up', 'down']
                 const nextIndex = (modes.indexOf(safeWallMode) + 1) % modes.length
@@ -428,7 +443,7 @@ export const ViewerControlsBar = ({
           {/* Camera actions */}
           <ActionButton
             className="group hidden hover:bg-white/5 sm:inline-flex"
-            label="Orbit left"
+            label={t('common.orbitLeft')}
             onClick={() => emitter.emit('camera-controls:orbit-ccw')}
             size="icon"
             tooltipSide="top"
@@ -443,7 +458,7 @@ export const ViewerControlsBar = ({
 
           <ActionButton
             className="group hidden hover:bg-white/5 sm:inline-flex"
-            label="Orbit right"
+            label={t('common.orbitRight')}
             onClick={() => emitter.emit('camera-controls:orbit-cw')}
             size="icon"
             tooltipSide="top"
@@ -458,7 +473,7 @@ export const ViewerControlsBar = ({
 
           <ActionButton
             className="group hover:bg-white/5"
-            label="Top view"
+            label={t('common.topView')}
             onClick={() => emitter.emit('camera-controls:top-view')}
             size="icon"
             tooltipSide="top"

@@ -16,35 +16,44 @@ import { bestConstructionMaterial } from './construction-material-match'
  * matches, the layers are returned untouched — a wall with no product named is
  * the state we already handle, and beats one naming the wrong board.
  */
+export function withBandConstructionMaterials(
+  construction: WallBandConstruction,
+): WallBandConstruction {
+  const catalogue = getDynamicLibraryMaterials()
+  if (catalogue.length === 0) return construction
+
+  let touched = false
+  const layers = construction.layers.map((layer) => {
+    if (layer.productRef || layer.kind === 'cavity') return layer
+    const candidates = catalogue.filter((material) =>
+      material.constructionKinds?.includes(layer.kind as never),
+    )
+    const fit = bestConstructionMaterial(candidates, layer)
+    if (!fit) return layer
+    touched = true
+    return {
+      ...layer,
+      productRef: fit.id,
+      brand: fit.commercial?.brand,
+      unitPrice: fit.commercial?.unitPrice,
+    }
+  })
+
+  return touched ? { ...construction, layers } : construction
+}
+
 export function withDefaultConstructionMaterials(
   faceBands: WallFaceBandConfig,
 ): WallFaceBandConfig {
   const construction = faceBands.construction
   if (!construction) return faceBands
 
-  const catalogue = getDynamicLibraryMaterials()
-  if (catalogue.length === 0) return faceBands
-
   let touched = false
   const next: Record<string, WallBandConstruction> = {}
-
   for (const [band, value] of Object.entries(construction)) {
-    const layers = value.layers.map((layer) => {
-      if (layer.productRef || layer.kind === 'cavity') return layer
-      const candidates = catalogue.filter((material) =>
-        material.constructionKinds?.includes(layer.kind as never),
-      )
-      const fit = bestConstructionMaterial(candidates, layer)
-      if (!fit) return layer
-      touched = true
-      return {
-        ...layer,
-        productRef: fit.id,
-        brand: fit.commercial?.brand,
-        unitPrice: fit.commercial?.unitPrice,
-      }
-    })
-    next[band] = { ...value, layers }
+    const linked = withBandConstructionMaterials(value)
+    next[band] = linked
+    touched = touched || linked !== value
   }
 
   return touched ? { ...faceBands, construction: next } : faceBands

@@ -14,6 +14,7 @@ import { ArrowLeft, ChevronRight, Layers } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { useT } from '../../i18n/use-t'
 import { cn } from '../../lib/utils'
 
 const getNodeName = (node: AnyNode): string => {
@@ -46,6 +47,7 @@ export const ViewerSceneHeader = ({
   backHref = '/',
   stats,
 }: ViewerSceneHeaderProps) => {
+  const t = useT()
   const selection = useViewer((s) => s.selection)
 
   // Subscribe only to the specific nodes we read so that creating an unrelated
@@ -100,7 +102,7 @@ export const ViewerSceneHeader = ({
         <div className="flex items-center gap-3 px-3 py-2.5">
           {onBack ? (
             <button
-              aria-label="Back"
+              aria-label={t('common.back')}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-white/10"
               onClick={onBack}
               type="button"
@@ -109,7 +111,7 @@ export const ViewerSceneHeader = ({
             </button>
           ) : (
             <Link
-              aria-label="Back"
+              aria-label={t('common.back')}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-white/10"
               href={backHref}
               prefetch={false}

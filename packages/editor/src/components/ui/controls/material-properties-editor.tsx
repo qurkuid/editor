@@ -5,6 +5,7 @@ import { Input } from '../primitives/input'
 import { MaterialSizeEditor } from './material-size-editor'
 import { SliderControl } from './slider-control'
 
+import { useT } from '../../../i18n/use-t'
 const DEFAULT_MATERIAL_PROPERTIES: MaterialProperties = {
   color: '#ffffff',
   roughness: 0.5,
@@ -21,6 +22,7 @@ export function MaterialPropertiesEditor({
   value: MaterialSchema
   onChange: (next: MaterialSchema) => void
 }) {
+  const t = useT()
   const currentProps = value.properties ?? DEFAULT_MATERIAL_PROPERTIES
 
   const updateMaterial = (
@@ -59,7 +61,7 @@ export function MaterialPropertiesEditor({
       </div>
 
       <SliderControl
-        label="Roughness"
+        label={t('materials.roughness')}
         max={1}
         min={0}
         onChange={(value) => updateMaterial({ roughness: value })}
@@ -71,7 +73,7 @@ export function MaterialPropertiesEditor({
       <MaterialSizeEditor onChange={onChange} value={value} />
 
       <SliderControl
-        label="Metalness"
+        label={t('materials.metalness')}
         max={1}
         min={0}
         onChange={(value) => updateMaterial({ metalness: value })}
@@ -81,7 +83,7 @@ export function MaterialPropertiesEditor({
       />
 
       <SliderControl
-        label="Opacity"
+        label={t('common.opacity')}
         max={1}
         min={0}
         onChange={(value) => updateMaterial({ opacity: value }, value < 1 || currentProps.transparent)}
@@ -101,9 +103,9 @@ export function MaterialPropertiesEditor({
           }
           value={currentProps.side}
         >
-          <option value="front">Front</option>
-          <option value="back">Back</option>
-          <option value="double">Double</option>
+          <option value="front">{t('materials.sideFront')}</option>
+          <option value="back">{t('materials.sideBack')}</option>
+          <option value="double">{t('materials.sideDouble')}</option>
         </select>
       </div>
     </div>

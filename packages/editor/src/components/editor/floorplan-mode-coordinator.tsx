@@ -3,6 +3,7 @@
 import { emitter, nodeRegistry } from '@pascal-app/core'
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+import { useT } from '../../i18n/use-t'
 import { getFloorplanNodeExtension } from '../../lib/floorplan/floorplan-extension'
 import { isFloorplanToolAvailableInMode } from '../../lib/floorplan/floorplan-mode'
 import useEditor from '../../store/use-editor'
@@ -13,6 +14,7 @@ function getToolLabel(tool: string): string {
 }
 
 export function FloorplanModeCoordinator() {
+  const t = useT()
   const editorMode = useEditor((state) => state.mode)
   const tool = useEditor((state) => state.tool)
   const floorplanMode = useFloorplanMode((state) => state.mode)
@@ -70,7 +72,7 @@ export function FloorplanModeCoordinator() {
         </button>
       ) : null}
       <button
-        aria-label="Dismiss"
+        aria-label={t('common.dismiss')}
         className="shrink-0 rounded p-1 text-muted-foreground hover:bg-white/10 hover:text-foreground"
         onClick={dismissNotice}
         type="button"

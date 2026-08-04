@@ -89,6 +89,7 @@ import { type SnapshotCameraData, ThumbnailGenerator } from './thumbnail-generat
 import { WallMeasurementLabel } from './wall-measurement-label'
 import { WallMoveSideHandles } from './wall-move-side-handles'
 import { WallOpeningHighlights } from './wall-opening-highlights'
+import { useT } from '../../i18n/use-t'
 
 const CAMERA_CONTROLS_HINT_DISMISSED_STORAGE_KEY = 'editor-camera-controls-hint-dismissed:v1'
 const DELETE_CURSOR_BADGE_COLOR = '#ef4444'
@@ -211,10 +212,11 @@ export interface EditorProps {
 }
 
 function EditorSceneCrashFallback() {
+  const t = useT()
   return (
     <div className="fixed inset-0 z-80 flex items-center justify-center bg-background/95 p-4 text-foreground">
       <div className="w-full max-w-md rounded-2xl border border-border/60 bg-background p-6 shadow-xl">
-        <h2 className="font-semibold text-lg">The editor scene failed to render</h2>
+        <h2 className="font-semibold text-lg">{t('chrome.sceneRenderFailed')}</h2>
         <p className="mt-2 text-muted-foreground text-sm">
           You can retry the scene or return home without reloading the whole app shell.
         </p>
@@ -241,6 +243,7 @@ function EditorSceneCrashFallback() {
 // ── Sidebar slot: in-flow, resizable, collapses to a grab strip ──────────────
 
 function SidebarSlot({ children }: { children: ReactNode }) {
+  const t = useT()
   const width = useSidebarStore((s) => s.width)
   const isCollapsed = useSidebarStore((s) => s.isCollapsed)
   const setIsCollapsed = useSidebarStore((s) => s.setIsCollapsed)
@@ -312,7 +315,7 @@ function SidebarSlot({ children }: { children: ReactNode }) {
           <div
             className="absolute inset-0 z-10 cursor-col-resize transition-colors hover:bg-primary/20"
             onPointerDown={handleGrabDown}
-            title="Expand sidebar"
+            title={t('chrome.expandSidebar')}
           />
         ) : (
           children
@@ -509,12 +512,13 @@ function ViewerCanvasControlsHint({
   isPreviewMode: boolean
   onDismiss: () => void
 }) {
+  const t = useT()
   const hints = isPreviewMode ? PREVIEW_CAMERA_CONTROL_HINTS : EDITOR_CAMERA_CONTROL_HINTS
 
   return (
     <div className="pointer-events-none absolute top-14 left-1/2 z-40 max-w-[calc(100%-2rem)] -translate-x-1/2">
       <section
-        aria-label="Camera controls hint"
+        aria-label={t('chrome.cameraControlsHint')}
         className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-border/35 bg-background/90 px-3.5 py-2.5 shadow-elevation-4 backdrop-blur-xl"
       >
         <div className="grid min-w-0 flex-1 grid-cols-3 items-start divide-x divide-border/18">
@@ -525,7 +529,7 @@ function ViewerCanvasControlsHint({
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              aria-label="Dismiss camera controls hint"
+              aria-label={t('chrome.dismissCameraControlsHint')}
               className="flex h-5 shrink-0 items-center justify-center self-center border-border/18 border-l pl-3 text-muted-foreground/70 transition-colors hover:text-foreground"
               onClick={onDismiss}
               type="button"

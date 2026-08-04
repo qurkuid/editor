@@ -2,6 +2,7 @@
 
 import { Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
+import { useT } from '../../../i18n/use-t'
 import { Button } from '../../../components/ui/primitives/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/primitives/popover'
 import { Slider } from '../../../components/ui/primitives/slider'
@@ -22,6 +23,7 @@ export function OpacityControl({
   onOpacityChange,
   className,
 }: OpacityControlProps) {
+  const t = useT()
   const [isOpen, setIsOpen] = useState(false)
   const actualOpacity = opacity ?? 100
   const isHidden = visible === false || actualOpacity === 0

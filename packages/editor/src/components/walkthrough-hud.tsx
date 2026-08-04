@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { useT } from '../i18n/use-t'
 import { cn } from '../lib/utils'
 import type { WalkthroughInteract } from '../store/use-first-person-hud'
 
@@ -25,13 +26,14 @@ export function WalkthroughHud({
   onExit,
   children,
 }: WalkthroughHudProps) {
+  const t = useT()
   const kbdClass = 'rounded border border-border/60 bg-white/10 px-1.5 py-0.5 font-mono text-[10px]'
   const pillClass =
     'flex items-center gap-1.5 rounded-full border border-border/40 bg-background/70 px-3 py-1 text-muted-foreground text-xs backdrop-blur-xl'
   const exitContent = (
     <>
       <kbd className={kbdClass}>Esc</kbd>
-      to exit
+      {t('chrome.walkthroughExit')}
     </>
   )
 
@@ -65,10 +67,10 @@ export function WalkthroughHud({
       <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2">
         {suspended ? (
           <div className={pillClass}>
-            <span className="font-medium text-foreground">Click</span>
-            <span>or</span>
+            <span className="font-medium text-foreground">{t('chrome.walkthroughClick')}</span>
+            <span>{t('chrome.walkthroughOr')}</span>
             <kbd className={kbdClass}>P</kbd>
-            <span>to resume</span>
+            <span>{t('chrome.walkthroughResume')}</span>
             <span className="text-muted-foreground/60">·</span>
             {exitContent}
           </div>
@@ -76,7 +78,7 @@ export function WalkthroughHud({
           <>
             <div className={pillClass}>
               <kbd className={kbdClass}>P</kbd>
-              free cursor
+              {t('chrome.walkthroughFreeCursor')}
             </div>
             {onExit ? (
               <button
@@ -99,7 +101,7 @@ export function WalkthroughHud({
             <kbd className="rounded border border-border/60 bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
               E
             </kbd>
-            <span className="text-muted-foreground">or click to</span>
+            <span className="text-muted-foreground">{t('chrome.walkthroughOrClickTo')}</span>
             <span className="font-medium">
               {interact.verb} {interact.label}
             </span>
