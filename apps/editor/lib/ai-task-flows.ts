@@ -135,6 +135,48 @@ export const AI_TASK_FLOWS: readonly AiTaskFlow[] = [
     ],
   },
   {
+    id: 'auto-zones',
+    title: { ko: '자동 존 설정', en: 'Auto zones' },
+    steps: [
+      {
+        id: 'zones',
+        label: { ko: '존 설정', en: 'Zones' },
+        prompt: {
+          ko: '벽으로 닫힌 공간마다 존을 만들고, 용도에 맞는 방 이름을 붙여줘.',
+          en: 'Create a zone for every wall-enclosed space and name each room by its likely use.',
+        },
+      },
+    ],
+  },
+  {
+    id: 'circulation-doors',
+    title: { ko: '동선 도어', en: 'Doors by circulation' },
+    steps: [
+      {
+        id: 'doors',
+        label: { ko: '문 달기', en: 'Doors' },
+        prompt: {
+          ko: '동선에 맞게 각 방 출입문을 달아줘. 현관에서 거실을 거쳐 각 방으로 자연스럽게 이동할 수 있게. (문 폭·위치를 원하는 대로 고쳐 쓰세요)',
+          en: "Add each room's door to fit the circulation, so movement flows naturally from the entrance through the living room to every room. (Edit widths and positions.)",
+        },
+      },
+    ],
+  },
+  {
+    id: 'exterior-windows',
+    title: { ko: '외벽 창문', en: 'Exterior windows' },
+    steps: [
+      {
+        id: 'windows',
+        label: { ko: '창문 배치', en: 'Windows' },
+        prompt: {
+          ko: '외벽마다 채광·환기 규정에 맞게 창문을 배치해줘. 거실은 큰 창, 침실은 중간 창, 화장실은 작은 창이나 생략. (크기·개수를 원하는 대로 고쳐 쓰세요)',
+          en: 'Place windows on every exterior wall per daylight and ventilation rules: large in the living room, medium in bedrooms, small or none in bathrooms. (Edit sizes and counts.)',
+        },
+      },
+    ],
+  },
+  {
     id: 'lighting',
     title: { ko: '조명 배치', en: 'Lighting' },
     steps: [

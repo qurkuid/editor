@@ -538,7 +538,9 @@ export function AiChatPanel() {
                   className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
                   key={flow.id}
                   onClick={() => {
-                    setActiveFlowId(flow.id)
+                    // A one-step flow is a quick action — inject its prompt
+                    // without entering step-tracking mode.
+                    if (flow.steps.length > 1) setActiveFlowId(flow.id)
                     runFlowStep(flow, 0)
                   }}
                   type="button"
