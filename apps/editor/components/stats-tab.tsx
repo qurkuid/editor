@@ -18,6 +18,7 @@ import {
   searchProjects,
 } from '@/lib/intm-projects'
 import { deriveTakeoff, type TakeoffCategory } from '@/lib/quantity-takeoff'
+import { intmOverridesFromSceneMaterials } from '@/lib/scene-material-overrides'
 import { readSceneProjectId, sceneProjectPatch } from '@/lib/scene-project-link'
 
 const CATEGORY_LABEL: Record<TakeoffCategory, string> = {
@@ -126,9 +127,18 @@ export function StatsTab() {
     [nodes, levelId, wholeScene],
   )
 
+  // Painted faces carry scene-copy refs; follow them back to the INTM
+  // products they were painted with (see scene-material-overrides.ts).
+  const sceneMaterials = useScene((state) => state.materials)
+  const overrides = useMemo(
+    () => intmOverridesFromSceneMaterials(sceneMaterials, report.lines),
+    [sceneMaterials, report],
+  )
+
   const draft = useMemo(
-    () => buildEstimateDraft(report, catalogue?.materials ?? [], catalogue?.categories ?? []),
-    [report, catalogue],
+    () =>
+      buildEstimateDraft(report, catalogue?.materials ?? [], catalogue?.categories ?? [], overrides),
+    [report, catalogue, overrides],
   )
 
   /**
@@ -542,7 +552,9 @@ function StatsRow({
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-xs font-medium text-foreground">
-            {line.takeoff.label}
+            {line.material && /(?:scene|library):/.test(line.takeoff.label)
+              ? line.material.name
+              : line.takeoff.label}
           </span>
           <span className="block text-[10px] text-muted-foreground">
             {formatTakeoff(line.takeoff.quantity, line.takeoff.unit)}
