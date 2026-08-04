@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { isPublicAssetPath } from '@/lib/auth-gate'
 import { fetchIntmUser, intmAuthEnabled, intmLoginUrl } from '@/lib/intm-session'
 
 /**
@@ -8,6 +9,10 @@ import { fetchIntmUser, intmAuthEnabled, intmLoginUrl } from '@/lib/intm-session
  */
 export async function middleware(request: NextRequest) {
   if (!intmAuthEnabled()) return NextResponse.next()
+  // Files are exempt, and must be — a chunk answered with a login page stops
+  // the app booting. Checked here rather than in `matcher` because the matcher
+  // does not see the basePath the request actually carries.
+  if (isPublicAssetPath(request.nextUrl.pathname)) return NextResponse.next()
 
   const user = await fetchIntmUser(request.headers.get('cookie'))
   if (user) return NextResponse.next()
@@ -46,6 +51,7 @@ function publicUrl(request: NextRequest): string {
 }
 
 export const config = {
-  // Static assets and Next internals stay public; everything else is gated.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icons/|fonts/|hdri/|demos/).*)'],
+  // Everything reaches the middleware; `isPublicAssetPath` decides. Excluding
+  // assets here instead looked right and silently failed under the basePath.
+  matcher: ['/:path*'],
 }

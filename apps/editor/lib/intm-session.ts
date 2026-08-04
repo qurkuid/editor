@@ -40,9 +40,22 @@ export function intmAuthEnabled(): boolean {
   return intmBaseUrl() !== null
 }
 
+/**
+ * INTM's login form accepts a `redirect` only when it is a bare path — its
+ * guard against being used as an open redirect. We are mounted on INTM's own
+ * origin, so hand it the path; an absolute URL was silently discarded and the
+ * user landed on INTM's portal instead of back here.
+ */
 export function intmLoginUrl(returnTo: string): string {
   const base = intmBaseUrl() ?? ''
-  return `${base}/login?redirect=${encodeURIComponent(returnTo)}`
+  let target = returnTo
+  try {
+    const url = new URL(returnTo)
+    if (base && url.origin === new URL(base).origin) target = `${url.pathname}${url.search}`
+  } catch {
+    // Already relative — pass it through untouched.
+  }
+  return `${base}/login?redirect=${encodeURIComponent(target)}`
 }
 
 type SessionResponse = { user?: IntmUser | null }

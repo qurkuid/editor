@@ -25,10 +25,22 @@ describe('gating', () => {
     expect(intmAuthEnabled()).toBe(false)
   })
 
-  test('login URL returns the user to where they were headed', () => {
+  // INTM's login form drops any `redirect` that is not a bare path — an
+  // open-redirect guard we must satisfy, not loosen. Handing it an absolute
+  // URL silently dumped the user on /newportal instead of back here.
+  test('login URL returns the user to where they were headed, as a path', () => {
     withIntm()
-    expect(intmLoginUrl('https://intm.kr/floorplan/scene/abc')).toBe(
-      'https://intm.kr/login?redirect=https%3A%2F%2Fintm.kr%2Ffloorplan%2Fscene%2Fabc',
+    expect(intmLoginUrl('https://intm.kr/floorplan/scene/abc?tab=stats')).toBe(
+      'https://intm.kr/login?redirect=%2Ffloorplan%2Fscene%2Fabc%3Ftab%3Dstats',
+    )
+  })
+
+  // A different origin cannot be expressed as a path, and INTM would refuse
+  // it anyway; sending it whole keeps the refusal INTM's decision to make.
+  test('a return URL on another origin is left absolute', () => {
+    withIntm()
+    expect(intmLoginUrl('https://elsewhere.example/floorplan')).toBe(
+      'https://intm.kr/login?redirect=https%3A%2F%2Felsewhere.example%2Ffloorplan',
     )
   })
 })
