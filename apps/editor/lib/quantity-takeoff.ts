@@ -184,6 +184,37 @@ export function deriveTakeoff(
           nodeIds: [run.id],
         })
       }
+
+      // Run length and the bay make-up behind it. A quote is written against
+      // "3.6 m of wardrobe, 600×4 + 450×2", not against a bare unit count —
+      // and hardware, edging and worktop all price off one or the other.
+      const widths = (run.children ?? [])
+        .map((childId) => (nodes[childId] as CabinetModuleNode | undefined)?.width ?? 0)
+        .filter((width) => width > 0)
+
+      if (widths.length > 0) {
+        push(lines, {
+          category: 'furniture',
+          key: 'run-length',
+          label: '가구 총 길이',
+          unit: 'm',
+          quantity: widths.reduce((total, width) => total + width, 0),
+          nodeIds: [run.id],
+        })
+
+        // Bays group by width, since that is what a shop cuts and prices.
+        for (const width of widths) {
+          const mm = Math.round(width * 1000)
+          push(lines, {
+            category: 'furniture',
+            key: `bay-${mm}`,
+            label: `통 ${mm}mm`,
+            unit: 'ea',
+            quantity: 1,
+            nodeIds: [run.id],
+          })
+        }
+      }
       continue
     }
 

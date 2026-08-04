@@ -264,3 +264,47 @@ describe('placed models', () => {
     expect(report.totals.item).toBe(1)
   })
 })
+
+describe('furniture run make-up', () => {
+  function run(...widths: number[]) {
+    const ids = widths.map((_, i) => `cabinet-module_${i}`)
+    return scene(
+      {
+        id: 'cabinet_a',
+        type: 'cabinet',
+        runTier: 'tall',
+        name: '붙박이장',
+        depth: 0.6,
+        children: ids,
+      },
+      ...widths.map((width, i) => ({
+        id: ids[i],
+        type: 'cabinet-module',
+        width,
+        depth: 0.6,
+        carcassHeight: 2.4,
+      })),
+    )
+  }
+
+  test('reports total run length alongside the bay count', () => {
+    const report = deriveTakeoff(run(0.6, 0.6, 0.45))
+
+    expect(line(report, 'furniture', 'run-length')?.quantity).toBeCloseTo(1.65)
+    expect(line(report, 'furniture', 'run-length')?.unit).toBe('m')
+    expect(line(report, 'furniture', 'bay')?.quantity).toBe(3)
+  })
+
+  // A shop cuts and prices by bay width, so equal bays aggregate.
+  test('bays group by width', () => {
+    const report = deriveTakeoff(run(0.6, 0.6, 0.6, 0.45, 0.45))
+
+    expect(line(report, 'furniture', 'bay-600')?.quantity).toBe(3)
+    expect(line(report, 'furniture', 'bay-450')?.quantity).toBe(2)
+  })
+
+  test('a run with no bays reports no length or make-up', () => {
+    const report = deriveTakeoff(scene({ id: 'cabinet_a', type: 'cabinet', children: [] }))
+    expect(line(report, 'furniture', 'run-length')).toBeUndefined()
+  })
+})
