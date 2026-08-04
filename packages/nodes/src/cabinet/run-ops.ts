@@ -1668,14 +1668,19 @@ export function addIslandBackRun({
 
   const runWorld = resolveCabinetWorldTransform(liveRun, sceneApi.nodes())
   const backDepth = liveRun.depth
+  // The back row is rotated 180°, so its own modules march the opposite way in
+  // world space. Anchoring it at the front's first bay made the two rows grow
+  // apart from the same end — the Z shape. Anchor it at the front's LAST bay
+  // (and mirror the bay order below) so the two faces cover the same span.
+  const sortedFront = sortRunModules(modules)
   const backWorldPosition = runLocalToPlan(runWorld, [
-    0,
+    sortedFront[sortedFront.length - 1]!.position[0],
     0,
     -(liveRun.depth / 2 + backDepth / 2 + gap),
   ])
   const backWorldRotation = runWorld.rotation + Math.PI
 
-  const hostModule = sortRunModules(modules)[0]!
+  const hostModule = sortedFront[0]!
   const backLocalPosition = worldToCabinetLocalPosition(
     hostModule,
     sceneApi.nodes(),
@@ -1687,8 +1692,9 @@ export function addIslandBackRun({
     backWorldRotation,
   )
 
-  const sorted = sortRunModules(modules)
-  const modulePatches: CabinetModulePatch[] = sorted.map((module, index) => ({
+  // Reversed: back bay 1 sits opposite front bay N, so unequal bay widths line
+  // up face to face instead of drifting along the run.
+  const modulePatches: CabinetModulePatch[] = [...sortedFront].reverse().map((module, index) => ({
     name: index === 0 ? 'Base Cabinet' : `Base Cabinet ${index + 1}`,
     width: module.width,
     stack: doorStack(1),

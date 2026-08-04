@@ -70,12 +70,18 @@ export function SliderControl({
   // stored unit (meters for `unit === 'm'`); the step, drag deltas, text field
   // and rendered number are in the DISPLAY unit (feet when imperial). For
   // metric and non-length units these conversions are the identity.
-  const { isImperial, displayUnit, toDisplay, toStored } = useLinearDisplay(unit, precision)
+  const { isImperial, displayUnit, displayPrecision, toDisplay, toStored } = useLinearDisplay(
+    unit,
+    precision,
+  )
+  // Step is authored in the stored unit; drags and arrow keys move in DISPLAY
+  // units, so a 0.01 m step becomes 10 mm rather than a 0.01 mm crawl.
+  const displayStep = toDisplay(step)
 
   const [isEditing, setIsEditing] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const [inputValue, setInputValue] = useState(toDisplay(value).toFixed(precision))
+  const [inputValue, setInputValue] = useState(toDisplay(value).toFixed(displayPrecision))
 
   const dragRef = useRef<{
     // Original value at drag start — preserved across modifier re-anchors so
@@ -107,9 +113,9 @@ export function SliderControl({
 
   useEffect(() => {
     if (!isEditing) {
-      setInputValue(toDisplay(value).toFixed(precision))
+      setInputValue(toDisplay(value).toFixed(displayPrecision))
     }
-  }, [value, precision, isEditing, toDisplay])
+  }, [value, displayPrecision, isEditing, toDisplay])
 
   // Wheel support on the label
   useEffect(() => {
@@ -119,14 +125,14 @@ export function SliderControl({
       if (isEditing) return
       e.preventDefault()
       const direction = e.deltaY < 0 ? 1 : -1
-      const s = getAdjustedStep(step, e)
+      const s = getAdjustedStep(displayStep, e)
       const final = applyDisplayDelta(valueRef.current, direction * s, s)
       if (final !== valueRef.current) onChange(final)
       onCommit?.(final)
     }
     el.addEventListener('wheel', handleWheel, { passive: false })
     return () => el.removeEventListener('wheel', handleWheel)
-  }, [isEditing, step, applyDisplayDelta, onChange, onCommit])
+  }, [isEditing, displayStep, applyDisplayDelta, onChange, onCommit])
 
   // Arrow key support while hovered
   useEffect(() => {
@@ -137,7 +143,7 @@ export function SliderControl({
       else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') direction = -1
       if (direction !== 0) {
         e.preventDefault()
-        const s = getAdjustedStep(step, e)
+        const s = getAdjustedStep(displayStep, e)
         const final = applyDisplayDelta(valueRef.current, direction * s, s)
         if (final !== valueRef.current) onChange(final)
         onCommit?.(final)
@@ -145,7 +151,7 @@ export function SliderControl({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isHovered, isEditing, step, applyDisplayDelta, onChange, onCommit])
+  }, [isHovered, isEditing, displayStep, applyDisplayDelta, onChange, onCommit])
 
   const handleLabelPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -180,7 +186,7 @@ export function SliderControl({
       }
       const { anchorX, anchorValue } = dragRef.current
       const dx = e.clientX - anchorX
-      const s = step * multiplier
+      const s = displayStep * multiplier
       // 4 px per step at default sensitivity
       const newValue = applyDisplayDelta(anchorValue, (dx / 4) * s, s)
       if (newValue !== valueRef.current) {
@@ -188,7 +194,7 @@ export function SliderControl({
         onChange(newValue)
       }
     },
-    [step, applyDisplayDelta, onChange],
+    [displayStep, applyDisplayDelta, onChange],
   )
 
   const handleLabelPointerUp = useCallback(
@@ -215,8 +221,8 @@ export function SliderControl({
 
   const handleValueClick = useCallback(() => {
     setIsEditing(true)
-    setInputValue(toDisplay(value).toFixed(precision))
-  }, [value, precision, toDisplay])
+    setInputValue(toDisplay(value).toFixed(displayPrecision))
+  }, [value, displayPrecision, toDisplay])
 
   const submitValue = useCallback(() => {
     const spec = lingoUnitSpec(unit)
@@ -232,14 +238,16 @@ export function SliderControl({
       stored = Number.isFinite(numValue) ? toStored(numValue) : null
     }
     if (stored === null) {
-      setInputValue(toDisplay(value).toFixed(precision))
+      setInputValue(toDisplay(value).toFixed(displayPrecision))
     } else {
-      const nextValue = clamp(toStored(Number.parseFloat(toDisplay(stored).toFixed(precision))))
+      const nextValue = clamp(
+        toStored(Number.parseFloat(toDisplay(stored).toFixed(displayPrecision))),
+      )
       onChange(nextValue)
       onCommit?.(nextValue)
     }
     setIsEditing(false)
-  }, [inputValue, unit, isImperial, onChange, onCommit, clamp, precision, value, toDisplay, toStored])
+  }, [inputValue, unit, isImperial, onChange, onCommit, clamp, displayPrecision, value, toDisplay, toStored])
 
   const spec = lingoUnitSpec(unit)
   const hint =
@@ -258,7 +266,7 @@ export function SliderControl({
       if (e.key === 'Enter') {
         submitValue()
       } else if (e.key === 'Escape') {
-        setInputValue(toDisplay(value).toFixed(precision))
+        setInputValue(toDisplay(value).toFixed(displayPrecision))
         setIsEditing(false)
       } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault()
@@ -266,10 +274,10 @@ export function SliderControl({
         const adjustedStep = getAdjustedStep(step, e)
         const newV = applyDisplayDelta(value, direction * adjustedStep, adjustedStep)
         onChange(newV)
-        setInputValue(toDisplay(newV).toFixed(precision))
+        setInputValue(toDisplay(newV).toFixed(displayPrecision))
       }
     },
-    [submitValue, value, precision, step, applyDisplayDelta, onChange, toDisplay],
+    [submitValue, value, displayPrecision, displayStep, applyDisplayDelta, onChange, toDisplay],
   )
 
   const displayValue = toDisplay(value)
@@ -346,7 +354,7 @@ export function SliderControl({
             onClick={handleValueClick}
           >
             <span className="font-mono tabular-nums tracking-tight" suppressHydrationWarning>
-              {Number(displayValue.toFixed(precision)).toFixed(precision)}
+              {Number(displayValue.toFixed(displayPrecision)).toFixed(displayPrecision)}
             </span>
             {displayUnit && <span className="ml-[1px] text-muted-foreground">{displayUnit}</span>}
           </div>

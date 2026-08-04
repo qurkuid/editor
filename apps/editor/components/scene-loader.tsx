@@ -12,6 +12,7 @@ import {
 } from '@pascal-app/editor'
 import {
   Armchair,
+  BarChart3,
   Bot,
   Hammer,
   Layers,
@@ -32,6 +33,7 @@ import { HostSettingsSection } from './host-settings-section'
 import { LightingTab } from './lighting-tab'
 import { PaintingTab } from './painting-tab'
 import { SkpItemsPanel } from './skp-items-panel'
+import { StatsTab } from './stats-tab'
 import { CommunityViewerToolbarLeft, CommunityViewerToolbarRight } from './viewer-toolbar'
 
 export interface SceneMeta {
@@ -137,6 +139,14 @@ function buildSidebarTabs(
           width={32}
         />
       ),
+    },
+    {
+      id: 'stats',
+      label: t('sidebarTabs.stats'),
+      component: StatsTab,
+      mobileDefaultSnap: 0.75,
+      mobileIcon: <BarChart3 className="h-5 w-5" />,
+      icon: <BarChart3 className="h-5 w-5" />,
     },
     {
       id: 'ai',

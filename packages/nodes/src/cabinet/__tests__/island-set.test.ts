@@ -455,4 +455,59 @@ describe('syncSetLinkWallRun', () => {
     const yAfter = sceneApi.get<CabinetNode>(wallRunId)!.position[1]
     expect(yAfter).toBeCloseTo(yBefore)
   })
+
+  // The back row is rotated 180°, so its bays march the opposite way in world
+  // space. Anchoring it at the front's FIRST bay made the two faces grow apart
+  // from the same end — the run came out Z-shaped instead of back-to-back.
+  test('the back row covers the same span as the front, not a mirrored offset', () => {
+    const levelId = 'level_island-span' as AnyNodeId
+    const runId = 'cabinet_island-span' as AnyNodeId
+    const widths = [0.9, 0.6, 1.2]
+    const moduleIds = widths.map((_, i) => `cabinet-module_island-span-${i}` as AnyNodeId)
+    const run = CabinetNode.parse({
+      id: runId,
+      parentId: levelId,
+      position: [0, 0, 0],
+      rotation: 0,
+      depth: 0.6,
+      showPlinth: true,
+      withCountertop: true,
+      children: moduleIds,
+    })
+    let cursor = 0
+    const modules = widths.map((width, i) => {
+      const x = cursor + width / 2 - widths[0]! / 2
+      cursor += width
+      return CabinetModuleNode.parse({
+        id: moduleIds[i]!,
+        parentId: runId,
+        position: [x, run.plinthHeight, 0],
+        width,
+        depth: run.depth,
+        carcassHeight: run.carcassHeight,
+      })
+    })
+    const sceneApi = sceneApiFixture([run as AnyNode, ...(modules as AnyNode[])])
+
+    const backRunId = addIslandBackRun({ run, sceneApi })!
+    const back = sceneApi.get<CabinetNode>(backRunId)!
+    const backModules = (back.children ?? []).map(
+      (id) => sceneApi.get<CabinetModuleNode>(id as AnyNodeId)!,
+    )
+
+    // Same bay count and the widths mirrored, so bay 1 of one face sits
+    // opposite the last bay of the other.
+    expect(backModules).toHaveLength(widths.length)
+    expect(backModules.map((m) => m.width)).toEqual([...widths].reverse())
+
+    // Both faces span the same extent along the run axis (run-local X of the
+    // front; the back's own X mirrors through its 180° rotation).
+    const frontSpan =
+      Math.max(...modules.map((m) => m.position[0] + m.width / 2)) -
+      Math.min(...modules.map((m) => m.position[0] - m.width / 2))
+    const backSpan =
+      Math.max(...backModules.map((m) => m.position[0] + m.width / 2)) -
+      Math.min(...backModules.map((m) => m.position[0] - m.width / 2))
+    expect(backSpan).toBeCloseTo(frontSpan)
+  })
 })

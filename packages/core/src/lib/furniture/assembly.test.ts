@@ -337,14 +337,16 @@ describe('two-sided island (backBays + depthSplit)', () => {
 
   test('honors an asymmetric depthSplit for front vs back carcass depth', async () => {
     // The island fixture splits 1200mm total as frontD 400 / backD 800.
+    // Measured on the bay bottoms: an island is a worktop kind, so its
+    // countertop replaces the per-face carcass tops entirely.
     const assembly = await assemblyFixture('island')
-    const tops = buildFurnitureAssembly(assembly).parts.filter((part) => part.kind === 'top')
-    const frontTop = tops.find((part) => part.face === 'front')
-    const backTop = tops.find((part) => part.face === 'back')
+    const bottoms = buildFurnitureAssembly(assembly).parts.filter((part) => part.kind === 'bottom')
+    const frontBottom = bottoms.find((part) => part.face === 'front')
+    const backBottom = bottoms.find((part) => part.face === 'back')
 
-    expect(frontTop?.size[2]).toBeCloseTo(assembly.depthSplit?.front ?? 0)
-    expect(backTop?.size[2]).toBeCloseTo(assembly.depthSplit?.back ?? 0)
-    expect(frontTop?.size[2]).not.toBeCloseTo(backTop?.size[2] ?? 0)
+    expect(frontBottom?.size[2]).toBeCloseTo(assembly.depthSplit?.front ?? 0)
+    expect(backBottom?.size[2]).toBeCloseTo(assembly.depthSplit?.back ?? 0)
+    expect(frontBottom?.size[2]).not.toBeCloseTo(backBottom?.size[2] ?? 0)
   })
 
   test('emits exactly one shared spine panel per bay, not one per face', async () => {
@@ -360,5 +362,159 @@ describe('two-sided island (backBays + depthSplit)', () => {
     const result = buildFurnitureAssembly(assembly)
 
     expect(result.parts.every((part) => part.face === undefined)).toBe(true)
+  })
+})
+
+describe('front open/close pose', () => {
+  function frontPoseFor(front: Record<string, unknown>) {
+    const assembly = furnitureAssembly({
+      bays: [
+        {
+          width: 1200,
+          base: { type: 'none' },
+          kickplate: false,
+          tiers: [{ height: 2400, front }],
+        },
+      ],
+    })
+    return buildFurnitureAssembly(assembly).parts.filter((part) => part.kind === 'front')
+  }
+
+  test('a single hinged leaf defaults to a left hinge, swinging toward +Z', () => {
+    const [front] = frontPoseFor({ kind: 'hinged', leaves: 1 })
+    expect(front?.frontPose).toEqual({
+      kind: 'hinge',
+      axis: 'y',
+      hingeOffset: -(front!.size[0] / 2),
+      angle: -(Math.PI / 2),
+    })
+  })
+
+  test('a 2-leaf hinged front hinges left/right and opens symmetrically', () => {
+    const [left, right] = frontPoseFor({ kind: 'hinged', leaves: 2 })
+    if (left?.frontPose?.kind !== 'hinge' || right?.frontPose?.kind !== 'hinge') {
+      throw new Error('expected hinge poses')
+    }
+    expect(left.frontPose.hingeOffset).toBeCloseTo(-left.size[0] / 2)
+    expect(right.frontPose.hingeOffset).toBeCloseTo(right.size[0] / 2)
+    expect(left.frontPose.angle).toBeCloseTo(-right.frontPose.angle)
+    expect(left.frontPose.angle).toBeLessThan(0)
+    expect(right.frontPose.angle).toBeGreaterThan(0)
+  })
+
+  test('flap direction picks which edge hinges', () => {
+    const [up] = frontPoseFor({ kind: 'flap', direction: 'up' })
+    const [down] = frontPoseFor({ kind: 'flap', direction: 'down' })
+    if (up?.frontPose?.kind !== 'hinge' || down?.frontPose?.kind !== 'hinge') {
+      throw new Error('expected hinge poses')
+    }
+    expect(up.frontPose.axis).toBe('x')
+    expect(up.frontPose.hingeOffset).toBeCloseTo(up.size[1] / 2)
+    expect(down.frontPose.hingeOffset).toBeCloseTo(-(down.size[1] / 2))
+    expect(up.frontPose.angle).toBeCloseTo(-down.frontPose.angle)
+  })
+
+  test('sliding leaves alternate open direction so same-track leaves keep their spacing', () => {
+    const fronts = frontPoseFor({ kind: 'sliding', leaves: 4 })
+    const distances = fronts.map((part) =>
+      part.frontPose?.kind === 'slide' ? part.frontPose.distance : null,
+    )
+
+    expect(distances[0]).toBeCloseTo(distances[2]!)
+    expect(distances[1]).toBeCloseTo(distances[3]!)
+    expect(Math.sign(distances[0]!)).toBe(-Math.sign(distances[1]!))
+  })
+
+  test('stacked drawer fronts cascade open, the bottom drawer opening furthest', () => {
+    const fronts = frontPoseFor({ kind: 'drawer', count: 3 })
+    // Emitted bottom-to-top (index 0 = bottom drawer).
+    const distances = fronts.map((part) =>
+      part.frontPose?.kind === 'slide' ? part.frontPose.distance : 0,
+    )
+
+    expect(distances[0]).toBeGreaterThan(distances[1]!)
+    expect(distances[1]).toBeGreaterThan(distances[2]!)
+    expect(distances.every((distance) => distance > 0)).toBe(true)
+  })
+
+  test('a pull-out front slides out like a single drawer', () => {
+    const [front] = frontPoseFor({ kind: 'pull-out', style: 'standard' })
+    expect(front?.frontPose?.kind).toBe('slide')
+    if (front?.frontPose?.kind === 'slide') {
+      expect(front.frontPose.axis).toBe('z')
+      expect(front.frontPose.distance).toBeGreaterThan(0)
+    }
+  })
+
+  test('back-face fronts hinge toward their own outward -Z direction', async () => {
+    const assembly = await assemblyFixture('island')
+    const fronts = buildFurnitureAssembly(assembly).parts.filter((part) => part.kind === 'front')
+    const frontFace = fronts.find(
+      (part) => part.face === 'front' && part.frontPose?.kind === 'hinge',
+    )
+    const backFace = fronts.find((part) => part.face === 'back' && part.frontPose?.kind === 'hinge')
+    if (frontFace?.frontPose?.kind !== 'hinge' || backFace?.frontPose?.kind !== 'hinge') {
+      throw new Error('expected hinge poses on both faces')
+    }
+
+    // Same hinge side (matching bay position), mirrored open direction.
+    expect(Math.sign(frontFace.frontPose.hingeOffset)).toBe(
+      Math.sign(backFace.frontPose.hingeOffset),
+    )
+    expect(Math.sign(frontFace.frontPose.angle)).toBe(-Math.sign(backFace.frontPose.angle))
+  })
+})
+
+describe('countertop', () => {
+  const worktopKinds = ['base-run', 'island', 'sink'] as const
+  const carcassKinds = ['wardrobe', 'upper-run', 'tall', 'set'] as const
+
+  function ofKind(kind: FurnitureAssembly['furnitureKind'], height = 0.85): FurnitureAssembly {
+    return { ...furnitureAssembly({ H: height * 1000 }), furnitureKind: kind }
+  }
+
+  test.each(worktopKinds)('%s gets one worktop spanning the full footprint', (kind) => {
+    const assembly = ofKind(kind)
+    const { parts, bounds } = buildFurnitureAssembly(assembly)
+    const countertops = parts.filter((part) => part.kind === 'countertop')
+
+    expect(countertops).toHaveLength(1)
+    const [slab] = countertops
+    expect(slab!.size[0]).toBeCloseTo(assembly.dimensions.width)
+    expect(slab!.size[2]).toBeCloseTo(assembly.dimensions.depth)
+    // Sits inside the declared envelope — a slab poking out would split the
+    // rendered extent from the node's own width/depth/height.
+    expect(slab!.position[1] + slab!.size[1] / 2).toBeCloseTo(bounds.max[1])
+  })
+
+  test.each(worktopKinds)('%s drops the carcass top — the slab is the top', (kind) => {
+    const parts = buildFurnitureAssembly(ofKind(kind)).parts
+    expect(parts.filter((part) => part.kind === 'top')).toHaveLength(0)
+  })
+
+  test.each(carcassKinds)('%s keeps its carcass top and gets no worktop', (kind) => {
+    const parts = buildFurnitureAssembly(ofKind(kind, 2.4)).parts
+    expect(parts.filter((part) => part.kind === 'countertop')).toHaveLength(0)
+    expect(parts.filter((part) => part.kind === 'top').length).toBeGreaterThan(0)
+  })
+
+  test('the worktop takes the countertop material slot', () => {
+    const base = ofKind('base-run')
+    const assembly: FurnitureAssembly = {
+      ...base,
+      materialDefaults: { ...base.materialDefaults, countertop: 'library:stone-marble' },
+    }
+    const slab = buildFurnitureAssembly(assembly).parts.find((part) => part.kind === 'countertop')
+    expect(slab?.materialId).toBe('library:stone-marble')
+  })
+
+  test('a worktop thicker than half the piece is clamped, not degenerate', () => {
+    const { parts, warnings } = buildFurnitureAssembly(ofKind('base-run', 0.1), {
+      countertopThickness: 0.4,
+    })
+    const slab = parts.find((part) => part.kind === 'countertop')
+
+    expect(slab?.size[1]).toBeCloseTo(0.05)
+    expect(warnings.filter((warning) => warning.code === 'invalid-part-dimensions')).toHaveLength(0)
   })
 })

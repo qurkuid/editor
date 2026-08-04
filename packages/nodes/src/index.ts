@@ -136,6 +136,8 @@ export {
   type CabinetPlacementType,
   cabinetDefinition,
   cabinetModuleDefinition,
+  createFurnitureRun,
+  type FurnitureRunKind,
   poseCabinetMovingParts,
   useCabinetPlacementStatus,
   useCabinetPlacementType,

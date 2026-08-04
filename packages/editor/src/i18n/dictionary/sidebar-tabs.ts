@@ -10,5 +10,6 @@ export const sidebarTabsDictionary = {
   'sidebarTabs.items': { ko: '아이템', en: 'Items' },
   'sidebarTabs.painting': { ko: '도장', en: 'Painting' },
   'sidebarTabs.ai': { ko: 'AI', en: 'AI' },
+  'sidebarTabs.stats': { ko: '통계', en: 'Takeoff' },
   'sidebarTabs.settings': { ko: '설정', en: 'Settings' },
 } as const satisfies Dictionary

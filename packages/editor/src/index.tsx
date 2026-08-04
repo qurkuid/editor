@@ -318,6 +318,10 @@ export {
   type PlacementSurface,
   publishPlacementSurface,
 } from './lib/active-placement-surface'
+// Prefixes a public-asset path with `NEXT_PUBLIC_BASE_PATH` for plain
+// `<img>`/CSS/audio URLs that don't go through next/image's custom loader.
+// Shared across `packages/editor`, `packages/nodes`, and `apps/editor`.
+export { assetPath } from './lib/asset-path'
 export {
   CEILING_ALIGNMENT_THRESHOLD_M,
   type CeilingPlanSnapInput,
@@ -563,6 +567,7 @@ export {
 export { default as useAlignmentGuides } from './store/use-alignment-guides'
 export { default as useAudio } from './store/use-audio'
 export { type CommandAction, useCommandRegistry } from './store/use-command-registry'
+export { useDraftLengthHud } from './store/use-draft-length-hud'
 export {
   DRAWING_TYPE_OPTIONS,
   default as useDrawingView,

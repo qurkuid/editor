@@ -32,7 +32,9 @@ export function newCountertopCutout(shape: CountertopCutoutShape): CountertopCut
       kind: 'custom',
       shape: 'circle',
       position: { x: 0, z: 0 },
-      radius: 0.05,
+      // Tap-hole sized. The old 50 mm default read as a dent rather than a
+      // hole and gave no clue what the control does.
+      radius: 0.019,
     }
   }
   return {
@@ -40,8 +42,10 @@ export function newCountertopCutout(shape: CountertopCutoutShape): CountertopCut
     kind: 'custom',
     shape: 'rect',
     position: { x: 0, z: 0 },
-    size: { width: 0.1, depth: 0.1 },
-    cornerRadius: 0,
+    // Undermount-sink sized, so the first thing the user sees is a real
+    // opening they can then resize, not a 100 mm square.
+    size: { width: 0.5, depth: 0.4 },
+    cornerRadius: 0.02,
   }
 }
 

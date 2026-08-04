@@ -14,6 +14,7 @@ import { useViewer } from '@pascal-app/viewer'
 import { Icon } from '@iconify/react'
 import { Move, Trash2 } from 'lucide-react'
 import { type ComponentType, lazy, Suspense, useCallback } from 'react'
+import { assetPath } from '../../../lib/asset-path'
 import { resolveMoveActionNode } from '../../../lib/direct-manipulation'
 import { sfxEmitter } from '../../../lib/sfx-bus'
 import { collectZoneContentIds } from '../../../lib/zone-content'
@@ -231,7 +232,7 @@ function ParamActionButton({ action, nodeId }: { action: ParamAction<AnyNode>; n
       className={disabled ? 'opacity-40 pointer-events-none' : ''}
       icon={
         action.iconSrc ? (
-          <img alt="" className="h-4 w-4 shrink-0 object-contain" src={action.iconSrc} />
+          <img alt="" className="h-4 w-4 shrink-0 object-contain" src={assetPath(action.iconSrc)} />
         ) : undefined
       }
       label={action.label}
@@ -249,7 +250,7 @@ function renderIcon(ref: IconRef | undefined): React.ReactNode | undefined {
     // Plain <img> here so the inspector doesn't pull in next/image's
     // server-only requirements (the file is `'use client'`). Same
     // 16x16 box the legacy panels use.
-    return <img alt="" className="h-4 w-4 shrink-0 object-contain" src={ref.src} />
+    return <img alt="" className="h-4 w-4 shrink-0 object-contain" src={assetPath(ref.src)} />
   }
   if (ref.kind === 'iconify') {
     return <Icon height={16} icon={ref.name} width={16} />

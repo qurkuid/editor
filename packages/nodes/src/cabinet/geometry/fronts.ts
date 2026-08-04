@@ -750,6 +750,46 @@ export function addShelfBoards(
   }
 }
 
+const HANGER_ROD_DIAMETER = 0.025
+const HANGER_TOP_CLEARANCE = 0.06
+const HANGER_SIDE_INSET = 0.03
+
+/**
+ * Hanging rail across a wardrobe opening — a rod spanning the module width,
+ * hung just below the opening's top so garments clear the shelf above.
+ * Cylinder is authored along Y and rolled onto the run axis, matching the
+ * rod the furniture builder drew.
+ */
+export function addHangerRod(
+  group: Group,
+  materials: CabinetSlotMaterials,
+  openingWidth: number,
+  openingDepth: number,
+  y0: number,
+  height: number,
+  centerX = 0,
+) {
+  const length = openingWidth - HANGER_SIDE_INSET * 2
+  if (length <= 0) return
+  const mesh = stampSlot(
+    new Mesh(
+      new CylinderGeometry(HANGER_ROD_DIAMETER / 2, HANGER_ROD_DIAMETER / 2, length, 16),
+      materials.hardware,
+    ),
+    'hardware',
+  )
+  mesh.name = `cabinet-hanger-${y0.toFixed(3)}`
+  mesh.position.set(
+    centerX,
+    y0 + height - HANGER_TOP_CLEARANCE - HANGER_ROD_DIAMETER / 2,
+    openingDepth / 2,
+  )
+  mesh.rotation.z = Math.PI / 2
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  group.add(mesh)
+}
+
 function drawerOpenScale(index: number, count: number) {
   if (count <= 1) return 1
   return 1 - (index / (count - 1)) * (1 - DRAWER_MIN_OPEN)

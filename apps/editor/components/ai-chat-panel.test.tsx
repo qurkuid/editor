@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
+import useAiChatHistory from '@/lib/ai-chat-history'
 import {
   AI_CHAT_IMAGE_ACCEPT,
   AI_CHAT_MAX_IMAGE_BYTES,
@@ -20,6 +21,20 @@ test('exposes a visible multi-image picker with the approved limits', () => {
   expect(markup).toContain(`${AI_CHAT_MAX_IMAGES}`)
   expect(markup).toContain('PNG/JPEG/WebP')
   expect(markup).toContain('파일당 5MB')
+})
+
+test('renders a reset button, disabled while there is no conversation to clear', () => {
+  // renderToStaticMarkup is a pure SSR pass — React's useSyncExternalStore
+  // reads zustand's getServerSnapshot (the store's initial state) here
+  // rather than live state, so this can only assert the empty-history
+  // render; the enabled state after a real append is covered at the store
+  // level in ai-chat-history.test.ts.
+  useAiChatHistory.getState().reset()
+  const markup = renderToStaticMarkup(<AiChatPanel />)
+
+  const resetButton = markup.match(/<button[^>]*aria-label="대화 초기화"[^>]*>/)?.[0]
+  expect(resetButton).toBeDefined()
+  expect(resetButton).toContain('disabled=""')
 })
 
 test('rejects unsupported or oversized image files before reading them', () => {

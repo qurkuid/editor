@@ -4,6 +4,7 @@ import { forwardRef } from 'react'
 import type { Group } from 'three'
 import { furnishTools } from '../../../components/ui/action-menu/furnish-tools'
 import { tools } from '../../../components/ui/action-menu/structure-tools'
+import { assetPath } from '../../../lib/asset-path'
 import { EDITOR_LAYER } from '../../../lib/constants'
 import useEditor from '../../../store/use-editor'
 import useWallSnapIndicator from '../../../store/use-wall-snap-indicator'
@@ -139,7 +140,7 @@ export const CursorSphere = forwardRef<Group, CursorSphereProps>(function Cursor
             // eslint-disable-next-line @next/next/no-img-element
             <img
               alt={activeToolConfig!.label}
-              src={activeToolConfig!.iconSrc}
+              src={assetPath(activeToolConfig!.iconSrc)}
               style={{
                 width: '100%',
                 height: '100%',

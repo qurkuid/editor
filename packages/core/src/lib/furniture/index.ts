@@ -20,6 +20,13 @@ export {
   type FurnitureAssemblyWarningCode,
 } from './assembly'
 export {
+  drawerFrontPose,
+  type FurnitureFrontPose,
+  flapFrontPose,
+  hingedFrontPose,
+  slidingFrontPose,
+} from './front-pose'
+export {
   type FurnitureBuilderImportResult,
   type FurnitureImportWarning,
   type FurnitureImportWarningCode,

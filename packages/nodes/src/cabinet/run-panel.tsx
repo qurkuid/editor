@@ -32,6 +32,7 @@ import {
   newCountertopCutout,
   patchCountertopCutout,
 } from './countertop-cutouts'
+import { divideRunIntoBays, resizeRunToWidth, runSpanWidth, sortRunModules } from './run-layout'
 import {
   addCabinetModuleSide,
   backAlignZ,
@@ -371,6 +372,61 @@ export function CabinetRunPanel({
     [node],
   )
 
+  // Whole-piece sizing: the user gives the furniture's overall width or how
+  // many bays it should have, and the modules follow. Adding/removing bays is
+  // a scene mutation, so it reuses the existing add/delete paths and only the
+  // layout comes from `run-layout`.
+  const applyRunLayout = useCallback(
+    (layout: ReturnType<typeof resizeRunToWidth>) => {
+      const scene = useScene.getState()
+      for (const bay of layout) {
+        scene.updateNode(bay.id as AnyNodeId, { position: bay.position, width: bay.width })
+      }
+      scene.markDirty(node.id as AnyNodeId)
+    },
+    [node.id],
+  )
+
+  const setRunTotalWidth = useCallback(
+    (totalWidth: number) => {
+      applyRunLayout(resizeRunToWidth(sortedModules, totalWidth))
+    },
+    [applyRunLayout, sortedModules],
+  )
+
+  const setRunBayCount = useCallback(
+    (bayCount: number) => {
+      const target = Math.max(1, Math.min(24, Math.floor(bayCount)))
+      const span = runSpanWidth(sortedModules)
+      const sceneApi = createSceneApi(useScene)
+      const scene = useScene.getState()
+
+      // Grow first so the division lays out over the final module set, then
+      // trim; both directions keep the run's overall span.
+      for (let i = sortedModules.length; i < target; i += 1) {
+        addCabinetModuleSide({ anchorModule: null, run: node, sceneApi, side: 'right' })
+      }
+      for (let i = sortedModules.length; i > target; i -= 1) {
+        const last = sortRunModules(
+          (scene.nodes[node.id as AnyNodeId] as CabinetNodeType | undefined)?.children
+            ?.map((id) => scene.nodes[id as AnyNodeId] as CabinetModuleNodeType | undefined)
+            .filter((m): m is CabinetModuleNodeType => m?.type === 'cabinet-module') ?? [],
+        ).at(-1)
+        if (last) scene.deleteNode(last.id as AnyNodeId)
+      }
+
+      const live = sortRunModules(
+        (useScene.getState().nodes[node.id as AnyNodeId] as CabinetNodeType | undefined)?.children
+          ?.map(
+            (id) => useScene.getState().nodes[id as AnyNodeId] as CabinetModuleNodeType | undefined,
+          )
+          .filter((m): m is CabinetModuleNodeType => m?.type === 'cabinet-module') ?? [],
+      )
+      applyRunLayout(divideRunIntoBays(live, target, span))
+    },
+    [applyRunLayout, node, sortedModules],
+  )
+
   const addModule = useCallback(
     (side: 'left' | 'right') => {
       const id = addCabinetModuleSide({
@@ -427,6 +483,18 @@ export function CabinetRunPanel({
     [updateRun],
   )
 
+  // Position ranges follow the actual slab, not a fixed ±3 m: a ±3 m slider on
+  // a 1.2 m worktop makes the cutout impossible to place by drag, since almost
+  // the whole travel is off the slab.
+  const cutoutBounds = useMemo(() => {
+    const span = runSpanWidth(sortedModules)
+    const overhang = node.countertopOverhang ?? 0
+    return {
+      x: Math.max(0.05, span / 2 + overhang),
+      z: Math.max(0.05, node.depth / 2 + overhang + (node.countertopBackOverhang ?? 0)),
+    }
+  }, [node.countertopBackOverhang, node.countertopOverhang, node.depth, sortedModules])
+
   const addCutout = useCallback(
     (shape: CountertopCutout['shape']) => {
       const cutout = newCountertopCutout(shape)
@@ -463,6 +531,25 @@ export function CabinetRunPanel({
       width={320}
     >
       <PanelSection title="Modules">
+        <div className="space-y-2 px-1 pb-2">
+          <SliderControl
+            label="Total width"
+            max={12}
+            min={0.3}
+            onChange={setRunTotalWidth}
+            step={0.01}
+            unit="m"
+            value={Number(runSpanWidth(sortedModules).toFixed(3))}
+          />
+          <SliderControl
+            label="Bays"
+            max={12}
+            min={1}
+            onChange={setRunBayCount}
+            step={1}
+            value={sortedModules.length}
+          />
+        </div>
         <div className="flex flex-col gap-2 px-1 pb-2">
           {sortedModules.map((module, index) => (
             <div
@@ -690,8 +777,8 @@ export function CabinetRunPanel({
               </div>
               <SliderControl
                 label="Position X"
-                max={3}
-                min={-3}
+                max={cutoutBounds.x}
+                min={-cutoutBounds.x}
                 onChange={(value) =>
                   patchSelectedCutout({ position: { ...selectedCutout.position, x: value } })
                 }
@@ -702,8 +789,8 @@ export function CabinetRunPanel({
               />
               <SliderControl
                 label="Position Z"
-                max={3}
-                min={-3}
+                max={cutoutBounds.z}
+                min={-cutoutBounds.z}
                 onChange={(value) =>
                   patchSelectedCutout({ position: { ...selectedCutout.position, z: value } })
                 }

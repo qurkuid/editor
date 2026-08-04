@@ -137,6 +137,7 @@ export type {
   FurnitureAssemblyWarningCode,
   FurnitureBuilderImportResult,
   FurnitureFace,
+  FurnitureFrontPose,
   FurnitureImportWarning,
   FurnitureImportWarningCode,
   FurnitureNormalizationInput,
@@ -152,8 +153,11 @@ export {
   createDefaultFurnitureAssembly,
   deleteFurnitureBay,
   deleteFurnitureTier,
+  drawerFrontPose,
   FURNITURE_ASSEMBLY_SCHEMA_VERSION,
   FURNITURE_KIND_DEFAULT_DIMENSIONS,
+  flapFrontPose,
+  hingedFrontPose,
   importFurnitureBuilder,
   importFurnitureBuilderJson,
   insertFurnitureBay,
@@ -168,6 +172,7 @@ export {
   setFurnitureKind,
   setFurnitureTierFront,
   setFurnitureTierInterior,
+  slidingFrontPose,
 } from './lib/furniture'
 export {
   type GuideImagePoint,

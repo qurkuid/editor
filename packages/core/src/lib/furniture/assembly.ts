@@ -1,4 +1,11 @@
 import type { FurnitureAssembly, FurnitureBay } from '../../schema/nodes/furniture'
+import {
+  drawerFrontPose,
+  type FurnitureFrontPose,
+  flapFrontPose,
+  hingedFrontPose,
+  slidingFrontPose,
+} from './front-pose'
 
 export type FurnitureAssemblyPartKind =
   | 'side-left'
@@ -14,6 +21,7 @@ export type FurnitureAssemblyPartKind =
   | 'plinth'
   | 'leg'
   | 'kickplate'
+  | 'countertop'
 
 export type FurnitureAssemblyPartShape = 'box' | 'cylinder'
 
@@ -27,6 +35,8 @@ export interface FurnitureAssemblyPart {
   bayId?: string
   tierId?: string
   face?: 'front' | 'back'
+  /** Open/close animation for `front` parts — absent for every other kind. */
+  frontPose?: FurnitureFrontPose
 }
 
 export interface FurnitureAssemblyBounds {
@@ -51,6 +61,7 @@ export interface FurnitureAssemblyOptions {
   rodDiameter?: number
   frontThickness?: number
   frontGap?: number
+  countertopThickness?: number
 }
 
 export interface FurnitureAssemblyResult {
@@ -70,6 +81,9 @@ const KICKPLATE_INSET = 0.05
 const LEG_SIZE = 0.03
 const LEG_INSET = 0.04
 const DIMENSION_TOLERANCE = 1e-6
+const DEFAULT_COUNTERTOP_THICKNESS = 0.02
+
+const COUNTERTOP_KINDS = new Set<FurnitureAssembly['furnitureKind']>(['base-run', 'island', 'sink'])
 
 export function buildFurnitureAssembly(
   assembly: FurnitureAssembly,
@@ -99,6 +113,22 @@ export function buildFurnitureAssembly(
   }
   const parts: FurnitureAssemblyPart[] = []
   const warnings: FurnitureAssemblyWarning[] = []
+
+  // On a worktop kind the countertop *is* the top — a base cabinet has no
+  // carcass top panel under its slab. So it replaces the per-bay `top` part
+  // rather than stacking above it or eating into the height, which keeps the
+  // declared envelope and the tier heights untouched.
+  const countertopThickness = COUNTERTOP_KINDS.has(assembly.furnitureKind)
+    ? Math.min(
+        positiveOption(
+          options.countertopThickness,
+          DEFAULT_COUNTERTOP_THICKNESS,
+          'countertopThickness',
+        ),
+        height / 2,
+      )
+    : 0
+  const hasCountertop = countertopThickness > 0
 
   const checkBayWidthTotal = (bays: FurnitureBay[], path: string) => {
     const total = bays.reduce((sum, bay) => sum + bay.width, 0)
@@ -251,19 +281,21 @@ export function buildFurnitureAssembly(
       }
 
       if (bay.visible) {
-        addPart(
-          {
-            id: `bay:${idInfix}${bay.id}:top`,
-            kind: 'top',
-            shape: 'box',
-            position: [bayCenter, height - carcassThickness / 2, compartmentCenterZ],
-            size: [innerWidth, carcassThickness, compartmentDepth],
-            materialId: assembly.materialDefaults.carcass,
-            bayId: bay.id,
-            ...faceStamp,
-          },
-          `${pathPrefix}[${bayIndex}].width`,
-        )
+        if (!hasCountertop) {
+          addPart(
+            {
+              id: `bay:${idInfix}${bay.id}:top`,
+              kind: 'top',
+              shape: 'box',
+              position: [bayCenter, height - carcassThickness / 2, compartmentCenterZ],
+              size: [innerWidth, carcassThickness, compartmentDepth],
+              materialId: assembly.materialDefaults.carcass,
+              bayId: bay.id,
+              ...faceStamp,
+            },
+            `${pathPrefix}[${bayIndex}].width`,
+          )
+        }
         addPart(
           {
             id: `bay:${idInfix}${bay.id}:bottom`,
@@ -425,6 +457,7 @@ export function buildFurnitureAssembly(
               index: number,
               position: [number, number, number],
               size: [number, number, number],
+              frontPose: FurnitureFrontPose,
             ) => {
               addPart(
                 {
@@ -436,6 +469,7 @@ export function buildFurnitureAssembly(
                   materialId: frontMaterialId,
                   bayId: bay.id,
                   tierId: tier.id,
+                  frontPose,
                   ...faceStamp,
                 },
                 frontPath,
@@ -449,10 +483,17 @@ export function buildFurnitureAssembly(
             ) {
               const leaves = tier.front.kind === 'hinged' ? tier.front.leaves : 1
               if (leaves === 1) {
+                const pose =
+                  tier.front.kind === 'flap'
+                    ? flapFrontPose(tier.front.direction, frontHeight, dirSign)
+                    : tier.front.kind === 'pull-out'
+                      ? drawerFrontPose(compartmentDepth, dirSign)
+                      : hingedFrontPose('left', frontWidth, dirSign)
                 addFrontPart(
                   0,
                   [bayCenter, frontY, frontZ],
                   [frontWidth, frontHeight, frontThickness],
+                  pose,
                 )
               } else {
                 const leafWidth = (frontWidth - frontGap) / 2
@@ -461,11 +502,13 @@ export function buildFurnitureAssembly(
                   0,
                   [bayCenter - offset, frontY, frontZ],
                   [leafWidth, frontHeight, frontThickness],
+                  hingedFrontPose('left', leafWidth, dirSign),
                 )
                 addFrontPart(
                   1,
                   [bayCenter + offset, frontY, frontZ],
                   [leafWidth, frontHeight, frontThickness],
+                  hingedFrontPose('right', leafWidth, dirSign),
                 )
               }
             } else if (tier.front.kind === 'drawer') {
@@ -477,6 +520,7 @@ export function buildFurnitureAssembly(
                   index,
                   [bayCenter, drawerBottom + drawerHeight / 2, frontZ],
                   [frontWidth, drawerHeight, frontThickness],
+                  drawerFrontPose(compartmentDepth, dirSign, index, count),
                 )
                 drawerBottom += drawerHeight + frontGap
               }
@@ -493,6 +537,7 @@ export function buildFurnitureAssembly(
                     frontZ - dirSign * (index % 2) * frontThickness,
                   ],
                   [leafWidth, frontHeight, frontThickness],
+                  slidingFrontPose(leafWidth, index),
                 )
               }
             }
@@ -512,6 +557,20 @@ export function buildFurnitureAssembly(
 
   if (hasBackBays && split) {
     emitFaceBays(backBays, 'back', 0, -split.back, false)
+  }
+
+  if (hasCountertop) {
+    addPart(
+      {
+        id: 'countertop',
+        kind: 'countertop',
+        shape: 'box',
+        position: [0, height - countertopThickness / 2, 0],
+        size: [width, countertopThickness, depth],
+        materialId: assembly.materialDefaults.countertop,
+      },
+      'dimensions',
+    )
   }
 
   return { parts, bounds, warnings }

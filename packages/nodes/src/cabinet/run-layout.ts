@@ -656,3 +656,73 @@ export function planToRunLocal(
   const sin = Math.sin(run.rotation)
   return [dx * cos - dz * sin, localY, dx * sin + dz * cos]
 }
+
+/**
+ * Total run span (left edge of the first bay → right edge of the last).
+ */
+export function runSpanWidth<T extends ModuleLike>(modules: readonly T[]): number {
+  const sorted = sortRunModules(modules)
+  if (sorted.length === 0) return 0
+  return moduleMaxX(sorted[sorted.length - 1]!) - moduleMinX(sorted[0]!)
+}
+
+/**
+ * Re-lay a run's existing bays across `targetWidth`, keeping each bay's share
+ * of the total. Used by the run panel's total-width field: the piece is sized
+ * as a whole, and the bays follow, rather than the user nudging one bay at a
+ * time. The run's left edge stays put so the piece grows/shrinks to the right.
+ */
+export function resizeRunToWidth<T extends ModuleLike>(
+  modules: readonly T[],
+  targetWidth: number,
+  minimumWidth = 0.1,
+): Array<{ id: T['id']; position: [number, number, number]; width: number }> {
+  const sorted = sortRunModules(modules)
+  if (sorted.length === 0) return []
+  const current = runSpanWidth(sorted)
+  const width = Math.max(targetWidth, minimumWidth * sorted.length)
+  if (current <= 1e-9) return divideRunIntoBays(sorted, sorted.length, width)
+
+  const scale = width / current
+  const left = moduleMinX(sorted[0]!)
+  let cursor = left
+  return sorted.map((module) => {
+    const nextWidth = module.width * scale
+    const position: [number, number, number] = [
+      cursor + nextWidth / 2,
+      module.position[1],
+      module.position[2],
+    ]
+    cursor += nextWidth
+    return { id: module.id, position, width: nextWidth }
+  })
+}
+
+/**
+ * Re-divide a run into `bayCount` equal bays across its span (or `targetWidth`
+ * when resizing at the same time). Returns the layout for the bays that
+ * survive; the caller adds or removes module nodes to reach `bayCount`, since
+ * that is a scene mutation rather than a layout concern.
+ */
+export function divideRunIntoBays<T extends ModuleLike>(
+  modules: readonly T[],
+  bayCount: number,
+  targetWidth?: number,
+): Array<{ id: T['id']; position: [number, number, number]; width: number }> {
+  const sorted = sortRunModules(modules)
+  if (sorted.length === 0) return []
+  const count = Math.max(1, Math.floor(bayCount))
+  const width = targetWidth ?? runSpanWidth(sorted)
+  const bayWidth = width / count
+  const left = moduleMinX(sorted[0]!)
+  const template = sorted[0]!
+  return sorted.slice(0, count).map((module, index) => ({
+    id: module.id,
+    position: [
+      left + bayWidth * (index + 0.5),
+      module.position[1] ?? template.position[1],
+      module.position[2] ?? template.position[2],
+    ] as [number, number, number],
+    width: bayWidth,
+  }))
+}

@@ -9,6 +9,7 @@ import { addFridgeCompartment } from './geometry/fridge'
 import {
   addDoorFronts,
   addDrawerFronts,
+  addHangerRod,
   addShelfBoards,
   addSinkFalseFront,
 } from './geometry/fronts'
@@ -429,6 +430,17 @@ export function buildCabinetGeometry(
           innerCenterX,
         )
       }
+      if (row.compartment.hanger) {
+        addHangerRod(
+          group,
+          materials,
+          openingWidth,
+          openingDepth,
+          openingBottomY,
+          openingHeight,
+          innerCenterX,
+        )
+      }
       return
     }
 
@@ -444,6 +456,17 @@ export function buildCabinetGeometry(
         compartmentShelfCount(row.compartment),
         innerCenterX,
       )
+      if (row.compartment.hanger) {
+        addHangerRod(
+          group,
+          materials,
+          openingWidth,
+          openingDepth,
+          openingBottomY,
+          openingHeight,
+          innerCenterX,
+        )
+      }
       return
     }
 

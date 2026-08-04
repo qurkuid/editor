@@ -1,5 +1,6 @@
 import type { AnyNode, AssetInput } from '@pascal-app/core'
 import type { ReactNode } from 'react'
+import { assetPath } from '../../lib/asset-path'
 import { cn } from '../../lib/utils'
 
 export type SnapTarget = 'wall' | 'ceiling' | 'roof'
@@ -62,7 +63,7 @@ export function SnapTargetBadge({
       <img
         alt={SNAP_TARGET_LABELS[target]}
         className={cn('object-contain', SNAP_TARGET_ICON_SIZE_CLASSES[size])}
-        src={SNAP_TARGET_ICONS[target]}
+        src={assetPath(SNAP_TARGET_ICONS[target])}
       />
     </span>
   )

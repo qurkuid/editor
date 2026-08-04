@@ -2,19 +2,31 @@
 
 import { useScene } from '@pascal-app/core'
 import { type Locale, translate, useLocale, useT } from '@pascal-app/editor'
-import { Bot, Braces, Check, ImagePlus, LoaderCircle, Send, TerminalSquare, X } from 'lucide-react'
+import {
+  Bot,
+  Braces,
+  Check,
+  ImagePlus,
+  LoaderCircle,
+  RotateCcw,
+  Send,
+  TerminalSquare,
+  X,
+} from 'lucide-react'
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
+import useAiChatHistory, { type AiChatHistoryMessage } from '@/lib/ai-chat-history'
 import { type AiModelingPlan, AiModelingPlanSchema, buildAiSceneContext } from '@/lib/ai-control'
 import { applyAiModelingPlanWithAssets } from '@/lib/ai-control-assets'
 import useAiProvider from '@/lib/ai-provider-store'
 import { withBasePath } from '@/lib/base-path'
 
-type ChatMessage = {
-  id: string
-  role: 'user' | 'assistant' | 'status'
-  content: string
-}
+type ChatMessage = AiChatHistoryMessage
+
+/** Mirrors `AiChatRequestSchema.messages`'s max in `lib/ai-provider.ts` —
+ * trims what a single request sends, independent of how much history is
+ * persisted locally. */
+const AI_CHAT_API_MESSAGE_LIMIT = 40
 
 const ProviderStatusSchema = z.object({
   configured: z.boolean(),
@@ -151,9 +163,16 @@ export function AiChatPanel() {
     typeof DualProviderStatusSchema
   > | null>(null)
   const provider = providerStatuses?.[aiProvider] ?? null
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 'welcome', role: 'assistant', content: t('aiChat.welcome') },
-  ])
+  const persistedMessages = useAiChatHistory((state) => state.messages)
+  const appendMessage = useAiChatHistory((state) => state.appendMessage)
+  const resetChatHistory = useAiChatHistory((state) => state.reset)
+  const messages = useMemo<ChatMessage[]>(
+    () =>
+      persistedMessages.length > 0
+        ? persistedMessages
+        : [{ id: 'welcome', role: 'assistant', content: t('aiChat.welcome') }],
+    [persistedMessages, t],
+  )
   const [draft, setDraft] = useState('')
   const [pendingPlan, setPendingPlan] = useState<AiModelingPlan | null>(null)
   const [isThinking, setIsThinking] = useState(false)
@@ -241,13 +260,13 @@ export function AiChatPanel() {
     if (!(content && !isThinking && !isReadingImages)) return
 
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content }
-    const nextMessages = [...conversation, userMessage]
+    const nextMessages = [...conversation, userMessage].slice(-AI_CHAT_API_MESSAGE_LIMIT)
     const images = imageAttachments.map(({ name, mimeType, dataUrl }) => ({
       name,
       mimeType,
       dataUrl,
     }))
-    setMessages((current) => [...current, userMessage])
+    appendMessage(userMessage)
     setDraft('')
     setPendingPlan(null)
     setIsThinking(true)
@@ -265,20 +284,14 @@ export function AiChatPanel() {
       const plan = AiModelingPlanSchema.parse(response)
       setImageAttachments([])
       setImageError(null)
-      setMessages((current) => [
-        ...current,
-        { id: crypto.randomUUID(), role: 'assistant', content: plan.message },
-      ])
+      appendMessage({ id: crypto.randomUUID(), role: 'assistant', content: plan.message })
       setPendingPlan(plan.patches.length > 0 ? plan : null)
     } catch (error) {
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: 'status',
-          content: error instanceof Error ? error.message : t('aiChat.errors.requestFailed'),
-        },
-      ])
+      appendMessage({
+        id: crypto.randomUUID(),
+        role: 'status',
+        content: error instanceof Error ? error.message : t('aiChat.errors.requestFailed'),
+      })
     } finally {
       setIsThinking(false)
     }
@@ -289,27 +302,31 @@ export function AiChatPanel() {
     setIsThinking(true)
     try {
       const result = await applyAiModelingPlanWithAssets(pendingPlan)
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: 'status',
-          content: t('aiChat.pendingPlan.appliedStatus').replace('{n}', String(result.appliedOps)),
-        },
-      ])
+      appendMessage({
+        id: crypto.randomUUID(),
+        role: 'status',
+        content: t('aiChat.pendingPlan.appliedStatus').replace('{n}', String(result.appliedOps)),
+      })
       setPendingPlan(null)
     } catch (error) {
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: 'status',
-          content: error instanceof Error ? error.message : t('aiChat.pendingPlan.applyFailed'),
-        },
-      ])
+      appendMessage({
+        id: crypto.randomUUID(),
+        role: 'status',
+        content: error instanceof Error ? error.message : t('aiChat.pendingPlan.applyFailed'),
+      })
     } finally {
       setIsThinking(false)
     }
+  }
+
+  const canResetChat =
+    persistedMessages.length > 0 || pendingPlan !== null || imageAttachments.length > 0
+
+  function resetChat() {
+    resetChatHistory()
+    setPendingPlan(null)
+    setImageAttachments([])
+    setImageError(null)
   }
 
   return (
@@ -323,14 +340,26 @@ export function AiChatPanel() {
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">{t('aiChat.header.desc')}</p>
           </div>
-          <span
-            className={`mt-0.5 h-2 w-2 rounded-full ${provider?.configured ? 'bg-emerald-500' : 'bg-amber-500'}`}
-            title={
-              provider?.configured
-                ? t('aiChat.header.connectedTitle').replace('{provider}', providerLabel)
-                : t('aiChat.header.notConnectedTitle').replace('{provider}', providerLabel)
-            }
-          />
+          <div className="flex items-center gap-2">
+            <button
+              aria-label={t('aiChat.reset.ariaLabel')}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={!canResetChat || isThinking}
+              onClick={resetChat}
+              title={t('aiChat.reset.ariaLabel')}
+              type="button"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+            <span
+              className={`mt-0.5 h-2 w-2 rounded-full ${provider?.configured ? 'bg-emerald-500' : 'bg-amber-500'}`}
+              title={
+                provider?.configured
+                  ? t('aiChat.header.connectedTitle').replace('{provider}', providerLabel)
+                  : t('aiChat.header.notConnectedTitle').replace('{provider}', providerLabel)
+              }
+            />
+          </div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-1.5 text-[10px] text-muted-foreground">
           <div className="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5">

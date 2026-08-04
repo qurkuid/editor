@@ -1,10 +1,26 @@
-import { type MessageId, useT } from '@pascal-app/editor'
+import { type AnyNodeId, useScene } from '@pascal-app/core'
+import {
+  type MessageId,
+  type PathDraftKind,
+  type PathDraftPoint,
+  useDraftLengthHud,
+  useFloorplanDraftPreview,
+  usePathDraftPreview,
+  useT,
+  type WallPlanPoint,
+} from '@pascal-app/editor'
+import { useViewer } from '@pascal-app/viewer'
 import { Check, MousePointer2, PaintBucket, Ruler } from 'lucide-react'
 
 type WorkflowMode = 'build' | 'hidden' | 'material-paint'
 
 type BuildWorkflowGuideProps = {
   readonly activeLabel: string | null
+  /** Raw tool id (e.g. `'wall'`, `'duct-segment'`) — distinct from
+   *  `activeLabel`'s display label. Used to match the active tool against
+   *  the draft-progress stores this guide reads. `null` when no build tool
+   *  is armed. */
+  readonly activeTool: string | null
   readonly hasPaintMaterial: boolean
   readonly mode: WorkflowMode
 }
@@ -12,6 +28,219 @@ type BuildWorkflowGuideProps = {
 type WorkflowStep = {
   readonly label: string
   readonly state: 'active' | 'complete' | 'upcoming'
+}
+
+// A click-anchor-then-direction draft tool publishes its start point and a
+// live point that tracks the cursor (segment end / path cursor / newest
+// polygon vertex) — the same shape for every kind, just under different
+// store fields. `resolveChainDraftProgress` normalizes whichever fields
+// match the active tool into the two booleans the guide's steps need.
+const SEGMENT_DRAFT_TOOLS = new Set(['wall', 'fence', 'roof'])
+const POLYGON_DRAFT_TOOLS = new Set(['ceiling', 'slab', 'zone'])
+const PATH_DRAFT_TOOLS = new Set<PathDraftKind>([
+  'duct-segment',
+  'lineset',
+  'liquid-line',
+  'pipe-segment',
+])
+// Below this, two points read as "still at the anchor" rather than "a
+// direction has been aimed" — matches the wall tool's own preview-visibility
+// threshold (`updateWallPreview`'s `length < 0.01`).
+const CHAIN_DIRECTION_EPSILON_M = 0.01
+
+function movedPastAnchor(anchor: readonly number[] | null, end: readonly number[] | null): boolean {
+  if (!anchor || !end) return false
+  let sumOfSquares = 0
+  for (let i = 0; i < Math.max(anchor.length, end.length); i++) {
+    const delta = (anchor[i] ?? 0) - (end[i] ?? 0)
+    sumOfSquares += delta * delta
+  }
+  return Math.sqrt(sumOfSquares) > CHAIN_DIRECTION_EPSILON_M
+}
+
+export type ChainDraftProgress = {
+  /** True once the flow's first point (wall/fence/roof start corner, first
+   *  polygon vertex, or a path's first point) has been placed. */
+  readonly anchorPlaced: boolean
+  /** True once the flow has a meaningful direction beyond the anchor — the
+   *  tracked point has moved away from it, a second vertex exists, or a
+   *  dimension is being typed. */
+  readonly directionSet: boolean
+}
+
+export type ChainDraftInput = {
+  readonly activeTool: string | null
+  readonly dimensionRaw: string
+  readonly wall: { readonly start: WallPlanPoint | null; readonly end: WallPlanPoint | null }
+  readonly fence: { readonly start: WallPlanPoint | null; readonly end: WallPlanPoint | null }
+  readonly roof: { readonly start: WallPlanPoint | null; readonly end: WallPlanPoint | null }
+  readonly polygon: { readonly type: string | null; readonly points: readonly WallPlanPoint[] }
+  readonly path: {
+    readonly kind: PathDraftKind | null
+    readonly points: readonly PathDraftPoint[]
+    readonly cursor: PathDraftPoint | null
+  }
+}
+
+/** `null` when the active tool isn't a chained-draft kind this guide can
+ *  honestly track — the default branch then shows only the two steps
+ *  (select / click to place) it can represent, instead of two decorative
+ *  ones that can never light up. */
+export function resolveChainDraftProgress(input: ChainDraftInput): ChainDraftProgress | null {
+  const { activeTool } = input
+  if (!activeTool) return null
+  const hasTypedDimension = input.dimensionRaw !== ''
+
+  if (SEGMENT_DRAFT_TOOLS.has(activeTool)) {
+    const segment =
+      activeTool === 'wall' ? input.wall : activeTool === 'fence' ? input.fence : input.roof
+    return {
+      anchorPlaced: segment.start !== null,
+      directionSet: hasTypedDimension || movedPastAnchor(segment.start, segment.end),
+    }
+  }
+
+  if (POLYGON_DRAFT_TOOLS.has(activeTool)) {
+    // `polygonDraftType`/`polygonDraftPoints` are shared across slab / ceiling
+    // / zone — a mismatched type means the store hasn't caught up to a just-
+    // switched tool yet, not that this tool has no anchor concept.
+    const points = input.polygon.type === activeTool ? input.polygon.points : []
+    return {
+      anchorPlaced: points.length > 0,
+      directionSet: hasTypedDimension || points.length > 1,
+    }
+  }
+
+  if (PATH_DRAFT_TOOLS.has(activeTool as PathDraftKind)) {
+    const matchesActiveTool = input.path.kind === activeTool
+    const anchor = matchesActiveTool ? (input.path.points[0] ?? null) : null
+    const cursor = matchesActiveTool ? input.path.cursor : null
+    return {
+      anchorPlaced: anchor !== null,
+      directionSet: hasTypedDimension || movedPastAnchor(anchor, cursor),
+    }
+  }
+
+  return null
+}
+
+/** The door workflow's post-placement phase: `Type → Opening` and
+ *  `Rounded → R value` are edited on the placed door's own properties, not
+ *  through any draft-preview store — so this reads the door node itself.
+ *  `null` when no single door node is selected. */
+export type DoorConfigProgress = {
+  readonly openingKind: 'door' | 'opening'
+  readonly openingShape: 'arch' | 'rectangle' | 'rounded'
+} | null
+
+export type WorkflowStepsInput = {
+  readonly activeLabel: string | null
+  readonly hasPaintMaterial: boolean
+  readonly mode: WorkflowMode
+  readonly chainDraft: ChainDraftProgress | null
+  readonly doorProgress: DoorConfigProgress
+  readonly t: (key: MessageId) => string
+}
+
+export function resolveWorkflowSteps(input: WorkflowStepsInput): {
+  readonly isPaint: boolean
+  readonly isOpeningTool: boolean
+  readonly steps: readonly WorkflowStep[]
+} {
+  const { activeLabel, hasPaintMaterial, mode, chainDraft, doorProgress, t } = input
+  const step = (key: MessageId, state: WorkflowStep['state']): WorkflowStep => ({
+    label: t(key),
+    state,
+  })
+
+  const isPaint = mode === 'material-paint'
+  if (isPaint) {
+    return {
+      isPaint,
+      isOpeningTool: false,
+      steps: [
+        step(
+          'buildWorkflowGuide.paintSteps.chooseMaterial',
+          hasPaintMaterial ? 'complete' : 'active',
+        ),
+        step(
+          'buildWorkflowGuide.paintSteps.clickSurface',
+          hasPaintMaterial ? 'active' : 'upcoming',
+        ),
+        step('buildWorkflowGuide.paintSteps.adjustSize', 'upcoming'),
+      ],
+    }
+  }
+
+  // The door tool deactivates itself the instant a door is placed (single-
+  // shot placement) and selects the new door instead — so "Type → Opening"
+  // and "Rounded → R value" happen after `activeLabel` has already gone
+  // back to `null`. Treat that selected-door window as still the door
+  // workflow rather than falling back to the unrelated default branch.
+  const isPlacingDoor = mode === 'build' && activeLabel === 'Door'
+  const isConfiguringDoor = mode === 'build' && !activeLabel && doorProgress !== null
+  const isOpeningTool = isPlacingDoor || isConfiguringDoor
+  if (isOpeningTool) {
+    const isOpening = isConfiguringDoor && doorProgress?.openingKind === 'opening'
+    const isRounded = isOpening && doorProgress?.openingShape === 'rounded'
+    return {
+      isPaint,
+      isOpeningTool,
+      steps: [
+        step('buildWorkflowGuide.doorSteps.selectDoor', 'complete'),
+        step('buildWorkflowGuide.doorSteps.placeOnWall', isConfiguringDoor ? 'complete' : 'active'),
+        step(
+          'buildWorkflowGuide.doorSteps.typeOpening',
+          !isConfiguringDoor ? 'upcoming' : isOpening ? 'complete' : 'active',
+        ),
+        step(
+          'buildWorkflowGuide.doorSteps.adjustRounded',
+          !isOpening ? 'upcoming' : isRounded ? 'complete' : 'active',
+        ),
+      ],
+    }
+  }
+
+  const hasTool = activeLabel !== null
+  const selectStep: WorkflowStep = {
+    label: activeLabel ?? t('buildWorkflowGuide.defaultSteps.selectElement'),
+    state: hasTool ? 'complete' : 'active',
+  }
+
+  if (!chainDraft) {
+    // No store represents this tool's placement as an anchor-then-direction
+    // flow (e.g. single-click placements like column / elevator) — showing
+    // "set direction" / "final click" here would be decorative, so those
+    // two steps are dropped rather than left permanently upcoming.
+    return {
+      isPaint,
+      isOpeningTool,
+      steps: [
+        selectStep,
+        step('buildWorkflowGuide.defaultSteps.clickAnchor', hasTool ? 'active' : 'upcoming'),
+      ],
+    }
+  }
+
+  return {
+    isPaint,
+    isOpeningTool,
+    steps: [
+      selectStep,
+      step(
+        'buildWorkflowGuide.defaultSteps.clickAnchor',
+        chainDraft.anchorPlaced ? 'complete' : 'active',
+      ),
+      step(
+        'buildWorkflowGuide.defaultSteps.setDirection',
+        !chainDraft.anchorPlaced ? 'upcoming' : chainDraft.directionSet ? 'complete' : 'active',
+      ),
+      step(
+        'buildWorkflowGuide.defaultSteps.finalClick',
+        chainDraft.directionSet ? 'active' : 'upcoming',
+      ),
+    ],
+  }
 }
 
 function StepMarker({
@@ -38,47 +267,52 @@ function StepMarker({
 
 export function BuildWorkflowGuide({
   activeLabel,
+  activeTool,
   hasPaintMaterial,
   mode,
 }: BuildWorkflowGuideProps) {
   const t = useT()
+  const wallDraftStart = useFloorplanDraftPreview((state) => state.wallDraftStart)
+  const wallDraftEnd = useFloorplanDraftPreview((state) => state.wallDraftEnd)
+  const fenceDraftStart = useFloorplanDraftPreview((state) => state.fenceDraftStart)
+  const fenceDraftEnd = useFloorplanDraftPreview((state) => state.fenceDraftEnd)
+  const roofDraftStart = useFloorplanDraftPreview((state) => state.roofDraftStart)
+  const roofDraftEnd = useFloorplanDraftPreview((state) => state.roofDraftEnd)
+  const polygonDraftType = useFloorplanDraftPreview((state) => state.polygonDraftType)
+  const polygonDraftPoints = useFloorplanDraftPreview((state) => state.polygonDraftPoints)
+  const dimensionRaw = useDraftLengthHud((state) => state.raw)
+  const pathDraftKind = usePathDraftPreview((state) => state.kind)
+  const pathDraftPoints = usePathDraftPreview((state) => state.points)
+  const pathDraftCursor = usePathDraftPreview((state) => state.cursor)
+  const selectedIds = useViewer((state) => state.selection.selectedIds)
+  const nodes = useScene((state) => state.nodes)
+
   if (mode === 'hidden') return null
 
-  const step = (key: MessageId, state: WorkflowStep['state']): WorkflowStep => ({
-    label: t(key),
-    state,
+  const selectedNode = selectedIds.length === 1 ? nodes[selectedIds[0] as AnyNodeId] : undefined
+  const doorProgress: DoorConfigProgress =
+    selectedNode?.type === 'door'
+      ? { openingKind: selectedNode.openingKind, openingShape: selectedNode.openingShape }
+      : null
+
+  const chainDraft = resolveChainDraftProgress({
+    activeTool,
+    dimensionRaw,
+    wall: { start: wallDraftStart, end: wallDraftEnd },
+    fence: { start: fenceDraftStart, end: fenceDraftEnd },
+    roof: { start: roofDraftStart, end: roofDraftEnd },
+    polygon: { type: polygonDraftType, points: polygonDraftPoints },
+    path: { kind: pathDraftKind, points: pathDraftPoints, cursor: pathDraftCursor },
   })
 
-  const isPaint = mode === 'material-paint'
-  const isOpeningTool = mode === 'build' && activeLabel === 'Door'
-  const steps: readonly WorkflowStep[] = isPaint
-    ? [
-        step(
-          'buildWorkflowGuide.paintSteps.chooseMaterial',
-          hasPaintMaterial ? 'complete' : 'active',
-        ),
-        step(
-          'buildWorkflowGuide.paintSteps.clickSurface',
-          hasPaintMaterial ? 'active' : 'upcoming',
-        ),
-        step('buildWorkflowGuide.paintSteps.adjustSize', 'upcoming'),
-      ]
-    : isOpeningTool
-      ? [
-          step('buildWorkflowGuide.doorSteps.selectDoor', 'complete'),
-          step('buildWorkflowGuide.doorSteps.placeOnWall', 'active'),
-          step('buildWorkflowGuide.doorSteps.typeOpening', 'upcoming'),
-          step('buildWorkflowGuide.doorSteps.adjustRounded', 'upcoming'),
-        ]
-      : [
-          {
-            label: activeLabel ?? t('buildWorkflowGuide.defaultSteps.selectElement'),
-            state: activeLabel ? 'complete' : 'active',
-          },
-          step('buildWorkflowGuide.defaultSteps.clickAnchor', activeLabel ? 'active' : 'upcoming'),
-          step('buildWorkflowGuide.defaultSteps.setDirection', 'upcoming'),
-          step('buildWorkflowGuide.defaultSteps.finalClick', 'upcoming'),
-        ]
+  const { isPaint, isOpeningTool, steps } = resolveWorkflowSteps({
+    activeLabel,
+    hasPaintMaterial,
+    mode,
+    chainDraft,
+    doorProgress,
+    t,
+  })
 
   return (
     <section

@@ -22,6 +22,7 @@ export const aiChatDictionary = {
     ko: '{provider} 로그인이 필요합니다',
     en: '{provider} login required',
   },
+  'aiChat.reset.ariaLabel': { ko: '대화 초기화', en: 'Reset conversation' },
 
   'aiChat.welcome': {
     ko: '장면 그래프와 노드 스키마를 직접 읽습니다. 벽 길이 변경, 요소 생성, 재질 슬롯 수정처럼 모델 구조를 기준으로 요청하세요.',

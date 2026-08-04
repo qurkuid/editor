@@ -20,6 +20,7 @@ export function GuidedBuildTab() {
       <div className="sticky top-0 z-20 shrink-0 bg-sidebar/95 px-3 pt-3 pb-2 backdrop-blur">
         <BuildWorkflowGuide
           activeLabel={activeLabel}
+          activeTool={mode === 'build' ? activeTool : null}
           hasPaintMaterial={activePaintMaterial !== null}
           mode={guideMode}
         />

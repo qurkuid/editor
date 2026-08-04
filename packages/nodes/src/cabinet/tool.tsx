@@ -72,10 +72,14 @@ import {
   cabinetModuleDefinition,
   cabinetRunFootprint,
 } from './definition'
+import { createFurnitureRun } from './furniture-presets'
 import { buildCabinetGeometry } from './geometry'
 import { resolveCabinetGridPosition } from './placement-snap'
 import useCabinetPlacementStatus from './placement-status'
-import useCabinetPlacementType from './placement-type'
+import useCabinetPlacementType, {
+  type CabinetPlacementType,
+  placementRunKind,
+} from './placement-type'
 import { cabinetPresetById } from './presets'
 import { runLocalToPlan } from './run-layout'
 import {
@@ -268,6 +272,9 @@ const CabinetTool = () => {
   const islandMode = placementType === 'island'
   const yawRef = useRef(0)
   const islandModeRef = useRef(useCabinetPlacementType.getState().type === 'island')
+  const appliedPlacementTypeRef = useRef<CabinetPlacementType>(
+    useCabinetPlacementType.getState().type,
+  )
   const placementRef = useRef<CabinetPlacement | null>(null)
   const draftSegmentsRef = useRef<DraftSegment[]>([])
   const chainRootRunRef = useRef<CabinetNode | null>(null)
@@ -286,30 +293,37 @@ const CabinetTool = () => {
   const surfaceForwardRef = useRef(new Vector3(0, 0, 1))
   const facingPointRef = useRef(new Vector3())
 
-  const previewNode = useMemo(() => {
-    const runDefaults = cabinetDefinition.defaults()
-    return CabinetModuleNode.parse({
-      ...cabinetModuleDefinition.defaults(),
-      ...DEFAULT_PLACEMENT_PRESET.createPatch(),
-      showPlinth: runDefaults.showPlinth,
-      plinthHeight: runDefaults.plinthHeight,
-      toeKickDepth: runDefaults.toeKickDepth,
-      withCountertop: runDefaults.withCountertop,
-      countertopThickness: runDefaults.countertopThickness,
-      countertopOverhang: runDefaults.countertopOverhang,
-      countertopBackOverhang: runDefaults.countertopBackOverhang,
-    })
-  }, [])
+  // Preview comes from the same builder the commit uses, so arming a wardrobe
+  // previews a wardrobe. Building both from one source is what keeps the ghost
+  // and the placed run the same size.
+  const previewRun = useMemo(
+    () => createFurnitureRun({ kind: placementRunKind(placementType), moduleCount: 1 }),
+    [placementType],
+  )
+  const previewNode = useMemo(
+    () =>
+      CabinetModuleNode.parse({
+        ...previewRun.modules[0]!,
+        showPlinth: previewRun.run.showPlinth,
+        plinthHeight: previewRun.run.plinthHeight,
+        toeKickDepth: previewRun.run.toeKickDepth,
+        withCountertop: previewRun.run.withCountertop,
+        countertopThickness: previewRun.run.countertopThickness,
+        countertopOverhang: previewRun.run.countertopOverhang,
+        countertopBackOverhang: previewRun.run.countertopBackOverhang,
+      }),
+    [previewRun],
+  )
   const placementDimensions = useMemo(() => {
-    const defaults = cabinetDefinition.defaults()
+    const run = previewRun.run
     return [
       previewNode.width,
-      (defaults.showPlinth ? defaults.plinthHeight : 0) +
+      (run.showPlinth ? run.plinthHeight : 0) +
         previewNode.carcassHeight +
-        (defaults.withCountertop ? defaults.countertopThickness : 0),
+        (run.withCountertop ? run.countertopThickness : 0),
       previewNode.depth + (islandMode ? ISLAND_SEATING_OVERHANG : 0),
     ] as [number, number, number]
-  }, [previewNode, islandMode])
+  }, [previewNode, previewRun, islandMode])
   const ghost = useMemo(() => {
     const group = buildCabinetGeometry(previewNode)
     group.traverse((child) => {
@@ -436,9 +450,12 @@ const CabinetTool = () => {
       useCabinetPlacementStatus.getState().setBlocked(false)
     }
 
-    const applyPlacementType = (type: 'cabinet' | 'island') => {
+    const applyPlacementType = (type: CabinetPlacementType) => {
       const nextIslandMode = type === 'island'
-      if (nextIslandMode === islandModeRef.current) return
+      // Compare the whole type, not just island-ness: cabinet → wardrobe keeps
+      // `islandMode` false but still changes the run being previewed.
+      if (type === appliedPlacementTypeRef.current) return
+      appliedPlacementTypeRef.current = type
       const currentPlacement = placementRef.current
       const hasContinuousDraft =
         draftAnchorRef.current !== null || draftSegmentsRef.current.length > 0
@@ -660,6 +677,7 @@ const CabinetTool = () => {
       useAlignmentGuides.getState().clear()
       const raw = resolveRawPosition(event)
       let stretch = planCabinetContinuousStretch({
+        bayCount: useCabinetPlacementType.getState().bayCount,
         anchor,
         previewWidth: previewNode.width,
         rawPlanPosition: raw,
@@ -796,16 +814,24 @@ const CabinetTool = () => {
     }
 
     const buildRunNodes = (position: [number, number, number], yaw: number) => {
-      const patch = DEFAULT_PLACEMENT_PRESET.createPatch()
       const island = islandModeRef.current
+      // The armed gallery preset decides tier/depth/height/worktop/EP; the
+      // drag still decides how many modules and how wide. `createFurnitureRun`
+      // with one module gives the run shell and the module patch to repeat.
+      const kind = placementRunKind(useCabinetPlacementType.getState().type)
+      const template = createFurnitureRun({ kind, moduleCount: 1 })
+      const patch: Partial<CabinetModuleNode> = {
+        ...template.modules[0]!,
+        id: undefined as never,
+        parentId: undefined as never,
+        position: undefined as never,
+      }
       const cabinet = CabinetNode.parse({
-        ...cabinetDefinition.defaults(),
-        name: island ? 'Kitchen Island' : 'Modular Cabinet',
+        ...template.run,
+        name: island ? 'Kitchen Island' : template.run.name,
         position,
         rotation: yaw,
         parentId: activeLevelId,
-        depth: patch.depth ?? cabinetDefinition.defaults().depth,
-        carcassHeight: patch.carcassHeight ?? cabinetDefinition.defaults().carcassHeight,
         ...(island && {
           countertopBackOverhang: ISLAND_SEATING_OVERHANG,
           withFinishedBack: true,
@@ -969,8 +995,10 @@ const CabinetTool = () => {
           ((event as { nativeEvent?: { detail?: number } }).nativeEvent?.detail as
             | number
             | undefined) ?? 1
+        // Second click of a double-click: leave the draft alone and let
+        // `onDoubleClick` commit it. Clearing here dropped the run on the
+        // floor — double-click read as cancel instead of finish.
         if (isCabinetContinuousFollowUpClick(detail)) {
-          clearDraft()
           stopPlacementCommitPropagation(event)
           return
         }
@@ -988,6 +1016,15 @@ const CabinetTool = () => {
         chainRunRef.current = committed.run
         chainEndModuleRef.current = committed.endModule
         chainCornerSideRef.current = cabinetStretchExitSide(segment.stretch)
+        // An island is a back-to-back pair, not a bent run — `addIslandBackRun`
+        // already gives it a second face, so offering a corner turn here would
+        // fight that. Finish the leg instead of opening a continuation.
+        if (islandModeRef.current) {
+          clearDraft()
+          triggerSFX('sfx:item-place')
+          stopPlacementCommitPropagation(event)
+          return
+        }
         draftAnchorRef.current = createCabinetContinuousContinuation({
           anchor: segment.anchor,
           previewDepth: previewNode.depth,
@@ -1136,7 +1173,11 @@ const CabinetTool = () => {
   )
   const placementLabel = stretch
     ? placement.valid
-      ? `${draftSegments.length + 1} leg${draftSegments.length + 1 === 1 ? '' : 's'} · ${stretch.modules.length} module${stretch.modules.length === 1 ? '' : 's'} · Click to continue · Double-click/Esc to finish`
+      ? // Span-first readout: the run is exactly as long as the span drawn, so
+        // show that length and the equal bay width it divides into.
+        `${stretch.length.toFixed(2)} m · ${stretch.modules.length}통 × ${(
+          (stretch.modules[0]?.width ?? 0) * 1000
+        ).toFixed(0)} mm · Click to continue · Double-click/Esc to finish`
       : null
     : !placement.valid
       ? null

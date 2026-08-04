@@ -26,6 +26,7 @@ import {
 } from '@pascal-app/core'
 import {
   ActionButton,
+  formatLinearMeasurement,
   getLinearUnitLabel,
   linearControlValueToMeters,
   metersToLinearUnit,
@@ -864,6 +865,7 @@ export default function CabinetPanel() {
   }
 
   const unitLabel = getLinearUnitLabel(unit)
+  const metricNotation = useViewer((state) => state.metricNotation)
 
   if (node.type === 'cabinet' && node.furniture) {
     const furniture = node.furniture
@@ -1115,7 +1117,7 @@ export default function CabinetPanel() {
                 >
                   <span>Tier {index + 1}</span>
                   <span className="text-muted-foreground">
-                    {metersToLinearUnit(tier.height, unit).toFixed(2)} {unitLabel}
+                    {formatLinearMeasurement(tier.height, unit, metricNotation)}
                   </span>
                 </button>
               ))}
@@ -1157,6 +1159,54 @@ export default function CabinetPanel() {
               value={metersToLinearUnit(furniture.dimensions[key], unit)}
             />
           ))}
+        </PanelSection>
+        <PanelSection title="Open Animation">
+          <div className="flex items-center gap-2 px-1">
+            <div className="min-w-0 flex-1">
+              <SliderControl
+                label="Open"
+                max={100}
+                min={0}
+                onChange={(value) => {
+                  if (isAnimating) stopAnimation()
+                  updateNode({ operationState: value / 100 })
+                }}
+                step={1}
+                unit="%"
+                value={Math.round((node.operationState ?? 0) * 100)}
+              />
+            </div>
+            <button
+              aria-label={
+                isAnimating
+                  ? 'Stop animation'
+                  : (node.operationState ?? 0) >= 0.99
+                    ? 'Close cabinet'
+                    : 'Open cabinet'
+              }
+              className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-border/40 bg-[#2C2C2E] px-2.5 text-[11px] font-medium text-foreground transition-colors hover:bg-[#3e3e3e]"
+              onClick={() => {
+                if (isAnimating) {
+                  stopAnimation()
+                  return
+                }
+                animateOperationState((node.operationState ?? 0) >= 0.99 ? 0 : 1)
+              }}
+              title={
+                isAnimating
+                  ? 'Stop animation'
+                  : (node.operationState ?? 0) >= 0.99
+                    ? 'Close cabinet'
+                    : 'Play animation'
+              }
+              type="button"
+            >
+              {isAnimating ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              <span>
+                {isAnimating ? 'Stop' : (node.operationState ?? 0) >= 0.99 ? 'Close' : 'Play'}
+              </span>
+            </button>
+          </div>
         </PanelSection>
         {isTwoSidedIsland && (
           <PanelSection title="Face">
@@ -1230,7 +1280,7 @@ export default function CabinetPanel() {
               >
                 <span>Bay {index + 1}</span>
                 <span className="text-muted-foreground">
-                  {metersToLinearUnit(bay.width, unit).toFixed(2)} {unitLabel}
+                  {formatLinearMeasurement(bay.width, unit, metricNotation)}
                 </span>
               </button>
             ))}

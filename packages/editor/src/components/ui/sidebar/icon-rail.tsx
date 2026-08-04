@@ -7,6 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from './../../../components/ui/primitives/tooltip'
+import { assetPath } from './../../../lib/asset-path'
 import { cn } from './../../../lib/utils'
 
 export type PanelId = string
@@ -113,7 +114,7 @@ export function IconRail({
                     'h-6 w-6 object-contain transition-all',
                     !isActive && 'opacity-50 saturate-0',
                   )}
-                  src={panel.iconSrc}
+                  src={assetPath(panel.iconSrc)}
                 />
               </button>
             </TooltipTrigger>
@@ -144,7 +145,7 @@ export function IconRail({
                     'h-6 w-6 object-contain transition-all',
                     !isActive && 'opacity-50 saturate-0',
                   )}
-                  src={panel.iconSrc}
+                  src={assetPath(panel.iconSrc)}
                 />
               </button>
             </TooltipTrigger>

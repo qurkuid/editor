@@ -1,5 +1,6 @@
 import { Howl, Howler } from 'howler'
 import useAudio from '../store/use-audio'
+import { assetPath } from './asset-path'
 
 // Per-sound variation config. Playback rate also shifts pitch (one semitone ≈ 1.0595×),
 // so a rate range of ~0.88–1.12 reads as a subtle ±2 semitones — enough to kill the
@@ -227,7 +228,7 @@ export function preloadSFX() {
         (src) =>
           new Howl({
             loop: name in LOOP_SFX,
-            src: [src],
+            src: [assetPath(src)],
             preload: true,
             volume: 0.5,
           }),

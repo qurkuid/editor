@@ -1,36 +1,30 @@
 'use client'
 
-import {
-  type CabinetNode,
-  FURNITURE_KIND_DEFAULT_DIMENSIONS,
-  type FurnitureKind,
-  useScene,
-} from '@pascal-app/core'
-import {
-  FURNITURE_KIND_LABEL_KEYS,
-  getLinearUnitLabel,
-  linearControlValueToMeters,
-  metersToLinearUnit,
-  useEditor,
-  useFurniturePlacementOptions,
-  useT,
-} from '@pascal-app/editor'
+import { type CabinetNode, useScene } from '@pascal-app/core'
+import { FURNITURE_KIND_LABEL_KEYS, type MessageId, useEditor, useT } from '@pascal-app/editor'
+import { type CabinetPlacementType, useCabinetPlacementType } from '@pascal-app/nodes'
 import { useViewer } from '@pascal-app/viewer'
 import { Armchair } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 
-export { createFurnitureNode } from '@pascal-app/editor'
-
-const FURNITURE_KINDS: readonly FurnitureKind[] = [
+// Each entry arms the cabinet tool with a placement type; the run it builds
+// comes from `furniture-presets.ts`. 'cabinet' is the kitchen base run.
+const FURNITURE_KINDS: readonly CabinetPlacementType[] = [
   'wardrobe',
-  'base-run',
+  'cabinet',
   'upper-run',
   'tall',
   'island',
-  'set',
-  'sink',
 ]
+
+const KIND_LABEL_KEYS: Record<CabinetPlacementType, MessageId> = {
+  wardrobe: FURNITURE_KIND_LABEL_KEYS.wardrobe,
+  cabinet: FURNITURE_KIND_LABEL_KEYS['base-run'],
+  'upper-run': FURNITURE_KIND_LABEL_KEYS['upper-run'],
+  tall: FURNITURE_KIND_LABEL_KEYS.tall,
+  island: FURNITURE_KIND_LABEL_KEYS.island,
+}
 
 const DIMENSION_LABEL_KEYS = {
   width: 'furniture.dimension.width',
@@ -41,7 +35,7 @@ const DIMENSION_LABEL_KEYS = {
 // No photo library exists for these kinds — a small line-art silhouette per
 // kind so the preset gallery visibly distinguishes them instead of shipping
 // identical grey tiles.
-function FurnitureKindThumb({ kind }: { kind: FurnitureKind }) {
+function FurnitureKindThumb({ kind }: { kind: CabinetPlacementType }) {
   const stroke = {
     fill: 'none',
     stroke: 'currentColor',
@@ -65,7 +59,7 @@ function FurnitureKindThumb({ kind }: { kind: FurnitureKind }) {
           <circle cx="29" cy="23" fill="currentColor" r="1.2" stroke="none" />
         </svg>
       )
-    case 'base-run':
+    case 'cabinet':
       return (
         <svg viewBox="0 0 48 48">
           <rect {...stroke} height="3" width="38" x="5" y="24" />
@@ -98,34 +92,21 @@ function FurnitureKindThumb({ kind }: { kind: FurnitureKind }) {
           <line {...stroke} x1="35" x2="35" y1="35" y2="39" />
         </svg>
       )
-    case 'set':
-      return (
-        <svg viewBox="0 0 48 48">
-          <rect {...stroke} height="10" width="34" x="7" y="5" />
-          <rect {...stroke} height="3" width="34" x="7" y="28" />
-          <rect {...stroke} height="12" width="30" x="9" y="31" />
-        </svg>
-      )
-    case 'sink':
-      return (
-        <svg viewBox="0 0 48 48">
-          <rect {...stroke} height="3" width="38" x="5" y="24" />
-          <rect {...stroke} height="15" width="34" x="7" y="27" />
-          <rect {...stroke} height="4" rx="2" width="14" x="17" y="19" />
-          <line {...stroke} x1="24" x2="24" y1="15" y2="19" />
-        </svg>
-      )
     default:
       return null
   }
 }
 
-function activateFurnitureTool() {
+function activateFurnitureTool(type: CabinetPlacementType) {
+  useCabinetPlacementType.getState().setType(type)
   const editor = useEditor.getState()
+  // Furniture is drawn start-point → end-point, so the run mode has to be on;
+  // the cabinet tool otherwise defaults to dropping one single cabinet.
+  editor.setContinuation('cabinet', 'continuous')
   editor.setPhase('furnish')
   editor.setCatalogCategory(null)
   editor.setMode('build')
-  editor.setTool('furniture')
+  editor.setTool('cabinet')
 }
 
 export function FurnitureTab() {
@@ -135,18 +116,17 @@ export function FurnitureTab() {
   const nodes = useScene((state) => state.nodes)
   const activeTool = useEditor((state) => state.tool)
   const mode = useEditor((state) => state.mode)
-  const kind = useFurniturePlacementOptions((s) => s.kind)
-  const dimensions = useFurniturePlacementOptions((s) => s.dimensions)
-  const bayCount = useFurniturePlacementOptions((s) => s.bayCount)
-  const unitLabel = getLinearUnitLabel(unit)
-  const armed = mode === 'build' && activeTool === 'furniture'
+  const kind = useCabinetPlacementType((s) => s.type)
+  const bayCount = useCabinetPlacementType((s) => s.bayCount)
+  const armed = mode === 'build' && activeTool === 'cabinet'
+  // Every run this gallery places is a plain cabinet run, so listing can't key
+  // off `node.furniture` any more — that field only exists on the legacy
+  // assembly nodes, which still belong in the list until they're migrated.
   const furnitureNodes = useMemo(
     () =>
       Object.values(nodes).filter(
         (node): node is CabinetNode =>
-          node.type === 'cabinet' &&
-          Boolean(node.furniture) &&
-          (!levelId || node.parentId === levelId),
+          node.type === 'cabinet' && (!levelId || node.parentId === levelId),
       ),
     [levelId, nodes],
   )
@@ -157,22 +137,9 @@ export function FurnitureTab() {
     editor.setMode('select')
   }, [])
 
-  const updateDimension = (key: keyof typeof dimensions, displayValue: number) => {
-    const limits =
-      key === 'width' ? { minMeters: 0.3, maxMeters: 10 } : { minMeters: 0.1, maxMeters: 4 }
-    useFurniturePlacementOptions.getState().setDimensions({
-      ...dimensions,
-      [key]: linearControlValueToMeters(displayValue, unit, limits),
-    })
-  }
-
-  const pickPreset = (nextKind: FurnitureKind) => {
+  const pickPreset = (next: CabinetPlacementType) => {
     if (!levelId) return
-    const options = useFurniturePlacementOptions.getState()
-    options.setKind(nextKind)
-    options.setDimensions(FURNITURE_KIND_DEFAULT_DIMENSIONS[nextKind])
-    options.setBayCount(1)
-    activateFurnitureTool()
+    activateFurnitureTool(next)
   }
 
   return (
@@ -212,10 +179,45 @@ export function FurnitureTab() {
                 >
                   <FurnitureKindThumb kind={entry} />
                 </span>
-                {t(FURNITURE_KIND_LABEL_KEYS[entry])}
+                {t(KIND_LABEL_KEYS[entry])}
               </button>
             )
           })}
+        </div>
+
+        <div className="mt-3 rounded-md border border-border bg-background/40 p-2">
+          <div className="mb-1.5 flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">{t('furniture.bays.label')}</span>
+            <span className="text-foreground">
+              {bayCount == null ? t('furniture.bays.auto') : `${bayCount}`}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              className={cn(
+                'flex-1 rounded border border-border px-2 py-1 text-[11px] hover:bg-muted',
+                bayCount == null && 'border-orange-400 bg-orange-500/10 text-orange-200',
+              )}
+              onClick={() => useCabinetPlacementType.getState().setBayCount(null)}
+              type="button"
+            >
+              {t('furniture.bays.auto')}
+            </button>
+            {[2, 3, 4, 5, 6].map((n) => (
+              <button
+                className={cn(
+                  'w-7 rounded border border-border py-1 text-[11px] hover:bg-muted',
+                  bayCount === n && 'border-orange-400 bg-orange-500/10 text-orange-200',
+                )}
+                key={n}
+                onClick={() => useCabinetPlacementType.getState().setBayCount(n)}
+                type="button"
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[10px] text-muted-foreground">{t('furniture.bays.hint')}</p>
         </div>
 
         {armed && (
@@ -223,39 +225,6 @@ export function FurnitureTab() {
             {t('furniture.armed.hint')}
           </p>
         )}
-
-        <div className="mt-3 space-y-2">
-          {(['width', 'height', 'depth'] as const).map((key) => (
-            <label className="flex items-center gap-2 text-xs" key={key}>
-              <span className="w-14 text-muted-foreground">{t(DIMENSION_LABEL_KEYS[key])}</span>
-              <input
-                className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-right"
-                min={metersToLinearUnit(key === 'width' ? 0.3 : 0.1, unit)}
-                onChange={(event) => updateDimension(key, Number(event.target.value))}
-                step={unit === 'imperial' ? 0.1 : 0.01}
-                type="number"
-                value={Number(metersToLinearUnit(dimensions[key], unit).toFixed(2))}
-              />
-              <span className="w-5 text-muted-foreground">{unitLabel}</span>
-            </label>
-          ))}
-          <label className="flex items-center gap-2 text-xs">
-            <span className="w-14 text-muted-foreground">{t('furniture.bays.label')}</span>
-            <input
-              className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-right"
-              max={12}
-              min={1}
-              onChange={(event) =>
-                useFurniturePlacementOptions
-                  .getState()
-                  .setBayCount(Math.max(1, Math.min(12, Number(event.target.value))))
-              }
-              step={1}
-              type="number"
-              value={bayCount}
-            />
-          </label>
-        </div>
       </section>
 
       <section className="mt-4">
@@ -279,7 +248,7 @@ export function FurnitureTab() {
                 <span className="text-muted-foreground">
                   {t('furniture.bays.count').replace(
                     '{n}',
-                    String(node.furniture?.bays.length ?? 0),
+                    String(node.furniture?.bays.length ?? node.children.length),
                   )}
                 </span>
               </button>

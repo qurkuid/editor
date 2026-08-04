@@ -48,6 +48,7 @@ import {
   squareMetersToAreaUnit,
 } from './../../../../../lib/measurements'
 import { createLocalGuideImage } from './../../../../../lib/local-guide-image'
+import { assetPath } from './../../../../../lib/asset-path'
 import { cn } from './../../../../../lib/utils'
 import useEditor from './../../../../../store/use-editor'
 import { useUploadStore } from '../../../../../store/use-upload'
@@ -380,13 +381,13 @@ const ReferenceItem = memo(function ReferenceItem({
           <img
             alt="Scan"
             className="h-3.5 w-3.5 shrink-0 object-contain opacity-70 transition-opacity group-hover/ref:opacity-100"
-            src="/icons/mesh.webp"
+            src={assetPath('/icons/mesh.webp')}
           />
         ) : (
           <img
             alt="Guide"
             className="h-3.5 w-3.5 shrink-0 object-contain opacity-70 transition-opacity group-hover/ref:opacity-100"
-            src="/icons/floorplan.webp"
+            src={assetPath('/icons/floorplan.webp')}
           />
         )}
         <InlineRenameInput
@@ -745,7 +746,7 @@ const LevelItem = memo(function LevelItem({
               'h-4 w-4 shrink-0 object-contain transition-all duration-200',
               !isSelected && 'opacity-60 grayscale',
             )}
-            src="/icons/level.webp"
+            src={assetPath('/icons/level.webp')}
           />
           <InlineRenameInput
             defaultName={getDefaultLevelName(level.level)}
@@ -1024,7 +1025,7 @@ const LayerToggle = memo(function LayerToggle() {
               'mb-1 h-6 w-6 transition-all',
               activeTab !== 'structure' && 'opacity-50 grayscale',
             )}
-            src="/icons/room.webp"
+            src={assetPath('/icons/room.webp')}
           />
           Structure
         </div>
@@ -1060,7 +1061,7 @@ const LayerToggle = memo(function LayerToggle() {
               'mb-1 h-6 w-6 transition-all',
               activeTab !== 'furnish' && 'opacity-50 grayscale',
             )}
-            src="/icons/couch.webp"
+            src={assetPath('/icons/couch.webp')}
           />
           Furnish
         </div>
@@ -1097,7 +1098,7 @@ const LayerToggle = memo(function LayerToggle() {
               'mb-1 h-6 w-6 transition-all',
               activeTab !== 'zones' && 'opacity-50 grayscale',
             )}
-            src="/icons/kitchen.webp"
+            src={assetPath('/icons/kitchen.webp')}
           />
           Zones
         </div>
@@ -1438,7 +1439,7 @@ const BuildingItem = memo(function BuildingItem({
               'h-5 w-5 object-contain transition-all',
               !isBuildingActive && 'opacity-60 grayscale',
             )}
-            src="/icons/building.webp"
+            src={assetPath('/icons/building.webp')}
           />
           <span className="truncate font-medium text-sm">{building.name || 'Building'}</span>
         </div>
@@ -1594,7 +1595,7 @@ export function SitePanel({ projectId, onUploadAsset, onDeleteAsset }: SitePanel
                   'h-5 w-5 object-contain transition-all',
                   phase !== 'site' && 'opacity-60 grayscale',
                 )}
-                src="/icons/site-flag.webp"
+                src={assetPath('/icons/site-flag.webp')}
               />
               <span className="font-medium text-sm">{siteNode.name || 'Site'}</span>
             </div>

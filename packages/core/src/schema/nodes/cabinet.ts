@@ -26,6 +26,11 @@ const CabinetCompartment = z.discriminatedUnion('type', [
     ...compartmentBase,
     type: z.literal('shelf'),
     shelfCount: z.number().int().min(0).max(8).optional(),
+    // Hanging rail across the opening — what makes a wardrobe section a
+    // wardrobe. Composes with shelves (rail above, shelf stack below) rather
+    // than being its own compartment type, matching how the furniture builder
+    // modelled it.
+    hanger: z.boolean().optional(),
   }),
   z.object({
     ...compartmentBase,
@@ -37,6 +42,7 @@ const CabinetCompartment = z.discriminatedUnion('type', [
     type: z.literal('door'),
     doorType: z.enum(['single-left', 'single-right', 'double', 'glass']).optional(),
     shelfCount: z.number().int().min(0).max(8).optional(),
+    hanger: z.boolean().optional(),
   }),
   z.object({
     ...compartmentBase,
@@ -169,6 +175,15 @@ export const CabinetNode = BaseNode.extend({
     .optional(),
   // Countertop material dropping to the floor on exposed run ends.
   withWaterfall: z.boolean().default(false),
+  // EP (노출 측판): a finish panel over an exposed run end. Not the carcass
+  // side itself — the outermost module keeps its own side, and this sits
+  // outboard of it, so turning it on widens the run by one board per end.
+  endPanels: z
+    .object({
+      left: z.boolean().default(false),
+      right: z.boolean().default(false),
+    })
+    .default({ left: false, right: false }),
   furniture: FurnitureAssemblySchema.optional(),
   // Two-sided island: this run is one half of a back-to-back pair nested
   // under the other half's module (see cabinet/run-ops.ts). Set symmetrically

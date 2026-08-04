@@ -1887,6 +1887,7 @@ export const cabinetDefinition: NodeDefinition<typeof CabinetNode> = {
     position: [0, 0, 0],
     rotation: 0,
     runTier: 'base',
+    endPanels: { left: false, right: false },
     children: [],
     width: 0.5,
     depth: 0.5,
@@ -2008,6 +2009,11 @@ export const cabinetDefinition: NodeDefinition<typeof CabinetNode> = {
       JSON.stringify(n.children ?? []),
       JSON.stringify(n.stack ?? null),
       JSON.stringify(n.furniture ?? null),
+      // Both cut/extend the run's own geometry, so editing them has to rebuild
+      // it. Their absence here is why a countertop cutout only showed up after
+      // some *other* field happened to change the key.
+      JSON.stringify(n.countertopCutouts ?? []),
+      JSON.stringify(n.endPanels ?? null),
     ]),
   floorplan: buildCabinetFloorplan,
   floorplanSiblingOverrides: cabinetFloorplanSiblingOverrides,

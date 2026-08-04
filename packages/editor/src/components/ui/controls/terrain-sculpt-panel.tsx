@@ -8,6 +8,7 @@ import {
   useScene,
 } from '@pascal-app/core'
 import { Mountain, Pipette } from 'lucide-react'
+import { assetPath } from '../../../lib/asset-path'
 import { brushRadiusRange, flattenSite, resetSiteTerrain } from '../../../lib/terrain-sculpt'
 import useEditor from '../../../store/use-editor'
 import { Button } from '../primitives/button'
@@ -73,7 +74,7 @@ export function TerrainSculptPanel() {
                   className="size-7 object-contain"
                   draggable={false}
                   height={28}
-                  src={iconSrc}
+                  src={assetPath(iconSrc)}
                   width={28}
                 />
                 <span className="text-[9px] leading-none">{hint}</span>

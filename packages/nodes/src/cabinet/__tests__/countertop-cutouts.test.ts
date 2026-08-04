@@ -132,12 +132,15 @@ describe('CabinetNode countertopCutouts schema', () => {
 })
 
 describe('newCountertopCutout / patchCountertopCutout', () => {
-  test('creates a small default rect cutout', () => {
+  // Defaults are sink-sized on purpose: a new cutout has to be visible in the
+  // slab straight away, otherwise it reads as "nothing happened".
+  test('creates a usable default rect cutout', () => {
     const cutout = newCountertopCutout('rect')
     expect(cutout.shape).toBe('rect')
     if (cutout.shape === 'rect') {
-      expect(cutout.size.width).toBeGreaterThan(0)
-      expect(cutout.cornerRadius).toBe(0)
+      expect(cutout.size.width).toBeGreaterThanOrEqual(0.3)
+      expect(cutout.size.depth).toBeGreaterThanOrEqual(0.3)
+      expect(cutout.cornerRadius).toBeGreaterThanOrEqual(0)
     }
   })
 

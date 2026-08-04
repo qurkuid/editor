@@ -77,6 +77,38 @@ export function buildCabinetRunGeometry(
       )
     }
 
+    // EP (노출 측판): a finish board over an exposed run end, outboard of the
+    // end module's own carcass side. Gated on `exposed*` — an end that butts
+    // into a wall or a neighbouring run has nothing to finish.
+    if (node.endPanels.left && exposedLeft) {
+      addBox(
+        group,
+        [node.boardThickness, span.topY, span.depth],
+        [
+          span.centerX - span.width / 2 - node.boardThickness / 2,
+          span.topY / 2,
+          span.minZ + span.depth / 2,
+        ],
+        materials.front,
+        'cabinet-run-end-panel-left',
+        'front',
+      )
+    }
+    if (node.endPanels.right && exposedRight) {
+      addBox(
+        group,
+        [node.boardThickness, span.topY, span.depth],
+        [
+          span.centerX + span.width / 2 + node.boardThickness / 2,
+          span.topY / 2,
+          span.minZ + span.depth / 2,
+        ],
+        materials.front,
+        'cabinet-run-end-panel-right',
+        'front',
+      )
+    }
+
     // Raised bar counter: knee wall against one run face topped by a slab at
     // bar height, cantilevered outward as knee space for stools. Side bars
     // apply only to the run's end span on that side.

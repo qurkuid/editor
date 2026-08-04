@@ -12,6 +12,7 @@ import {
   useSyncExternalStore,
 } from 'react'
 import useEditor from '../../../store/use-editor'
+import { assetPath } from '../../../lib/asset-path'
 import { editorHostPanelRegistry, type EditorHostPanel } from '../../../lib/plugin-panels'
 import { ErrorBoundary } from '../primitives/error-boundary'
 import type { ExtraPanel } from './icon-rail'
@@ -28,7 +29,7 @@ const pluginsManagerPanel: ExtraPanel = {
  * inspector's `renderIcon`, sized for the 24px icon-rail button. */
 function renderIconRef(ref: IconRef): ReactNode {
   if (ref.kind === 'url') {
-    return <img alt="" className="h-5 w-5 object-contain" src={ref.src} />
+    return <img alt="" className="h-5 w-5 object-contain" src={assetPath(ref.src)} />
   }
   if (ref.kind === 'iconify') {
     return <Icon height={20} icon={ref.name} width={20} />

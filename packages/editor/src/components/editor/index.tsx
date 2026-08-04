@@ -23,6 +23,7 @@ import { ViewerOverlay } from '../../components/viewer-overlay'
 import { ViewerZoneSystem } from '../../components/viewer-zone-system'
 import { type SaveStatus, useAutoSave } from '../../hooks/use-auto-save'
 import { useKeyboard } from '../../hooks/use-keyboard'
+import { assetPath } from '../../lib/asset-path'
 import {
   connectEditorHostIntegration,
   type EditorHostIntegrationAdapter,
@@ -672,7 +673,7 @@ function PaintCursorBadge({
           alt=""
           aria-hidden="true"
           className="h-5 w-5 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-          src="/icons/paint.webp"
+          src={assetPath('/icons/paint.webp')}
           style={{
             filter: state === 'ready' ? undefined : 'grayscale(1)',
             opacity: iconOpacity,

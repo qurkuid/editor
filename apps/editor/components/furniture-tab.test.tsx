@@ -1,17 +1,26 @@
 import { expect, test } from 'bun:test'
-import { createFurnitureNode, FurnitureTab } from './furniture-tab'
+import { createFurnitureRun, useCabinetPlacementType } from '@pascal-app/nodes'
+import { FurnitureTab } from './furniture-tab'
 
-test('creates a furniture assembly from the visible Furniture menu defaults', () => {
-  const node = createFurnitureNode({
+// The gallery no longer builds a standalone furniture assembly — it arms the
+// cabinet tool with a placement type, and the run comes from the shared
+// preset builder. Cover that contract rather than the retired node factory.
+test('every gallery preset builds a cabinet run the tool can place', () => {
+  for (const type of ['wardrobe', 'cabinet', 'upper-run', 'tall', 'island'] as const) {
+    useCabinetPlacementType.getState().setType(type)
+    expect(useCabinetPlacementType.getState().type).toBe(type)
+  }
+
+  const { run, modules } = createFurnitureRun({
     kind: 'wardrobe',
-    dimensions: { width: 2.4, height: 2.4, depth: 0.6 },
-    bayCount: 2,
+    moduleCount: 2,
     parentId: 'level_test',
   })
 
-  expect(node.type).toBe('cabinet')
-  expect(node.parentId).toBe('level_test')
-  expect(node.furniture?.bays).toHaveLength(2)
-  expect(node.furniture?.dimensions).toEqual({ width: 2.4, height: 2.4, depth: 0.6 })
+  expect(run.type).toBe('cabinet')
+  expect(run.parentId).toBe('level_test')
+  expect(run.furniture).toBeUndefined()
+  expect(modules).toHaveLength(2)
+  expect(modules.every((module) => module.type === 'cabinet-module')).toBe(true)
   expect(FurnitureTab).toBeFunction()
 })

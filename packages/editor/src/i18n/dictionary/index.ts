@@ -1,7 +1,7 @@
 import { aiChatDictionary } from './ai-chat'
 import { bodyModelingDictionary } from './body-modeling'
 import { buildWorkflowGuideDictionary } from './build-workflow-guide'
-import { furnitureDictionary } from './furniture'
+import { furnitureDictionary, statsDictionary } from './furniture'
 import { hostSettingsDictionary } from './host-settings'
 import { lightingDictionary } from './lighting'
 import { paintingDictionary } from './painting'
@@ -18,6 +18,7 @@ import { sidebarTabsDictionary } from './sidebar-tabs'
 // collisions in practice.
 export const DICTIONARY = {
   ...sidebarTabsDictionary,
+  ...statsDictionary,
   ...settingsDictionary,
   ...hostSettingsDictionary,
   ...furnitureDictionary,

@@ -26,6 +26,7 @@ export function PaintingTab() {
       <div className="shrink-0 bg-sidebar/95 px-3 pt-3 pb-2">
         <BuildWorkflowGuide
           activeLabel={null}
+          activeTool={null}
           hasPaintMaterial={activePaintMaterial !== null}
           mode="material-paint"
         />

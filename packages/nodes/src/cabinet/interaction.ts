@@ -123,15 +123,18 @@ export function toggleCabinetOperationState(nodeId: AnyNodeId) {
     const modules = (node.children ?? [])
       .map((id) => nodes[id as AnyNodeId])
       .filter((child) => child?.type === 'cabinet-module')
-    if (modules.length === 0) return
-    const anyOpen = modules.some(
-      (module) => effectiveOperationState(module!.id as AnyNodeId, module!.operationState) >= 0.5,
-    )
-    const target = anyOpen ? 0 : 1
-    for (const module of modules) {
-      animateCabinetOperationState(module!.id as AnyNodeId, target)
+    // A furniture assembly (no cabinet-module children) owns its doors
+    // directly, so it falls through to the direct-toggle path below.
+    if (modules.length > 0) {
+      const anyOpen = modules.some(
+        (module) => effectiveOperationState(module!.id as AnyNodeId, module!.operationState) >= 0.5,
+      )
+      const target = anyOpen ? 0 : 1
+      for (const module of modules) {
+        animateCabinetOperationState(module!.id as AnyNodeId, target)
+      }
+      return
     }
-    return
   }
 
   const current = effectiveOperationState(nodeId, node.operationState)
