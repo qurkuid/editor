@@ -82,6 +82,40 @@ describe('material catalogue', () => {
     expect(calls).toBe(1)
   })
 
+  // Postgres numeric columns arrive as strings to preserve precision, so a
+  // perfectly good spec was read as "not a number" and reported 규격 미등록.
+  test('numeric columns that arrive as strings are still numbers', async () => {
+    withIntm()
+    const { fetcher } = jsonFetcher({
+      data: [
+        {
+          id: 'm1',
+          name: '각재 33x33x2400 (12개/단)',
+          unit: '단',
+          unitPrice: '35000',
+          coverageValue: '28.8000',
+          coverageUnit: 'm',
+          isDiscrete: true,
+          wasteRate: '0.1000',
+        },
+      ],
+    })
+
+    const [material] = await fetchIntmMaterials('session_token=abc', fetcher)
+    expect(material?.coverageValue).toBeCloseTo(28.8)
+    expect(material?.unitPrice).toBe(35000)
+    expect(material?.wasteRate).toBeCloseTo(0.1)
+  })
+
+  test('a non-numeric string is still rejected rather than becoming NaN', async () => {
+    withIntm()
+    const { fetcher } = jsonFetcher({
+      data: [{ id: 'm1', name: 'x', unit: '개', coverageValue: '미정' }],
+    })
+    const [material] = await fetchIntmMaterials('session_token=abc', fetcher)
+    expect(material?.coverageValue).toBeNull()
+  })
+
   test('coverage fields ride along so quantities can be converted', async () => {
     withIntm()
     const { fetcher } = jsonFetcher({

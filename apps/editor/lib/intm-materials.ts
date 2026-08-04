@@ -45,6 +45,22 @@ export function canEditCoverage(material: IntmMaterial): boolean {
 
 type MaterialsResponse = { data?: unknown; materials?: unknown }
 
+/**
+ * A number that may arrive as a string.
+ *
+ * Postgres `numeric` columns come back from the driver as strings to preserve
+ * precision, so `coverage_value` reached us as `"28.8000"` and was rejected as
+ * "not a number" — a material with a perfectly good spec reported 규격 미등록.
+ */
+function num(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
 function coerceMaterials(body: MaterialsResponse): IntmMaterial[] {
   const rows = Array.isArray(body.data)
     ? body.data
@@ -62,16 +78,16 @@ function coerceMaterials(body: MaterialsResponse): IntmMaterial[] {
         id,
         name,
         unit: typeof record.unit === 'string' ? record.unit : '',
-        unitPrice: typeof record.unitPrice === 'number' ? record.unitPrice : 0,
+        unitPrice: num(record.unitPrice) ?? 0,
         productCategoryId:
           typeof record.productCategoryId === 'string' ? record.productCategoryId : undefined,
         productCategoryName:
           typeof record.productCategoryName === 'string' ? record.productCategoryName : undefined,
         companyId: typeof record.companyId === 'string' ? record.companyId : null,
-        coverageValue: typeof record.coverageValue === 'number' ? record.coverageValue : null,
+        coverageValue: num(record.coverageValue),
         coverageUnit: typeof record.coverageUnit === 'string' ? record.coverageUnit : null,
         isDiscrete: typeof record.isDiscrete === 'boolean' ? record.isDiscrete : null,
-        wasteRate: typeof record.wasteRate === 'number' ? record.wasteRate : null,
+        wasteRate: num(record.wasteRate),
       } satisfies IntmMaterial,
     ]
   })
@@ -144,12 +160,11 @@ export async function fetchIntmCategories(
       {
         id: record.id,
         name: record.name,
-        coverageValue:
-          typeof record.defaultCoverageValue === 'number' ? record.defaultCoverageValue : null,
+        coverageValue: num(record.defaultCoverageValue),
         coverageUnit:
           typeof record.defaultCoverageUnit === 'string' ? record.defaultCoverageUnit : null,
         isDiscrete: typeof record.defaultIsDiscrete === 'boolean' ? record.defaultIsDiscrete : null,
-        wasteRate: typeof record.defaultWasteRate === 'number' ? record.defaultWasteRate : null,
+        wasteRate: num(record.defaultWasteRate),
       } satisfies IntmMaterialCategory,
     ]
   })
