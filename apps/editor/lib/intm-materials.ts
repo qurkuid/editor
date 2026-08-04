@@ -96,17 +96,37 @@ async function getJson(
   }
 }
 
+/** INTM pages `/api/materials` and defaults to 1000 rows; its ceiling is 50000. */
+const MATERIAL_PAGE_SIZE = 1000
+/** Runaway guard, set at INTM's own maximum rather than below it. */
+const MATERIAL_PAGE_LIMIT = 50
+
 /**
  * Every material the signed-in user may price with — their company's plus the
  * shared catalogue. Returns an empty list rather than throwing so a catalogue
  * outage degrades the estimate to "no prices" instead of breaking the page.
+ *
+ * Paged deliberately: taking only the default first page quietly hid two
+ * thirds of a 2,901-row catalogue, so materials that existed simply could not
+ * be found or priced. A short page means the last one.
  */
 export async function fetchIntmMaterials(
   cookieHeader: string | null | undefined,
   fetcher: typeof fetch = fetch,
 ): Promise<IntmMaterial[]> {
-  const body = await getJson('/api/materials', cookieHeader, fetcher)
-  return body ? coerceMaterials(body) : []
+  const all: IntmMaterial[] = []
+  for (let page = 1; page <= MATERIAL_PAGE_LIMIT; page += 1) {
+    const body = await getJson(
+      `/api/materials?page=${page}&limit=${MATERIAL_PAGE_SIZE}`,
+      cookieHeader,
+      fetcher,
+    )
+    if (!body) break
+    const rows = coerceMaterials(body)
+    all.push(...rows)
+    if (rows.length < MATERIAL_PAGE_SIZE) break
+  }
+  return all
 }
 
 /** Category rows, for the coverage defaults a material falls back to. */

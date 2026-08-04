@@ -39,10 +39,47 @@ describe('material catalogue', () => {
 
     const materials = await fetchIntmMaterials('session_token=abc', fetcher)
 
-    expect(calls[0]!.url).toBe('https://intm.kr/api/materials')
+    expect(calls[0]!.url).toBe('https://intm.kr/api/materials?page=1&limit=1000')
     expect((calls[0]!.init.headers as Record<string, string>).cookie).toBe('session_token=abc')
     expect(materials).toHaveLength(2)
     expect(materials.map(isSharedMaterial)).toEqual([false, true])
+  })
+
+  // INTM pages this endpoint and defaults to 1000. Reading only the first page
+  // hid two thirds of a 2,901-row catalogue: materials that existed could not
+  // be found, priced, or offered as a wall layer.
+  test('every page is read, not just the first', async () => {
+    withIntm()
+    const urls: string[] = []
+    const fetcher = (async (url: string) => {
+      urls.push(url)
+      const page = Number(new URL(url).searchParams.get('page'))
+      // Two full pages, then a short one that ends the walk.
+      const count = page <= 2 ? 1000 : 40
+      const data = Array.from({ length: count }, (_, i) => ({
+        id: `mat_${page}_${i}`,
+        name: `자재 ${page}-${i}`,
+      }))
+      return new Response(JSON.stringify({ data }), { status: 200 })
+    }) as unknown as typeof fetch
+
+    const materials = await fetchIntmMaterials('session_token=abc', fetcher)
+
+    expect(materials).toHaveLength(2040)
+    expect(urls).toHaveLength(3)
+    expect(urls[2]).toContain('page=3')
+  })
+
+  test('a page that fails ends the walk instead of looping', async () => {
+    withIntm()
+    let calls = 0
+    const fetcher = (async () => {
+      calls += 1
+      return new Response('nope', { status: 500 })
+    }) as unknown as typeof fetch
+
+    expect(await fetchIntmMaterials('session_token=abc', fetcher)).toEqual([])
+    expect(calls).toBe(1)
   })
 
   test('coverage fields ride along so quantities can be converted', async () => {

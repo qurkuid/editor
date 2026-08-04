@@ -28,6 +28,15 @@ describe('what a catalogue entry can stand in for', () => {
     },
   )
 
+  // Korean compounds swallow these words whole: 수(도배)관 contains 도배, and
+  // the live catalogue was offering a plumbing move as a wall finish.
+  test.each([['수도배관이설'], ['전기배선 이설'], ['위생설비 교체']])(
+    '%s is not swallowed by a substring match',
+    (name) => {
+      expect(constructionKindsFor(name)).toEqual([])
+    },
+  )
+
   test('a name that says nothing is left unclassified', () => {
     expect(constructionKindsFor('기타 잡자재')).toEqual([])
   })
