@@ -8,7 +8,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { withBasePath } from '@/lib/base-path'
 import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
 import { toEstimateItems } from '@/lib/estimate-submit'
+import { constructionKindsFor } from '@/lib/intm-construction-materials'
 import { canEditCoverage, type IntmMaterial, type IntmMaterialCategory } from '@/lib/intm-materials'
+import { layerMaterialPatches } from '@/lib/link-layer-material'
 import {
   type IntmProject,
   projectSubtitle,
@@ -169,6 +171,27 @@ export function StatsTab() {
     [load],
   )
 
+  /**
+   * Link a product to every build-up layer behind one takeoff line.
+   *
+   * Choosing it here rather than wall by wall is the point: the line already
+   * knows which walls fed it, and the choice is written into the drawing so the
+   * next takeoff of this scene starts already priced.
+   */
+  const linkMaterial = useCallback((line: EstimateLine, material: IntmMaterial) => {
+    const kind = line.takeoff.layerKind
+    if (!kind) return
+    const store = useScene.getState()
+    for (const { nodeId, patch } of layerMaterialPatches(
+      store.nodes,
+      line.takeoff.nodeIds,
+      kind,
+      { productRef: `intm:${material.id}`, unitPrice: material.unitPrice },
+    )) {
+      store.updateNode(nodeId as never, patch as never)
+    }
+  }, [])
+
   const submittable = useMemo(() => toEstimateItems(draft), [draft])
 
   /** Hand the resolved lines to INTM, which owns the estimate document. */
@@ -270,7 +293,9 @@ export function StatsTab() {
                   key={category}
                   label={CATEGORY_LABEL[category]}
                   material={group.material}
+                  materials={catalogue?.materials ?? []}
                   measure={group.measure}
+                  onLink={linkMaterial}
                   onSave={saveSpec}
                   savingId={savingId}
                 />
@@ -417,14 +442,18 @@ function CategoryGroup({
   amount,
   label,
   material,
+  materials,
   measure,
+  onLink,
   onSave,
   savingId,
 }: {
   amount: number
   label: string
   material: EstimateLine[]
+  materials: readonly IntmMaterial[]
   measure: EstimateLine[]
+  onLink: (line: EstimateLine, material: IntmMaterial) => void
   onSave: (material: IntmMaterial, patch: Record<string, number>) => void
   savingId: string | null
 }) {
@@ -443,6 +472,8 @@ function CategoryGroup({
             <StatsRow
               key={`${line.takeoff.category}:${line.takeoff.key}`}
               line={line}
+              materials={materials}
+              onLink={onLink}
               onSave={onSave}
               saving={savingId === line.material?.id}
             />
@@ -476,10 +507,14 @@ function CategoryGroup({
 
 function StatsRow({
   line,
+  materials,
+  onLink,
   onSave,
   saving,
 }: {
   line: EstimateLine
+  materials: readonly IntmMaterial[]
+  onLink: (line: EstimateLine, material: IntmMaterial) => void
   onSave: (material: IntmMaterial, patch: Record<string, number>) => void
   saving: boolean
 }) {
@@ -489,6 +524,13 @@ function StatsRow({
   const editable = line.material ? canEditCoverage(line.material) : false
   // How many scene elements this one order line came from.
   const places = new Set(line.takeoff.nodeIds).size
+  // Products that can serve this line's layer, by the same rule the wall panel
+  // filters by. Absent for lines that are not part of a build-up.
+  const candidates = useMemo(() => {
+    const kind = line.takeoff.layerKind
+    if (!kind) return []
+    return materials.filter((item) => constructionKindsFor(item.name).includes(kind as never))
+  }, [line.takeoff.layerKind, materials])
 
   return (
     <div className="rounded-lg border border-border/40 bg-[#252527] px-2 py-2">
@@ -523,6 +565,28 @@ function StatsRow({
           )}
         </span>
       </button>
+
+      {open && candidates.length > 0 && !line.material && (
+        <label className="mt-2 block border-t border-border/30 pt-2 text-[10px] text-muted-foreground">
+          {t('stats.linkMaterial').replace('{n}', String(places))}
+          <select
+            className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
+            onChange={(event) => {
+              const chosen = candidates.find((item) => item.id === event.target.value)
+              if (chosen) onLink(line, chosen)
+            }}
+            value=""
+          >
+            <option value="">{t('stats.linkMaterial.choose')}</option>
+            {candidates.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+                {item.unitPrice ? ` · ${item.unitPrice.toLocaleString('ko-KR')}원/${item.unit}` : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {open && line.material && (
         <CoverageEditor

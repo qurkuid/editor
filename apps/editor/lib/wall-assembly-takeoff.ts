@@ -88,6 +88,7 @@ function studLines(
       quantity: count * face.height * waste,
       nodeIds: [nodeId],
       materialRef: layer.productRef,
+      layerKind: layer.kind,
     },
   ]
 }
@@ -114,6 +115,7 @@ function sheetLines(
         quantity: Math.ceil((face.area * waste) / sheetArea),
         nodeIds: [nodeId],
         materialRef: layer.productRef,
+        layerKind: layer.kind,
       },
     ]
   }
@@ -129,6 +131,7 @@ function sheetLines(
       quantity: face.area * waste,
       nodeIds: [nodeId],
       materialRef: layer.productRef,
+      layerKind: layer.kind,
     },
   ]
 }
@@ -165,6 +168,7 @@ export function wallAssemblyLines(wall: WallNode): TakeoffLineInput[] {
         quantity: quantity.linearM,
         nodeIds: [wall.id],
         materialRef: layer.productRef,
+        layerKind: layer.kind,
       })
       continue
     }
@@ -180,6 +184,7 @@ export function wallAssemblyLines(wall: WallNode): TakeoffLineInput[] {
         quantity: quantity.sheetCount,
         nodeIds: [wall.id],
         materialRef: layer.productRef,
+        layerKind: layer.kind,
       })
       continue
     }
@@ -194,6 +199,7 @@ export function wallAssemblyLines(wall: WallNode): TakeoffLineInput[] {
       quantity: quantity.areaM2 * (1 + layer.wasteFactor),
       nodeIds: [wall.id],
       materialRef: layer.productRef,
+      layerKind: layer.kind,
     })
   }
 
@@ -225,6 +231,7 @@ export function surfaceAssemblyLines(
           quantity: face.area * layer.thickness * (1 + (layer.wasteFactor ?? 0)),
           nodeIds: [nodeId],
           materialRef: layer.productRef,
+          layerKind: layer.kind,
         })
       }
       continue

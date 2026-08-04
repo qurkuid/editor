@@ -82,6 +82,11 @@ export const statsDictionary = {
   'stats.group.material': { ko: '발주 자재', en: 'To order' },
   'stats.group.measure': { ko: '산출 물량', en: 'Measured from' },
   'stats.places': { ko: '{n}개소', en: '{n} places' },
+  'stats.linkMaterial': {
+    ko: 'INTM 자재 연결 — {n}개소에 한 번에 적용됩니다',
+    en: 'Link an INTM material — applied to all {n} places at once',
+  },
+  'stats.linkMaterial.choose': { ko: '자재 선택', en: 'Choose a material' },
   'stats.coverage': { ko: '1단위 면적', en: 'Per unit' },
   'stats.waste': { ko: '손실률', en: 'Waste' },
   'stats.save': { ko: 'INTM에 저장', en: 'Save to INTM' },

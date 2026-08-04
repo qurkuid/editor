@@ -54,6 +54,11 @@ export type TakeoffLine = {
   nodeIds: string[]
   /** Material reference (`library:…` / `scene:…`) when the surface is painted. */
   materialRef?: string
+  /**
+   * The build-up layer this line came from, when it came from one. Lets the
+   * panel write a chosen product back onto every wall that fed the line.
+   */
+  layerKind?: string
   role: TakeoffRole
 }
 
