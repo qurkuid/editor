@@ -19,6 +19,7 @@ import {
   getMaterialsForWall,
   getSelectionHighlightMaterials,
   getWallMaterialHash,
+  hasWallMaterialOverride,
 } from './wall-materials'
 
 const tmpVec = new Vector3()
@@ -130,6 +131,9 @@ export const WallCutout = () => {
         if (!wallMesh) return
         const wallNode = sceneState.nodes[wallId as WallNode['id']]
         if (wallNode?.type !== 'wall') return
+        // A renderer holds this wall's material (construction preview ghosts
+        // the wall so the framing shows through). Leave it alone.
+        if (hasWallMaterialOverride((wallMesh as Mesh).material)) return
 
         const hideWall = getWallHideState(wallNode, wallMesh as Mesh, wallMode, u)
         const isDeleteHighlighted = deleteHoveredWallId === wallId

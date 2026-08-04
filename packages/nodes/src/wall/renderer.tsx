@@ -8,7 +8,13 @@ import {
   type WallNode,
 } from '@pascal-app/core'
 import { useWallConstructionDisplay } from '@pascal-app/editor'
-import { getVisibleWallMaterials, NodeRenderer, useNodeEvents, useViewer } from '@pascal-app/viewer'
+import {
+  getVisibleWallMaterials,
+  markWallMaterialOverride,
+  NodeRenderer,
+  useNodeEvents,
+  useViewer,
+} from '@pascal-app/viewer'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { Mesh } from 'three'
 import { useShallow } from 'zustand/react/shallow'
@@ -97,7 +103,7 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
       transparentMaterial.opacity = constructionDisplay.baseOpacity
       transparentMaterial.depthWrite = false
       transparentMaterial.needsUpdate = true
-      return transparentMaterial
+      return markWallMaterialOverride(transparentMaterial)
     })
   }, [baseMaterials, constructionDisplay.baseOpacity])
   useEffect(

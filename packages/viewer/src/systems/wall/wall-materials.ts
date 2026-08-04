@@ -563,6 +563,26 @@ export function getMaterialsForWall(
   return result
 }
 
+/**
+ * Claim a wall mesh's material for a renderer.
+ *
+ * `WallCutout` reassigns every wall's material imperatively whenever the
+ * camera, wall mode, shading, or selection changes, while a renderer assigns
+ * it declaratively — and R3F only reassigns when the material prop identity
+ * changes. Without a claim the cutout pass silently wins and the renderer
+ * never gets a chance to restore its own material.
+ */
+export function markWallMaterialOverride<T extends Material>(material: T): T {
+  material.userData.wallMaterialOverride = true
+  return material
+}
+
+export function hasWallMaterialOverride(material: Material | Material[]): boolean {
+  return Array.isArray(material)
+    ? material.some((entry) => entry.userData.wallMaterialOverride === true)
+    : material.userData.wallMaterialOverride === true
+}
+
 export function getVisibleWallMaterials(
   wallNode: WallNode,
   shading: RenderShading = 'rendered',
