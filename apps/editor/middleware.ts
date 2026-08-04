@@ -12,9 +12,11 @@ export async function middleware(request: NextRequest) {
   const user = await fetchIntmUser(request.headers.get('cookie'))
   if (user) return NextResponse.next()
 
-  // `request.url` already carries the deployment's basePath, so INTM sends the
-  // user back to the exact floorplan page they asked for.
-  const target = intmLoginUrl(request.url)
+  // Behind a reverse proxy `request.url` is the INTERNAL address
+  // (localhost:3022), so sending that as the return URL lands the user
+  // somewhere unreachable after login. Rebuild it from the forwarded headers,
+  // which carry the address the browser actually used.
+  const target = intmLoginUrl(publicUrl(request))
 
   // An unauthenticated API call gets a 401 rather than a login page — an HTML
   // redirect would surface to the client as an unparseable JSON response.
@@ -26,6 +28,16 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.redirect(target)
+}
+
+/** The URL the browser asked for, as opposed to the proxy's internal one. */
+function publicUrl(request: NextRequest): string {
+  const url = new URL(request.url)
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+  const proto = request.headers.get('x-forwarded-proto')
+  if (host) url.host = host
+  if (proto) url.protocol = `${proto}:`
+  return url.toString()
 }
 
 export const config = {

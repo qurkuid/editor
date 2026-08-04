@@ -3,6 +3,7 @@
 import { Editor, type SaveStatus, useT } from '@pascal-app/editor'
 import {
   Armchair,
+  BarChart3,
   Bot,
   Hammer,
   Layers,
@@ -21,6 +22,7 @@ import { HostSettingsSection } from '@/components/host-settings-section'
 import { LightingTab } from '@/components/lighting-tab'
 import { PaintingTab } from '@/components/painting-tab'
 import { SkpItemsPanel } from '@/components/skp-items-panel'
+import { StatsTab } from '@/components/stats-tab'
 import {
   CommunityViewerToolbarLeft,
   CommunityViewerToolbarRight,
@@ -113,6 +115,14 @@ function buildSidebarTabs(t: ReturnType<typeof useT>) {
           width={32}
         />
       ),
+    },
+    {
+      id: 'stats',
+      label: t('sidebarTabs.stats'),
+      component: StatsTab,
+      mobileDefaultSnap: 0.75,
+      mobileIcon: <BarChart3 className="h-5 w-5" />,
+      icon: <BarChart3 className="h-5 w-5" />,
     },
     {
       id: 'ai',
