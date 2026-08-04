@@ -7,7 +7,7 @@ import {
   getWallCurveLength,
   normalizeWallCurveOffset,
 } from '@pascal-app/core'
-import { SliderControl } from '@pascal-app/editor'
+import { SliderControl, useT } from '@pascal-app/editor'
 
 /**
  * Custom inspector editors for fence fields that don't map to a single
@@ -30,6 +30,7 @@ export function FenceLengthEditor({
   node: FenceNode
   onUpdate: (patch: Partial<FenceNode>) => void
 }) {
+  const t = useT()
   const length = getWallCurveLength(node)
 
   const handleChange = (newLength: number) => {
@@ -49,7 +50,7 @@ export function FenceLengthEditor({
 
   return (
     <SliderControl
-      label="Length"
+      label={t('common.length')}
       max={50}
       min={0.1}
       onChange={handleChange}
@@ -68,12 +69,13 @@ export function FenceCurveEditor({
   node: FenceNode
   onUpdate: (patch: Partial<FenceNode>) => void
 }) {
+  const t = useT()
   const curveOffset = getClampedWallCurveOffset(node)
   const maxCurveOffset = getMaxWallCurveOffset(node)
 
   return (
     <SliderControl
-      label="Curve"
+      label={t('common.curve')}
       max={Math.max(0.01, maxCurveOffset)}
       min={-Math.max(0.01, maxCurveOffset)}
       onChange={(value) => onUpdate({ curveOffset: normalizeWallCurveOffset(node, value) })}

@@ -30,10 +30,10 @@ import { AiChatPanel } from './ai-chat-panel'
 import { FurnitureTab } from './furniture-tab'
 import { GuidedBuildTab } from './guided-build-tab'
 import { HostSettingsSection } from './host-settings-section'
+import { IntmMaterialLibrary } from './intm-material-library'
 import { LightingTab } from './lighting-tab'
 import { PaintingTab } from './painting-tab'
 import { SkpItemsPanel } from './skp-items-panel'
-import { IntmMaterialLibrary } from './intm-material-library'
 import { StatsTab } from './stats-tab'
 import { CommunityViewerToolbarLeft, CommunityViewerToolbarRight } from './viewer-toolbar'
 
@@ -309,7 +309,7 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
     <div className="relative h-screen w-screen">
       {conflict && (
         <div className="pointer-events-auto absolute top-4 left-1/2 z-50 w-full max-w-md -translate-x-1/2 rounded-lg border border-border bg-background p-4 shadow-xl">
-          <h2 className="font-semibold text-sm">Another session saved first — refresh?</h2>
+          <h2 className="font-semibold text-sm">{t('scenes.saveConflict')}</h2>
           <p className="mt-1 text-muted-foreground text-xs">
             Your changes haven&apos;t been saved. Reload to pick up the latest version.
           </p>

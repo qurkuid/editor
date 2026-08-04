@@ -20,6 +20,7 @@ import {
 } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useT } from '../../i18n/use-t'
 import { measurementPolygonLabelAnchor } from '../../lib/measurement-label'
 import {
   buildMeasurementAngleArcPoints,
@@ -635,6 +636,7 @@ function FloorplanExtrusionControl({
   sceneRotationDeg: number
   unitsPerPixel: number
 }) {
+  const t = useT()
   const unit = useViewer((state) => state.unit)
   const extrusionHeight = useMeasurementDraft((state) => state.extrusionHeight)
   const points = useMeasurementDraft((state) => state.points)
@@ -696,7 +698,7 @@ function FloorplanExtrusionControl({
           }}
         >
           <label className="sr-only" htmlFor="measurement-extrusion-height">
-            Extrusion height
+            {t('common.extrusionHeight')}
           </label>
           <div className="relative min-w-0 flex-1">
             <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center font-medium text-muted-foreground text-xs">

@@ -7,7 +7,7 @@ import {
   updateRoundedRectangularFrameOpening,
   updateRoundedRectangularFrameRadius,
 } from '@pascal-app/core'
-import { SliderControl } from '@pascal-app/editor'
+import { SliderControl, useT } from '@pascal-app/editor'
 
 function geometryPatch(updated: BodyNode): Partial<BodyNode> {
   return {
@@ -29,6 +29,7 @@ export function RoundedFrameRadiusEditor({
   node: BodyNode
   onUpdate: (patch: Partial<BodyNode>) => void
 }) {
+  const t = useT()
   const parameters = getRoundedRectangularFrameParameters(node)
   const placement = getRoundedRectangularFrameOpeningPlacement(node)
   if (!parameters || !placement) return null
@@ -40,7 +41,7 @@ export function RoundedFrameRadiusEditor({
 
   return (
     <SliderControl
-      label="Top corner R"
+      label={t('nodeInspector.topCornerRadius')}
       max={placement.maxTopCornerRadius}
       min={0}
       onChange={handleChange}
@@ -59,6 +60,7 @@ export function RoundedFrameOpeningEditor({
   node: BodyNode
   onUpdate: (patch: Partial<BodyNode>) => void
 }) {
+  const t = useT()
   const placement = getRoundedRectangularFrameOpeningPlacement(node)
   if (!placement) return null
 
@@ -73,7 +75,7 @@ export function RoundedFrameOpeningEditor({
   return (
     <>
       <SliderControl
-        label="Opening X"
+        label={t('nodeInspector.openingX')}
         max={placement.maxCenterOffsetX}
         min={placement.minCenterOffsetX}
         onChange={(value) => updatePosition(value, placement.centerOffsetY)}
@@ -83,7 +85,7 @@ export function RoundedFrameOpeningEditor({
         value={placement.centerOffsetX}
       />
       <SliderControl
-        label="Opening Y"
+        label={t('nodeInspector.openingY')}
         max={placement.maxCenterOffsetY}
         min={placement.minCenterOffsetY}
         onChange={(value) => updatePosition(placement.centerOffsetX, value)}

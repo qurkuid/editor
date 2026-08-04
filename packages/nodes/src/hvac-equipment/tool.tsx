@@ -7,7 +7,13 @@ import {
   resolveSupportSlabPatch,
   useScene,
 } from '@pascal-app/core'
-import { isGridSnapActive, isMagneticSnapActive, triggerSFX, useEditor } from '@pascal-app/editor'
+import {
+  isGridSnapActive,
+  isMagneticSnapActive,
+  triggerSFX,
+  useEditor,
+  useT,
+} from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -34,6 +40,7 @@ function snap(value: number, step: number): number {
  * inspector after placement.
  */
 const HvacEquipmentTool = () => {
+  const t = useT()
   const activeLevelId = useViewer((s) => s.selection.levelId)
   const [cursor, setCursor] = useState<[number, number, number] | null>(null)
   const [yaw, setYaw] = useState(0)

@@ -7,6 +7,7 @@ import {
   isGridSnapActive,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
@@ -106,6 +107,7 @@ function resolvePlacement(
  * node happens to be selected.
  */
 const PipeFittingTool = () => {
+  const t = useT()
   const activeLevelId = useViewer((s) => s.selection.levelId)
   const [placement, setPlacement] = useState<Placement | null>(null)
   const axis = useEditor((s) => s.rotationAxis)
@@ -237,7 +239,7 @@ const PipeFittingTool = () => {
           <span aria-hidden className="text-muted-foreground">
             ·
           </span>
-          <span className="text-muted-foreground">R/T rotate</span>
+          <span className="text-muted-foreground">{t('common.rotateHint')}</span>
           <span aria-hidden className="text-muted-foreground">
             ·
           </span>

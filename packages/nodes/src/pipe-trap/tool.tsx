@@ -1,7 +1,7 @@
 'use client'
 
 import { emitter, type GridEvent, PipeTrapNode, useScene } from '@pascal-app/core'
-import { isGridSnapActive, triggerSFX, useEditor } from '@pascal-app/editor'
+import { isGridSnapActive, triggerSFX, useEditor, useT } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -24,6 +24,7 @@ function snap(value: number, step: number): number {
  * tool then draws the trap arm off the outlet toward the vent.
  */
 const PipeTrapTool = () => {
+  const t = useT()
   const activeLevelId = useViewer((s) => s.selection.levelId)
   const [cursor, setCursor] = useState<[number, number, number] | null>(null)
   const [yaw, setYaw] = useState(0)
@@ -126,7 +127,7 @@ const PipeTrapTool = () => {
           <span aria-hidden className="text-muted-foreground">
             ·
           </span>
-          <span className="text-muted-foreground">R/T rotate</span>
+          <span className="text-muted-foreground">{t('common.rotateHint')}</span>
         </div>
       </Html>
     </LevelOffsetGroup>

@@ -20,6 +20,7 @@ import {
   isMagneticSnapActive,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
@@ -150,6 +151,7 @@ function resolvePortSnap(
  * yaw ±45°; wall yaw is fixed by the wall it mates to.
  */
 const DuctTerminalTool = () => {
+  const t = useT()
   const { camera, gl } = useThree()
   const activeLevelId = useViewer((s) => s.selection.levelId)
   const [mount, setMount] = useState<Mount>('floor')
@@ -432,13 +434,13 @@ const DuctTerminalTool = () => {
           <span aria-hidden className="text-muted-foreground">
             ·
           </span>
-          <span className="text-muted-foreground">M surface</span>
+          <span className="text-muted-foreground">{t('nodeInspector.surfaceSnapHint')}</span>
           {effectiveMount !== 'wall' && (
             <>
               <span aria-hidden className="text-muted-foreground">
                 ·
               </span>
-              <span className="text-muted-foreground">R/T rotate</span>
+              <span className="text-muted-foreground">{t('common.rotateHint')}</span>
             </>
           )}
         </div>

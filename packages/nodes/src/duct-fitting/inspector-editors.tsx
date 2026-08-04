@@ -1,6 +1,6 @@
 'use client'
 
-import { ActionButton } from '@pascal-app/editor'
+import { ActionButton, useT } from '@pascal-app/editor'
 import { ArrowLeftRight } from 'lucide-react'
 import type { DuctFittingNode } from './schema'
 
@@ -20,6 +20,7 @@ export function DuctFittingSizeSwapEditor({
   node: DuctFittingNode
   onUpdate: (patch: Partial<DuctFittingNode>) => void
 }) {
+  const t = useT()
   const nextWidth = clamp(node.height, WIDTH_MIN, WIDTH_MAX)
   const nextHeight = clamp(node.width, HEIGHT_MIN, HEIGHT_MAX)
 
@@ -28,9 +29,9 @@ export function DuctFittingSizeSwapEditor({
       <ActionButton
         className="h-8 w-full flex-none"
         icon={<ArrowLeftRight className="h-3.5 w-3.5" />}
-        label="Swap W/H"
+        label={t('nodeInspector.swapWidthHeightLabel')}
         onClick={() => onUpdate({ width: nextWidth, height: nextHeight })}
-        title="Swap width and height"
+        title={t('nodeInspector.swapWidthHeightTitle')}
         type="button"
       />
     </div>

@@ -38,6 +38,7 @@ import {
   useState,
 } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { useT } from '../../i18n/use-t'
 import { pasteSelectionAndPickUp } from '../editor/group-actions'
 import {
   buildLevelDuplicateCreateOps,
@@ -142,6 +143,7 @@ function LevelRow({
   onPaste?: () => void
   onRequestDelete: () => void
 }) {
+  const t = useT()
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const updateNode = useScene((s) => s.updateNode)
@@ -195,7 +197,7 @@ function LevelRow({
               dragHandleProps?.onClick?.(e)
             }}
             ref={dragHandleRef}
-            title="Drag to reorder"
+            title={t('chrome.levelDragToReorder')}
             type="button"
           >
             <GripVertical className="h-3.5 w-3.5" />
@@ -220,7 +222,7 @@ function LevelRow({
               <button
                 className="mr-0.5 shrink-0 whitespace-nowrap rounded px-1 py-0.5 font-mono text-[10px] text-muted-foreground/50 tabular-nums transition-colors hover:bg-white/5 hover:text-foreground"
                 onClick={(e) => e.stopPropagation()}
-                title="Level height"
+                title={t('chrome.levelHeight')}
                 type="button"
               >
                 {storeyHeightLabel}
@@ -234,7 +236,7 @@ function LevelRow({
               sideOffset={8}
             >
               <SliderControl
-                label="Level height"
+                label={t('chrome.levelHeight')}
                 max={6}
                 min={1}
                 onChange={(v) => updateNode(level.id, { height: v })}
@@ -277,7 +279,7 @@ function LevelRow({
                 type="button"
               >
                 <Copy className="h-3 w-3" />
-                Duplicate level
+                {t('chrome.duplicateLevel')}
               </button>
               <button
                 className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-muted-foreground text-xs transition-colors hover:bg-white/10 hover:text-foreground"
@@ -288,7 +290,7 @@ function LevelRow({
                 type="button"
               >
                 <Copy className="h-3 w-3" />
-                Duplicate with options...
+                {t('chrome.duplicateLevelWithOptions')}
               </button>
               {onPaste && (
                 <button
@@ -300,7 +302,7 @@ function LevelRow({
                   type="button"
                 >
                   <ClipboardPaste className="h-3 w-3" />
-                  Paste copied selection
+                  {t('chrome.pasteCopiedSelection')}
                 </button>
               )}
               <button
@@ -312,7 +314,7 @@ function LevelRow({
                 type="button"
               >
                 <Trash2 className="h-3 w-3" />
-                Delete level
+                {t('chrome.deleteLevel')}
               </button>
             </PopoverContent>
           </Popover>
@@ -384,6 +386,7 @@ function SortableLevelRow({
 // ── Main component ──────────────────────────────────────────────────────────
 
 export function FloatingLevelSelector() {
+  const t = useT()
   const selectedBuildingId = useViewer((s) => s.selection.buildingId)
   const levelId = useViewer((s) => s.selection.levelId)
   const setSelection = useViewer((s) => s.setSelection)
@@ -573,7 +576,7 @@ export function FloatingLevelSelector() {
             <button
               className={cn(addButtonClass, 'top-0 -translate-y-1/2')}
               onClick={handleAddAbove}
-              title="Add level above"
+              title={t('chrome.addLevelAbove')}
               type="button"
             >
               <Plus className="h-2.5 w-2.5" />
@@ -585,7 +588,7 @@ export function FloatingLevelSelector() {
             <button
               className={cn(addButtonClass, 'bottom-0 translate-y-1/2')}
               onClick={handleAddBelow}
-              title="Add level below"
+              title={t('chrome.addLevelBelow')}
               type="button"
             >
               <Plus className="h-2.5 w-2.5" />
@@ -628,7 +631,7 @@ export function FloatingLevelSelector() {
                         <button
                           className={cn(addButtonClass, 'bottom-0 translate-y-1/2')}
                           onClick={() => handleInsertBetween(sortedIndex - 1)}
-                          title="Insert level here"
+                          title={t('chrome.insertLevelHere')}
                           type="button"
                         >
                           <Plus className="h-2.5 w-2.5" />
@@ -647,11 +650,11 @@ export function FloatingLevelSelector() {
       <Dialog onOpenChange={(open) => !open && setDeletingLevel(null)} open={!!deletingLevel}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Delete level</DialogTitle>
+            <DialogTitle>{t('chrome.deleteLevel')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete{' '}
-              <strong>{deletingLevel ? getLevelDisplayName(deletingLevel) : ''}</strong>? All
-              walls, floors, and objects on this level will be permanently removed.
+              {t('chrome.deleteLevelConfirmPrefix')}
+              <strong>{deletingLevel ? getLevelDisplayName(deletingLevel) : ''}</strong>
+              {t('chrome.deleteLevelConfirmSuffix')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -660,14 +663,14 @@ export function FloatingLevelSelector() {
               onClick={() => setDeletingLevel(null)}
               type="button"
             >
-              Cancel
+              {t('chrome.cancel')}
             </button>
             <button
               className="rounded-full bg-red-600 px-4 py-2 text-sm text-white transition-colors hover:bg-red-700"
               onClick={handleConfirmDelete}
               type="button"
             >
-              Delete
+              {t('common.delete')}
             </button>
           </DialogFooter>
         </DialogContent>

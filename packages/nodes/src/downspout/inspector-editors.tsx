@@ -8,7 +8,7 @@ import {
   useLiveNodeOverrides,
   useScene,
 } from '@pascal-app/core'
-import { SliderControl } from '@pascal-app/editor'
+import { SliderControl, useT } from '@pascal-app/editor'
 
 /**
  * Position-along-the-eave editor for a downspout. The downspout's spot
@@ -31,6 +31,7 @@ import { SliderControl } from '@pascal-app/editor'
  * downspout isn't linked to an outlet.
  */
 export function DownspoutPositionEditor({ node }: { node: DownspoutNode }) {
+  const t = useT()
   const gutter = useScene((s) =>
     node.gutterId ? (s.nodes[node.gutterId as AnyNodeId] as GutterNode | undefined) : undefined,
   )
@@ -73,7 +74,7 @@ export function DownspoutPositionEditor({ node }: { node: DownspoutNode }) {
 
   return (
     <SliderControl
-      label="Position"
+      label={t('common.position')}
       max={bound}
       min={-bound}
       onChange={handleChange}

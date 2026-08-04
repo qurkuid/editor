@@ -23,6 +23,9 @@ export const nodeInspectorDictionary = {
   'nodeInspector.snappedToDuct': { ko: '덕트에 스냅됨', en: 'Snapped to duct' },
   'nodeInspector.surfaceSnapHint': { ko: 'M 면 스냅', en: 'M surface' },
 
+  'nodeInspector.openingMark': { ko: '기호', en: 'Mark' },
+  'nodeInspector.openingConstruction': { ko: '벽체 구성', en: 'Construction' },
+  'nodeInspector.openingDimensionTo': { ko: '치수 기준', en: 'Dimension to' },
   'nodeInspector.autoAssigned': { ko: '자동 지정', en: 'Auto-assigned' },
   'nodeInspector.verify': { ko: '확인 필요', en: 'Verify' },
   'nodeInspector.constructionFramed': { ko: '경량벽', en: 'Framed' },
