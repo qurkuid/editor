@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   blendOpposingImageEdges,
+  bookmatchTilePixels,
   flattenIllumination,
   healWrapSeams,
   makeSeamlessPixels,
@@ -122,6 +123,53 @@ describe('wrap seam healing', () => {
     }
     // And: the seam-cross centre shows the original texture.
     expect(healed[((height / 2) * width + width / 2) * 4]).toBe(200)
+  })
+})
+
+describe('book-matched mirror tiling', () => {
+  test('tiles any texture with exactly matching opposite borders', () => {
+    // Given: a strongly directional texture (vertical wood-grain-like stripes).
+    const width = 16
+    const height = 16
+    const pixels = new Uint8ClampedArray(width * height * 4)
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const offset = (y * width + x) * 4
+        pixels[offset] = (x * 16) % 256
+        pixels[offset + 3] = 255
+      }
+    }
+
+    // When: the texture is baked into a 2x2 book-matched tile.
+    const composed = bookmatchTilePixels(pixels, width, height)
+
+    // Then: the composition doubles each axis and opposite borders are identical.
+    expect(composed.width).toBe(width * 2)
+    expect(composed.height).toBe(height * 2)
+    for (let y = 0; y < composed.height; y += 1) {
+      const left = composed.pixels[y * composed.width * 4]
+      const right = composed.pixels[(y * composed.width + composed.width - 1) * 4]
+      expect(left).toBe(right)
+    }
+    for (let x = 0; x < composed.width; x += 1) {
+      const top = composed.pixels[x * 4]
+      const bottom = composed.pixels[((composed.height - 1) * composed.width + x) * 4]
+      expect(top).toBe(bottom)
+    }
+  })
+
+  test('keeps the source dimensions in half-resolution mode', () => {
+    // Given: an 8x8 texture.
+    const width = 8
+    const height = 8
+    const pixels = new Uint8ClampedArray(width * height * 4).fill(120)
+
+    // When: the book-match bake runs in half-resolution mode.
+    const composed = bookmatchTilePixels(pixels, width, height, true)
+
+    // Then: the output stays at the source dimensions.
+    expect(composed.width).toBe(width)
+    expect(composed.height).toBe(height)
   })
 })
 

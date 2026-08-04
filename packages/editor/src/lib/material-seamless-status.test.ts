@@ -24,6 +24,17 @@ describe('getMaterialSeamlessAvailability', () => {
     expect(availability).toBe('complete')
   })
 
+  test('marks a book-matched asset as complete', () => {
+    // Given: a texture baked by the book-match mirror pipeline.
+    const textureUrl = `asset://bookmatch-${'b'.repeat(64)}`
+
+    // When: the material row determines which seamless action to show.
+    const availability = getMaterialSeamlessAvailability(textureUrl)
+
+    // Then: the action is complete and cannot be run twice.
+    expect(availability).toBe('complete')
+  })
+
   test('offers reprocessing for assets from the retired seamless pipeline', () => {
     // Given: a texture produced by the old edge-blur-only pass.
     const textureUrl = `asset://seamless-${'a'.repeat(64)}`

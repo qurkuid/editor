@@ -123,21 +123,27 @@ describe('RawPainter host adapter', () => {
     })
   })
 
-  test('runs the local seamless pipeline when the vendor provides no seamless asset', async () => {
+  test('bakes a book-matched tile when the vendor provides no seamless asset', async () => {
     // Given: a product with only an original texture.
     const resolvedUrls: string[] = []
     const resolve = async (textureUrl: string) => {
       resolvedUrls.push(textureUrl)
-      return 'asset://seamless-def456'
+      return 'asset://bookmatch-def456'
     }
 
     // When: the product is normalized with the seamless guarantee.
     const material = await normalizeRawPainterProductSeamless(product, undefined, resolve)
 
-    // Then: the albedo map is the locally processed asset; the thumbnail stays original.
+    // Then: the albedo map is the locally baked asset; the thumbnail stays original.
     expect(resolvedUrls).toEqual(['/api/materials/rawpainter/asset/70225'])
-    expect(material.appearance.maps.albedoMap).toBe('asset://seamless-def456')
+    expect(material.appearance.maps.albedoMap).toBe('asset://bookmatch-def456')
     expect(material.previewThumbnailUrl).toBe(product.thumbnailUrl)
+
+    // And: the 2x2 bake doubles the physical span and halves the UV repeat,
+    // so a placed surface still renders the pattern at true world scale.
+    expect(material.physicalSize).toEqual({ widthM: 1.16 * 2, heightM: 0.3 * 2 })
+    expect(material.appearance.mapProperties.repeatX).toBeCloseTo(1 / (1.16 * 2))
+    expect(material.appearance.mapProperties.repeatY).toBeCloseTo(1 / (0.3 * 2))
   })
 
   test('skips local seamless processing when the vendor already ships one', async () => {

@@ -1,7 +1,7 @@
 import type { MaterialCategory } from '@pascal-app/core'
 import type { EditorHostIntegrationAdapter, EditorHostMaterialProduct } from '@pascal-app/editor'
 import { withBasePath } from './base-path'
-import { getOrCreateSeamlessAsset } from './material-seamless-cache'
+import { getOrCreateBookmatchAsset, getOrCreateSeamlessAsset } from './material-seamless-cache'
 import {
   type RawPainterCatalogPage,
   type RawPainterCategory,
@@ -112,8 +112,10 @@ export function normalizeRawPainterProduct(
   const size = physicalSize(product.options)
   const previewThumbnailUrl =
     text(product.thumbnailUrl) || text(product.image) || text(product.img) || undefined
-  const textureKind =
-    text(product.seamlessImage) || product.hasSeamless === true ? 'seamless' : null
+  // Only the explicit flag counts: the API fills `seamlessImage` with a
+  // constructed URL even when `hasSeamless` is false, and that fallback serves
+  // a low-quality auto-blur that tiles with a visible grid (e.g. HAT210).
+  const textureKind = product.hasSeamless === true ? 'seamless' : null
   const texturePath = withBasePath(
     `/api/materials/rawpainter/asset/${externalId}${textureKind ? '?kind=seamless' : ''}`,
   )
@@ -145,28 +147,37 @@ export function normalizeRawPainterProduct(
 }
 
 export function hasVendorSeamlessTexture(product: RawPainterProduct): boolean {
-  return Boolean(text(product.seamlessImage) || product.hasSeamless === true)
+  return product.hasSeamless === true
 }
 
 /**
  * Normalize with a seamless surface guaranteed: a vendor-provided seamless
  * image is used as-is (the asset proxy already serves it), otherwise the raw
- * texture runs through the local seamless pipeline and the processed
- * `asset://` result replaces the albedo map.
+ * texture is baked into a book-matched 2×2 mirror tile — the only local
+ * approach that tiles directional textures (wood grain, weave) without
+ * ghosting. The baked image spans twice the physical size in each axis, so
+ * the size and UV repeat are adjusted to keep world-scale rendering correct.
  */
 export async function normalizeRawPainterProductSeamless(
   product: RawPainterProduct,
   assetOrigin?: string,
-  resolveSeamlessAsset: SeamlessAssetResolver = getOrCreateSeamlessAsset,
+  resolveSeamlessAsset: SeamlessAssetResolver = getOrCreateBookmatchAsset,
 ): Promise<EditorHostMaterialProduct> {
   const normalized = normalizeRawPainterProduct(product, assetOrigin)
   const albedoMap = normalized.appearance.maps.albedoMap
   if (hasVendorSeamlessTexture(product) || !albedoMap) return normalized
+  const size = normalized.physicalSize
+  const properties = normalized.appearance.mapProperties
   return {
     ...normalized,
+    physicalSize: size ? { widthM: size.widthM * 2, heightM: size.heightM * 2 } : undefined,
     appearance: {
-      ...normalized.appearance,
       maps: { ...normalized.appearance.maps, albedoMap: await resolveSeamlessAsset(albedoMap) },
+      mapProperties: {
+        ...properties,
+        repeatX: properties.repeatX / 2,
+        repeatY: properties.repeatY / 2,
+      },
     },
   }
 }

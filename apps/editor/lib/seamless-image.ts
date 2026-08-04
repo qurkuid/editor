@@ -283,6 +283,69 @@ export function healWrapSeams(
   return output
 }
 
+/**
+ * Book-matched 2×2 mirror composition: [orig, flipH; flipV, flipHV].
+ *
+ * Every border column/row of the composition equals its opposite border by
+ * construction, so the result tiles with zero seams for ANY texture —
+ * including directional ones (wood grain, weave) where blend-based healing
+ * only produces ghosting. The symmetric "book-match" look this bakes in is
+ * the same technique veneer work uses deliberately.
+ *
+ * `halfResolution` keeps the output at the source dimensions (each source
+ * pixel pair averaged) for very large sources; the composition then still
+ * represents a 2×2 physical span — callers double `physicalSize` either way.
+ */
+export function bookmatchTilePixels(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  halfResolution = false,
+): { pixels: Uint8ClampedArray; width: number; height: number } {
+  const composedWidth = width * 2
+  const composedHeight = height * 2
+  const sourceAt = (cx: number, cy: number): number => {
+    const sx = cx < width ? cx : composedWidth - 1 - cx
+    const sy = cy < height ? cy : composedHeight - 1 - cy
+    return (sy * width + sx) * 4
+  }
+
+  if (!halfResolution) {
+    const output = new Uint8ClampedArray(composedWidth * composedHeight * 4)
+    for (let cy = 0; cy < composedHeight; cy += 1) {
+      for (let cx = 0; cx < composedWidth; cx += 1) {
+        const target = (cy * composedWidth + cx) * 4
+        const source = sourceAt(cx, cy)
+        output[target] = pixels[source] ?? 0
+        output[target + 1] = pixels[source + 1] ?? 0
+        output[target + 2] = pixels[source + 2] ?? 0
+        output[target + 3] = pixels[source + 3] ?? 0
+      }
+    }
+    return { pixels: output, width: composedWidth, height: composedHeight }
+  }
+
+  const output = new Uint8ClampedArray(width * height * 4)
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const target = (y * width + x) * 4
+      const a = sourceAt(x * 2, y * 2)
+      const b = sourceAt(x * 2 + 1, y * 2)
+      const c = sourceAt(x * 2, y * 2 + 1)
+      const d = sourceAt(x * 2 + 1, y * 2 + 1)
+      for (let channel = 0; channel < 4; channel += 1) {
+        output[target + channel] =
+          ((pixels[a + channel] ?? 0) +
+            (pixels[b + channel] ?? 0) +
+            (pixels[c + channel] ?? 0) +
+            (pixels[d + channel] ?? 0)) /
+          4
+      }
+    }
+  }
+  return { pixels: output, width, height }
+}
+
 /** The full pure pipeline; `createSeamlessImageBlob` wraps it in decode/encode. */
 export function makeSeamlessPixels(
   pixels: Uint8ClampedArray,
@@ -296,7 +359,7 @@ export function makeSeamlessPixels(
   return healWrapSeams(wrapped, blended, width, height)
 }
 
-export async function createSeamlessImageBlob(source: Blob): Promise<Blob> {
+async function decodeToImageData(source: Blob): Promise<ImageData> {
   let bitmap: ImageBitmap
   try {
     bitmap = await createImageBitmap(source)
@@ -304,7 +367,6 @@ export async function createSeamlessImageBlob(source: Blob): Promise<Blob> {
     if (error instanceof Error) throw new SeamlessImageError('decode')
     throw error
   }
-
   const canvas = document.createElement('canvas')
   canvas.width = bitmap.width
   canvas.height = bitmap.height
@@ -312,10 +374,20 @@ export async function createSeamlessImageBlob(source: Blob): Promise<Blob> {
   if (!context) throw new SeamlessImageError('decode')
   context.drawImage(bitmap, 0, 0)
   bitmap.close()
-  const image = context.getImageData(0, 0, canvas.width, canvas.height)
-  image.data.set(makeSeamlessPixels(image.data, canvas.width, canvas.height))
-  context.putImageData(image, 0, 0)
+  return context.getImageData(0, 0, canvas.width, canvas.height)
+}
 
+function encodePixelsToBlob(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+): Promise<Blob> {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const context = canvas.getContext('2d')
+  if (!context) throw new SeamlessImageError('encode')
+  context.putImageData(new ImageData(new Uint8ClampedArray(pixels), width, height), 0, 0)
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new SeamlessImageError('encode'))),
@@ -323,4 +395,19 @@ export async function createSeamlessImageBlob(source: Blob): Promise<Blob> {
       0.92,
     )
   })
+}
+
+export async function createSeamlessImageBlob(source: Blob): Promise<Blob> {
+  const image = await decodeToImageData(source)
+  const pixels = makeSeamlessPixels(image.data, image.width, image.height)
+  return encodePixelsToBlob(pixels, image.width, image.height)
+}
+
+/** Book-matched variant — the output represents a 2×2 physical span. */
+export async function createBookmatchedImageBlob(source: Blob): Promise<Blob> {
+  const image = await decodeToImageData(source)
+  const flattened = flattenIllumination(image.data, image.width, image.height)
+  const halfResolution = Math.max(image.width, image.height) > 1536
+  const composed = bookmatchTilePixels(flattened, image.width, image.height, halfResolution)
+  return encodePixelsToBlob(composed.pixels, composed.width, composed.height)
 }

@@ -1,5 +1,5 @@
 import { findStoredAsset, loadAssetUrl, saveStoredAsset } from '@pascal-app/core'
-import { createSeamlessImageBlob } from './seamless-image'
+import { createBookmatchedImageBlob, createSeamlessImageBlob } from './seamless-image'
 
 type SeamlessCacheDependencies = {
   readonly readSource: (url: string) => Promise<Blob>
@@ -9,9 +9,11 @@ type SeamlessCacheDependencies = {
 }
 
 const pendingAssets = new Map<string, Promise<string>>()
-// `seamless2` = the illumination-flatten + wrap-shift pipeline; the version
-// keys the cache so results of the retired edge-blur-only pass are not reused.
-const seamlessAssetUrlPattern = /^asset:\/\/seamless2-[0-9a-f]{64}$/
+// `seamless2` = illumination-flatten + wrap-shift (scale-preserving, for the
+// URL-swap paths); `bookmatch` = 2×2 mirror bake (2× physical span, for the
+// RawPainter registration flow). The prefixes version the cache so retired
+// pipelines' results are not reused.
+const processedAssetUrlPattern = /^asset:\/\/(?:seamless2|bookmatch)-[0-9a-f]{64}$/
 
 export class SeamlessMaterialError extends Error {
   readonly status: number | null
@@ -56,14 +58,20 @@ const browserDependencies: SeamlessCacheDependencies = {
   store: saveStoredAsset,
 }
 
-export async function getOrCreateSeamlessAsset(
+const bookmatchBrowserDependencies: SeamlessCacheDependencies = {
+  ...browserDependencies,
+  transform: createBookmatchedImageBlob,
+}
+
+async function getOrCreateProcessedAsset(
   sourceUrl: string,
-  dependencies: SeamlessCacheDependencies = browserDependencies,
+  prefix: string,
+  dependencies: SeamlessCacheDependencies,
 ): Promise<string> {
-  if (seamlessAssetUrlPattern.test(sourceUrl)) return sourceUrl
+  if (processedAssetUrlPattern.test(sourceUrl)) return sourceUrl
   const source = await dependencies.readSource(sourceUrl)
   const digest = await digestBlob(source)
-  const assetId = `seamless2-${digest}`
+  const assetId = `${prefix}-${digest}`
   const stored = await dependencies.loadStored(assetId)
   if (stored) return stored
 
@@ -76,4 +84,18 @@ export async function getOrCreateSeamlessAsset(
     .finally(() => pendingAssets.delete(assetId))
   pendingAssets.set(assetId, creation)
   return creation
+}
+
+export function getOrCreateSeamlessAsset(
+  sourceUrl: string,
+  dependencies: SeamlessCacheDependencies = browserDependencies,
+): Promise<string> {
+  return getOrCreateProcessedAsset(sourceUrl, 'seamless2', dependencies)
+}
+
+export function getOrCreateBookmatchAsset(
+  sourceUrl: string,
+  dependencies: SeamlessCacheDependencies = bookmatchBrowserDependencies,
+): Promise<string> {
+  return getOrCreateProcessedAsset(sourceUrl, 'bookmatch', dependencies)
 }
