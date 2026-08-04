@@ -37,11 +37,12 @@ const KIND_PATTERNS: Array<[ConstructionKind, RegExp]> = [
 /**
  * Lines that are not a build-up material, however their name reads.
  *
- * Two separate traps. `타일 철거` and `도배 인건비` name a trade rather than a
- * thing. And Korean compounds swallow these words whole: `수도배관이설` — a
- * plumbing move — contains 도배, so it was being offered as a wall finish.
+ * Three traps. `타일 철거` and `도배 인건비` name a trade rather than a thing.
+ * Korean compounds swallow these words whole: `수도배관이설` — a plumbing move —
+ * contains 도배. And fittings borrow finish words: `스위치 높이조절 필름` is an
+ * electrical accessory, not the 인테리어 필름 a wall is finished in.
  */
-const NOT_A_MATERIAL = /인건비|철거|시공비|노무|출장|운반|폐기물|배관|설비|이설|전기/
+const NOT_A_MATERIAL = /인건비|철거|시공비|노무|출장|운반|폐기물|배관|설비|이설|전기|스위치|콘센트|조명/
 
 const CATEGORY_BY_KIND: Record<ConstructionKind, MaterialCatalogItem['category']> = {
   'gypsum-board': 'other',

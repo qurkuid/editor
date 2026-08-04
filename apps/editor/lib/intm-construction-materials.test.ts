@@ -30,6 +30,15 @@ describe('what a catalogue entry can stand in for', () => {
 
   // Korean compounds swallow these words whole: 수(도배)관 contains 도배, and
   // the live catalogue was offering a plumbing move as a wall finish.
+  // Fittings borrow finish words: this is an electrical accessory, and it was
+  // being offered as the wall's 마감 layer.
+  test.each([['스위치 높이조절 필름 1t (5ea)'], ['콘센트 커버'], ['조명 필름']])(
+    '%s is a fitting, not a finish',
+    (name) => {
+      expect(constructionKindsFor(name)).toEqual([])
+    },
+  )
+
   test.each([['수도배관이설'], ['전기배선 이설'], ['위생설비 교체']])(
     '%s is not swallowed by a substring match',
     (name) => {
