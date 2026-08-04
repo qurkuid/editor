@@ -29,6 +29,7 @@ import { toggleDoorOpenState } from '../lib/door-interaction'
 import { guideEmitter } from '../lib/guide-events'
 import { runRedo, runUndo } from '../lib/history'
 import { isActive } from '../lib/interaction/scope'
+import { endMoveCopySession, toggleMoveCopy } from '../lib/move-copy-mode'
 import { copySelectedNodesToEditorClipboard } from '../lib/scene-clipboard'
 import { sfxEmitter } from '../lib/sfx-bus'
 import { activeSiteNode, clampBrushRadius } from '../lib/terrain-sculpt'
@@ -197,16 +198,27 @@ export const useKeyboard = ({
     // and is cleared the instant any other key fires, so chords like Ctrl+Z /
     // Ctrl+C never cycle.
     let ctrlTapClean = false
+    // Same clean-tap machinery for Alt: a bare tap toggles move-copy mode,
+    // while Alt combined with any key or click (force place) never does.
+    let altTapClean = false
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Control' || e.key === 'Meta') {
         // Only a fresh, modifier-free press starts a clean-tap candidate;
         // ignore key-repeat and presses already part of a combo.
         ctrlTapClean = !e.repeat && !e.shiftKey && !e.altKey
+        altTapClean = false
+      } else if (e.key === 'Alt') {
+        // A clean Alt tap toggles copy mode on an active move/rotate gesture
+        // (resolved on keyup). Alt HELD through a click stays force-place —
+        // the pointerdown listener below breaks the tap before keyup fires.
+        altTapClean = !e.repeat && !e.shiftKey && !e.ctrlKey && !e.metaKey
+        ctrlTapClean = false
       } else {
         // Any non-modifier key (or a modifier combined with Ctrl/Meta) breaks
         // the clean tap.
         ctrlTapClean = false
+        altTapClean = false
       }
 
       // Don't handle shortcuts if user is typing in an input
@@ -678,6 +690,22 @@ export const useKeyboard = ({
       }
     }
     const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Alt') {
+        const wasClean = altTapClean
+        altTapClean = false
+        if (!wasClean) return
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+          return
+        }
+        // Toggle copy mode on the active move/rotate gesture — common to every
+        // node kind. No-op (no sound, no preventDefault) outside a gesture.
+        const result = toggleMoveCopy()
+        if (result) {
+          e.preventDefault()
+          sfxEmitter.emit(result === 'copied' ? 'sfx:item-pick' : 'sfx:grid-snap')
+        }
+        return
+      }
       if (e.key === 'Control' || e.key === 'Meta') {
         const wasClean = ctrlTapClean
         ctrlTapClean = false
@@ -695,11 +723,29 @@ export const useKeyboard = ({
       }
     }
 
+    // Any click while Alt is down is a force-place (or ordinary) click, not a
+    // copy-toggle tap — capture phase so stopPropagation elsewhere can't hide it.
+    const handlePointerDown = () => {
+      altTapClean = false
+    }
+
+    // Copy mode lives exactly as long as its gesture: when the moving /
+    // handle-drag scope ends (commit, cancel, Esc, or tool switch), settle the
+    // stationed twin — kept on a real move, removed on a no-op/cancel.
+    const unsubscribeScope = useInteractionScope.subscribe((state, prev) => {
+      const wasGesture = prev.scope.kind === 'moving' || prev.scope.kind === 'handle-drag'
+      const isGesture = state.scope.kind === 'moving' || state.scope.kind === 'handle-drag'
+      if (wasGesture && !isGesture) endMoveCopySession()
+    })
+
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('pointerdown', handlePointerDown, true)
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('pointerdown', handlePointerDown, true)
+      unsubscribeScope()
     }
   }, [disabled, isVersionPreviewMode])
 

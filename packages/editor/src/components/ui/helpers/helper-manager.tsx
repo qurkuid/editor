@@ -21,6 +21,7 @@ import {
 } from '../../../lib/contextual-help'
 import { continuationContextOf } from '../../../lib/continuation'
 import { canDirectMoveNode, canDirectRotateNode } from '../../../lib/direct-manipulation'
+import { useMoveCopyMode } from '../../../lib/move-copy-mode'
 import type { ReshapeKind } from '../../../lib/interaction/scope'
 import { isFreshPlacementMetadata } from '../../../lib/placement-metadata'
 import { snapContextOf } from '../../../lib/snapping-mode'
@@ -133,6 +134,7 @@ export function HelperManager() {
   const scope = useInteractionScope((s) => s.scope)
   const movingNode = useMovingNode()
   const activeHandleDrag = useActiveHandleDrag()
+  const copyActive = useMoveCopyMode((s) => s.twinId !== null)
   const selectedIds = useViewer((s) => s.selection.selectedIds)
   const isMobile = useIsMobile()
   const modifiers = useActiveModifierKeys()
@@ -232,6 +234,7 @@ export function HelperManager() {
     return (
       <ItemHelper
         continuationContext={movingContinuationContext}
+        copyActive={copyActive}
         showEsc
         showForce={nodeRegistry.get(movingNode.type)?.snapProfile !== 'structural'}
         snapContext={snapContext}

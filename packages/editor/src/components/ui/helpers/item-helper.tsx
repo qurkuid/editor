@@ -11,15 +11,19 @@ interface ItemHelperProps {
   // Set for a fresh point-kind placement (e.g. a positioned preset) so the
   // once/repeat continuation chip shows; null for an existing-node move.
   continuationContext?: ContinuationContext | null
+  // Whether a stationed move-copy twin is live (Alt tap toggles it).
+  copyActive?: boolean
 }
 
 // Snapping mode is the chip on the right (Shift cycles it), so it's not repeated
-// as a key hint. Rotate is the two keys; Alt forces an invalid (red) drop.
+// as a key hint. Rotate is the two keys; Alt held through a click forces an
+// invalid (red) drop, while a bare Alt tap toggles copy mode.
 export function ItemHelper({
   showEsc,
   snapContext,
   showForce,
   continuationContext = null,
+  copyActive = false,
 }: ItemHelperProps) {
   return (
     <ContextualHelperPanel
@@ -27,6 +31,7 @@ export function ItemHelper({
       hints={[
         { keys: ['Left click'], label: 'Place' },
         { keys: ['R', 'T'], label: 'Rotate' },
+        { keys: ['Alt'], label: copyActive ? 'Copying' : 'Toggle copy', active: copyActive },
         ...(showForce ? [{ keys: ['Alt'], label: 'Force place' }] : []),
         { keys: [showEsc ? 'Esc' : 'Right click'], label: 'Cancel' },
       ]}

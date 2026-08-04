@@ -848,6 +848,8 @@ export const nodePanelsDictionary = {
   'panel.hintRotate': { ko: '회전', en: 'Rotate' },
   'panel.hintCancel': { ko: '취소', en: 'Cancel' },
   'panel.hintForcePlace': { ko: '강제 배치', en: 'Force place' },
+  'panel.hintToggleCopy': { ko: '복사 전환', en: 'Toggle copy' },
+  'panel.hintCopying': { ko: '복사 배치 중', en: 'Copying' },
   'panel.hintSetCorner': { ko: '모서리 지정', en: 'Set corner' },
   'panel.hintPickTargetHeight': { ko: '목표 높이 선택', en: 'Pick target height' },
   'panel.hintCancelPicking': { ko: '선택 취소', en: 'Cancel picking' },
