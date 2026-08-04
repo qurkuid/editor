@@ -81,7 +81,7 @@ export function SaveButton({ sceneId, name, version, getGraph }: SaveButtonProps
     setIsSaving(true)
     setStatus(null)
     try {
-      const response = await fetch(`/api/scenes/${sceneId}`, {
+      const response = await fetch(withBasePath(`/api/scenes/${sceneId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
