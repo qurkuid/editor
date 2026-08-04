@@ -281,6 +281,7 @@ export const slabDefinition: NodeDefinition<typeof SlabNode> = {
     polygon: [],
     holes: [],
     holeMetadata: [],
+    construction: [],
     elevation: 0.05,
     thickness: 0.05,
     recessed: false,

@@ -518,3 +518,8 @@ export {
   type ValidationSeverity,
   validateBuildJson,
 } from './validation/validate-build-json'
+export {
+  SurfaceConstruction,
+  SurfaceConstructionLayer,
+  SurfaceConstructionLayerKind,
+} from './schema/nodes/surface-construction'

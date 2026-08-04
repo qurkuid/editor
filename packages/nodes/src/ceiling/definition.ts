@@ -142,6 +142,7 @@ export const ceilingDefinition: NodeDefinition<typeof CeilingNode> = {
     polygon: [],
     holes: [],
     holeMetadata: [],
+    construction: [],
     autoFromWalls: false,
   }),
 

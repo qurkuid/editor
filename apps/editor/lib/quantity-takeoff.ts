@@ -1,5 +1,9 @@
 import type { AnyNode, CabinetModuleNode, CabinetNode } from '@pascal-app/core'
-import { type WallConstructionLayerLike, wallAssemblyLines } from './wall-assembly-takeoff'
+import {
+  surfaceAssemblyLines,
+  type WallConstructionLayerLike,
+  wallAssemblyLines,
+} from './wall-assembly-takeoff'
 
 /**
  * Scene → quantities, for pricing an estimate.
@@ -238,6 +242,7 @@ export function deriveTakeoff(
       const surface = node as {
         polygon?: readonly (readonly [number, number])[]
         holes?: readonly (readonly (readonly [number, number])[])[]
+        construction?: readonly WallConstructionLayerLike[]
       }
       const grossArea = polygonArea(surface.polygon ?? [])
       const holeArea = (surface.holes ?? []).reduce((total, hole) => total + polygonArea(hole), 0)
@@ -253,6 +258,18 @@ export function deriveTakeoff(
         nodeIds: [node.id],
         materialRef,
       })
+
+      // The surface's own build-up: joists/furring by the metre, boards by the
+      // sheet, screed by volume. Same expansion walls use.
+      const category = node.type === 'slab' ? 'floor' : 'ceiling'
+      for (const assemblyLine of surfaceAssemblyLines(
+        surface.construction,
+        { area, length: Math.sqrt(Math.max(area, 0)), height: Math.sqrt(Math.max(area, 0)) },
+        node.id,
+        category,
+      )) {
+        push(lines, assemblyLine)
+      }
       continue
     }
 

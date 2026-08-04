@@ -2,6 +2,7 @@ import dedent from 'dedent'
 import { z } from 'zod'
 import { BaseNode, nodeType, objectId } from '../base'
 import { MaterialSchema } from '../material'
+import { SurfaceConstruction } from './surface-construction'
 import { SurfaceHoleMetadata } from './surface-hole-metadata'
 
 // Edit-time floor for `thickness` — a thinner slab z-fights the ceiling's
@@ -21,6 +22,9 @@ export const SlabNode = BaseNode.extend({
   polygon: z.array(z.tuple([z.number(), z.number()])),
   holes: z.array(z.array(z.tuple([z.number(), z.number()]))).default([]),
   holeMetadata: z.array(SurfaceHoleMetadata).default([]),
+  // Build-up of this surface (joists/furring, boards, screed). Empty means
+  // none recorded — the takeoff then reports plain area.
+  construction: SurfaceConstruction,
   elevation: z.number().default(0.05), // Walking surface (slab top), meters above the level plane
   thickness: z.number().default(0.05), // Grows downward from the surface
   recessed: z.boolean().default(false),

@@ -18,6 +18,8 @@ export type WallConstructionLayerLike = {
   thickness?: number
   memberWidth?: number
   studSpacing?: number
+  /** Surfaces name it `memberSpacing`; walls name it `studSpacing`. */
+  memberSpacing?: number
   sheetWidth?: number
   sheetHeight?: number
   wasteFactor?: number
@@ -36,11 +38,19 @@ export type WallFace = {
 
 const LAYER_LABEL: Record<string, string> = {
   'gypsum-board': '석고보드',
+  plywood: '합판',
   mdf: 'MDF',
   'timber-stud': '각재',
+  'timber-joist': '장선',
+  furring: '각재',
+  insulation: '단열재',
+  screed: '방통',
   finish: '마감재',
   custom: '기타 자재',
 }
+
+/** Kinds framed as members at a spacing rather than laid as sheets. */
+const FRAMING_KINDS = new Set(['timber-stud', 'timber-joist', 'furring'])
 
 function layerLabel(layer: WallConstructionLayerLike): string {
   const base = LAYER_LABEL[layer.kind] ?? layer.kind
@@ -57,15 +67,16 @@ function studLines(
   layer: WallConstructionLayerLike,
   face: WallFace,
   nodeId: string,
+  category: TakeoffLine['category'],
 ): TakeoffLine[] {
-  const spacing = layer.studSpacing
+  const spacing = layer.studSpacing ?? layer.memberSpacing
   if (!spacing || spacing <= 0 || face.length <= 0 || face.height <= 0) return []
 
   const count = Math.floor(face.length / spacing) + 1
   const waste = 1 + (layer.wasteFactor ?? 0)
   return [
     {
-      category: 'wall',
+      category,
       key: `${layer.kind}:${layer.memberWidth ?? 'std'}:length`,
       label: `${layerLabel(layer)} (@${Math.round(spacing * 1000)}mm)`,
       unit: 'm',
@@ -81,6 +92,7 @@ function sheetLines(
   layer: WallConstructionLayerLike,
   face: WallFace,
   nodeId: string,
+  category: TakeoffLine['category'],
 ): TakeoffLine[] {
   const waste = 1 + (layer.wasteFactor ?? 0)
   const sheetArea = layer.sheetWidth && layer.sheetHeight ? layer.sheetWidth * layer.sheetHeight : 0
@@ -88,7 +100,7 @@ function sheetLines(
   if (sheetArea > 0) {
     return [
       {
-        category: 'wall',
+        category,
         key: `${layer.kind}:${layer.sheetWidth}x${layer.sheetHeight}`,
         label: `${layerLabel(layer)} ${Math.round(layer.sheetWidth! * 1000)}×${Math.round(
           layer.sheetHeight! * 1000,
@@ -105,7 +117,7 @@ function sheetLines(
   // and priceable, rather than silently vanishing.
   return [
     {
-      category: 'wall',
+      category,
       key: `${layer.kind}:area`,
       label: layerLabel(layer),
       unit: 'm2',
@@ -137,12 +149,50 @@ export function wallAssemblyLines(
     for (const layer of band.layers ?? []) {
       if (layer.kind === 'cavity') continue // empty space is not a material
       lines.push(
-        ...(layer.kind === 'timber-stud'
-          ? studLines(layer, face, nodeId)
-          : sheetLines(layer, face, nodeId)),
+        ...(FRAMING_KINDS.has(layer.kind)
+          ? studLines(layer, face, nodeId, 'wall')
+          : sheetLines(layer, face, nodeId, 'wall')),
       )
     }
   }
 
+  return lines
+}
+
+/**
+ * The same expansion for a horizontal surface. Floors and ceilings carry a
+ * flat layer list rather than bands, and report under their own category so a
+ * ceiling's furring doesn't land in the wall totals.
+ */
+export function surfaceAssemblyLines(
+  layers: readonly WallConstructionLayerLike[] | undefined,
+  face: WallFace,
+  nodeId: string,
+  category: TakeoffLine['category'],
+): TakeoffLine[] {
+  const lines: TakeoffLine[] = []
+  for (const layer of layers ?? []) {
+    if (layer.kind === 'cavity') continue
+    // Screed is poured, so it is bought by volume, not by area or by sheet.
+    if (layer.kind === 'screed') {
+      if (layer.thickness && face.area > 0) {
+        lines.push({
+          category,
+          key: `screed:${layer.thickness}`,
+          label: `${layerLabel(layer)} ${Math.round(layer.thickness * 1000)}mm`,
+          unit: 'm3',
+          quantity: face.area * layer.thickness * (1 + (layer.wasteFactor ?? 0)),
+          nodeIds: [nodeId],
+          materialRef: layer.productRef,
+        })
+      }
+      continue
+    }
+    lines.push(
+      ...(FRAMING_KINDS.has(layer.kind)
+        ? studLines(layer, face, nodeId, category)
+        : sheetLines(layer, face, nodeId, category)),
+    )
+  }
   return lines
 }

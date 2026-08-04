@@ -362,3 +362,89 @@ describe('floor and ceiling openings', () => {
     expect(report.totals.floor).toBe(0)
   })
 })
+
+describe('floor and ceiling build-up', () => {
+  const square = [
+    [0, 0],
+    [4, 0],
+    [4, 3],
+    [0, 3],
+  ]
+
+  test('a ceiling expands into furring and board, under the ceiling heading', () => {
+    const report = deriveTakeoff(
+      scene({
+        id: 'ceiling_a',
+        type: 'ceiling',
+        polygon: square,
+        construction: [
+          {
+            kind: 'furring',
+            thickness: 0.03,
+            memberWidth: 0.03,
+            memberSpacing: 0.45,
+            wasteFactor: 0,
+          },
+          {
+            kind: 'gypsum-board',
+            thickness: 0.0095,
+            sheetWidth: 0.9,
+            sheetHeight: 1.8,
+            wasteFactor: 0,
+          },
+        ],
+      }),
+    )
+
+    const furring = report.lines.find((l) => l.label.includes('각재'))
+    const board = report.lines.find((l) => l.label.includes('석고보드'))
+    expect(furring?.category).toBe('ceiling')
+    expect(furring?.unit).toBe('m')
+    expect(board?.category).toBe('ceiling')
+    expect(board?.unit).toBe('ea')
+    // 12㎡ over 1.62㎡ sheets = 7.4 → 8.
+    expect(board?.quantity).toBe(8)
+  })
+
+  // Screed is poured, so it is bought by volume — not by area, not by sheet.
+  test('floor screed is measured by volume', () => {
+    const report = deriveTakeoff(
+      scene({
+        id: 'slab_a',
+        type: 'slab',
+        polygon: square,
+        construction: [{ kind: 'screed', thickness: 0.05, wasteFactor: 0 }],
+      }),
+    )
+
+    const screed = report.lines.find((l) => l.label.includes('방통'))
+    expect(screed?.category).toBe('floor')
+    expect(screed?.unit).toBe('m3')
+    expect(screed?.quantity).toBeCloseTo(12 * 0.05)
+  })
+
+  test('holes reduce the build-up too, not just the headline area', () => {
+    const withHole = deriveTakeoff(
+      scene({
+        id: 'slab_a',
+        type: 'slab',
+        polygon: square,
+        holes: [
+          [
+            [1, 1],
+            [2, 1],
+            [2, 2],
+            [1, 2],
+          ],
+        ],
+        construction: [{ kind: 'screed', thickness: 0.05, wasteFactor: 0 }],
+      }),
+    )
+    expect(withHole.lines.find((l) => l.unit === 'm3')?.quantity).toBeCloseTo(11 * 0.05)
+  })
+
+  test('a surface with no construction still reports its area', () => {
+    const report = deriveTakeoff(scene({ id: 'slab_a', type: 'slab', polygon: square }))
+    expect(report.totals.floor).toBeCloseTo(12)
+  })
+})

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { BaseNode, nodeType, objectId } from '../base'
 import { MaterialSchema } from '../material'
 import { ItemNode } from './item'
+import { SurfaceConstruction } from './surface-construction'
 import { SurfaceHoleMetadata } from './surface-hole-metadata'
 
 export const CeilingNode = BaseNode.extend({
@@ -18,6 +19,9 @@ export const CeilingNode = BaseNode.extend({
   polygon: z.array(z.tuple([z.number(), z.number()])),
   holes: z.array(z.array(z.tuple([z.number(), z.number()]))).default([]),
   holeMetadata: z.array(SurfaceHoleMetadata).default([]),
+  // Build-up of this surface (joists/furring, boards, screed). Empty means
+  // none recorded — the takeoff then reports plain area.
+  construction: SurfaceConstruction,
   // Height in meters. Absent = the ceiling follows the level top: its
   // effective height is the same bound its write-clamp uses —
   // min(storey plane, lowest covering-slab underside over the polygon)
