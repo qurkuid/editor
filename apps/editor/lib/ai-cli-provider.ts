@@ -39,6 +39,24 @@ export class CodexCliExecutionError extends Error {
   }
 }
 
+/**
+ * The lines of stderr that actually say what went wrong.
+ *
+ * Codex echoes the full invocation — a 100KB plan schema included — before its
+ * ERROR lines, so raw stderr buried the one sentence that mattered ("You've
+ * hit your usage limit…") past anything a log reader or the API's error
+ * message would surface.
+ */
+export function codexFailureSummary(stderr: string): string {
+  const lines = stderr
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+  const errors = [...new Set(lines.filter((line) => /^(ERROR|error)[:\s]/.test(line)))]
+  if (errors.length > 0) return errors.join('\n')
+  return lines.slice(-3).join('\n') || 'Codex CLI failed'
+}
+
 function runCodexCli(
   config: AiProviderConfig,
   args: readonly string[],
@@ -63,7 +81,7 @@ function runCodexCli(
         return
       }
       if (exitCode !== 0) {
-        reject(new CodexCliExecutionError(stderr.trim() || 'Codex CLI failed', exitCode))
+        reject(new CodexCliExecutionError(codexFailureSummary(stderr), exitCode))
         return
       }
       resolve({ stdout, stderr })

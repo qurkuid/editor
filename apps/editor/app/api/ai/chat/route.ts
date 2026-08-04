@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { describeAiFailure } from '@/lib/ai-failure'
 import { getClaudeCliStatus, requestAiModelingPlanViaClaude } from '@/lib/ai-claude-provider'
 import { getCodexCliStatus, requestAiModelingPlan } from '@/lib/ai-cli-provider'
 import {
@@ -86,12 +87,10 @@ export async function POST(request: Request) {
       } else {
         console.error('[AI] Claude modeling request failed with a non-error value')
       }
+      const failure = describeAiFailure(error)
       return NextResponse.json(
-        {
-          error: 'ai_request_failed',
-          message: 'The modeling agent could not produce a valid plan.',
-        },
-        { status: 502 },
+        { error: failure.error, message: failure.message },
+        { status: failure.status },
       )
     }
   }
@@ -117,9 +116,10 @@ export async function POST(request: Request) {
     } else {
       console.error('[AI] Modeling request failed with a non-error value')
     }
+    const failure = describeAiFailure(error)
     return NextResponse.json(
-      { error: 'ai_request_failed', message: 'The modeling agent could not produce a valid plan.' },
-      { status: 502 },
+      { error: failure.error, message: failure.message },
+      { status: failure.status },
     )
   }
 }

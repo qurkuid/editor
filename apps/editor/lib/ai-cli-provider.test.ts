@@ -3,7 +3,12 @@ import { existsSync } from 'node:fs'
 import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { getCodexCliStatus, parseCodexCliPlan, requestAiModelingPlan } from './ai-cli-provider'
+import {
+  codexFailureSummary,
+  getCodexCliStatus,
+  parseCodexCliPlan,
+  requestAiModelingPlan,
+} from './ai-cli-provider'
 import { AiChatRequestSchema } from './ai-provider'
 
 const emptyFieldPatch = {
@@ -432,5 +437,30 @@ printf '%s' '{"message":"CLI plan ready.","patches":[]}' > "$output"
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
+  })
+})
+
+
+describe('codex stderr is reduced to what went wrong', () => {
+  // Codex echoes the full invocation — schema included — before its ERROR
+  // lines, so raw stderr buried the one sentence that mattered.
+  test('the ERROR lines survive, the schema dump does not', () => {
+    const stderr = `{"type":"object","properties":{...100KB of schema...}}\nERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Aug 8th, 2026 12:35 PM.`
+    const summary = codexFailureSummary(stderr)
+    expect(summary).toContain('usage limit')
+    expect(summary).not.toContain('"type":"object"')
+  })
+
+  test('duplicate ERROR lines collapse to one', () => {
+    const summary = codexFailureSummary('ERROR: boom\nERROR: boom')
+    expect(summary).toBe('ERROR: boom')
+  })
+
+  test('no ERROR line falls back to the last lines', () => {
+    expect(codexFailureSummary('a\nb\nc\nd')).toBe('b\nc\nd')
+  })
+
+  test('empty stderr still names the CLI', () => {
+    expect(codexFailureSummary('')).toBe('Codex CLI failed')
   })
 })
