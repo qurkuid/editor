@@ -3,6 +3,7 @@ import type { MaterialCatalogItem } from '../material-library'
 import {
   bestConstructionMaterial,
   matchScore,
+  sectionFromName,
   sheetFromName,
   thicknessFromName,
 } from './construction-material-match'
@@ -85,5 +86,41 @@ describe('picking the closest product', () => {
       GYPSUM,
     )
     expect(best?.label).toBe('석고보드 9.5T (900x1800)')
+  })
+})
+
+// 33×33×2400, 12 to a 단 — the one standard stud.
+const STUD = { kind: 'timber-stud' as const, thickness: 0.033, memberWidth: 0.033 }
+
+describe('framing is named by its section', () => {
+  test('the standard stud finds 33x33', () => {
+    const best = bestConstructionMaterial(
+      [
+        product('각재 30x30x2400'),
+        product('각재 33x33x2400 (12개/단)'),
+        product('각재 40x60 3600mm'),
+      ],
+      STUD,
+    )
+    expect(best?.label).toBe('각재 33x33x2400 (12개/단)')
+  })
+
+  test('a different section is the wrong timber, not a worse one', () => {
+    expect(matchScore('각재 50x50 3600mm', STUD)).toBe(0)
+  })
+
+  test('a board never reads as framing: 900x1800 is not a 900×180 section', () => {
+    expect(sectionFromName('석고보드 9.5T 3x6 (900x1800)')).toBeNull()
+    expect(sectionFromName('MDF 12T 4x8 (1220x2440)')).toBeNull()
+  })
+
+  test('a stud section is read in metres', () => {
+    expect(sectionFromName('각재 33x33x2400')).toEqual({ width: 0.033, height: 0.033 })
+  })
+
+  // The gypsum layer has a sheet size, so its 900×1800 must never be scored as
+  // a section even though the layer also states a memberWidth elsewhere.
+  test('a sheet layer is unaffected by the section rule', () => {
+    expect(matchScore('석고보드 9.5T 3x6 (900x1800)', GYPSUM)).toBeGreaterThan(0)
   })
 })

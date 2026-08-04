@@ -23,6 +23,20 @@ export function thicknessFromName(name: string): number | null {
   return Number.isFinite(mm) && mm > 0 ? mm / 1000 : null
 }
 
+/**
+ * Section a framing product name states, in metres — `각재 33x33x2400`.
+ *
+ * The lookarounds matter: without them `(900x1800)` on a board would read as a
+ * 900×180 section, and every sheet good would look like framing.
+ */
+export function sectionFromName(name: string): { width: number; height: number } | null {
+  const match = name.match(/(?<!\d)(\d{2,3})\s*[x*×X]\s*(\d{2,3})(?!\d)/)
+  if (!match) return null
+  const width = Number(match[1]) / 1000
+  const height = Number(match[2]) / 1000
+  return width > 0 && height > 0 ? { width, height } : null
+}
+
 /** Sheet size a product name states, in metres — `(900x1800)`. */
 export function sheetFromName(name: string): { width: number; height: number } | null {
   const match = name.match(/(\d{3,4})\s*[x×X]\s*(\d{3,4})/)
@@ -57,6 +71,17 @@ export function matchScore(name: string, layer: Partial<WallConstructionLayer>):
       (near(sheet.width, layer.sheetWidth, 0.005) && near(sheet.height, layer.sheetHeight, 0.005)) ||
       (near(sheet.height, layer.sheetWidth, 0.005) && near(sheet.width, layer.sheetHeight, 0.005))
     if (fits) score += 3
+  }
+
+  // Framing is named by its section, not its thickness: 각재 33x33x2400. Only
+  // consulted for layers that are actually framed, so a board's sheet size is
+  // never read as a stud section.
+  if (layer.memberWidth && !layer.sheetWidth) {
+    const section = sectionFromName(name)
+    if (section) {
+      if (near(section.width, layer.memberWidth, 0.001)) score += 4
+      else return 0 // a 50×50 stud is the wrong timber, not a worse one
+    }
   }
 
   return score

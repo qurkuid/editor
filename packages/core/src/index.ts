@@ -290,6 +290,7 @@ export {
 export {
   bestConstructionMaterial,
   matchScore as constructionMaterialMatchScore,
+  sectionFromName as constructionSectionFromName,
   sheetFromName as constructionSheetFromName,
   thicknessFromName as constructionThicknessFromName,
 } from './lib/construction-material-match'
