@@ -22,6 +22,7 @@ import { HostSettingsSection } from '@/components/host-settings-section'
 import { LightingTab } from '@/components/lighting-tab'
 import { PaintingTab } from '@/components/painting-tab'
 import { SkpItemsPanel } from '@/components/skp-items-panel'
+import { IntmMaterialLibrary } from '@/components/intm-material-library'
 import { StatsTab } from '@/components/stats-tab'
 import {
   CommunityViewerToolbarLeft,
@@ -178,6 +179,8 @@ export default function Home() {
           </div>
         </div>
       )}
+      {/* Also mounted in scene-loader.tsx — this app has two Editor roots. */}
+      <IntmMaterialLibrary />
       <Editor
         integrationAdapter={rawPainterIntegrationAdapter}
         layoutVersion="v2"

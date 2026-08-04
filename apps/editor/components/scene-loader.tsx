@@ -33,6 +33,7 @@ import { HostSettingsSection } from './host-settings-section'
 import { LightingTab } from './lighting-tab'
 import { PaintingTab } from './painting-tab'
 import { SkpItemsPanel } from './skp-items-panel'
+import { IntmMaterialLibrary } from './intm-material-library'
 import { StatsTab } from './stats-tab'
 import { CommunityViewerToolbarLeft, CommunityViewerToolbarRight } from './viewer-toolbar'
 
@@ -343,6 +344,8 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
           All scenes
         </Link>
       </div>
+      {/* Also mounted in app/page.tsx — this app has two Editor roots. */}
+      <IntmMaterialLibrary />
       <Editor
         layoutVersion="v2"
         onLoad={handleLoad}
