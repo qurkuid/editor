@@ -3,6 +3,7 @@
 import { Icon } from '@iconify/react'
 import { Copy, Move, Search, Spline, Trash2 } from 'lucide-react'
 import type { MouseEventHandler, PointerEventHandler } from 'react'
+import { useT } from '../../i18n/use-t'
 import type { WallConstructionDisplayMode } from '../../store/use-wall-construction-display'
 
 type NodeActionMenuProps = {
@@ -35,6 +36,8 @@ export function NodeActionMenu({
   onPointerLeave,
   wallDisplay,
 }: NodeActionMenuProps) {
+  const t = useT()
+
   return (
     <div
       className="pointer-events-auto flex items-center gap-1 rounded-lg border border-border bg-background/95 p-1 shadow-xl backdrop-blur-md"
@@ -45,19 +48,19 @@ export function NodeActionMenu({
     >
       {wallDisplay && (
         <div
-          aria-label="Wall display mode"
+          aria-label={t('actionMenu.wallDisplayMode')}
           className="mr-0.5 flex items-center rounded-md bg-muted/70 p-0.5"
           role="group"
         >
           {(
             [
-              ['finish', '마감'],
-              ['frame', '골조'],
-              ['layers', '레이어'],
+              ['finish', t('actionMenu.wallDisplayFinish')],
+              ['frame', t('actionMenu.wallDisplayFrame')],
+              ['layers', t('actionMenu.wallDisplayLayers')],
             ] as const
           ).map(([mode, label]) => (
             <button
-              aria-label={`Wall display: ${label}`}
+              aria-label={`${t('actionMenu.wallDisplayMode')}: ${label}`}
               aria-pressed={wallDisplay.mode === mode}
               className={`rounded px-2 py-1 text-[10px] transition-colors ${
                 wallDisplay.mode === mode
@@ -69,7 +72,7 @@ export function NodeActionMenu({
                 event.stopPropagation()
                 wallDisplay.onChange(mode)
               }}
-              title={`벽 표시: ${label}`}
+              title={`${t('actionMenu.wallDisplayMode')}: ${label}`}
               type="button"
             >
               {label}
@@ -79,10 +82,10 @@ export function NodeActionMenu({
       )}
       {onFind && (
         <button
-          aria-label="Find in catalog"
+          aria-label={t('actionMenu.findInCatalog')}
           className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           onClick={onFind}
-          title="Find in catalog"
+          title={t('actionMenu.findInCatalog')}
           type="button"
         >
           <Search className="h-4 w-4" />
@@ -90,10 +93,10 @@ export function NodeActionMenu({
       )}
       {onMove && (
         <button
-          aria-label="Move"
+          aria-label={t('common.move')}
           className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           onClick={onMove}
-          title="Move"
+          title={t('common.move')}
           type="button"
         >
           <Move className="h-4 w-4" />
@@ -101,10 +104,10 @@ export function NodeActionMenu({
       )}
       {onCurve && (
         <button
-          aria-label="Curve"
+          aria-label={t('common.curve')}
           className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           onClick={onCurve}
-          title="Curve"
+          title={t('common.curve')}
           type="button"
         >
           <Spline className="h-4 w-4" />
@@ -112,10 +115,10 @@ export function NodeActionMenu({
       )}
       {onDuplicate && (
         <button
-          aria-label="Duplicate"
+          aria-label={t('common.duplicate')}
           className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           onClick={onDuplicate}
-          title="Duplicate"
+          title={t('common.duplicate')}
           type="button"
         >
           <Copy className="h-4 w-4" />
@@ -123,10 +126,10 @@ export function NodeActionMenu({
       )}
       {onAddHole && (
         <button
-          aria-label="Cut Out"
+          aria-label={t('actionMenu.cutOut')}
           className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           onClick={onAddHole}
-          title="Cut Out"
+          title={t('actionMenu.cutOut')}
           type="button"
         >
           <Icon height={16} icon="carbon:cut-out" width={16} />
@@ -134,10 +137,10 @@ export function NodeActionMenu({
       )}
       {onDelete && (
         <button
-          aria-label="Delete"
+          aria-label={t('common.delete')}
           className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           onClick={onDelete}
-          title="Delete"
+          title={t('common.delete')}
           type="button"
         >
           <Trash2 className="h-4 w-4" />

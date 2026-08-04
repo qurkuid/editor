@@ -19,6 +19,8 @@ import {
   Waypoints,
 } from 'lucide-react'
 import { useState } from 'react'
+import type { MessageId } from '../../../i18n/translate'
+import { useT } from '../../../i18n/use-t'
 import type { CreatableMeasurementKind } from '../../../lib/measurement-kind'
 import { cn } from '../../../lib/utils'
 import useEditor from '../../../store/use-editor'
@@ -27,41 +29,42 @@ import { Popover, PopoverContent, PopoverTrigger } from '../primitives/popover'
 import { ActionButton } from './action-button'
 
 const measurementOptions = [
-  { kind: 'distance', label: 'Distance', icon: Ruler },
-  { kind: 'angle', label: 'Angle', icon: Triangle },
-  { kind: 'area', label: 'Area', icon: Square },
-  { kind: 'perimeter', label: 'Perimeter', icon: Waypoints },
-  { kind: 'volume', label: 'Volume', icon: Box },
+  { kind: 'distance', labelKey: 'actionMenu.measureDistance', icon: Ruler },
+  { kind: 'angle', labelKey: 'actionMenu.measureAngle', icon: Triangle },
+  { kind: 'area', labelKey: 'actionMenu.measureArea', icon: Square },
+  { kind: 'perimeter', labelKey: 'actionMenu.measurePerimeter', icon: Waypoints },
+  { kind: 'volume', labelKey: 'actionMenu.measureVolume', icon: Box },
 ] as const satisfies readonly {
   kind: CreatableMeasurementKind
-  label: string
+  labelKey: MessageId
   icon: typeof Ruler
 }[]
 
 const measurementMenuOptions = [
-  { kind: 'smart', label: 'Smart', icon: ScanSearch },
+  { kind: 'smart', labelKey: 'actionMenu.measureSmart', icon: ScanSearch },
   ...measurementOptions,
 ] as const
 
 const constructionDimensionOptions = [
-  { mode: 'linear', chainMode: 'point-to-point', label: 'Linear dimension', icon: Ruler },
-  { mode: 'linear', chainMode: 'continuous', label: 'Continuous dimension', icon: Waypoints },
-  { mode: 'radius', chainMode: 'point-to-point', label: 'Radius dimension', icon: CircleIcon },
-  { mode: 'diameter', chainMode: 'point-to-point', label: 'Diameter dimension', icon: CircleIcon },
-  { mode: 'center-mark', chainMode: 'point-to-point', label: 'Center mark', icon: Crosshair },
-  { mode: 'chord', chainMode: 'point-to-point', label: 'Chord dimension', icon: Minus },
-  { mode: 'arc-length', chainMode: 'point-to-point', label: 'Arc length', icon: CircleIcon },
-  { mode: 'angular', chainMode: 'point-to-point', label: 'Angular dimension', icon: Triangle },
-  { mode: 'coordinate', chainMode: 'continuous', label: 'Coordinate dimensions', icon: Grid2X2 },
+  { mode: 'linear', chainMode: 'point-to-point', labelKey: 'actionMenu.dimLinear', icon: Ruler },
+  { mode: 'linear', chainMode: 'continuous', labelKey: 'actionMenu.dimContinuous', icon: Waypoints },
+  { mode: 'radius', chainMode: 'point-to-point', labelKey: 'actionMenu.dimRadius', icon: CircleIcon },
+  { mode: 'diameter', chainMode: 'point-to-point', labelKey: 'actionMenu.dimDiameter', icon: CircleIcon },
+  { mode: 'center-mark', chainMode: 'point-to-point', labelKey: 'actionMenu.dimCenterMark', icon: Crosshair },
+  { mode: 'chord', chainMode: 'point-to-point', labelKey: 'actionMenu.dimChord', icon: Minus },
+  { mode: 'arc-length', chainMode: 'point-to-point', labelKey: 'actionMenu.dimArcLength', icon: CircleIcon },
+  { mode: 'angular', chainMode: 'point-to-point', labelKey: 'actionMenu.dimAngular', icon: Triangle },
+  { mode: 'coordinate', chainMode: 'continuous', labelKey: 'actionMenu.dimCoordinate', icon: Grid2X2 },
 ] as const satisfies readonly {
   mode: ConstructionDimensionMode
   chainMode: ConstructionDimensionChainMode
-  label: string
+  labelKey: MessageId
   icon: typeof Ruler
 }[]
 
 export function MeasurementControl() {
   const [isOpen, setIsOpen] = useState(false)
+  const t = useT()
   const mode = useEditor((state) => state.mode)
   const tool = useEditor((state) => state.tool)
   const floorplanMode = useFloorplanMode((state) => state.mode)
@@ -98,10 +101,10 @@ export function MeasurementControl() {
       ? ScanSearch
       : selectedOption.icon
   const selectedLabel = isConstructionDimensionActive
-    ? (activeConstructionDimensionOption?.label ?? 'Linear dimension')
+    ? t(activeConstructionDimensionOption?.labelKey ?? 'actionMenu.dimLinear')
     : isSmartActive
-      ? 'Smart'
-      : selectedOption.label
+      ? t('actionMenu.measureSmart')
+      : t(selectedOption.labelKey)
 
   const activateMeasurement = (kind: CreatableMeasurementKind) => {
     setPhase('structure')
@@ -169,7 +172,7 @@ export function MeasurementControl() {
           <button
             aria-expanded={isOpen}
             aria-haspopup="menu"
-            aria-label="Measurement options"
+            aria-label={t('actionMenu.measurementOptions')}
             className={cn(
               'flex h-11 w-6 items-center justify-center rounded-r-lg text-muted-foreground transition-colors',
               isOpen
@@ -192,7 +195,7 @@ export function MeasurementControl() {
         side="top"
         sideOffset={14}
       >
-        <div aria-label="Measurement type" className="space-y-1" role="menu">
+        <div aria-label={t('actionMenu.measurementType')} className="space-y-1" role="menu">
           {measurementMenuOptions.map((option) => {
             const OptionIcon = option.icon
             const isSmart = option.kind === 'smart'
@@ -218,7 +221,7 @@ export function MeasurementControl() {
                 type="button"
               >
                 <OptionIcon aria-hidden="true" className="h-4 w-4" />
-                <span>{option.label}</span>
+                <span>{t(option.labelKey)}</span>
                 {isSelected ? <Check aria-hidden="true" className="ml-auto h-4 w-4" /> : null}
               </button>
             )
@@ -253,7 +256,7 @@ export function MeasurementControl() {
                     type="button"
                   >
                     <OptionIcon aria-hidden="true" className="h-4 w-4" />
-                    <span>{option.label}</span>
+                    <span>{t(option.labelKey)}</span>
                     {isSelected ? <Check aria-hidden="true" className="ml-auto h-4 w-4" /> : null}
                   </button>
                 )

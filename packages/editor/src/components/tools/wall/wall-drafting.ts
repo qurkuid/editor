@@ -2,6 +2,7 @@ import {
   type AnyNode,
   type AnyNodeId,
   createDefaultWallFaceBands,
+  withDefaultConstructionMaterials,
   DEFAULT_ANGLE_STEP,
   DEFAULT_LEVEL_HEIGHT,
   type DoorNode,
@@ -613,7 +614,12 @@ export function createWallOnCurrentLevel(
     const wall = WallSchema.parse({
       ...defaults,
       thickness,
-      faceBands: defaults.faceBands ?? createDefaultWallFaceBands(thickness),
+      // Applied here, not only in the node defaults: this is the path a wall
+      // drawn by hand actually takes, and it must arrive already priceable.
+      // A caller that supplied its own bands keeps them, products and all.
+      faceBands:
+        defaults.faceBands ??
+        withDefaultConstructionMaterials(createDefaultWallFaceBands(thickness)),
       name: `Wall ${wallCount + 1}`,
       start: resolvedStart,
       end: resolvedEnd,

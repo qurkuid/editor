@@ -1,6 +1,7 @@
 import {
   createDefaultFurnitureAssembly,
   createDefaultWallFaceBands,
+  withDefaultConstructionMaterials,
   createRoundedRectangularFrameBody,
   deleteFurnitureBay,
   deleteFurnitureTier,
@@ -129,7 +130,9 @@ function normalizePatches(plan: AiModelingPlan): {
             ? {
                 ...patch.node,
                 thickness,
-                faceBands: createDefaultWallFaceBands(thickness),
+                faceBands: withDefaultConstructionMaterials(
+                  createDefaultWallFaceBands(thickness),
+                ),
               }
             : patch.node,
         )
