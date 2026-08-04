@@ -18,6 +18,7 @@ import {
 import { useViewer } from '@pascal-app/viewer'
 import { Edit, Move, Plus, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
+import { SurfaceTexturePlacementSection } from '../shared/surface-texture-placement'
 import {
   applySlabAnchorElevationChange,
   applySlabElevationPreset,
@@ -366,6 +367,13 @@ export function SlabPanel() {
           <span className="font-mono text-white">{area.toFixed(2)} m²</span>
         </div>
       </PanelSection>
+
+      <SurfaceTexturePlacementSection
+        ariaPrefix="slab"
+        node={node}
+        slotId="surface"
+        title="바닥 재질"
+      />
 
       <PanelSection title={t('panel.holes')}>
         {node.holes && node.holes.length > 0 ? (

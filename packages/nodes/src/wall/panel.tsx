@@ -8,7 +8,6 @@ import {
   calculateWallConstructionQuantities,
   createWallBandConstructionPreset,
   detectWallConstructionPreset,
-  getCatalogMaterialById,
   getClampedWallCurveOffset,
   getDynamicLibraryMaterials,
   getLibraryMaterialsVersion,
@@ -57,14 +56,10 @@ import {
 import { useViewer } from '@pascal-app/viewer'
 import { Plus, Spline, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
+import { SurfaceTexturePlacementControls } from '../shared/surface-texture-placement'
 import { resolveWallOpeningCeiling } from '../shared/wall-opening-ceiling'
 import { WALL_LAYER_COLORS } from './construction-visual'
 import { wallPaint } from './paint'
-import {
-  commitWallSurfaceTextureTransform,
-  readSurfaceTextureTransform,
-  type WallSurfaceTextureTransform,
-} from './surface-texture-transform'
 
 type WallTrimKey = 'skirting' | 'crown' | 'chairRail'
 
@@ -613,38 +608,6 @@ export function WallBandConstructionEditor({
   const surfaceLabel =
     surfaceCatalogItem?.label ?? (surfaceSceneSource ? surfaceSceneMaterial?.name : undefined)
 
-  // Texture placement (SketchUp-style): read the placed material's transform
-  // from whatever the slot resolves to — a scene material, or a host library
-  // item frozen for preview. Edits commit per-face (shared materials fork).
-  const surfaceBaseMaterial =
-    parsedSurfaceRef?.kind === 'scene'
-      ? surfaceSceneMaterial?.material.texture?.url
-        ? surfaceSceneMaterial.material
-        : undefined
-      : parsedSurfaceRef?.kind === 'library'
-        ? (() => {
-            const item = getCatalogMaterialById(parsedSurfaceRef.id)
-            return item?.sourceRef && item.preset.maps.albedoMap
-              ? freezeHostMaterialCatalogItem(item)
-              : undefined
-          })()
-        : undefined
-  const surfaceTransform = surfaceBaseMaterial
-    ? readSurfaceTextureTransform(surfaceBaseMaterial)
-    : null
-
-  const commitSurfaceTransform = (transform: WallSurfaceTextureTransform) => {
-    commitWallSurfaceTextureTransform({
-      node,
-      slotId: surfaceSlotId,
-      transform,
-      freezeLibraryMaterial: (catalogId) => {
-        const item = getCatalogMaterialById(catalogId)
-        return item?.sourceRef ? freezeHostMaterialCatalogItem(item) : null
-      },
-    })
-  }
-
   const applySurfaceMaterial = (value: string) => {
     if (!value) {
       wallPaint.commit?.({
@@ -989,113 +952,11 @@ export function WallBandConstructionEditor({
             <span className="truncate text-[10px] text-foreground">{surfaceLabel}</span>
           </div>
         )}
-        {surfaceTransform && (
-          <div className="space-y-1.5 rounded border border-border/60 bg-background/70 p-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                재질 배치
-              </span>
-              <button
-                className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                onClick={() =>
-                  commitSurfaceTransform({
-                    ...surfaceTransform,
-                    offsetXM: 0,
-                    offsetYM: 0,
-                    rotationDeg: 0,
-                  })
-                }
-                type="button"
-              >
-                초기화
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <label className="text-[10px] text-muted-foreground">
-                시작점 X mm
-                <input
-                  aria-label={`${t(WALL_BAND_LABELS[band])} surface offset x mm`}
-                  className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
-                  onChange={(event) =>
-                    commitSurfaceTransform({
-                      ...surfaceTransform,
-                      offsetXM: Number(event.target.value) / 1000,
-                    })
-                  }
-                  step={10}
-                  type="number"
-                  value={Math.round(surfaceTransform.offsetXM * 1000)}
-                />
-              </label>
-              <label className="text-[10px] text-muted-foreground">
-                시작점 Y mm
-                <input
-                  aria-label={`${t(WALL_BAND_LABELS[band])} surface offset y mm`}
-                  className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
-                  onChange={(event) =>
-                    commitSurfaceTransform({
-                      ...surfaceTransform,
-                      offsetYM: Number(event.target.value) / 1000,
-                    })
-                  }
-                  step={10}
-                  type="number"
-                  value={Math.round(surfaceTransform.offsetYM * 1000)}
-                />
-              </label>
-              <label className="text-[10px] text-muted-foreground">
-                타일 폭 mm
-                <input
-                  aria-label={`${t(WALL_BAND_LABELS[band])} surface tile width mm`}
-                  className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
-                  min={10}
-                  onChange={(event) =>
-                    commitSurfaceTransform({
-                      ...surfaceTransform,
-                      tileWidthM: Math.max(0.01, Number(event.target.value) / 1000),
-                    })
-                  }
-                  step={10}
-                  type="number"
-                  value={Math.round(surfaceTransform.tileWidthM * 1000)}
-                />
-              </label>
-              <label className="text-[10px] text-muted-foreground">
-                타일 높이 mm
-                <input
-                  aria-label={`${t(WALL_BAND_LABELS[band])} surface tile height mm`}
-                  className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
-                  min={10}
-                  onChange={(event) =>
-                    commitSurfaceTransform({
-                      ...surfaceTransform,
-                      tileHeightM: Math.max(0.01, Number(event.target.value) / 1000),
-                    })
-                  }
-                  step={10}
-                  type="number"
-                  value={Math.round(surfaceTransform.tileHeightM * 1000)}
-                />
-              </label>
-              <label className="text-[10px] text-muted-foreground">
-                회전 °
-                <input
-                  aria-label={`${t(WALL_BAND_LABELS[band])} surface rotation deg`}
-                  className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
-                  onChange={(event) =>
-                    commitSurfaceTransform({
-                      ...surfaceTransform,
-                      rotationDeg: Number(event.target.value),
-                    })
-                  }
-                  step={15}
-                  type="number"
-                  value={Math.round(surfaceTransform.rotationDeg)}
-                />
-              </label>
-            </div>
-          </div>
-        )}
+        <SurfaceTexturePlacementControls
+          ariaPrefix={t(WALL_BAND_LABELS[band])}
+          node={node}
+          slotId={surfaceSlotId}
+        />
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         <button

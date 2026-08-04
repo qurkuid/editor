@@ -25,6 +25,7 @@ import {
 import { useViewer } from '@pascal-app/viewer'
 import { Edit, Move, Plus, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
+import { SurfaceTexturePlacementSection } from '../shared/surface-texture-placement'
 
 /**
  * Phase 5 Stage E — ceiling inspector (kind-owned).
@@ -291,6 +292,13 @@ export function CeilingPanel() {
           <span className="font-mono text-white">{area.toFixed(2)} m²</span>
         </div>
       </PanelSection>
+
+      <SurfaceTexturePlacementSection
+        ariaPrefix="ceiling"
+        node={node}
+        slotId="surface"
+        title="천장 재질"
+      />
 
       <PanelSection title={t('panel.holes')}>
         {node.holes && node.holes.length > 0 ? (

@@ -7,17 +7,19 @@ import {
   type SceneMaterialId,
   toSceneMaterialRef,
   useScene,
-  type WallNode,
 } from '@pascal-app/core'
 
+type SlotsNode = AnyNode & { slots?: Record<string, string> }
+
 /**
- * SketchUp-style texture placement for a painted wall surface, expressed in
- * physical units: where the tile starts on the face (metres), how big one
- * tile is (metres), and its rotation (degrees). The wall's world-scale UV
- * convention (1 UV unit = 1/repeat metres) makes the mapping exact:
+ * SketchUp-style texture placement for a painted surface on the unified slot
+ * model (wall bands, ceiling underside, slab top), expressed in physical
+ * units: where the tile starts on the face (metres), how big one tile is
+ * (metres), and its rotation (degrees). The world-scale UV convention
+ * (1 UV unit = 1/repeat metres) makes the mapping exact:
  *   u = worldX · repeatX + offsetU  →  pattern shift of +x m ⇒ offsetU −= x·repeatX
  */
-export type WallSurfaceTextureTransform = {
+export type SurfaceTextureTransform = {
   offsetXM: number
   offsetYM: number
   tileWidthM: number
@@ -39,7 +41,7 @@ function resolveRepeat(
 
 export function readSurfaceTextureTransform(
   material: MaterialSchema,
-): WallSurfaceTextureTransform | null {
+): SurfaceTextureTransform | null {
   const texture = material.texture
   if (!texture?.url) return null
   const [repeatX, repeatY] = resolveRepeat(texture, material.physicalSize)
@@ -55,7 +57,7 @@ export function readSurfaceTextureTransform(
 
 export function applySurfaceTextureTransform(
   material: MaterialSchema,
-  transform: WallSurfaceTextureTransform,
+  transform: SurfaceTextureTransform,
 ): MaterialSchema {
   const texture = material.texture
   if (!texture?.url) return material
@@ -101,18 +103,18 @@ export function countSceneMaterialSlotUses(
  * `freezeLibraryMaterial`) is forked into a new scene material and the slot
  * repointed — material creation and slot write land as one undo entry.
  */
-export function commitWallSurfaceTextureTransform(args: {
-  node: WallNode
+export function commitSurfaceTextureTransform(args: {
+  node: AnyNode
   slotId: string
-  transform: WallSurfaceTextureTransform
+  transform: SurfaceTextureTransform
   freezeLibraryMaterial: (catalogId: string) => MaterialSchema | null
 }): void {
   const { node, slotId, transform, freezeLibraryMaterial } = args
   const state = useScene.getState()
   if (state.readOnly) return
 
-  const currentNode = state.nodes[node.id as AnyNodeId] as WallNode | undefined
-  const ref = (currentNode ?? node).slots?.[slotId]
+  const currentNode = state.nodes[node.id as AnyNodeId] as SlotsNode | undefined
+  const ref = (currentNode ?? (node as SlotsNode)).slots?.[slotId]
   const parsed = parseMaterialRef(ref)
 
   if (parsed?.kind === 'scene') {
