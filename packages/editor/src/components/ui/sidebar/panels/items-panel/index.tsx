@@ -1,5 +1,6 @@
 'use client'
 
+import { useTLabel } from '../../../../../i18n/use-t-label'
 import type { AssetInput } from '@pascal-app/core'
 import NextImage from 'next/image'
 import { useEffect, useState } from 'react'
@@ -99,6 +100,7 @@ function LegacyItemsPanel({
   showSourceFilter?: boolean
   showTagFilters?: boolean
 }) {
+  const tLabel = useTLabel()
   const t = useT()
   const mode = useEditor((s) => s.mode)
   const catalogCategory = useEditor((s) => s.catalogCategory)
@@ -217,13 +219,13 @@ function LegacyItemsPanel({
               type="button"
             >
               <NextImage
-                alt={cat.label}
+                alt={tLabel(cat.label)}
                 className={cn('size-7 object-contain', !isActive && 'opacity-60 grayscale')}
                 height={28}
                 src={cat.iconSrc}
                 width={28}
               />
-              <span className="font-medium text-[10px] leading-none">{cat.label}</span>
+              <span className="font-medium text-[10px] leading-none">{tLabel(cat.label)}</span>
             </button>
           )
         })}

@@ -3700,6 +3700,7 @@ function FloorplanGuideHandleHint({
   rotationModifierPressed: boolean
   showScaleHint: boolean
 }) {
+  const t = useT()
   if (!anchor) {
     return null
   }
@@ -3725,7 +3726,7 @@ function FloorplanGuideHandleHint({
             rotationModifierPressed ? 'opacity-40' : 'opacity-100',
           )}
         >
-          <span className="font-medium text-[11px] lowercase leading-none">resize</span>
+          <span className="font-medium text-[11px] leading-none">{t('panel.resizeHint')}</span>
           <Icon
             aria-hidden="true"
             className="h-3.5 w-3.5 shrink-0"
@@ -3740,7 +3741,7 @@ function FloorplanGuideHandleHint({
             rotationModifierPressed ? 'opacity-100' : 'opacity-40',
           )}
         >
-          <span className="font-medium text-[11px] lowercase leading-none">rotate</span>
+          <span className="font-medium text-[11px] leading-none">{t('panel.rotateHintWord')}</span>
           {isMacPlatform ? (
             <Command aria-hidden="true" className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
           ) : (
@@ -3756,9 +3757,9 @@ function FloorplanGuideHandleHint({
 
         {showScaleHint && (
           <div className="flex items-center gap-1.5 opacity-40">
-            <span className="font-medium text-[11px] lowercase leading-none">set scale</span>
+            <span className="font-medium text-[11px] leading-none">{t('panel.setScaleHint')}</span>
             <Ruler aria-hidden="true" className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
-            <span className="font-medium text-[11px] lowercase leading-none">panel</span>
+            <span className="font-medium text-[11px] leading-none">{t('panel.panelHintWord')}</span>
           </div>
         )}
       </div>
@@ -11249,7 +11250,7 @@ export function FloorplanPanel({
                     referenceScaleInputError ? 'border-destructive/60' : 'border-border',
                   )}
                   onChange={(event) => setReferenceScaleValue(event.target.value)}
-                  placeholder={`e.g. 3.5, 180cm or 5'11"`}
+                  placeholder={t('panel.lengthPlaceholder')}
                   type="text"
                   value={referenceScaleValue}
                 />

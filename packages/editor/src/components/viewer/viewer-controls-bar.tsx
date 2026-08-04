@@ -52,13 +52,7 @@ const levelModeLabelKeys: Record<'stacked' | 'exploded' | 'solo', MessageId> = {
 const wallModeConfig = {
   up: {
     icon: (props: any) => (
-      <img
-        alt=""
-        height={28}
-        src={assetPath('/icons/room.webp')}
-        width={28}
-        {...props}
-      />
+      <img alt="" height={28} src={assetPath('/icons/room.webp')} width={28} {...props} />
     ),
     labelKey: 'chrome.wallModeUp' as MessageId,
   },
@@ -230,7 +224,9 @@ function DisplayMenu() {
           <DropdownMenuSubTrigger>
             <activeShading.icon className="h-4 w-4" />
             <span>{t('common.render')}</span>
-            <span className="ml-auto text-muted-foreground text-xs">{t(activeShading.nameKey)}</span>
+            <span className="ml-auto text-muted-foreground text-xs">
+              {t(activeShading.nameKey)}
+            </span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="min-w-56">
             {SHADING_OPTIONS.map((option) => {
@@ -450,7 +446,7 @@ export const ViewerControlsBar = ({
             variant="ghost"
           >
             <img
-              alt="Orbit left"
+              alt={t('common.orbitLeft')}
               className="h-[28px] w-[28px] -scale-x-100 object-contain opacity-70 transition-opacity group-hover:opacity-100"
               src={assetPath('/icons/rotate.webp')}
             />
@@ -465,7 +461,7 @@ export const ViewerControlsBar = ({
             variant="ghost"
           >
             <img
-              alt="Orbit right"
+              alt={t('common.orbitRight')}
               className="h-[28px] w-[28px] object-contain opacity-70 transition-opacity group-hover:opacity-100"
               src={assetPath('/icons/rotate.webp')}
             />
@@ -480,7 +476,7 @@ export const ViewerControlsBar = ({
             variant="ghost"
           >
             <img
-              alt="Top view"
+              alt={t('common.topView')}
               className="h-[28px] w-[28px] object-contain opacity-70 transition-opacity group-hover:opacity-100"
               src={assetPath('/icons/topview.webp')}
             />

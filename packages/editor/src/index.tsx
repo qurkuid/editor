@@ -311,7 +311,9 @@ export { type Selection, useSelection } from './hooks/use-selection'
 // once. See `packages/editor/src/i18n/`.
 export { default as useLocale, type Locale } from './i18n/locale-store'
 export { type MessageId, translate } from './i18n/translate'
+export { translateEnglishLabel } from './i18n/translate-english'
 export { useT } from './i18n/use-t'
+export { useTLabel } from './i18n/use-t-label'
 export {
   clearPlacementSurface,
   getPlacementSurface,

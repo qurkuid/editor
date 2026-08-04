@@ -1,5 +1,6 @@
 'use client'
 
+import { useTLabel } from '../../../i18n/use-t-label'
 import {
   getCatalogMaterialById,
   getDynamicLibraryMaterials,
@@ -57,6 +58,7 @@ export function MaterialPicker({
   disabled = false,
   onCreateMaterialRequest,
 }: MaterialPickerProps) {
+  const tLabel = useTLabel()
   const [selectedCategory, setSelectedCategory] = useState<(typeof MATERIAL_CATEGORIES)[number]>(
     MATERIAL_CATEGORIES[0],
   )
@@ -115,7 +117,7 @@ export function MaterialPicker({
             }}
             type="button"
           >
-            {getCategoryLabel(category)}
+            {tLabel(getCategoryLabel(category))}
           </button>
         ))}
       </div>
@@ -138,7 +140,7 @@ export function MaterialPicker({
             onMouseEnter={() => triggerSFX('sfx:menu-hover')}
             type="button"
           >
-            {filter.label}
+            {tLabel(filter.label)}
           </button>
         ))}
       </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { useTLabel } from '../../../i18n/use-t-label'
 import { useScene } from '@pascal-app/core'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -65,6 +66,7 @@ export function SliderControl({
   unit = '',
   restoreOnCommit = true,
 }: SliderControlProps) {
+  const tLabel = useTLabel()
   // Display/storage conversion so the value honors the metric/imperial toggle.
   // `value`, `onChange`, `onCommit`, `min`/`max`/`clamp` are always in the
   // stored unit (meters for `unit === 'm'`); the step, drag deltas, text field
@@ -314,7 +316,7 @@ export function SliderControl({
             <div className="h-[2px] w-[2px] rounded-full bg-current" key={i} />
           ))}
         </div>
-        <span className="font-medium">{label}</span>
+        <span className="font-medium">{typeof label === 'string' ? tLabel(label) : label}</span>
       </div>
 
       <div className="flex-1" />

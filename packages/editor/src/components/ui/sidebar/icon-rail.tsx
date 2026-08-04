@@ -1,5 +1,6 @@
 'use client'
 
+import { useTLabel } from '../../../i18n/use-t-label'
 import { Plus } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
 import {
@@ -49,6 +50,7 @@ export function IconRail({
   extraPanels,
   className,
 }: IconRailProps) {
+  const tLabel = useTLabel()
   const regularExtraPanels = extraPanels?.filter((panel) => !panel.pluginId && panel.id !== 'plugins')
   const pluginPanels = extraPanels?.filter((panel) => panel.pluginId)
   const pluginsPanel = extraPanels?.find((panel) => panel.id === 'plugins')
@@ -76,7 +78,7 @@ export function IconRail({
             </span>
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right">{panel.label}</TooltipContent>
+        <TooltipContent side="right">{tLabel(panel.label)}</TooltipContent>
       </Tooltip>
     )
   }
@@ -109,7 +111,7 @@ export function IconRail({
                 type="button"
               >
                 <img
-                  alt={panel.label}
+                  alt={tLabel(panel.label)}
                   className={cn(
                     'h-6 w-6 object-contain transition-all',
                     !isActive && 'opacity-50 saturate-0',
@@ -118,7 +120,7 @@ export function IconRail({
                 />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">{panel.label}</TooltipContent>
+            <TooltipContent side="right">{tLabel(panel.label)}</TooltipContent>
           </Tooltip>
         )
       })}
@@ -140,7 +142,7 @@ export function IconRail({
                 type="button"
               >
                 <img
-                  alt={panel.label}
+                  alt={tLabel(panel.label)}
                   className={cn(
                     'h-6 w-6 object-contain transition-all',
                     !isActive && 'opacity-50 saturate-0',
@@ -149,7 +151,7 @@ export function IconRail({
                 />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">{panel.label}</TooltipContent>
+            <TooltipContent side="right">{tLabel(panel.label)}</TooltipContent>
           </Tooltip>
         )
       })}

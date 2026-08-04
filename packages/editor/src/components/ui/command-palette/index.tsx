@@ -15,6 +15,7 @@ import { useCommandRegistry } from '../../../store/use-command-registry'
 import { usePaletteViewRegistry } from '../../../store/use-palette-view-registry'
 import type { MessageId } from '../../../i18n/translate'
 import { useT } from '../../../i18n/use-t'
+import { useTLabel } from '../../../i18n/use-t-label'
 
 // ---------------------------------------------------------------------------
 // Open + navigation state store
@@ -90,8 +91,9 @@ function Item({
   badge?: string | (() => string)
   navigate?: boolean
 }) {
-  const resolvedLabel = resolve(label)
-  const resolvedBadge = badge ? resolve(badge) : undefined
+  const tLabel = useTLabel()
+  const resolvedLabel = tLabel(resolve(label))
+  const resolvedBadge = badge ? tLabel(resolve(badge)) : undefined
 
   return (
     <Command.Item
@@ -192,6 +194,7 @@ function EmptyActionItem({ action }: { action: CommandPaletteEmptyAction }) {
 // ---------------------------------------------------------------------------
 export function CommandPalette({ emptyAction }: { emptyAction?: CommandPaletteEmptyAction }) {
   const t = useT()
+  const tLabel = useTLabel()
   const { open, setOpen, mode, setMode, pages, inputValue, setInputValue, navigateTo, goBack } =
     useCommandPalette()
 
@@ -357,7 +360,7 @@ export function CommandPalette({ emptyAction }: { emptyAction?: CommandPaletteEm
               {/* ── Root view: render from registry ───────────────────────── */}
               {!page &&
                 Array.from(grouped.entries()).map(([group, groupActions]) => (
-                  <Command.Group heading={group} key={group}>
+                  <Command.Group heading={tLabel(group)} key={group}>
                     {groupActions.map((action) => (
                       <Item
                         badge={action.badge}

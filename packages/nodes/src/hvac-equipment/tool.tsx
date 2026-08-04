@@ -140,7 +140,7 @@ const HvacEquipmentTool = () => {
         zIndexRange={[100, 0]}
       >
         <div className="flex items-center gap-2 whitespace-nowrap rounded-full border border-border/60 bg-background/90 px-4 py-1.5 text-xs tabular-nums shadow-sm backdrop-blur">
-          <span className="font-medium text-foreground">R/T rotate</span>
+          <span className="font-medium text-foreground">{t('common.rotateHint')}</span>
         </div>
       </Html>
     </LevelOffsetGroup>

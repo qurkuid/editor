@@ -609,7 +609,7 @@ export default function DoorPanel() {
         <SliderControl
           label={
             <>
-              X<sub className="ml-[1px] text-[11px] opacity-70">wall</sub>
+              X<sub className="ml-[1px] text-[11px] opacity-70">{t('panel.axisWall')}</sub>
             </>
           }
           max={10}

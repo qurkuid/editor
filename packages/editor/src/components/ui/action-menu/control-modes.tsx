@@ -1,5 +1,6 @@
 'use client'
 
+import { useTLabel } from '../../../i18n/use-t-label'
 import { Icon } from '@iconify/react'
 import { type LucideIcon, Trash2 } from 'lucide-react'
 import Image from 'next/image'
@@ -51,6 +52,7 @@ const controls: ControlConfig[] = [
 ]
 
 export function ControlModes() {
+  const tLabel = useTLabel()
   const mode = useEditor((state) => state.mode)
   const phase = useEditor((state) => state.phase)
   const selectionTool = useEditor((state) => state.floorplanSelectionTool)
@@ -118,7 +120,7 @@ export function ControlModes() {
                 isImageMode && isActive && 'bg-white/10 hover:bg-white/10',
                 isImageMode && !isActive && 'hover:bg-white/5',
               )}
-              label={c.label}
+              label={tLabel(c.label)}
               onClick={() => handleClick(c.id)}
               shortcut={c.shortcut}
               size="icon"
@@ -126,7 +128,7 @@ export function ControlModes() {
             >
               {c.imageSrc ? (
                 <Image
-                  alt={c.label}
+                  alt={tLabel(c.label)}
                   className={cn(
                     'h-[28px] w-[28px] object-contain transition-[opacity,filter] duration-200',
                     isActive

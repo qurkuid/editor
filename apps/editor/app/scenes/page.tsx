@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { CreateSceneButton } from '@/components/save-button'
 import type { SceneMeta } from '@/components/scene-loader'
+import { TText } from '@/components/t-text'
 import { selfUrl } from '@/lib/self-url'
 
 export const dynamic = 'force-dynamic'
@@ -39,17 +40,21 @@ export default async function ScenesPage() {
               className="text-muted-foreground transition-colors hover:text-foreground"
               href="/"
             >
-              Home
+              <TText k="scenes.home" />
             </Link>
             <span className="text-muted-foreground">/</span>
-            <span className="font-medium text-foreground">Scenes</span>
+            <span className="font-medium text-foreground">
+              <TText k="scenes.title" />
+            </span>
           </nav>
           <CreateSceneButton />
         </div>
       </header>
 
       <main className="container mx-auto max-w-5xl px-6 py-12">
-        <h1 className="mb-2 font-bold text-3xl">Your scenes</h1>
+        <h1 className="mb-2 font-bold text-3xl">
+          <TText k="scenes.yourScenes" />
+        </h1>
         <p className="mb-8 text-muted-foreground text-sm">
           {scenes.length === 0
             ? 'No scenes yet. Create one to get started.'
@@ -58,7 +63,9 @@ export default async function ScenesPage() {
 
         {scenes.length === 0 ? (
           <div className="rounded-xl border border-border/60 border-dashed bg-background p-12 text-center">
-            <p className="text-muted-foreground text-sm">You haven&apos;t saved any scenes yet.</p>
+            <p className="text-muted-foreground text-sm">
+              <TText k="scenes.empty" />
+            </p>
             <div className="mt-4 flex justify-center">
               <CreateSceneButton />
             </div>
@@ -80,7 +87,9 @@ export default async function ScenesPage() {
                         src={scene.thumbnailUrl}
                       />
                     ) : (
-                      <span className="text-muted-foreground text-xs">No thumbnail</span>
+                      <span className="text-muted-foreground text-xs">
+                        <TText k="scenes.noThumbnail" />
+                      </span>
                     )}
                   </div>
                   <div className="mt-3">

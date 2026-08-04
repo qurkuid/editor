@@ -1,6 +1,7 @@
 import { Icon } from '@iconify/react'
 import type * as React from 'react'
 
+import { useTLabel } from '../../../i18n/use-t-label'
 import { cn } from '../../../lib/utils'
 
 const MOUSE_SHORTCUTS = {
@@ -39,6 +40,7 @@ type ShortcutTokenProps = React.ComponentProps<'kbd'> & {
 }
 
 function ShortcutToken({ className, displayValue, value, ...props }: ShortcutTokenProps) {
+  const tLabel = useTLabel()
   const mouseShortcut =
     value in MOUSE_SHORTCUTS ? MOUSE_SHORTCUTS[value as keyof typeof MOUSE_SHORTCUTS] : null
   const isCommand = COMMAND_VALUES.has(value)
@@ -48,16 +50,16 @@ function ShortcutToken({ className, displayValue, value, ...props }: ShortcutTok
 
   return (
     <kbd
-      aria-label={
+      aria-label={tLabel(
         mouseShortcut?.label ??
-        (isCommand ? commandLabel : isShift ? 'Shift' : (displayValue ?? value))
-      }
+          (isCommand ? commandLabel : isShift ? 'Shift' : (displayValue ?? value)),
+      )}
       className={cn(
         'inline-flex h-6 items-center rounded border border-border bg-muted px-2 font-medium font-mono text-[11px] text-muted-foreground',
         (mouseShortcut || isShift) && 'justify-center px-1.5',
         className,
       )}
-      title={mouseShortcut?.label ?? (isCommand ? commandLabel : isShift ? 'Shift' : value)}
+      title={tLabel(mouseShortcut?.label ?? (isCommand ? commandLabel : isShift ? 'Shift' : value))}
       {...props}
     >
       {mouseShortcut ? (
@@ -70,7 +72,7 @@ function ShortcutToken({ className, displayValue, value, ...props }: ShortcutTok
             icon={mouseShortcut.icon}
             width={14}
           />
-          <span className="sr-only">{mouseShortcut.label}</span>
+          <span className="sr-only">{tLabel(mouseShortcut.label)}</span>
         </>
       ) : isShift ? (
         // Icon rather than the ⇧ text glyph — the font renders the glyph's

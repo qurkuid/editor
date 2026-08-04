@@ -1,5 +1,6 @@
 'use client'
 
+import { useTLabel } from '../../../i18n/use-t-label'
 import { cn } from '../../../lib/utils'
 
 interface SegmentedControlProps<T extends string> {
@@ -15,6 +16,7 @@ export function SegmentedControl<T extends string>({
   options,
   className,
 }: SegmentedControlProps<T>) {
+  const tLabel = useTLabel()
   return (
     <div
       className={cn(
@@ -36,7 +38,9 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             type="button"
           >
-            <span className="relative z-10 flex items-center gap-1.5">{option.label}</span>
+            <span className="relative z-10 flex items-center gap-1.5">
+            {typeof option.label === 'string' ? tLabel(option.label) : option.label}
+          </span>
           </button>
         )
       })}

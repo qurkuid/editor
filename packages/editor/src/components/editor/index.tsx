@@ -23,6 +23,8 @@ import { ViewerOverlay } from '../../components/viewer-overlay'
 import { ViewerZoneSystem } from '../../components/viewer-zone-system'
 import { type SaveStatus, useAutoSave } from '../../hooks/use-auto-save'
 import { useKeyboard } from '../../hooks/use-keyboard'
+import { useT } from '../../i18n/use-t'
+import { useTLabel } from '../../i18n/use-t-label'
 import { assetPath } from '../../lib/asset-path'
 import {
   connectEditorHostIntegration,
@@ -89,7 +91,6 @@ import { type SnapshotCameraData, ThumbnailGenerator } from './thumbnail-generat
 import { WallMeasurementLabel } from './wall-measurement-label'
 import { WallMoveSideHandles } from './wall-move-side-handles'
 import { WallOpeningHighlights } from './wall-opening-highlights'
-import { useT } from '../../i18n/use-t'
 
 const CAMERA_CONTROLS_HINT_DISMISSED_STORAGE_KEY = 'editor-camera-controls-hint-dismissed:v1'
 const DELETE_CURSOR_BADGE_COLOR = '#ef4444'
@@ -450,18 +451,19 @@ function writeCameraControlsHintDismissed(dismissed: boolean) {
 }
 
 function InlineShortcutKey({ shortcutKey }: { shortcutKey: ShortcutKey }) {
+  const tLabel = useTLabel()
   const meta = CAMERA_SHORTCUT_KEY_META[shortcutKey.value]
 
   if (meta?.icon) {
     return (
       <span
-        aria-label={meta.label}
+        aria-label={tLabel(meta.label)}
         className="inline-flex items-center text-foreground/90"
         role="img"
-        title={meta.label}
+        title={tLabel(meta.label)}
       >
         <Icon aria-hidden="true" color="currentColor" height={16} icon={meta.icon} width={16} />
-        <span className="sr-only">{meta.label}</span>
+        <span className="sr-only">{tLabel(meta.label)}</span>
       </span>
     )
   }
@@ -487,10 +489,11 @@ function ShortcutSequence({ keys }: { keys: ShortcutKey[] }) {
 }
 
 function CameraControlHintItem({ hint }: { hint: CameraControlHint }) {
+  const tLabel = useTLabel()
   return (
     <div className="flex min-w-0 flex-col items-center gap-1.5 px-4 text-center first:pl-0 last:pr-0">
       <span className="font-medium text-[10px] text-muted-foreground/60 tracking-[0.03em]">
-        {hint.action}
+        {tLabel(hint.action)}
       </span>
       <div className="flex flex-wrap items-center justify-center gap-1.5">
         <ShortcutSequence keys={hint.keys} />

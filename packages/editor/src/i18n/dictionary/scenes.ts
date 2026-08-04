@@ -19,4 +19,13 @@ export const scenesDictionary = {
   'build.dwvPipe': { ko: '오배수 배관', en: 'DWV Pipe' },
   'build.liquidLine': { ko: '냉매 액관', en: 'Liquid Line' },
   'build.followLineset': { ko: '라인셋 따라가기', en: 'Follow lineset' },
+  'scenes.home': { ko: '홈', en: 'Home' },
+  'scenes.noScenesYet': {
+    ko: '아직 장면이 없습니다. 하나 만들어 시작하세요.',
+    en: 'No scenes yet. Create one to get started.',
+  },
+  'scenes.notFoundDetail': {
+    ko: '해당 ID 의 장면을 찾을 수 없습니다:',
+    en: "We couldn't find a scene with id",
+  },
 } as const satisfies Dictionary

@@ -16,8 +16,8 @@ describe('BuildToolGrid', () => {
     )
 
     // Then: each icon has a persistent visible name and accessible button label.
-    expect(markup).toContain('>Wall<')
-    expect(markup).toContain('>Painting<')
-    expect(markup).toContain('aria-label="Wall"')
+    expect(markup).toContain('>벽<')
+    expect(markup).toContain('>도장<')
+    expect(markup).toContain('aria-label="벽"')
   })
 })

@@ -371,7 +371,7 @@ export default function RoofPanel() {
                 type="button"
               >
                 <span className="truncate">{chimney.name || `Chimney ${i + 1}`}</span>
-                <span className="text-muted-foreground text-xs">chimney</span>
+                <span className="text-muted-foreground text-xs">{t('panel.nounChimney')}</span>
               </button>
             ))}
             <ActionGroup>
@@ -392,7 +392,7 @@ export default function RoofPanel() {
                 type="button"
               >
                 <span className="truncate">{dormer.name || `Dormer ${i + 1}`}</span>
-                <span className="text-muted-foreground text-xs">dormer</span>
+                <span className="text-muted-foreground text-xs">{t('panel.nounDormer')}</span>
               </button>
             ))}
             <ActionGroup>
@@ -413,7 +413,7 @@ export default function RoofPanel() {
                 type="button"
               >
                 <span className="truncate">{skylight.name || `Skylight ${i + 1}`}</span>
-                <span className="text-muted-foreground text-xs">skylight</span>
+                <span className="text-muted-foreground text-xs">{t('panel.nounSkylight')}</span>
               </button>
             ))}
             <ActionGroup>
@@ -434,7 +434,7 @@ export default function RoofPanel() {
                 type="button"
               >
                 <span className="truncate">{panel.name || `Solar Panel ${i + 1}`}</span>
-                <span className="text-muted-foreground text-xs">solar panel</span>
+                <span className="text-muted-foreground text-xs">{t('panel.nounSolarPanel')}</span>
               </button>
             ))}
             <ActionGroup>
@@ -518,7 +518,7 @@ export default function RoofPanel() {
                 type="button"
               >
                 <span className="truncate">{gutter.name || `Gutter ${i + 1}`}</span>
-                <span className="text-muted-foreground text-xs">gutter</span>
+                <span className="text-muted-foreground text-xs">{t('panel.nounGutter')}</span>
               </button>
             ))}
             <ActionGroup>

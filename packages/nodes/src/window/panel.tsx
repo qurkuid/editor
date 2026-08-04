@@ -531,7 +531,7 @@ export default function WindowPanel() {
         <SliderControl
           label={
             <>
-              X<sub className="ml-[1px] text-[11px] opacity-70">pos</sub>
+              X<sub className="ml-[1px] text-[11px] opacity-70">{t('panel.axisPos')}</sub>
             </>
           }
           onChange={(v) => handleUpdate({ position: [v, node.position[1], node.position[2]] })}
@@ -543,7 +543,7 @@ export default function WindowPanel() {
         <SliderControl
           label={
             <>
-              Y<sub className="ml-[1px] text-[11px] opacity-70">pos</sub>
+              Y<sub className="ml-[1px] text-[11px] opacity-70">{t('panel.axisPos')}</sub>
             </>
           }
           onChange={(v) => handleUpdate({ position: [node.position[0], v, node.position[2]] })}

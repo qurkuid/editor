@@ -4,6 +4,7 @@ import { emitter, nodeRegistry } from '@pascal-app/core'
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useT } from '../../i18n/use-t'
+import { useTLabel } from '../../i18n/use-t-label'
 import { getFloorplanNodeExtension } from '../../lib/floorplan/floorplan-extension'
 import { isFloorplanToolAvailableInMode } from '../../lib/floorplan/floorplan-mode'
 import useEditor from '../../store/use-editor'
@@ -15,6 +16,7 @@ function getToolLabel(tool: string): string {
 
 export function FloorplanModeCoordinator() {
   const t = useT()
+  const tLabel = useTLabel()
   const editorMode = useEditor((state) => state.mode)
   const tool = useEditor((state) => state.tool)
   const floorplanMode = useFloorplanMode((state) => state.mode)
@@ -58,7 +60,11 @@ export function FloorplanModeCoordinator() {
       className="fixed top-16 left-1/2 z-[100] flex max-w-md -translate-x-1/2 items-center gap-3 rounded-lg border border-border/60 bg-background/95 px-3 py-2 text-sm text-foreground shadow-elevation-3 backdrop-blur-xl"
       role="status"
     >
-      <span>{notice.message}</span>
+      <span>
+        {notice.message.endsWith(' is available in Expert mode.')
+          ? `${tLabel(notice.message.slice(0, -' is available in Expert mode.'.length))}${t('panel.availableInExpertSuffix')}`
+          : tLabel(notice.message)}
+      </span>
       {notice.kind === 'switch-to-expert' ? (
         <button
           className="shrink-0 rounded-md bg-cyan-500/15 px-2.5 py-1 font-medium text-cyan-400 hover:bg-cyan-500/25"
@@ -68,7 +74,7 @@ export function FloorplanModeCoordinator() {
           }}
           type="button"
         >
-          Switch to Expert
+          {t('panel.switchToExpert')}
         </button>
       ) : null}
       <button

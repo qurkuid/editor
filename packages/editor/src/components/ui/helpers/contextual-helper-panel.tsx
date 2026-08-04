@@ -19,6 +19,7 @@ import useEditor, { type GridSnapStep } from '../../../store/use-editor'
 import useFenceCurveDraft from '../../../store/use-fence-curve-draft'
 import { ShortcutToken } from '../primitives/shortcut-token'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../primitives/tooltip'
+import { useTLabel } from '../../../i18n/use-t-label'
 import { useT } from '../../../i18n/use-t'
 
 // One muted container holds every row — passive key hints and interactive chips
@@ -172,6 +173,7 @@ function nextGridSnapStep(step: GridSnapStep): GridSnapStep {
 // / polygon) so each action shows only the modes that make sense for it.
 function SnappingChips({ context }: { context: SnapContext }) {
   const t = useT()
+  const tLabel = useTLabel()
   const snappingMode = useEditor((s) => s.snappingModeByContext[context])
   const setSnappingMode = useEditor((s) => s.setSnappingMode)
   const gridSnapStep = useEditor((s) => s.gridSnapStep)
@@ -182,9 +184,9 @@ function SnappingChips({ context }: { context: SnapContext }) {
   return (
     <>
       <ChipRow
-        ariaLabel={`Snapping: ${SNAPPING_MODE_LABELS[snappingMode]}`}
+        ariaLabel={`${tLabel('Snapping')}: ${tLabel(SNAPPING_MODE_LABELS[snappingMode])}`}
         icon={SNAPPING_MODE_ICONS[snappingMode]}
-        label={`Snapping: ${SNAPPING_MODE_LABELS[snappingMode]}`}
+        label={`${tLabel('Snapping')}: ${tLabel(SNAPPING_MODE_LABELS[snappingMode])}`}
         onClick={() => {
           setSnappingMode(context, cycleSnappingModeIn(context, snappingMode))
           sfxEmitter.emit('sfx:grid-snap')
@@ -194,8 +196,8 @@ function SnappingChips({ context }: { context: SnapContext }) {
       />
       {gridActive ? (
         <ChipRow
-          ariaLabel={`Grid step: ${gridSnapStep.toFixed(2)} m`}
-          label={`Grid: ${gridSnapStep.toFixed(2)} m`}
+          ariaLabel={`${tLabel('Grid step')}: ${gridSnapStep.toFixed(2)} m`}
+          label={`${tLabel('Grid')}: ${gridSnapStep.toFixed(2)} m`}
           onClick={() => {
             setGridSnapStep(nextGridSnapStep(gridSnapStep))
             sfxEmitter.emit('sfx:grid-snap')
@@ -213,9 +215,10 @@ function SnappingChips({ context }: { context: SnapContext }) {
 // current value's label, and clicking the row (or the hint's key, handled by
 // the tool itself) cycles it.
 function ToolHintChipRow({ hint }: { hint: ToolHint & { chip: NonNullable<ToolHint['chip']> } }) {
+  const tLabel = useTLabel()
   const { chip } = hint
   const value = useSyncExternalStore(chip.subscribe, chip.value, chip.value)
-  const label = chip.labels[value] ?? hint.label
+  const label = tLabel(chip.labels[value] ?? hint.label)
   return (
     <ChipRow
       ariaLabel={label}
@@ -229,6 +232,7 @@ function ToolHintChipRow({ hint }: { hint: ToolHint & { chip: NonNullable<ToolHi
 }
 
 function ContinuationChip({ context }: { context: ContinuationContext }) {
+  const tLabel = useTLabel()
   const t = useT()
   const mode = useEditor((s) => s.getContinuation(context))
   const cycleContinuation = useEditor((s) => s.cycleContinuation)
@@ -238,9 +242,9 @@ function ContinuationChip({ context }: { context: ContinuationContext }) {
 
   return (
     <ChipRow
-      ariaLabel={`Continuation: ${label}`}
+      ariaLabel={tLabel(label)}
       icon={icon}
-      label={label}
+      label={tLabel(label)}
       onClick={() => cycleContinuation(context)}
       shortcut="C"
       tooltip={t('panel.continuationClickOrPressCToCycle')}
@@ -250,6 +254,7 @@ function ContinuationChip({ context }: { context: ContinuationContext }) {
 
 function FenceContinuationChips() {
   const t = useT()
+  const tLabel = useTLabel()
   const mode = useEditor((s) => s.getContinuation('fence'))
   const setContinuation = useEditor((s) => s.setContinuation)
   const curveStarted = useFenceCurveDraft((s) => s.pointCount > 0)
@@ -264,18 +269,18 @@ function FenceContinuationChips() {
   return (
     <>
       <ChipRow
-        ariaLabel={`Fence type: ${isCurved ? 'Curved' : 'Straight'}`}
+        ariaLabel={tLabel(typeLabel)}
         icon={typeIcon}
-        label={typeLabel}
+        label={tLabel(typeLabel)}
         onClick={() => setContinuation('fence', isCurved ? 'continuous' : 'curved')}
         shortcut="T"
         tooltip={t('panel.fenceTypeClickOrPressTToSwitchBetweenStraightAndCurved')}
       />
       <ChipRow
-        ariaLabel={`Fence continuation: ${straightLabel}`}
+        ariaLabel={tLabel(straightLabel)}
         disabled={isCurved}
         icon={straightIcon}
-        label={straightLabel}
+        label={tLabel(straightLabel)}
         onClick={
           isCurved
             ? undefined
@@ -284,8 +289,8 @@ function FenceContinuationChips() {
         shortcut="C"
         tooltip={
           isCurved
-            ? 'Straight continuation is unavailable while curved fence type is active'
-            : 'Straight fence continuation — click or press C to toggle'
+            ? t('panel.contStraightUnavailable')
+            : t('panel.contStraightToggle')
         }
       />
       {/* Curved fences are committed by a closing gesture rather than per-click,
@@ -380,6 +385,7 @@ export function ContextualHelperPanel({
   showPaintScope?: boolean
   continuationContext?: ContinuationContext | null
 }) {
+  const tLabel = useTLabel()
   if (
     hints.length === 0 &&
     chipHints.length === 0 &&
@@ -418,11 +424,11 @@ export function ContextualHelperPanel({
                 hint.active ? 'font-medium text-white' : 'text-muted-foreground',
               )}
             >
-              {hint.label}
+              {tLabel(hint.label)}
             </div>
             {hint.subtitle ? (
               <div className="text-[10px] text-muted-foreground/70 leading-snug">
-                {hint.subtitle}
+                {tLabel(hint.subtitle)}
               </div>
             ) : null}
           </div>

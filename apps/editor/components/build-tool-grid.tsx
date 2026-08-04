@@ -1,3 +1,4 @@
+import { useTLabel } from '@pascal-app/editor'
 import Image from 'next/image'
 import {
   Tooltip,
@@ -20,6 +21,7 @@ type BuildToolGridProps = {
 }
 
 export function BuildToolGrid({ activeId, items, onSelect }: BuildToolGridProps) {
+  const tLabel = useTLabel()
   return (
     <TooltipProvider delayDuration={0} disableHoverableContent>
       <div className="grid grid-cols-4 gap-1.5">
@@ -29,7 +31,7 @@ export function BuildToolGrid({ activeId, items, onSelect }: BuildToolGridProps)
             <Tooltip key={item.id}>
               <TooltipTrigger asChild>
                 <button
-                  aria-label={item.label}
+                  aria-label={tLabel(item.label)}
                   className={cn(
                     'group flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 transition-all duration-200',
                     active
@@ -51,12 +53,12 @@ export function BuildToolGrid({ activeId, items, onSelect }: BuildToolGridProps)
                     width={40}
                   />
                   <span className="w-full truncate text-center font-medium text-[10px] leading-3">
-                    {item.label}
+                    {tLabel(item.label)}
                   </span>
                 </button>
               </TooltipTrigger>
               <TooltipContent className="pointer-events-none" side="top">
-                {item.label}
+                {tLabel(item.label)}
               </TooltipContent>
             </Tooltip>
           )

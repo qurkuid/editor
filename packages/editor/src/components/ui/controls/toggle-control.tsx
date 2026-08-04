@@ -1,5 +1,6 @@
 'use client'
 
+import { useTLabel } from '../../../i18n/use-t-label'
 import { Check } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 
@@ -11,6 +12,7 @@ interface ToggleControlProps {
 }
 
 export function ToggleControl({ label, checked, onChange, className }: ToggleControlProps) {
+  const tLabel = useTLabel()
   return (
     <div
       className={cn(
@@ -20,7 +22,7 @@ export function ToggleControl({ label, checked, onChange, className }: ToggleCon
       onClick={() => onChange(!checked)}
     >
       <div className="select-none text-muted-foreground transition-colors group-hover:text-foreground">
-        {label}
+        {tLabel(label)}
       </div>
 
       <div
