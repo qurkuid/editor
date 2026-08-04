@@ -9,6 +9,11 @@ import { withBasePath } from '@/lib/base-path'
 import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
 import { toEstimateItems } from '@/lib/estimate-submit'
 import { canEditCoverage, type IntmMaterial, type IntmMaterialCategory } from '@/lib/intm-materials'
+import {
+  type IntmProject,
+  projectSubtitle,
+  searchProjects,
+} from '@/lib/intm-projects'
 import { deriveTakeoff, type TakeoffCategory } from '@/lib/quantity-takeoff'
 import { readSceneProjectId, sceneProjectPatch } from '@/lib/scene-project-link'
 
@@ -274,11 +279,12 @@ export function StatsTab() {
             {t('stats.estimate.desc').replace('{n}', String(submittable.length))}
           </p>
           <div className="space-y-1.5">
-            <input
-              className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
-              onChange={(event) => setProjectIdDraft(event.target.value)}
-              placeholder={t('stats.estimate.projectId')}
-              value={projectId}
+            <ProjectPicker
+              onSelect={(project) => {
+                setProjectIdDraft(project.id)
+                if (!projectName) setProjectName(project.name)
+              }}
+              selectedId={projectId}
             />
             <input
               className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
@@ -301,6 +307,92 @@ export function StatsTab() {
             )}
           </div>
         </section>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Find a project by name, customer or address.
+ *
+ * Filing an estimate used to mean pasting a project's id, which nobody knows.
+ * The whole list is fetched once — INTM has no text-search parameter — and
+ * filtered as you type.
+ */
+function ProjectPicker({
+  onSelect,
+  selectedId,
+}: {
+  onSelect: (project: IntmProject) => void
+  selectedId: string
+}) {
+  const t = useT()
+  const [projects, setProjects] = useState<IntmProject[] | null>(null)
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch(withBasePath('/api/intm/projects'))
+        const body = (await response.json()) as { projects?: IntmProject[] }
+        setProjects(body.projects ?? [])
+      } catch {
+        setProjects([])
+      }
+    })()
+  }, [])
+
+  const matches = useMemo(() => searchProjects(projects ?? [], query), [projects, query])
+  const selected = projects?.find((project) => project.id === selectedId)
+
+  return (
+    <div className="relative">
+      <input
+        className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
+        onChange={(event) => {
+          setQuery(event.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder={
+          projects === null ? t('stats.estimate.projectLoading') : t('stats.estimate.projectSearch')
+        }
+        value={open ? query : (selected?.name ?? query)}
+      />
+
+      {selected && !open && (
+        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+          {projectSubtitle(selected)}
+        </p>
+      )}
+
+      {open && (
+        <div className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-md border border-border bg-[#252527] shadow-lg">
+          {matches.length === 0 ? (
+            <p className="p-2 text-[11px] text-muted-foreground">
+              {projects === null ? t('stats.estimate.projectLoading') : t('stats.estimate.noProject')}
+            </p>
+          ) : (
+            matches.map((project) => (
+              <button
+                className="block w-full px-2 py-1.5 text-left hover:bg-muted"
+                key={project.id}
+                onClick={() => {
+                  onSelect(project)
+                  setQuery('')
+                  setOpen(false)
+                }}
+                type="button"
+              >
+                <span className="block truncate text-xs text-foreground">{project.name}</span>
+                <span className="block truncate text-[10px] text-muted-foreground">
+                  {projectSubtitle(project)}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
       )}
     </div>
   )

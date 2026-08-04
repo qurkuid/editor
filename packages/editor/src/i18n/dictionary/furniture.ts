@@ -86,7 +86,12 @@ export const statsDictionary = {
     ko: '확정된 {n}개 항목으로 INTM에 견적서를 만듭니다. 미확정 항목은 제외됩니다.',
     en: 'Creates an INTM estimate from the {n} resolved lines. Unresolved lines are excluded.',
   },
-  'stats.estimate.projectId': { ko: 'INTM 프로젝트 ID', en: 'INTM project ID' },
+  'stats.estimate.projectSearch': {
+    ko: '프로젝트 검색 (이름 · 고객 · 주소)',
+    en: 'Search projects (name · customer · address)',
+  },
+  'stats.estimate.projectLoading': { ko: '프로젝트 불러오는 중…', en: 'Loading projects…' },
+  'stats.estimate.noProject': { ko: '일치하는 프로젝트가 없습니다.', en: 'No matching project.' },
   'stats.estimate.project': { ko: '견적서 제목', en: 'Estimate title' },
   'stats.estimate.create': { ko: 'INTM에 견적서 생성', en: 'Create in INTM' },
   'stats.estimate.creating': { ko: '생성 중…', en: 'Creating…' },
