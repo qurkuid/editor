@@ -9,6 +9,7 @@ import { withBasePath } from '@/lib/base-path'
 import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
 import { toEstimateItems } from '@/lib/estimate-submit'
 import { constructionKindsFor } from '@/lib/intm-construction-materials'
+import { buildCoveragePatch, COVERAGE_UNIT_LABEL } from '@/lib/material-coverage'
 import { canEditCoverage, type IntmMaterial, type IntmMaterialCategory } from '@/lib/intm-materials'
 import { layerMaterialPatches } from '@/lib/link-layer-material'
 import {
@@ -155,7 +156,7 @@ export function StatsTab() {
 
   /** Correct a spec in place — writes straight through to INTM. */
   const saveSpec = useCallback(
-    async (material: IntmMaterial, patch: Record<string, number>) => {
+    async (material: IntmMaterial, patch: Record<string, number | string>) => {
       setSavingId(material.id)
       try {
         const response = await fetch(withBasePath('/api/intm/materials'), {
@@ -454,7 +455,7 @@ function CategoryGroup({
   materials: readonly IntmMaterial[]
   measure: EstimateLine[]
   onLink: (line: EstimateLine, material: IntmMaterial) => void
-  onSave: (material: IntmMaterial, patch: Record<string, number>) => void
+  onSave: (material: IntmMaterial, patch: Record<string, number | string>) => void
   savingId: string | null
 }) {
   const t = useT()
@@ -515,7 +516,7 @@ function StatsRow({
   line: EstimateLine
   materials: readonly IntmMaterial[]
   onLink: (line: EstimateLine, material: IntmMaterial) => void
-  onSave: (material: IntmMaterial, patch: Record<string, number>) => void
+  onSave: (material: IntmMaterial, patch: Record<string, number | string>) => void
   saving: boolean
 }) {
   const t = useT()
@@ -588,12 +589,15 @@ function StatsRow({
         </label>
       )}
 
-      {open && line.material && (
+      {/* A whole-unit build-up line (석고 N장) is priced directly — coverage
+          plays no part, so offering its editor here would only mislead. */}
+      {open && line.material && !(line.takeoff.layerKind && line.takeoff.unit === 'ea') && (
         <CoverageEditor
           disabled={!editable || saving}
           material={line.material}
           note={editable ? null : t('stats.sharedReadOnly')}
           onSave={(patch) => onSave(line.material!, patch)}
+          takeoffUnit={line.takeoff.unit}
         />
       )}
     </div>
@@ -606,11 +610,14 @@ function CoverageEditor({
   material,
   note,
   onSave,
+  takeoffUnit,
 }: {
   disabled: boolean
   material: IntmMaterial
   note: string | null
-  onSave: (patch: Record<string, number>) => void
+  onSave: (patch: Record<string, number | string>) => void
+  /** What the takeoff measured — the only dimension this spec can be in. */
+  takeoffUnit: keyof typeof COVERAGE_UNIT_LABEL
 }) {
   const t = useT()
   const [coverage, setCoverage] = useState(String(material.coverageValue ?? ''))
@@ -631,7 +638,7 @@ function CoverageEditor({
           type="number"
           value={coverage}
         />
-        <span className="w-8 text-muted-foreground">㎡</span>
+        <span className="w-8 text-muted-foreground">{COVERAGE_UNIT_LABEL[takeoffUnit]}</span>
       </label>
       <label className="flex items-center gap-2 text-[11px]">
         <span className="w-20 text-muted-foreground">{t('stats.waste')}</span>
@@ -649,16 +656,8 @@ function CoverageEditor({
         className="w-full rounded border border-border px-2 py-1 text-[11px] hover:bg-muted disabled:opacity-40"
         disabled={disabled}
         onClick={() => {
-          const patch: Record<string, number> = {}
-          const nextCoverage = Number(coverage)
-          if (coverage !== '' && Number.isFinite(nextCoverage) && nextCoverage > 0) {
-            patch.coverageValue = nextCoverage
-          }
-          const nextWaste = Number(waste)
-          if (waste !== '' && Number.isFinite(nextWaste) && nextWaste >= 0 && nextWaste < 100) {
-            patch.wasteRate = nextWaste / 100
-          }
-          if (Object.keys(patch).length > 0) onSave(patch)
+          const patch = buildCoveragePatch(coverage, waste, takeoffUnit)
+          if (patch) onSave(patch)
         }}
         type="button"
       >

@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import {
   applyCoverage,
+  buildCoveragePatch,
+  COVERAGE_UNIT_LABEL,
   type CoverageSpec,
   DEFAULT_WASTE_RATE,
   resolveCoverageSpec,
@@ -195,5 +197,54 @@ describe('house default waste rate', () => {
       applyCoverage(area, 'm2', resolveCoverageSpec({ ...spec, wasteRate: 0 }, null))?.quantity,
     ).toBe(2)
     expect(applyCoverage(area, 'm2', resolveCoverageSpec(spec, null))?.quantity).toBe(3)
+  })
+})
+
+describe('the spec editor speaks the line\'s own unit', () => {
+  // 각재 is measured by the metre, and the editor said ㎡ — inviting an area
+  // for a length and reading like the quantity itself was computed by area.
+  test.each([
+    ['m', 'm'],
+    ['m2', '㎡'],
+    ['m3', '㎥'],
+    ['ea', '개'],
+  ] as const)('%s lines label their spec in %s', (unit, label) => {
+    expect(COVERAGE_UNIT_LABEL[unit]).toBe(label)
+  })
+
+  test('saving a coverage value records which unit it measures', () => {
+    expect(buildCoveragePatch('28.8', '', 'm')).toEqual({
+      coverageValue: 28.8,
+      coverageUnit: 'm',
+    })
+  })
+
+  // Half a spec is unusable: a value with no unit is rejected downstream, so
+  // the unit must ride along whenever the value is set — and only then.
+  test('waste alone does not stamp a unit', () => {
+    expect(buildCoveragePatch('', '15', 'm')).toEqual({ wasteRate: 0.15 })
+  })
+
+  test('both together save both', () => {
+    expect(buildCoveragePatch('16.5289', '20', 'm2')).toEqual({
+      coverageValue: 16.5289,
+      coverageUnit: 'm2',
+      wasteRate: 0.2,
+    })
+  })
+
+  test.each([['0'], ['-3'], ['abc']])('coverage %s is not saved', (raw) => {
+    expect(buildCoveragePatch(raw, '', 'm')).toBeNull()
+  })
+
+  test('waste outside 0–99 is dropped, not clamped', () => {
+    expect(buildCoveragePatch('28.8', '150', 'm')).toEqual({
+      coverageValue: 28.8,
+      coverageUnit: 'm',
+    })
+  })
+
+  test('nothing valid means no patch at all', () => {
+    expect(buildCoveragePatch('', '', 'm')).toBeNull()
   })
 })

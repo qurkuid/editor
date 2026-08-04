@@ -87,7 +87,7 @@ export const statsDictionary = {
     en: 'Link an INTM material — applied to all {n} places at once',
   },
   'stats.linkMaterial.choose': { ko: '자재 선택', en: 'Choose a material' },
-  'stats.coverage': { ko: '1단위 면적', en: 'Per unit' },
+  'stats.coverage': { ko: '1단위 환산량', en: 'Per unit' },
   'stats.waste': { ko: '손실률', en: 'Waste' },
   'stats.save': { ko: 'INTM에 저장', en: 'Save to INTM' },
   'stats.estimate.title': { ko: '견적서 작성', en: 'Create estimate' },

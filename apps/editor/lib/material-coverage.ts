@@ -163,3 +163,45 @@ export function applyCoverage(
     spec,
   }
 }
+
+/**
+ * How a coverage unit reads next to an input field. The editor used to say ㎡
+ * for every material — for 각재, measured by the metre, that read as though
+ * the quantity itself were computed by area.
+ */
+export const COVERAGE_UNIT_LABEL: Record<CoverageUnit, string> = {
+  m2: '㎡',
+  m: 'm',
+  m3: '㎥',
+  ea: '개',
+}
+
+/**
+ * The INTM patch for the spec editor's raw inputs, or null when nothing in
+ * them is usable.
+ *
+ * The unit rides along whenever the value is set — a value with no unit is
+ * half a spec, rejected downstream as unusable — and it is the unit the
+ * TAKEOFF measures in, because that is the only dimension a conversion from
+ * that line can mean. Waste alone never stamps a unit.
+ */
+export function buildCoveragePatch(
+  coverage: string,
+  waste: string,
+  takeoffUnit: CoverageUnit,
+): Record<string, number | string> | null {
+  const patch: Record<string, number | string> = {}
+
+  const coverageValue = Number(coverage)
+  if (coverage.trim() !== '' && Number.isFinite(coverageValue) && coverageValue > 0) {
+    patch.coverageValue = coverageValue
+    patch.coverageUnit = takeoffUnit
+  }
+
+  const wastePercent = Number(waste)
+  if (waste.trim() !== '' && Number.isFinite(wastePercent) && wastePercent >= 0 && wastePercent < 100) {
+    patch.wasteRate = wastePercent / 100
+  }
+
+  return Object.keys(patch).length > 0 ? patch : null
+}
