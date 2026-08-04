@@ -15,7 +15,9 @@ import {
   parseCodexLoginStatus,
 } from './ai-provider'
 
-const CLI_TIMEOUT_MS = 180_000
+// Ten minutes: a whole-apartment generation writes dozens of patches and
+// regularly needs more than the three minutes chat-sized plans fit in.
+const CLI_TIMEOUT_MS = 600_000
 const MAX_DIAGNOSTIC_LENGTH = 64_000
 const DEFAULT_CODEX_CLI_FALLBACKS: readonly string[] =
   process.platform === 'darwin' ? ['/Applications/ChatGPT.app/Contents/Resources/codex'] : []
