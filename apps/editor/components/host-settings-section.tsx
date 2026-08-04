@@ -3,9 +3,19 @@
 import { type Locale, SegmentedControl, useLocale, useT } from '@pascal-app/editor'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
+import {
+  CLAUDE_EFFORT_OPTIONS,
+  CLAUDE_MODEL_OPTIONS,
+  CODEX_EFFORT_OPTIONS,
+  CODEX_MODEL_OPTIONS,
+} from '@/lib/ai-model-options'
 import useAiProvider, { type AiProviderKind } from '@/lib/ai-provider-store'
 import { withBasePath } from '@/lib/base-path'
 import { loadRawPainterCategories } from '@/lib/rawpainter-adapter'
+
+// SegmentedControl needs a string value, so the "use the CLI default" null
+// selection rides as this sentinel. No real model or effort id collides.
+const DEFAULT_SENTINEL = 'default'
 
 export type AiConnectionState =
   | { status: 'loading' }
@@ -56,6 +66,10 @@ export function HostSettingsSectionView({
   onLanguageChange,
   aiProvider,
   onAiProviderChange,
+  aiModel,
+  onAiModelChange,
+  aiEffort,
+  onAiEffortChange,
   aiState,
   materialsState,
 }: {
@@ -63,10 +77,31 @@ export function HostSettingsSectionView({
   onLanguageChange: (language: Locale) => void
   aiProvider: AiProviderKind
   onAiProviderChange: (provider: AiProviderKind) => void
+  aiModel: string | null
+  onAiModelChange: (model: string | null) => void
+  aiEffort: string | null
+  onAiEffortChange: (effort: string | null) => void
   aiState: AiConnectionState
   materialsState: MaterialsConnectionState
 }) {
   const t = useT()
+
+  const modelOptions = [
+    ...(aiProvider === 'claude'
+      ? []
+      : [{ value: DEFAULT_SENTINEL, label: t('hostSettings.defaultOption') }]),
+    ...(aiProvider === 'claude' ? CLAUDE_MODEL_OPTIONS : CODEX_MODEL_OPTIONS).map((option) => ({
+      value: option.id,
+      label: option.label,
+    })),
+  ]
+  const effortOptions = [
+    { value: DEFAULT_SENTINEL, label: t('hostSettings.defaultOption') },
+    ...(aiProvider === 'claude' ? CLAUDE_EFFORT_OPTIONS : CODEX_EFFORT_OPTIONS).map((effort) => ({
+      value: effort,
+      label: effort,
+    })),
+  ]
 
   const aiDetail =
     aiState.status === 'loading'
@@ -117,6 +152,28 @@ export function HostSettingsSectionView({
         />
       </div>
 
+      <div className="space-y-1.5">
+        <label className="font-medium text-muted-foreground text-xs uppercase">
+          {t('hostSettings.aiModelLabel')}
+        </label>
+        <SegmentedControl
+          onChange={(value) => onAiModelChange(value === DEFAULT_SENTINEL ? null : value)}
+          options={modelOptions}
+          value={aiModel ?? DEFAULT_SENTINEL}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="font-medium text-muted-foreground text-xs uppercase">
+          {t('hostSettings.aiEffortLabel')}
+        </label>
+        <SegmentedControl
+          onChange={(value) => onAiEffortChange(value === DEFAULT_SENTINEL ? null : value)}
+          options={effortOptions}
+          value={aiEffort ?? DEFAULT_SENTINEL}
+        />
+      </div>
+
       <StatusRow
         detail={aiDetail}
         dotClassName={aiConnected ? 'bg-emerald-500' : 'bg-amber-500'}
@@ -150,6 +207,14 @@ export function HostSettingsSection() {
   const setLocale = useLocale((state) => state.setLocale)
   const aiProvider = useAiProvider((state) => state.provider)
   const setAiProvider = useAiProvider((state) => state.setProvider)
+  const aiModel = useAiProvider((state) =>
+    state.provider === 'claude' ? state.claudeModel : state.codexModel,
+  )
+  const aiEffort = useAiProvider((state) =>
+    state.provider === 'claude' ? state.claudeEffort : state.codexEffort,
+  )
+  const setModel = useAiProvider((state) => state.setModel)
+  const setEffort = useAiProvider((state) => state.setEffort)
   const [codexState, setCodexState] = useState<AiConnectionState>({ status: 'loading' })
   const [claudeState, setClaudeState] = useState<AiConnectionState>({ status: 'loading' })
   const [materialsState, setMaterialsState] = useState<MaterialsConnectionState>('loading')
@@ -188,10 +253,14 @@ export function HostSettingsSection() {
 
   return (
     <HostSettingsSectionView
+      aiEffort={aiEffort}
+      aiModel={aiModel}
       aiProvider={aiProvider}
       aiState={aiProvider === 'claude' ? claudeState : codexState}
       language={locale}
       materialsState={materialsState}
+      onAiEffortChange={(effort) => setEffort(aiProvider, effort)}
+      onAiModelChange={(model) => setModel(aiProvider, model)}
       onAiProviderChange={setAiProvider}
       onLanguageChange={setLocale}
     />

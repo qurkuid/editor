@@ -149,7 +149,10 @@ export async function requestAiModelingPlan(
   const directory = await mkdtemp(join(tmpdir(), 'pascal-codex-'))
   const schemaPath = join(directory, 'modeling-plan.schema.json')
   const outputPath = join(directory, 'modeling-plan.json')
-  const modelArgs = config.model ? ['--model', config.model] : []
+  const modelArgs = [
+    ...(config.model ? ['--model', config.model] : []),
+    ...(config.effort ? ['-c', `model_reasoning_effort=${JSON.stringify(config.effort)}`] : []),
+  ]
 
   try {
     await writeFile(schemaPath, JSON.stringify(modelingPlanJsonSchema))

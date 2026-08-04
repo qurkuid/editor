@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { delimiter, dirname, join } from 'node:path'
 import { AnyNode } from '@pascal-app/core/schema'
 import { z } from 'zod'
+import { AI_EFFORT_LEVELS, AI_MODEL_IDS } from './ai-model-options'
 
 const AiChatMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -85,6 +86,8 @@ export const AiChatRequestSchema = z.object({
   messages: z.array(AiChatMessageSchema).min(1).max(40),
   images: z.array(AiChatImageSchema).max(AI_CHAT_MAX_IMAGES).optional().default([]),
   provider: AiProviderKindSchema.optional().default('codex'),
+  model: z.enum(AI_MODEL_IDS).nullable().optional().default(null),
+  effort: z.enum(AI_EFFORT_LEVELS).nullable().optional().default(null),
   scene: z.object({
     coordinateSystem: z.object({
       groundPlane: z.literal('XZ'),
@@ -121,6 +124,7 @@ export function decodeAiChatImageDataUrl(image: AiChatImage): Buffer {
 export type AiProviderConfig = {
   readonly command: string
   readonly model: string | null
+  readonly effort?: string | null
 }
 
 export type CodexCliStatus =
@@ -285,6 +289,8 @@ export function buildAiModelingPrompt(input: AiChatRequest): string {
     ...imageManifest,
     'Coordinates use X/Z as the ground plane, Y as up, metres as the canonical unit, and radians for rotations.',
     'Return the smallest valid create/update/delete patch set that satisfies the user.',
+    'For create, nodeJson is the complete node JSON string. For update, dataJson is a JSON string holding only the changed fields — never echo the whole node and never use nodeJson for an update. For delete, use id plus optional cascade.',
+    'Room finish metadata such as floorFinish, wallFinish, and ceilingFinish lives on the zone node. Set it with an update patch on the zone, for example dataJson {"wallFinish":"도배지 - 회벽 화이트"}.',
     'For exact Body face extrusion, return op pushPullBodyFace with the body id, faceId, and signed distance in metres. Prefer this deterministic command over rewriting Body topology arrays.',
     'For Body move, Y-axis rotation, or uniform scale, return op transformBody with translation in metres, rotationY in radians, a positive uniformScale, and an explicit pivot. Prefer this deterministic command over rewriting Body vertices.',
     'For Body face finishes, return op paintBodyFace with the body id, faceId, and dataJson containing a complete SceneMaterial JSON string such as {"id":"mat_red","name":"Matte red paint","material":{"preset":"custom","properties":{"color":"#b91c1c","roughness":0.85,"metalness":0}}}. Its id must begin with mat_. Prefer this deterministic command over rewriting Body faces or topology.',

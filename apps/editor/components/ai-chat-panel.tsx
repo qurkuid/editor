@@ -157,6 +157,12 @@ export function AiChatPanel() {
   const nodeCount = useScene((state) => Object.keys(state.nodes).length)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const aiProvider = useAiProvider((state) => state.provider)
+  const aiModel = useAiProvider((state) =>
+    state.provider === 'claude' ? state.claudeModel : state.codexModel,
+  )
+  const aiEffort = useAiProvider((state) =>
+    state.provider === 'claude' ? state.claudeEffort : state.codexEffort,
+  )
   const providerLabel =
     aiProvider === 'claude' ? t('hostSettings.aiProviderClaude') : t('hostSettings.aiProviderCodex')
   const [providerStatuses, setProviderStatuses] = useState<z.infer<
@@ -279,6 +285,8 @@ export function AiChatPanel() {
         })),
         images,
         provider: aiProvider,
+        model: aiModel,
+        effort: aiEffort,
         scene: buildAiSceneContext(),
       })
       const plan = AiModelingPlanSchema.parse(response)

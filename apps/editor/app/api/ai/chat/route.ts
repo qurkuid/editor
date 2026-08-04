@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { describeAiFailure } from '@/lib/ai-failure'
 import { getClaudeCliStatus, requestAiModelingPlanViaClaude } from '@/lib/ai-claude-provider'
 import { getCodexCliStatus, requestAiModelingPlan } from '@/lib/ai-cli-provider'
+import { describeAiFailure } from '@/lib/ai-failure'
+import { DEFAULT_CLAUDE_MODEL } from '@/lib/ai-model-options'
 import {
   AiChatRequestSchema,
   resolveAiProviderConfig,
@@ -79,6 +80,8 @@ export async function POST(request: Request) {
       const plan = await requestAiModelingPlanViaClaude(parsed.data, {
         ...config,
         command: status.command,
+        model: parsed.data.model ?? config.model ?? DEFAULT_CLAUDE_MODEL,
+        effort: parsed.data.effort,
       })
       return NextResponse.json(plan)
     } catch (error) {
@@ -108,7 +111,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const plan = await requestAiModelingPlan(parsed.data, { ...config, command: status.command })
+    const plan = await requestAiModelingPlan(parsed.data, {
+      ...config,
+      command: status.command,
+      model: parsed.data.model ?? config.model,
+      effort: parsed.data.effort,
+    })
     return NextResponse.json(plan)
   } catch (error) {
     if (error instanceof Error) {
@@ -127,9 +135,13 @@ export async function POST(request: Request) {
       const claudeStatus = await getClaudeCliStatus(claudeConfig)
       if (claudeStatus.connected) {
         try {
+          // The request's model belongs to Codex here; Claude answers with its
+          // own default. Codex-only "minimal" effort maps to Claude's "low".
           const plan = await requestAiModelingPlanViaClaude(parsed.data, {
             ...claudeConfig,
             command: claudeStatus.command,
+            model: claudeConfig.model ?? DEFAULT_CLAUDE_MODEL,
+            effort: parsed.data.effort === 'minimal' ? 'low' : parsed.data.effort,
           })
           return NextResponse.json({
             ...plan,

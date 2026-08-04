@@ -211,6 +211,7 @@ export async function requestAiModelingPlanViaClaude(
       '--json-schema',
       JSON.stringify(modelingPlanJsonSchema),
       ...(config.model ? ['--model', config.model] : []),
+      ...(config.effort ? ['--effort', config.effort] : []),
       // Isolate this call from this machine's own CLAUDE.md, skills, and
       // configured MCP servers — the modeling agent must only see the
       // structured scene/prompt payload, not the host operator's tooling.
