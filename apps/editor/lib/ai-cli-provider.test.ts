@@ -69,6 +69,41 @@ describe('Codex CLI provider boundary', () => {
     })
   })
 
+  test('accepts an update whose payload was echoed into nodeJson, minus identity fields', () => {
+    const plan = parseCodexCliPlan({
+      message: 'Finish set.',
+      patches: [
+        {
+          ...emptyFieldPatch,
+          op: 'update',
+          id: 'zone_public',
+          nodeJson:
+            '{"object":"node","id":"zone_public","type":"zone","name":"공용부","wallFinish":"도배지 - 회벽 화이트"}',
+        },
+      ],
+    })
+
+    expect(plan).toEqual({
+      message: 'Finish set.',
+      patches: [
+        {
+          op: 'update',
+          id: 'zone_public',
+          data: { name: '공용부', wallFinish: '도배지 - 회벽 화이트' },
+        },
+      ],
+    })
+  })
+
+  test('an update with neither dataJson nor nodeJson still fails validation', () => {
+    expect(() =>
+      parseCodexCliPlan({
+        message: 'Broken update.',
+        patches: [{ ...emptyFieldPatch, op: 'update', id: 'zone_public' }],
+      }),
+    ).toThrow()
+  })
+
   test('converts a deterministic body push pull command from the CLI contract', () => {
     const plan = parseCodexCliPlan({
       message: 'Body face ready to push.',
@@ -439,7 +474,6 @@ printf '%s' '{"message":"CLI plan ready.","patches":[]}' > "$output"
     }
   })
 })
-
 
 describe('codex stderr is reduced to what went wrong', () => {
   // Codex echoes the full invocation — schema included — before its ERROR

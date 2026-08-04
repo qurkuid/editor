@@ -57,12 +57,22 @@ export function parseCodexCliPlan(input: unknown): AiModelingPlan {
           node: parseJsonRecord(patch.nodeJson),
           ...(patch.parentId === null ? {} : { parentId: patch.parentId }),
         }
-      case 'update':
+      case 'update': {
+        // Models regularly answer an update with the whole node echoed into
+        // nodeJson instead of a dataJson diff. Accept either field, minus the
+        // identity keys an update must never change.
+        const {
+          object: _object,
+          id: _id,
+          type: _type,
+          ...data
+        } = parseJsonRecord(patch.dataJson ?? patch.nodeJson)
         return {
           op: patch.op,
           id: z.string().min(1).parse(patch.id),
-          data: parseJsonRecord(patch.dataJson),
+          data,
         }
+      }
       case 'delete':
         return {
           op: patch.op,
