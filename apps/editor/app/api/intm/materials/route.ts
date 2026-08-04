@@ -21,7 +21,12 @@ export async function GET(request: NextRequest) {
   if (!intmAuthEnabled()) {
     // Local dev with no INTM configured: an empty catalogue, not an error, so
     // the statistics page still renders its takeoff without prices.
-    return NextResponse.json({ materials: [], categories: [], connected: false })
+    return NextResponse.json({
+      materials: [],
+      categories: [],
+      connected: false,
+      reason: 'not-configured',
+    })
   }
 
   const cookie = request.headers.get('cookie')
@@ -30,7 +35,15 @@ export async function GET(request: NextRequest) {
     fetchIntmCategories(cookie),
   ])
 
-  return NextResponse.json({ materials, categories, connected: true })
+  // "Configured" is not "working". Reporting a reachable-but-empty catalogue as
+  // connected left the panel saying nothing at all about why every line was
+  // unpriced — and cost two rounds of guessing at what had gone wrong.
+  return NextResponse.json({
+    materials,
+    categories,
+    connected: materials.length > 0,
+    ...(materials.length === 0 ? { reason: 'empty' } : {}),
+  })
 }
 
 /** Correct a material's coverage/waste spec — writes straight through to INTM. */

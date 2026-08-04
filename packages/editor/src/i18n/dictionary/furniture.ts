@@ -51,9 +51,23 @@ export const statsDictionary = {
   'stats.scope.level': { ko: '현재 레벨', en: 'This level' },
   'stats.scope.whole': { ko: '전체 씬', en: 'Whole scene' },
   'stats.loading': { ko: '자재 카탈로그 불러오는 중…', en: 'Loading catalogue…' },
-  'stats.noCatalogue': {
-    ko: 'INTM 카탈로그에 연결되지 않아 수량만 표시합니다.',
-    en: 'Not connected to INTM — quantities only, no prices.',
+  // Each says what to do about it. A single "not connected" covered three
+  // different faults and told nobody which one they had.
+  'stats.noCatalogue.not-configured': {
+    ko: '이 서버에 INTM이 설정되지 않았습니다 (로컬 개발). 수량만 표시합니다.',
+    en: 'INTM is not configured on this server (local dev) — quantities only.',
+  },
+  'stats.noCatalogue.signed-out': {
+    ko: 'INTM 세션이 만료됐습니다. 새로고침해 다시 로그인하세요.',
+    en: 'Your INTM session has expired — reload to sign in again.',
+  },
+  'stats.noCatalogue.empty': {
+    ko: 'INTM에 연결됐지만 자재가 0건입니다. 계정 권한을 확인하세요.',
+    en: 'Connected to INTM, but it returned no materials — check account access.',
+  },
+  'stats.noCatalogue.error': {
+    ko: 'INTM 자재를 불러오지 못했습니다 ({status}).',
+    en: 'Could not load INTM materials ({status}).',
   },
   'stats.total': { ko: '합계 (확정 항목만)', en: 'Total (priced lines only)' },
   'stats.unresolved': {

@@ -41,10 +41,19 @@ function formatTakeoff(quantity: number, unit: string): string {
   return `${quantity.toFixed(2)} ${unit === 'm2' ? '㎡' : unit}`
 }
 
+/**
+ * `reason` says why there are no prices, which the panel shows verbatim. A bare
+ * "not connected" is the same message whether INTM is unconfigured, the session
+ * has lapsed, or the request failed — three different things to do about it.
+ */
+type CatalogueReason = 'not-configured' | 'signed-out' | 'empty' | 'error'
+
 type Catalogue = {
   materials: IntmMaterial[]
   categories: IntmMaterialCategory[]
   connected: boolean
+  reason?: CatalogueReason
+  status?: number
 }
 
 /**
@@ -78,13 +87,21 @@ export function StatsTab() {
     setLoading(true)
     try {
       const response = await fetch(withBasePath('/api/intm/materials'))
-      setCatalogue(
-        response.ok
-          ? ((await response.json()) as Catalogue)
-          : { materials: [], categories: [], connected: false },
-      )
+      if (response.ok) {
+        setCatalogue((await response.json()) as Catalogue)
+      } else {
+        // 401 is the auth gate: the page loaded on a session that has since
+        // lapsed. Anything else is the route or INTM itself failing.
+        setCatalogue({
+          materials: [],
+          categories: [],
+          connected: false,
+          reason: response.status === 401 ? 'signed-out' : 'error',
+          status: response.status,
+        })
+      }
     } catch {
-      setCatalogue({ materials: [], categories: [], connected: false })
+      setCatalogue({ materials: [], categories: [], connected: false, reason: 'error' })
     } finally {
       setLoading(false)
     }
@@ -207,7 +224,10 @@ export function StatsTab() {
           <>
             {catalogue && !catalogue.connected && (
               <p className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px] text-amber-200">
-                {t('stats.noCatalogue')}
+                {t(`stats.noCatalogue.${catalogue.reason ?? 'error'}`).replace(
+                  '{status}',
+                  String(catalogue.status ?? ''),
+                )}
               </p>
             )}
 
