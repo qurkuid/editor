@@ -33,6 +33,8 @@ export const aiChatDictionary = {
     ko: '— 큰 작업은 최대 10분까지 걸릴 수 있어요',
     en: '— large builds can take up to 10 minutes',
   },
+  'aiChat.flows.title': { ko: '어떤 작업을 하실 건가요?', en: 'What do you want to do?' },
+  'aiChat.flows.close': { ko: '플로우 닫기', en: 'Close flow' },
 
   'aiChat.pendingPlan.pending': { ko: '실행 대기 · {op}', en: 'Pending · {op}' },
   'aiChat.pendingPlan.desc': {

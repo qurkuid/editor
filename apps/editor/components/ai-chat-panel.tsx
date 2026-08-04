@@ -19,6 +19,7 @@ import useAiChatHistory, { type AiChatHistoryMessage } from '@/lib/ai-chat-histo
 import { type AiModelingPlan, AiModelingPlanSchema, buildAiSceneContext } from '@/lib/ai-control'
 import { applyAiModelingPlanWithAssets } from '@/lib/ai-control-assets'
 import useAiProvider from '@/lib/ai-provider-store'
+import { AI_TASK_FLOWS, type AiTaskFlow } from '@/lib/ai-task-flows'
 import { withBasePath } from '@/lib/base-path'
 
 type ChatMessage = AiChatHistoryMessage
@@ -183,6 +184,20 @@ export function AiChatPanel() {
   const [pendingPlan, setPendingPlan] = useState<AiModelingPlan | null>(null)
   const [isThinking, setIsThinking] = useState(false)
   const [thinkingSeconds, setThinkingSeconds] = useState(0)
+  const [activeFlowId, setActiveFlowId] = useState<string | null>(null)
+  const [flowStep, setFlowStep] = useState(0)
+  const activeFlow = AI_TASK_FLOWS.find((flow) => flow.id === activeFlowId) ?? null
+
+  function runFlowStep(flow: AiTaskFlow, index: number) {
+    const step = flow.steps[index]
+    if (!step) return
+    setFlowStep(index)
+    if (step.needsImage) {
+      fileInputRef.current?.click()
+      return
+    }
+    setDraft(step.prompt[locale] || step.prompt.ko)
+  }
 
   // The only signal during a long build is this indicator — without a clock a
   // multi-minute generation is indistinguishable from a dead request.
@@ -304,6 +319,9 @@ export function AiChatPanel() {
       setImageError(null)
       appendMessage({ id: crypto.randomUUID(), role: 'assistant', content: plan.message })
       setPendingPlan(plan.patches.length > 0 ? plan : null)
+      // A guided flow moves its highlight to the next step once this one has
+      // produced a plan; the chips stay clickable to redo or skip around.
+      if (activeFlow && flowStep < activeFlow.steps.length - 1) setFlowStep(flowStep + 1)
     } catch (error) {
       appendMessage({
         id: crypto.randomUUID(),
@@ -411,8 +429,7 @@ export function AiChatPanel() {
             <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> {t('aiChat.thinking')}
             {thinkingSeconds >= 5 && (
               <span>
-                · {Math.floor(thinkingSeconds / 60)}:
-                {String(thinkingSeconds % 60).padStart(2, '0')}
+                · {Math.floor(thinkingSeconds / 60)}:{String(thinkingSeconds % 60).padStart(2, '0')}
               </span>
             )}
             {thinkingSeconds >= 60 && <span>{t('aiChat.thinkingLong')}</span>}
@@ -478,6 +495,58 @@ export function AiChatPanel() {
             {imageError}
           </p>
         )}
+        <div className="mb-2 flex flex-wrap items-center gap-1">
+          {activeFlow ? (
+            <>
+              <span className="mr-1 text-[10px] text-muted-foreground">
+                {activeFlow.title[locale] || activeFlow.title.ko}
+              </span>
+              {activeFlow.steps.map((step, index) => (
+                <button
+                  className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                    index === flowStep
+                      ? 'border-foreground/50 bg-foreground text-background'
+                      : index < flowStep
+                        ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                        : 'border-border/70 text-muted-foreground hover:text-foreground'
+                  }`}
+                  key={step.id}
+                  onClick={() => runFlowStep(activeFlow, index)}
+                  type="button"
+                >
+                  {index + 1}. {step.label[locale] || step.label.ko}
+                </button>
+              ))}
+              <button
+                aria-label={t('aiChat.flows.close')}
+                className="ml-0.5 text-muted-foreground hover:text-foreground"
+                onClick={() => setActiveFlowId(null)}
+                type="button"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="mr-1 text-[10px] text-muted-foreground">
+                {t('aiChat.flows.title')}
+              </span>
+              {AI_TASK_FLOWS.map((flow) => (
+                <button
+                  className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                  key={flow.id}
+                  onClick={() => {
+                    setActiveFlowId(flow.id)
+                    runFlowStep(flow, 0)
+                  }}
+                  type="button"
+                >
+                  {flow.title[locale] || flow.title.ko}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
         <div className="rounded-lg border border-border bg-background shadow-sm focus-within:border-foreground/40">
           <textarea
             aria-label={t('aiChat.textarea.ariaLabel')}
