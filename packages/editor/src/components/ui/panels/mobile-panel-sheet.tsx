@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { type ReactNode, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import useEditor from '../../../store/use-editor'
+import { useT } from '../../../i18n/use-t'
 
 interface MobilePanelSheetProps {
   open: boolean
@@ -19,6 +20,7 @@ const HEIGHT_VH = 50
 const DRAG_CLOSE_THRESHOLD_PX = 120
 
 export function MobilePanelSheet({ open, onClose, icon, title, children }: MobilePanelSheetProps) {
+  const t = useT()
   const [mounted, setMounted] = useState(false)
   const setMobilePanelSheetHeight = useEditor((s) => s.setMobilePanelSheetHeight)
 
@@ -88,7 +90,7 @@ export function MobilePanelSheet({ open, onClose, icon, title, children }: Mobil
               </h2>
             </div>
             <button
-              aria-label="Close"
+              aria-label={t('common.close')}
               className="flex h-8 w-8 items-center justify-center rounded-md bg-[#2C2C2E] text-muted-foreground transition-colors hover:bg-[#3e3e3e] hover:text-foreground"
               onClick={onClose}
               type="button"

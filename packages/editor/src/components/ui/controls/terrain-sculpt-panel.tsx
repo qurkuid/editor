@@ -14,12 +14,14 @@ import useEditor from '../../../store/use-editor'
 import { Button } from '../primitives/button'
 import { SegmentedControl } from './segmented-control'
 import { SliderControl } from './slider-control'
+import type { MessageId } from '../../../i18n/translate'
+import { useT } from '../../../i18n/use-t'
 
-const VERB_OPTIONS: Array<{ value: TerrainVerb; iconSrc: string; hint: string }> = [
-  { value: 'raise', iconSrc: '/icons/terrain-raise.webp', hint: 'Raise' },
-  { value: 'lower', iconSrc: '/icons/terrain-lower.webp', hint: 'Lower' },
-  { value: 'flatten', iconSrc: '/icons/terrain-flatten.webp', hint: 'Flatten' },
-  { value: 'smooth', iconSrc: '/icons/terrain-smooth.webp', hint: 'Smooth' },
+const VERB_OPTIONS: Array<{ value: TerrainVerb; iconSrc: string; hintKey: MessageId }> = [
+  { value: 'raise', iconSrc: '/icons/terrain-raise.webp', hintKey: 'panel.raise' },
+  { value: 'lower', iconSrc: '/icons/terrain-lower.webp', hintKey: 'panel.lower' },
+  { value: 'flatten', iconSrc: '/icons/terrain-flatten.webp', hintKey: 'panel.flatten' },
+  { value: 'smooth', iconSrc: '/icons/terrain-smooth.webp', hintKey: 'panel.smooth' },
 ]
 
 const VERB_HINTS: Record<TerrainVerb, string> = {
@@ -42,6 +44,7 @@ const VERB_HINTS: Record<TerrainVerb, string> = {
  * `MaterialPaintPanel`.
  */
 export function TerrainSculptPanel() {
+  const t = useT()
   const verb = useEditor((state) => state.terrainVerb)
   const setTerrainVerb = useEditor((state) => state.setTerrainVerb)
   const brush = useEditor((state) => state.terrainBrush)
@@ -64,7 +67,7 @@ export function TerrainSculptPanel() {
         <SegmentedControl
           className="h-14"
           onChange={(next) => setTerrainVerb(next)}
-          options={VERB_OPTIONS.map(({ value, iconSrc, hint }) => ({
+          options={VERB_OPTIONS.map(({ value, iconSrc, hintKey }) => ({
             value,
             label: (
               <span className="flex flex-col items-center gap-0.5">
@@ -77,7 +80,7 @@ export function TerrainSculptPanel() {
                   src={assetPath(iconSrc)}
                   width={28}
                 />
-                <span className="text-[9px] leading-none">{hint}</span>
+                <span className="text-[9px] leading-none">{t(hintKey)}</span>
               </span>
             ),
           }))}
@@ -93,7 +96,7 @@ export function TerrainSculptPanel() {
           under it lands between samples and paints nothing at all.
         */}
         <SliderControl
-          label="Size"
+          label={t('panel.size')}
           max={maxRadius}
           min={minRadius}
           onChange={(radius) => setTerrainBrush({ radius })}
@@ -103,7 +106,7 @@ export function TerrainSculptPanel() {
           value={brush.radius}
         />
         <SliderControl
-          label="Strength"
+          label={t('panel.strength')}
           max={1}
           min={0.05}
           onChange={(strength) => setTerrainBrush({ strength })}
@@ -112,7 +115,7 @@ export function TerrainSculptPanel() {
           value={brush.strength}
         />
         <SliderControl
-          label="Softness"
+          label={t('panel.softness')}
           max={1}
           min={0}
           onChange={(falloff) => setTerrainBrush({ falloff })}
@@ -123,8 +126,8 @@ export function TerrainSculptPanel() {
         <SegmentedControl
           onChange={(shape) => setTerrainBrush({ shape })}
           options={[
-            { value: 'round', label: 'Round' },
-            { value: 'square', label: 'Square' },
+            { value: 'round', label: t('panel.round') },
+            { value: 'square', label: t('panel.square') },
           ]}
           value={brush.shape}
         />
@@ -135,7 +138,7 @@ export function TerrainSculptPanel() {
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
               <SliderControl
-                label="Target"
+                label={t('panel.target')}
                 max={50}
                 min={-50}
                 onChange={setTerrainFlattenTarget}
@@ -146,7 +149,7 @@ export function TerrainSculptPanel() {
               />
             </div>
             <Button
-              aria-label="Pick target height from the ground"
+              aria-label={t('panel.pickTargetHeightFromTheGround')}
               aria-pressed={sampling}
               onClick={() => setTerrainSampling(!sampling)}
               size="icon-sm"

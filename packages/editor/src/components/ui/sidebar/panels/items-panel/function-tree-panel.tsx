@@ -1,5 +1,7 @@
 'use client'
 
+import type { MessageId } from '../../../../../i18n/translate'
+import { useT } from '../../../../../i18n/use-t'
 import type { AssetInput } from '@pascal-app/core'
 import { Root as TooltipRoot } from '@radix-ui/react-tooltip'
 import NextImage from 'next/image'
@@ -21,10 +23,10 @@ export type FunctionTreeNode = {
   children: FunctionTreeNode[]
 }
 
-const SOURCE_CHIPS: Array<{ id: NonNullable<AssetInput['source']>; label: string }> = [
-  { id: 'library', label: 'Library' },
-  { id: 'community', label: 'Community' },
-  { id: 'mine', label: 'Mine' },
+const SOURCE_CHIPS: Array<{ id: NonNullable<AssetInput['source']>; labelKey: MessageId }> = [
+  { id: 'library', labelKey: 'panel.library' },
+  { id: 'community', labelKey: 'panel.community' },
+  { id: 'mine', labelKey: 'panel.mine' },
 ]
 
 /** Every slug at or below `node`, so a non-leaf selection matches descendants. */
@@ -64,6 +66,7 @@ export function FunctionTreePanel({
   leadingTile?: React.ReactNode
   emptyState?: React.ReactNode
 }) {
+  const t = useT()
   const [activeRootSlug, setActiveRootSlug] = useState<string | null>(
     functionTree[0]?.slug ?? null,
   )
@@ -173,7 +176,7 @@ export function FunctionTreePanel({
               setSearch(e.target.value)
               onSearchChange?.(e.target.value)
             }}
-            placeholder="Search..."
+            placeholder={t('panel.search')}
             type="text"
             value={search}
           />
@@ -192,7 +195,7 @@ export function FunctionTreePanel({
                   onClick={() => setActiveSource(isActive ? null : chip.id)}
                   type="button"
                 >
-                  {chip.label}
+                  {t(chip.labelKey)}
                 </button>
               )
             })}

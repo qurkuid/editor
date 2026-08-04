@@ -1,22 +1,22 @@
 import { describe, expect, test } from 'bun:test'
 import type { SaveStatus } from '@pascal-app/editor'
-import { localEditorSaveStatusLabel } from './local-editor-save-status'
+import { localEditorSaveStatusKey } from './local-editor-save-status'
 
-describe('localEditorSaveStatusLabel', () => {
+describe('localEditorSaveStatusKey', () => {
   test.each([
-    ['idle', 'Loading local scene…'],
-    ['pending', 'Saving locally…'],
-    ['saving', 'Saving locally…'],
-    ['saved', 'Saved locally'],
-    ['paused', 'Local saving paused'],
-    ['error', 'Local save failed'],
+    ['idle', 'panel.saveIdle'],
+    ['pending', 'panel.saveSaving'],
+    ['saving', 'panel.saveSaving'],
+    ['saved', 'panel.savedLocally'],
+    ['paused', 'panel.savePaused'],
+    ['error', 'panel.saveError'],
   ] satisfies readonly (readonly [
     SaveStatus,
     string,
-  ])[])('returns %s status copy for the local editor', (status, expected) => {
+  ])[])('returns %s status message id for the local editor', (status, expected) => {
     const givenSaveStatus = status
-    const whenLabelIsResolved = localEditorSaveStatusLabel(givenSaveStatus)
-    const thenExpectedLabel = expected
-    expect(whenLabelIsResolved).toBe(thenExpectedLabel)
+    const whenKeyIsResolved = localEditorSaveStatusKey(givenSaveStatus)
+    const thenExpectedKey = expected
+    expect(whenKeyIsResolved).toBe(thenExpectedKey)
   })
 })

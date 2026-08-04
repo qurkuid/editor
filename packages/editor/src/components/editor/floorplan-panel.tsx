@@ -76,6 +76,7 @@ import { createPortal } from 'react-dom'
 import { Vector3 } from 'three'
 import { useShallow } from 'zustand/react/shallow'
 import { useDraftLengthInput } from '../../hooks/use-draft-length-input'
+import { useT } from '../../i18n/use-t'
 import { resolveCeilingPlanPointSnap } from '../../lib/ceiling-plan-snap'
 import { constrainPlanDraftPoint } from '../../lib/draft-length-input'
 import {
@@ -193,7 +194,6 @@ import {
   WALL_JOIN_SNAP_RADIUS,
   type WallPlanPoint,
 } from '../tools/wall/wall-drafting'
-
 import { PALETTE_COLORS } from '../ui/primitives/color-dot'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/primitives/tooltip'
 import { resolveFloorplanBackgroundSelection } from './floorplan-background-selection'
@@ -516,11 +516,12 @@ function FloorplanCompassButton({
   onAlignNorth: () => void
   needleRef?: React.RefObject<SVGSVGElement | null>
 }) {
+  const t = useT()
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
-          aria-label="Align view to north"
+          aria-label={t('panel.alignViewToNorth')}
           className="group absolute bottom-3 left-3 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white/85 shadow-sm backdrop-blur-md transition hover:bg-white hover:shadow-md dark:border-white/10 dark:bg-neutral-900/85 dark:hover:bg-neutral-900"
           onClick={(event) => {
             event.preventDefault()
@@ -546,7 +547,7 @@ function FloorplanCompassButton({
           </span>
         </button>
       </TooltipTrigger>
-      <TooltipContent side="right">Align view to north</TooltipContent>
+      <TooltipContent side="right">{t('panel.alignViewToNorth')}</TooltipContent>
     </Tooltip>
   )
 }
@@ -4961,6 +4962,7 @@ export function FloorplanPanel({
   compassHost?: HTMLElement | null
   floorplanSceneSlot?: ReactNode
 }) {
+  const t = useT()
   useFloorplanCameraSyncBridge()
   const viewportHostRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -11213,7 +11215,7 @@ export function FloorplanPanel({
                 <Ruler className="h-4 w-4 text-foreground/80" />
               </div>
               <div className="min-w-0">
-                <div className="font-medium text-sm">Set overlay scale</div>
+                <div className="font-medium text-sm">{t('panel.setOverlayScale')}</div>
                 <div className="mt-0.5 text-muted-foreground text-xs leading-4">
                   Enter the real-world length of the line you just drew. The image will resize to
                   match it.
@@ -11258,10 +11260,10 @@ export function FloorplanPanel({
                   }
                   value={referenceScaleUnit}
                 >
-                  <option value="meters">Meters</option>
-                  <option value="centimeters">Centimeters</option>
-                  <option value="feet">Feet</option>
-                  <option value="inches">Inches</option>
+                  <option value="meters">{t('chrome.unitMeters')}</option>
+                  <option value="centimeters">{t('panel.centimeters')}</option>
+                  <option value="feet">{t('panel.feet')}</option>
+                  <option value="inches">{t('panel.inches')}</option>
                 </select>
               </div>
               <span

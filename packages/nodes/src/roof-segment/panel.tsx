@@ -12,6 +12,7 @@ import {
   type RoofType,
   useScene,
 } from '@pascal-app/core'
+import type { MessageId } from '@pascal-app/editor'
 import {
   ActionButton,
   ActionGroup,
@@ -22,22 +23,25 @@ import {
   ToggleControl,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Copy, Move, Trash2 } from 'lucide-react'
 import { useCallback } from 'react'
 
-const ROOF_TYPE_OPTIONS: { label: string; value: RoofType }[] = [
-  { label: 'Hip', value: 'hip' },
-  { label: 'Gable', value: 'gable' },
-  { label: 'Shed', value: 'shed' },
+const ROOF_TYPE_OPTIONS = (t: (key: MessageId) => string): { label: string; value: RoofType }[] => [
+  { label: t('panel.hip'), value: 'hip' },
+  { label: t('panel.gable'), value: 'gable' },
+  { label: t('panel.shed'), value: 'shed' },
 ]
 
-const ROOF_TYPE_OPTIONS_2: { label: string; value: RoofType }[] = [
-  { label: 'Flat', value: 'flat' },
-  { label: 'Gambrel', value: 'gambrel' },
-  { label: 'Dutch', value: 'dutch' },
-  { label: 'Mansard', value: 'mansard' },
+const ROOF_TYPE_OPTIONS_2 = (
+  t: (key: MessageId) => string,
+): { label: string; value: RoofType }[] => [
+  { label: t('panel.flat'), value: 'flat' },
+  { label: t('panel.gambrel'), value: 'gambrel' },
+  { label: t('panel.dutch'), value: 'dutch' },
+  { label: t('panel.mansard'), value: 'mansard' },
 ]
 
 // Carpenter / roofer convention: rise over a 12" run, converted to degrees.
@@ -61,6 +65,7 @@ function metadataRecord(metadata: unknown): Record<string, unknown> {
 }
 
 export default function RoofSegmentPanel() {
+  const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
   const updateNode = useScene((s) => s.updateNode)
@@ -217,23 +222,23 @@ export default function RoofSegmentPanel() {
       title={node.name || 'Roof Segment'}
       width={300}
     >
-      <PanelSection title="Roof Type">
+      <PanelSection title={t('panel.roofType')}>
         <SegmentedControl
           onChange={(v) => handleRoofTypeChange(v)}
-          options={ROOF_TYPE_OPTIONS}
+          options={ROOF_TYPE_OPTIONS(t)}
           value={node.roofType}
         />
         <SegmentedControl
           onChange={(v) => handleRoofTypeChange(v)}
-          options={ROOF_TYPE_OPTIONS_2}
+          options={ROOF_TYPE_OPTIONS_2(t)}
           value={node.roofType}
         />
       </PanelSection>
 
-      <PanelSection title="Trim">
+      <PanelSection title={t('panel.trim')}>
         <ToggleControl
           checked={showTrimPlanes}
-          label="Show trim planes"
+          label={t('panel.showTrimPlanes')}
           onChange={(checked) =>
             handleUpdate({
               metadata: { ...metadataRecord(node.metadata), showTrimPlanes: checked },
@@ -243,15 +248,15 @@ export default function RoofSegmentPanel() {
         {node.roofType !== 'shed' && node.roofType !== 'flat' && (
           <ToggleControl
             checked={autoRidgeVentEnabled}
-            label="Auto ridge vent"
+            label={t('panel.autoRidgeVent')}
             onChange={handleAutoRidgeVentToggle}
           />
         )}
       </PanelSection>
 
-      <PanelSection title="Footprint">
+      <PanelSection title={t('panel.footprint')}>
         <SliderControl
-          label="Width"
+          label={t('panel.width')}
           max={25}
           min={0.5}
           onChange={(v) => handleUpdate({ width: v })}
@@ -261,7 +266,7 @@ export default function RoofSegmentPanel() {
           value={Math.round(node.width * 100) / 100}
         />
         <SliderControl
-          label="Depth"
+          label={t('panel.depth')}
           max={25}
           min={0.5}
           onChange={(v) => handleUpdate({ depth: v })}
@@ -272,9 +277,9 @@ export default function RoofSegmentPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Wall Height">
+      <PanelSection title={t('panel.wallHeight')}>
         <SliderControl
-          label="Wall"
+          label={t('panel.wall')}
           max={5}
           min={0}
           onChange={(v) => handleUpdate({ wallHeight: v })}
@@ -285,9 +290,9 @@ export default function RoofSegmentPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Pitch">
+      <PanelSection title={t('panel.pitch')}>
         <SliderControl
-          label="Angle"
+          label={t('panel.angle')}
           max={60}
           min={0}
           onChange={(v) => handleUpdate({ pitch: v })}
@@ -308,9 +313,9 @@ export default function RoofSegmentPanel() {
       </PanelSection>
 
       {node.roofType === 'gambrel' && (
-        <PanelSection title="Shape">
+        <PanelSection title={t('panel.shape')}>
           <SliderControl
-            label="Kink Depth"
+            label={t('panel.kinkDepth')}
             max={0.9}
             min={0.1}
             onChange={(v) => handleUpdate({ gambrelLowerWidthRatio: v })}
@@ -320,7 +325,7 @@ export default function RoofSegmentPanel() {
             value={Math.round(node.gambrelLowerWidthRatio * 100) / 100}
           />
           <SliderControl
-            label="Kink Height"
+            label={t('panel.kinkHeight')}
             max={0.9}
             min={0.1}
             onChange={(v) => handleUpdate({ gambrelLowerHeightRatio: v })}
@@ -333,9 +338,9 @@ export default function RoofSegmentPanel() {
       )}
 
       {node.roofType === 'mansard' && (
-        <PanelSection title="Shape">
+        <PanelSection title={t('panel.shape')}>
           <SliderControl
-            label="Waist Width"
+            label={t('panel.waistWidth')}
             max={0.45}
             min={0.05}
             onChange={(v) => handleUpdate({ mansardSteepWidthRatio: v })}
@@ -345,7 +350,7 @@ export default function RoofSegmentPanel() {
             value={Math.round(node.mansardSteepWidthRatio * 100) / 100}
           />
           <SliderControl
-            label="Waist Height"
+            label={t('panel.waistHeight')}
             max={0.9}
             min={0.1}
             onChange={(v) => handleUpdate({ mansardSteepHeightRatio: v })}
@@ -358,9 +363,9 @@ export default function RoofSegmentPanel() {
       )}
 
       {node.roofType === 'dutch' && (
-        <PanelSection title="Shape">
+        <PanelSection title={t('panel.shape')}>
           <SliderControl
-            label="Waist Width"
+            label={t('panel.waistWidth')}
             max={0.45}
             min={0.05}
             onChange={(v) => handleUpdate({ dutchHipWidthRatio: v })}
@@ -370,7 +375,7 @@ export default function RoofSegmentPanel() {
             value={Math.round(node.dutchHipWidthRatio * 100) / 100}
           />
           <SliderControl
-            label="Waist Height"
+            label={t('panel.waistHeight')}
             max={0.9}
             min={0.1}
             onChange={(v) => handleUpdate({ dutchHipHeightRatio: v })}
@@ -380,7 +385,7 @@ export default function RoofSegmentPanel() {
             value={Math.round(node.dutchHipHeightRatio * 100) / 100}
           />
           <SliderControl
-            label="Waist Length"
+            label={t('panel.waistLength')}
             max={1}
             min={0.1}
             onChange={(v) => handleUpdate({ dutchWaistLengthRatio: v })}
@@ -394,7 +399,7 @@ export default function RoofSegmentPanel() {
             }
           />
           <SliderControl
-            label="Top Rake Thick."
+            label={t('panel.topRakeThick')}
             max={0.5}
             min={0.01}
             onChange={(v) => handleUpdate({ dutchTopRakeThickness: v })}
@@ -408,7 +413,7 @@ export default function RoofSegmentPanel() {
             }
           />
           <SliderControl
-            label="Top Rake Length"
+            label={t('panel.topRakeLength')}
             max={3}
             min={0}
             onChange={(v) => handleUpdate({ dutchGabletRake: v })}
@@ -422,9 +427,9 @@ export default function RoofSegmentPanel() {
         </PanelSection>
       )}
 
-      <PanelSection title="Structure">
+      <PanelSection title={t('panel.structure')}>
         <SliderControl
-          label="Wall Thick."
+          label={t('panel.wallThick')}
           max={1}
           min={0.05}
           onChange={(v) => handleUpdate({ wallThickness: v })}
@@ -434,7 +439,7 @@ export default function RoofSegmentPanel() {
           value={Math.round(node.wallThickness * 100) / 100}
         />
         <SliderControl
-          label="Deck Thick."
+          label={t('panel.deckThick')}
           max={0.3}
           min={0.04}
           onChange={(v) => handleUpdate({ deckThickness: v })}
@@ -444,7 +449,7 @@ export default function RoofSegmentPanel() {
           value={Math.round(node.deckThickness * 100) / 100}
         />
         <SliderControl
-          label="Overhang"
+          label={t('panel.overhang')}
           max={1}
           min={0}
           onChange={(v) => handleUpdate({ overhang: v })}
@@ -454,7 +459,7 @@ export default function RoofSegmentPanel() {
           value={Math.round(node.overhang * 100) / 100}
         />
         <SliderControl
-          label="Shingle Thick."
+          label={t('panel.shingleThick')}
           max={0.3}
           min={0.02}
           onChange={(v) => handleUpdate({ shingleThickness: v })}
@@ -465,7 +470,7 @@ export default function RoofSegmentPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Position">
+      <PanelSection title={t('common.position')}>
         <SliderControl
           label="X"
           max={50}
@@ -509,7 +514,7 @@ export default function RoofSegmentPanel() {
           value={Math.round(node.position[2] * 100) / 100}
         />
         <SliderControl
-          label="Rotation"
+          label={t('panel.rotation')}
           max={180}
           min={-180}
           onChange={(degrees) => {
@@ -538,18 +543,22 @@ export default function RoofSegmentPanel() {
         </div>
       </PanelSection>
 
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
-          <ActionButton icon={<Move className="h-3.5 w-3.5" />} label="Move" onClick={handleMove} />
+          <ActionButton
+            icon={<Move className="h-3.5 w-3.5" />}
+            label={t('common.move')}
+            onClick={handleMove}
+          />
           <ActionButton
             icon={<Copy className="h-3.5 w-3.5" />}
-            label="Duplicate"
+            label={t('common.duplicate')}
             onClick={handleDuplicate}
           />
           <ActionButton
             className="hover:bg-red-500/20"
             icon={<Trash2 className="h-3.5 w-3.5 text-red-400" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={handleDelete}
           />
         </ActionGroup>

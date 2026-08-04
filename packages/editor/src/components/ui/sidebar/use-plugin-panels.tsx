@@ -17,10 +17,11 @@ import { editorHostPanelRegistry, type EditorHostPanel } from '../../../lib/plug
 import { ErrorBoundary } from '../primitives/error-boundary'
 import type { ExtraPanel } from './icon-rail'
 import { PluginsPanel } from './panels/plugins-panel'
+import { useT } from '../../../i18n/use-t'
 
 const pluginsManagerPanel: ExtraPanel = {
   id: 'plugins',
-  label: 'Plugins',
+  label: '플러그인',
   icon: <Plus className="h-5 w-5" />,
   component: PluginsPanel,
 }
@@ -50,6 +51,7 @@ function renderIconRef(ref: IconRef): ReactNode {
 }
 
 function PluginPanelCrashed({ label }: { label: string }) {
+  const t = useT()
   return (
     <div className="flex flex-col gap-2 p-4 text-sm">
       <p className="font-medium text-sidebar-foreground">"{label}" plugin crashed</p>
@@ -70,13 +72,20 @@ function resolvePanelComponent(panel: EditorHostPanel): ComponentType {
   const cached = wrappedPanelCache.get(panel.component)
   if (cached) return cached
   const Lazy = lazy(panel.component)
-  const Wrapped: ComponentType = () => (
-    <ErrorBoundary fallback={<PluginPanelCrashed label={panel.label} />}>
-      <Suspense fallback={<div className="p-4 text-sidebar-foreground/50 text-sm">Loading…</div>}>
-        <Lazy />
-      </Suspense>
-    </ErrorBoundary>
-  )
+  const Wrapped: ComponentType = () => {
+    const t = useT()
+    return (
+      <ErrorBoundary fallback={<PluginPanelCrashed label={panel.label} />}>
+        <Suspense
+          fallback={
+            <div className="p-4 text-sidebar-foreground/50 text-sm">{t('panel.loading')}</div>
+          }
+        >
+          <Lazy />
+        </Suspense>
+      </ErrorBoundary>
+    )
+  }
   Wrapped.displayName = `PluginPanel(${panel.id})`
   wrappedPanelCache.set(panel.component, Wrapped)
   return Wrapped

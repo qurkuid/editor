@@ -6,6 +6,7 @@ import Image from 'next/image'
 import type { MouseEventHandler } from 'react'
 import { cn } from '../../../lib/utils'
 import { getNodeDisplay } from './node-display'
+import { useT } from '../../../i18n/use-t'
 
 interface MobileSelectionBarProps {
   node: AnyNode
@@ -25,6 +26,7 @@ export function MobileSelectionBar({
   onDelete,
   onEdit,
 }: MobileSelectionBarProps) {
+  const t = useT()
   const { icon, label } = getNodeDisplay(node)
 
   const stop: MouseEventHandler<HTMLButtonElement> = (e) => e.stopPropagation()
@@ -51,7 +53,7 @@ export function MobileSelectionBar({
 
       <div className="flex items-center gap-0.5 border-border/40 border-l pl-1">
         <button
-          aria-label="Move"
+          aria-label={t('common.move')}
           className={ACTION_BTN}
           onClick={(e) => {
             stop(e)
@@ -62,7 +64,7 @@ export function MobileSelectionBar({
           <Move className="h-4 w-4" />
         </button>
         <button
-          aria-label="Duplicate"
+          aria-label={t('common.duplicate')}
           className={ACTION_BTN}
           onClick={(e) => {
             stop(e)
@@ -73,7 +75,7 @@ export function MobileSelectionBar({
           <Copy className="h-4 w-4" />
         </button>
         <button
-          aria-label="Delete"
+          aria-label={t('common.delete')}
           className={cn(ACTION_BTN, 'hover:bg-red-500/15 hover:text-red-400')}
           onClick={(e) => {
             stop(e)
@@ -84,7 +86,7 @@ export function MobileSelectionBar({
           <Trash2 className="h-4 w-4" />
         </button>
         <button
-          aria-label="Edit properties"
+          aria-label={t('panel.editProperties')}
           className={ACTION_BTN}
           onClick={(e) => {
             stop(e)

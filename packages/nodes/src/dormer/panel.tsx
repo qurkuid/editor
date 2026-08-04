@@ -9,6 +9,7 @@ import {
   useLiveNodeOverrides,
   useScene,
 } from '@pascal-app/core'
+import type { MessageId } from '@pascal-app/editor'
 import {
   cn,
   PanelSection,
@@ -16,6 +17,7 @@ import {
   SliderControl,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { useCallback, useState } from 'react'
@@ -26,22 +28,27 @@ import { DormerWindowSection } from './panel-window-section'
 type RoofType = DormerNode['roofType']
 type DormerSection = 'dormer' | 'window'
 
-const ROOF_TYPE_OPTIONS: Array<{ label: string; value: RoofType }> = [
-  { label: 'Gable', value: 'gable' },
-  { label: 'Hip', value: 'hip' },
-  { label: 'Shed', value: 'shed' },
-  { label: 'Gambrel', value: 'gambrel' },
-  { label: 'Dutch', value: 'dutch' },
-  { label: 'Mansard', value: 'mansard' },
-  { label: 'Flat', value: 'flat' },
+const ROOF_TYPE_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{ label: string; value: RoofType }> => [
+  { label: t('panel.gable'), value: 'gable' },
+  { label: t('panel.hip'), value: 'hip' },
+  { label: t('panel.shed'), value: 'shed' },
+  { label: t('panel.gambrel'), value: 'gambrel' },
+  { label: t('panel.dutch'), value: 'dutch' },
+  { label: t('panel.mansard'), value: 'mansard' },
+  { label: t('panel.flat'), value: 'flat' },
 ]
 
-const SECTION_OPTIONS: Array<{ label: string; value: DormerSection }> = [
-  { label: 'Dormer', value: 'dormer' },
-  { label: 'Window', value: 'window' },
+const SECTION_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{ label: string; value: DormerSection }> => [
+  { label: t('panel.dormer'), value: 'dormer' },
+  { label: t('panel.window'), value: 'window' },
 ]
 
 export default function DormerPanel() {
+  const t = useT()
   const [section, setSection] = useState<DormerSection>('dormer')
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
@@ -174,9 +181,9 @@ export default function DormerPanel() {
         selectedId={selectedId}
       />
 
-      <PanelSection title="Section">
+      <PanelSection title={t('panel.section')}>
         <div className="grid grid-cols-3 gap-1.5 px-1 pt-1">
-          {SECTION_OPTIONS.map((option) => {
+          {SECTION_OPTIONS(t).map((option) => {
             const isSelected = section === option.value
             return (
               <button
@@ -199,9 +206,9 @@ export default function DormerPanel() {
 
       {section === 'dormer' && (
         <>
-          <PanelSection title="Dimensions">
+          <PanelSection title={t('panel.dimensions')}>
             <SliderControl
-              label="Width"
+              label={t('panel.width')}
               max={4}
               min={0.5}
               onChange={(v) => previewProp({ width: v })}
@@ -213,7 +220,7 @@ export default function DormerPanel() {
               value={Math.round(node.width * 100) / 100}
             />
             <SliderControl
-              label="Depth"
+              label={t('panel.depth')}
               max={5}
               min={0.5}
               onChange={(v) => previewProp({ depth: v })}
@@ -225,7 +232,7 @@ export default function DormerPanel() {
               value={Math.round(node.depth * 100) / 100}
             />
             <SliderControl
-              label="Wall Height"
+              label={t('panel.wallHeight')}
               max={5}
               min={0}
               onChange={(v) => previewProp({ height: v })}
@@ -237,7 +244,7 @@ export default function DormerPanel() {
               value={Math.round(node.height * 100) / 100}
             />
             <SliderControl
-              label="Roof Height"
+              label={t('panel.roofHeight')}
               max={3}
               min={0}
               onChange={(v) => previewProp({ roofHeight: v })}
@@ -250,9 +257,9 @@ export default function DormerPanel() {
             />
           </PanelSection>
 
-          <PanelSection title="Roof Type">
+          <PanelSection title={t('panel.roofType')}>
             <div className="grid grid-cols-3 gap-1.5 px-1 pt-1">
-              {ROOF_TYPE_OPTIONS.map((option) => {
+              {ROOF_TYPE_OPTIONS(t).map((option) => {
                 const isSelected = node.roofType === option.value
                 return (
                   <button

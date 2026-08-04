@@ -26,6 +26,7 @@ import { Button } from '../primitives/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../primitives/tooltip'
 import { MaterialPicker } from './material-picker'
 import { SceneMaterialList } from './scene-material-list'
+import { useT } from '../../../i18n/use-t'
 
 /**
  * Material picker for paint mode. Embedders render this wherever paint controls
@@ -65,6 +66,7 @@ export function resolveCurrentBrush(
 }
 
 export function MaterialPaintPanel({ onCreateMaterialRequest }: MaterialPaintPanelProps) {
+  const t = useT()
   const activePaintMaterial = useEditor((state) => state.activePaintMaterial)
   const activePaintTarget = useEditor((state) => state.activePaintTarget)
   const setActivePaintMaterial = useEditor((state) => state.setActivePaintMaterial)
@@ -194,7 +196,7 @@ export function MaterialPaintPanel({ onCreateMaterialRequest }: MaterialPaintPan
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                aria-label="Add material"
+                aria-label={t('panel.addMaterial')}
                 onClick={createCustomMaterial}
                 size="icon-sm"
                 type="button"
@@ -203,7 +205,7 @@ export function MaterialPaintPanel({ onCreateMaterialRequest }: MaterialPaintPan
                 <Plus />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Add material</TooltipContent>
+            <TooltipContent>{t('panel.addMaterial')}</TooltipContent>
           </Tooltip>
         </div>
         <div className="subtle-scrollbar max-h-56 overflow-y-auto">

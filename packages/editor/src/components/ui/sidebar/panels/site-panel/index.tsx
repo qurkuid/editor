@@ -56,6 +56,7 @@ import { LevelDuplicateDialog } from '../../../level-duplicate-dialog'
 import { InlineRenameInput } from './inline-rename-input'
 import { focusTreeNode, TreeNode } from './tree-node'
 import { TreeNodeDragProvider } from './tree-node-drag'
+import { useT } from '../../../../../i18n/use-t'
 
 // ============================================================================
 // PROPERTY LINE SECTION
@@ -99,6 +100,7 @@ function useSiteNode(): SiteNode | null {
 }
 
 const PropertyLineSection = memo(function PropertyLineSection() {
+  const t = useT()
   const siteNode = useSiteNode()
   const updateNode = useScene((state) => state.updateNode)
   const mode = useEditor((state) => state.mode)
@@ -167,7 +169,7 @@ const PropertyLineSection = memo(function PropertyLineSection() {
 
         <div className="flex items-center gap-2">
           <Pentagon className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium text-sm">Property Line</span>
+          <span className="font-medium text-sm">{t('panel.propertyLine')}</span>
         </div>
         <button
           className={cn(
@@ -270,6 +272,7 @@ const CameraPopover = memo(function CameraPopover({
   onOpenChange: (open: boolean) => void
   buttonClassName?: string
 }) {
+  const t = useT()
   const updateNode = useScene((state) => state.updateNode)
   return (
     <Popover onOpenChange={onOpenChange} open={open}>
@@ -280,7 +283,7 @@ const CameraPopover = memo(function CameraPopover({
             buttonClassName,
           )}
           onClick={(e) => e.stopPropagation()}
-          title="Camera snapshot"
+          title={t('panel.cameraSnapshot')}
         >
           <Camera className="h-3.5 w-3.5" />
           {hasCamera && (
@@ -349,6 +352,7 @@ const ReferenceItem = memo(function ReferenceItem({
   setSelectedReferenceId: (id: string) => void
   handleDelete: (id: string, e: React.MouseEvent) => void
 }) {
+  const t = useT()
   const [isEditing, setIsEditing] = useState(false)
   const handleSelect = () => {
     setSelectedReferenceId(refNode.id)
@@ -379,13 +383,13 @@ const ReferenceItem = memo(function ReferenceItem({
       <div className="flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-2 py-0 pl-[60px] text-muted-foreground group-hover/ref:text-foreground">
         {refNode.type === 'scan' ? (
           <img
-            alt="Scan"
+            alt={t('panel.scan')}
             className="h-3.5 w-3.5 shrink-0 object-contain opacity-70 transition-opacity group-hover/ref:opacity-100"
             src={assetPath('/icons/mesh.webp')}
           />
         ) : (
           <img
-            alt="Guide"
+            alt={t('panel.guide')}
             className="h-3.5 w-3.5 shrink-0 object-contain opacity-70 transition-opacity group-hover/ref:opacity-100"
             src={assetPath('/icons/floorplan.webp')}
           />
@@ -402,7 +406,7 @@ const ReferenceItem = memo(function ReferenceItem({
       <button
         className="z-20 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-colors hover:bg-black/5 hover:text-foreground group-hover/ref:opacity-100 dark:hover:bg-white/10"
         onClick={(e) => handleDelete(refNode.id, e)}
-        title="Delete"
+        title={t('common.delete')}
       >
         <Trash2 className="h-3 w-3" />
       </button>
@@ -629,6 +633,7 @@ const LevelItem = memo(function LevelItem({
   onUploadAsset?: (projectId: string, levelId: string, file: File, type: 'scan' | 'guide') => void
   onDeleteAsset?: (projectId: string, url: string) => void
 }) {
+  const t = useT()
   const [cameraPopoverOpen, setCameraPopoverOpen] = useState(false)
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -741,7 +746,7 @@ const LevelItem = memo(function LevelItem({
 
         <div className="flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-2 py-0 pl-0.5 text-sm">
           <img
-            alt="Level"
+            alt={t('panel.level')}
             className={cn(
               'h-4 w-4 shrink-0 object-contain transition-all duration-200',
               !isSelected && 'opacity-60 grayscale',
@@ -767,7 +772,7 @@ const LevelItem = memo(function LevelItem({
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
               onClick={(e) => e.stopPropagation()}
-              title="Camera snapshot"
+              title={t('panel.cameraSnapshot')}
             >
               <Camera className="h-3.5 w-3.5" />
               {level.camera && (
@@ -840,7 +845,7 @@ const LevelItem = memo(function LevelItem({
             <button
               className="flex w-full cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent"
               onClick={() => handleDuplicateLevel()}
-              title="Duplicate level"
+              title={t('panel.duplicateLevel')}
             >
               <Copy className="h-3.5 w-3.5" />
               Duplicate
@@ -848,7 +853,7 @@ const LevelItem = memo(function LevelItem({
             <button
               className="flex w-full cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent"
               onClick={() => setDuplicateDialogOpen(true)}
-              title="Duplicate level with options"
+              title={t('panel.duplicateLevelWithOptions')}
             >
               <Copy className="h-3.5 w-3.5" />
               Duplicate with options...
@@ -903,6 +908,7 @@ const LevelsSection = memo(function LevelsSection({
   onUploadAsset?: (projectId: string, levelId: string, file: File, type: 'scan' | 'guide') => void
   onDeleteAsset?: (projectId: string, url: string) => void
 } = {}) {
+  const t = useT()
   const createNode = useScene((state) => state.createNode)
   const updateNode = useScene((state) => state.updateNode)
   const selectedBuildingId = useViewer((state) => state.selection.buildingId)
@@ -952,7 +958,7 @@ const LevelsSection = memo(function LevelsSection({
           <div className="relative z-10 flex items-center pr-1 pl-[38px]">
             <Plus className="h-3.5 w-3.5" />
           </div>
-          <span className="truncate">Add level</span>
+          <span className="truncate">{t('panel.addLevel')}</span>
         </button>
         {levels.length === 0 && (
           <div className="relative flex h-8 select-none items-center border-border/50 border-b py-0 pr-2 pl-[38px] text-muted-foreground text-xs">
@@ -983,6 +989,7 @@ const LevelsSection = memo(function LevelsSection({
 })
 
 const LayerToggle = memo(function LayerToggle() {
+  const t = useT()
   const structureLayer = useEditor((state) => state.structureLayer)
   const setStructureLayer = useEditor((state) => state.setStructureLayer)
   const phase = useEditor((state) => state.phase)
@@ -1020,7 +1027,7 @@ const LayerToggle = memo(function LayerToggle() {
         )}
         <div className="relative z-10 flex flex-col items-center">
           <img
-            alt="Structure"
+            alt={t('panel.structure')}
             className={cn(
               'mb-1 h-6 w-6 transition-all',
               activeTab !== 'structure' && 'opacity-50 grayscale',
@@ -1056,7 +1063,7 @@ const LayerToggle = memo(function LayerToggle() {
         )}
         <div className="relative z-10 flex flex-col items-center">
           <img
-            alt="Furnish"
+            alt={t('panel.furnish')}
             className={cn(
               'mb-1 h-6 w-6 transition-all',
               activeTab !== 'furnish' && 'opacity-50 grayscale',
@@ -1093,7 +1100,7 @@ const LayerToggle = memo(function LayerToggle() {
         )}
         <div className="relative z-10 flex flex-col items-center">
           <img
-            alt="Zones"
+            alt={t('panel.zones')}
             className={cn(
               'mb-1 h-6 w-6 transition-all',
               activeTab !== 'zones' && 'opacity-50 grayscale',
@@ -1113,6 +1120,7 @@ const LayerToggle = memo(function LayerToggle() {
 })
 
 const ZoneItem = memo(function ZoneItem({ zone, isLast }: { zone: ZoneNode; isLast?: boolean }) {
+  const t = useT()
   const [isEditing, setIsEditing] = useState(false)
   const [cameraPopoverOpen, setCameraPopoverOpen] = useState(false)
   const deleteNode = useScene((state) => state.deleteNode)
@@ -1209,7 +1217,7 @@ const ZoneItem = memo(function ZoneItem({ zone, isLast }: { zone: ZoneNode; isLa
             <button
               className="relative flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-colors hover:bg-black/5 hover:text-foreground group-hover/row:opacity-100 dark:hover:bg-white/10"
               onClick={(e) => e.stopPropagation()}
-              title="Camera snapshot"
+              title={t('panel.cameraSnapshot')}
             >
               <Camera className="h-3 w-3" />
               {zone.camera && (
@@ -1276,6 +1284,7 @@ const ZoneItem = memo(function ZoneItem({ zone, isLast }: { zone: ZoneNode; isLa
 })
 
 const MultiSelectionBadge = memo(function MultiSelectionBadge() {
+  const t = useT()
   const selectedIds = useViewer((state) => state.selection.selectedIds)
   const setSelection = useViewer((state) => state.setSelection)
 
@@ -1288,7 +1297,7 @@ const MultiSelectionBadge = memo(function MultiSelectionBadge() {
         <button
           className="cursor-pointer rounded-full p-1.5 transition-colors hover:bg-primary-foreground/20"
           onClick={() => setSelection({ selectedIds: [] })}
-          title="Clear selection"
+          title={t('panel.clearSelection')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -1298,6 +1307,7 @@ const MultiSelectionBadge = memo(function MultiSelectionBadge() {
 })
 
 const ContentSection = memo(function ContentSection() {
+  const t = useT()
   const selectedLevelId = useViewer((state) => state.selection.levelId)
   const structureLayer = useEditor((state) => state.structureLayer)
   const phase = useEditor((state) => state.phase)
@@ -1327,7 +1337,7 @@ const ContentSection = memo(function ContentSection() {
 
   if (!level) {
     return (
-      <div className="px-3 py-4 text-muted-foreground text-sm">Select a level to view content</div>
+      <div className="px-3 py-4 text-muted-foreground text-sm">{t('panel.selectALevelToViewContent')}</div>
     )
   }
 
@@ -1359,7 +1369,7 @@ const ContentSection = memo(function ContentSection() {
   }
 
   if (elementChildren.length === 0) {
-    return <div className="px-3 py-4 text-muted-foreground text-sm">No elements on this level</div>
+    return <div className="px-3 py-4 text-muted-foreground text-sm">{t('panel.noElementsOnThisLevel')}</div>
   }
   return (
     <TreeNodeDragProvider>
@@ -1394,6 +1404,7 @@ const BuildingItem = memo(function BuildingItem({
   onUploadAsset?: (projectId: string, levelId: string, file: File, type: 'scan' | 'guide') => void
   onDeleteAsset?: (projectId: string, url: string) => void
 }) {
+  const t = useT()
   const setSelection = useViewer((state) => state.setSelection)
   const phase = useEditor((state) => state.phase)
   const setPhase = useEditor((state) => state.setPhase)
@@ -1434,7 +1445,7 @@ const BuildingItem = memo(function BuildingItem({
       >
         <div className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-2 py-2 pl-3">
           <img
-            alt="Building"
+            alt={t('panel.building')}
             className={cn(
               'h-5 w-5 object-contain transition-all',
               !isBuildingActive && 'opacity-60 grayscale',
@@ -1456,7 +1467,7 @@ const BuildingItem = memo(function BuildingItem({
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
               onClick={(e) => e.stopPropagation()}
-              title="Camera snapshot"
+              title={t('panel.cameraSnapshot')}
             >
               <Camera className="h-4 w-4" />
               {building.camera && (
@@ -1551,6 +1562,7 @@ export interface SitePanelProps {
 }
 
 export function SitePanel({ projectId, onUploadAsset, onDeleteAsset }: SitePanelProps = {}) {
+  const t = useT()
   const rootNodeIds = useScene((state) => state.rootNodeIds)
   const updateNode = useScene((state) => state.updateNode)
   const selectedBuildingId = useViewer((state) => state.selection.buildingId)
@@ -1590,7 +1602,7 @@ export function SitePanel({ projectId, onUploadAsset, onDeleteAsset }: SitePanel
           >
             <div className="flex items-center gap-2">
               <img
-                alt="Site"
+                alt={t('panel.site')}
                 className={cn(
                   'h-5 w-5 object-contain transition-all',
                   phase !== 'site' && 'opacity-60 grayscale',

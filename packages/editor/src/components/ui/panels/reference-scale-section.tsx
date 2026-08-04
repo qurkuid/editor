@@ -8,6 +8,7 @@ import { cn } from '../../../lib/utils'
 import useEditor from '../../../store/use-editor'
 import { ActionButton, ActionGroup } from '../controls/action-button'
 import { PanelSection } from '../controls/panel-section'
+import { useT } from '../../../i18n/use-t'
 
 function getScaleStatus(guide: GuideNode, referenceVisible: boolean) {
   const reference = guide.scaleReference
@@ -33,6 +34,7 @@ export function ReferenceScaleSection({
   readonly setLocked: (locked: boolean) => void
   readonly setReferenceVisible: (visible: boolean) => void
 }) {
+  const t = useT()
   const start = useCallback(() => {
     const editor = useEditor.getState()
     if (editor.viewMode === '3d') {
@@ -46,7 +48,7 @@ export function ReferenceScaleSection({
   }, [])
 
   return (
-    <PanelSection title="Reference Scale">
+    <PanelSection title={t('panel.referenceScale')}>
       <div className="flex items-center gap-2 rounded-md border border-border/50 bg-background/40 px-2.5 py-2 text-sm">
         <Ruler
           className={cn(
@@ -85,7 +87,7 @@ export function ReferenceScaleSection({
             onClick={() => setReferenceVisible(!referenceVisible)}
           />
           <ActionButton
-            label="Clear Scale"
+            label={t('panel.clearScale')}
             onClick={() => {
               onUpdate({ scaleReference: null })
               setLocked(false)

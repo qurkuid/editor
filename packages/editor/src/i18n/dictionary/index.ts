@@ -8,6 +8,7 @@ import { hostSettingsDictionary } from './host-settings'
 import { lightingDictionary } from './lighting'
 import { materialsDictionary } from './materials'
 import { nodeInspectorDictionary } from './node-inspector'
+import { nodePanelsDictionary } from './node-panels'
 import { paintingDictionary } from './painting'
 import { rawpainterDictionary } from './rawpainter'
 import { scenesDictionary } from './scenes'
@@ -29,6 +30,7 @@ export const DICTIONARY = {
   ...viewerChromeDictionary,
   ...materialsDictionary,
   ...nodeInspectorDictionary,
+  ...nodePanelsDictionary,
   ...scenesDictionary,
   ...statsDictionary,
   ...settingsDictionary,

@@ -11,6 +11,7 @@ import { furnishTools } from '../../../action-menu/furnish-tools'
 import { CATALOG_ITEMS } from '../../../item-catalog/catalog-items'
 import { ItemCatalog } from '../../../item-catalog/item-catalog'
 import { type FunctionTreeNode, FunctionTreePanel } from './function-tree-panel'
+import { useT } from '../../../../../i18n/use-t'
 
 const PLACEMENT_TAGS = new Set(['floor', 'wall', 'ceiling', 'countertop'])
 
@@ -98,6 +99,7 @@ function LegacyItemsPanel({
   showSourceFilter?: boolean
   showTagFilters?: boolean
 }) {
+  const t = useT()
   const mode = useEditor((s) => s.mode)
   const catalogCategory = useEditor((s) => s.catalogCategory)
   const setMode = useEditor((s) => s.setMode)
@@ -167,9 +169,9 @@ function LegacyItemsPanel({
   // filter even before they own any items. Selecting "Mine" with no
   // matching items falls through to the empty/no-results state.
   const sourceChips: Array<{ id: AssetInput['source']; label: string }> = [
-    { id: 'library', label: 'Library' },
-    { id: 'community', label: 'Community' },
-    { id: 'mine', label: 'Mine' },
+    { id: 'library', label: t('panel.library') },
+    { id: 'community', label: t('panel.community') },
+    { id: 'mine', label: t('panel.mine') },
   ]
   const allTags = Array.from(new Set(categoryItems.flatMap((item) => item.tags ?? [])))
   const placementTags = allTags.filter((t) => PLACEMENT_TAGS.has(t))
@@ -242,7 +244,7 @@ function LegacyItemsPanel({
               setSearch(e.target.value)
               onSearchChange?.(e.target.value)
             }}
-            placeholder="Search..."
+            placeholder={t('panel.search')}
             type="text"
             value={search}
           />

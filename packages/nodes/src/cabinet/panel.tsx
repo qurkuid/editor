@@ -24,6 +24,7 @@ import {
   setFurnitureTierInterior,
   useScene,
 } from '@pascal-app/core'
+import type { MessageId } from '@pascal-app/editor'
 import {
   ActionButton,
   formatLinearMeasurement,
@@ -34,6 +35,9 @@ import {
   PanelWrapper,
   SegmentedControl,
   SliderControl,
+  translate,
+  useLocale,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Minus, Pause, Play, Plus } from 'lucide-react'
@@ -75,59 +79,69 @@ import {
 } from './stack'
 import { resolveCompartmentTransition } from './stack-transitions'
 
-const HANDLE_STYLE_OPTIONS = [
-  { value: 'bar', label: 'Bar' },
-  { value: 'knob', label: 'Knob' },
-  { value: 'cutout', label: 'Cutout' },
-  { value: 'hole', label: 'Hole' },
-  { value: 'none', label: 'None' },
-] as const
+const HANDLE_STYLE_OPTIONS = (t: (key: MessageId) => string) =>
+  [
+    { value: 'bar', label: t('panel.bar') },
+    { value: 'knob', label: t('panel.knob') },
+    { value: 'cutout', label: t('panel.cutout') },
+    { value: 'hole', label: t('panel.hole') },
+    { value: 'none', label: t('panel.none') },
+  ] as const
 
-const HANDLE_POSITION_OPTIONS = [
-  { value: 'auto', label: 'Auto' },
-  { value: 'top', label: 'Top' },
-  { value: 'center', label: 'Center' },
-] as const
+const HANDLE_POSITION_OPTIONS = (t: (key: MessageId) => string) =>
+  [
+    { value: 'auto', label: t('panel.auto') },
+    { value: 'top', label: t('panel.top') },
+    { value: 'center', label: t('panel.center') },
+  ] as const
 
-const FRONT_OVERLAY_OPTIONS = [
-  { value: 'full', label: 'Overlay' },
-  { value: 'inset', label: 'Inset' },
-] as const
+const FRONT_OVERLAY_OPTIONS = (t: (key: MessageId) => string) =>
+  [
+    { value: 'full', label: t('panel.overlay') },
+    { value: 'inset', label: t('panel.inset') },
+  ] as const
 
-const FRONT_STYLE_OPTIONS = [
-  { value: 'slab', label: 'Slab' },
-  { value: 'shaker', label: 'Shaker' },
-  { value: 'raised-arch', label: 'Raised Arch' },
-] as const
+const FRONT_STYLE_OPTIONS = (t: (key: MessageId) => string) =>
+  [
+    { value: 'slab', label: t('panel.slab') },
+    { value: 'shaker', label: t('panel.shaker') },
+    { value: 'raised-arch', label: t('panel.raisedArch') },
+  ] as const
 
-const CABINET_TIER_OPTIONS = [
-  { value: 'base', label: 'Base Cabinet' },
-  { value: 'tall', label: 'Tall Cabinet' },
-] as const
+const CABINET_TIER_OPTIONS = (t: (key: MessageId) => string) =>
+  [
+    { value: 'base', label: t('panel.baseCabinet') },
+    { value: 'tall', label: t('panel.tallCabinet') },
+  ] as const
 
-const FURNITURE_KIND_OPTIONS: Array<{ value: FurnitureKind; label: string }> = [
-  { value: 'wardrobe', label: 'Wardrobe' },
-  { value: 'base-run', label: 'Base' },
-  { value: 'upper-run', label: 'Upper' },
-  { value: 'tall', label: 'Tall' },
-  { value: 'island', label: 'Island' },
-  { value: 'set', label: 'Set' },
-  { value: 'sink', label: 'Sink' },
+const FURNITURE_KIND_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{ value: FurnitureKind; label: string }> => [
+  { value: 'wardrobe', label: t('panel.wardrobe') },
+  { value: 'base-run', label: t('panel.base') },
+  { value: 'upper-run', label: t('panel.upper') },
+  { value: 'tall', label: t('panel.tall') },
+  { value: 'island', label: t('panel.island') },
+  { value: 'set', label: t('panel.set') },
+  { value: 'sink', label: t('panel.sink') },
 ]
 
-const FURNITURE_FRONT_KIND_OPTIONS: Array<{ value: FurnitureFront['kind']; label: string }> = [
-  { value: 'open', label: 'Open' },
-  { value: 'hinged', label: 'Hinged' },
-  { value: 'drawer', label: 'Drawer' },
-  { value: 'flap', label: 'Flap' },
-  { value: 'sliding', label: 'Sliding' },
-  { value: 'pull-out', label: 'Pull-out' },
+const FURNITURE_FRONT_KIND_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{ value: FurnitureFront['kind']; label: string }> => [
+  { value: 'open', label: t('panel.open') },
+  { value: 'hinged', label: t('panel.hinged') },
+  { value: 'drawer', label: t('panel.drawer') },
+  { value: 'flap', label: t('panel.flap') },
+  { value: 'sliding', label: t('panel.sliding') },
+  { value: 'pull-out', label: t('panel.pullOut') },
 ]
 
-const FURNITURE_HINGED_LEAVES_OPTIONS = [
-  { value: '1', label: '1 leaf' },
-  { value: '2', label: '2 leaves' },
-] as const
+const FURNITURE_HINGED_LEAVES_OPTIONS = (t: (key: MessageId) => string) =>
+  [
+    { value: '1', label: t('panel.1Leaf') },
+    { value: '2', label: t('panel.2Leaves') },
+  ] as const
 
 const FURNITURE_SLIDING_LEAVES_OPTIONS = [
   { value: '2', label: '2' },
@@ -135,16 +149,18 @@ const FURNITURE_SLIDING_LEAVES_OPTIONS = [
   { value: '4', label: '4' },
 ] as const
 
-const FURNITURE_FLAP_DIRECTION_OPTIONS = [
-  { value: 'up', label: 'Up' },
-  { value: 'down', label: 'Down' },
-] as const
+const FURNITURE_FLAP_DIRECTION_OPTIONS = (t: (key: MessageId) => string) =>
+  [
+    { value: 'up', label: t('panel.up') },
+    { value: 'down', label: t('panel.down') },
+  ] as const
 
-const FURNITURE_PULL_OUT_STYLE_OPTIONS = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'spice', label: 'Spice' },
-  { value: 'pantry', label: 'Pantry' },
-] as const
+const FURNITURE_PULL_OUT_STYLE_OPTIONS = (t: (key: MessageId) => string) =>
+  [
+    { value: 'standard', label: t('panel.standard') },
+    { value: 'spice', label: t('panel.spice') },
+    { value: 'pantry', label: t('panel.pantry') },
+  ] as const
 
 const EMPTY_MODULES: CabinetModuleNodeType[] = []
 const EMPTY_MODULE_IDS: AnyNodeId[] = []
@@ -191,9 +207,11 @@ const INITIAL_FURNITURE_NAVIGATION: FurnitureNavigation = {
   face: 'front',
 }
 
-const FURNITURE_FACE_OPTIONS: Array<{ value: FurnitureFace; label: string }> = [
-  { value: 'front', label: 'Front' },
-  { value: 'back', label: 'Back' },
+const FURNITURE_FACE_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{ value: FurnitureFace; label: string }> => [
+  { value: 'front', label: t('panel.front') },
+  { value: 'back', label: t('panel.back') },
 ]
 
 export type FurnitureFrontDraftAction =
@@ -254,13 +272,16 @@ export function FurnitureTierInteriorControls({
   onCancel: () => void
   onApply: () => void
 }) {
+  // Snapshot translator: these controls are invoked as plain functions in
+  // panel.test.tsx, so no hooks; the parent panel re-renders on locale change.
+  const t = (key: MessageId) => translate(key, useLocale.getState().locale)
   return (
     <div className="space-y-3 px-1 pb-2">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs">Shelf count</span>
+        <span className="text-xs">{t('panel.shelfCount')}</span>
         <div className="flex items-center gap-1 rounded-md border border-border/50 p-1">
           <button
-            aria-label="Decrease shelf count"
+            aria-label={t('panel.decreaseShelfCount')}
             className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
             disabled={draft.shelfCount === 0}
             onClick={() => onDraftChange('decreaseShelfCount')}
@@ -272,7 +293,7 @@ export function FurnitureTierInteriorControls({
             {draft.shelfCount}
           </span>
           <button
-            aria-label="Increase shelf count"
+            aria-label={t('panel.increaseShelfCount')}
             className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
             disabled={draft.shelfCount === 8}
             onClick={() => onDraftChange('increaseShelfCount')}
@@ -288,14 +309,14 @@ export function FurnitureTierInteriorControls({
         onClick={() => onDraftChange('toggleHanger')}
         type="button"
       >
-        <span>Hanger rod</span>
+        <span>{t('panel.hangerRod')}</span>
         <span className="text-muted-foreground">{draft.hanger ? 'On' : 'Off'}</span>
       </button>
       <div className="flex gap-2">
-        <ActionButton label="Cancel" onClick={onCancel} />
-        <ActionButton label="Apply" onClick={onApply} />
+        <ActionButton label={t('chrome.cancel')} onClick={onCancel} />
+        <ActionButton label={t('panel.apply')} onClick={onApply} />
       </div>
-      <p className="text-[10px] text-muted-foreground">Enter to apply · Escape to cancel</p>
+      <p className="text-[10px] text-muted-foreground">{t('panel.enterToApplyEscapeToCancel')}</p>
     </div>
   )
 }
@@ -311,17 +332,20 @@ export function FurnitureTierFrontControls({
   onCancel: () => void
   onApply: () => void
 }) {
+  // Snapshot translator: these controls are invoked as plain functions in
+  // panel.test.tsx, so no hooks; the parent panel re-renders on locale change.
+  const t = (key: MessageId) => translate(key, useLocale.getState().locale)
   return (
     <div className="space-y-3 px-1 pb-2">
       <div>
         <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-          Kind
+          {t('panel.kind')}
         </div>
         <SegmentedControl
           onChange={(value) =>
             onDraftChange({ type: 'setKind', kind: value as FurnitureFront['kind'] })
           }
-          options={FURNITURE_FRONT_KIND_OPTIONS}
+          options={FURNITURE_FRONT_KIND_OPTIONS(t)}
           value={draft.kind}
         />
       </div>
@@ -329,11 +353,11 @@ export function FurnitureTierFrontControls({
         <>
           <div>
             <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-              Leaves
+              {t('panel.leaves')}
             </div>
             <SegmentedControl
               onChange={(value) => onDraftChange({ type: 'setLeaves', leaves: Number(value) })}
-              options={FURNITURE_HINGED_LEAVES_OPTIONS.map((option) => ({
+              options={FURNITURE_HINGED_LEAVES_OPTIONS(t).map((option) => ({
                 value: option.value,
                 label: option.label,
               }))}
@@ -346,17 +370,17 @@ export function FurnitureTierFrontControls({
             onClick={() => onDraftChange({ type: 'setGlass', glass: !draft.glass })}
             type="button"
           >
-            <span>Glass</span>
+            <span>{t('panel.glass')}</span>
             <span className="text-muted-foreground">{draft.glass ? 'On' : 'Off'}</span>
           </button>
         </>
       )}
       {draft.kind === 'drawer' && (
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs">Drawer count</span>
+          <span className="text-xs">{t('panel.drawerCount')}</span>
           <div className="flex items-center gap-1 rounded-md border border-border/50 p-1">
             <button
-              aria-label="Decrease drawer count"
+              aria-label={t('panel.decreaseDrawerCount')}
               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
               disabled={draft.count === 1}
               onClick={() => onDraftChange({ type: 'setDrawerCount', count: draft.count - 1 })}
@@ -368,7 +392,7 @@ export function FurnitureTierFrontControls({
               {draft.count}
             </span>
             <button
-              aria-label="Increase drawer count"
+              aria-label={t('panel.increaseDrawerCount')}
               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
               disabled={draft.count === 6}
               onClick={() => onDraftChange({ type: 'setDrawerCount', count: draft.count + 1 })}
@@ -382,13 +406,13 @@ export function FurnitureTierFrontControls({
       {draft.kind === 'flap' && (
         <div>
           <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Direction
+            {t('panel.direction')}
           </div>
           <SegmentedControl
             onChange={(value) =>
               onDraftChange({ type: 'setFlapDirection', direction: value as 'up' | 'down' })
             }
-            options={FURNITURE_FLAP_DIRECTION_OPTIONS.map((option) => ({
+            options={FURNITURE_FLAP_DIRECTION_OPTIONS(t).map((option) => ({
               value: option.value,
               label: option.label,
             }))}
@@ -399,7 +423,7 @@ export function FurnitureTierFrontControls({
       {draft.kind === 'sliding' && (
         <div>
           <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Leaves
+            {t('panel.leaves')}
           </div>
           <SegmentedControl
             onChange={(value) => onDraftChange({ type: 'setLeaves', leaves: Number(value) })}
@@ -423,7 +447,7 @@ export function FurnitureTierFrontControls({
                 style: value as 'standard' | 'spice' | 'pantry',
               })
             }
-            options={FURNITURE_PULL_OUT_STYLE_OPTIONS.map((option) => ({
+            options={FURNITURE_PULL_OUT_STYLE_OPTIONS(t).map((option) => ({
               value: option.value,
               label: option.label,
             }))}
@@ -432,15 +456,16 @@ export function FurnitureTierFrontControls({
         </div>
       )}
       <div className="flex gap-2">
-        <ActionButton label="Cancel" onClick={onCancel} />
-        <ActionButton label="Apply" onClick={onApply} />
+        <ActionButton label={t('chrome.cancel')} onClick={onCancel} />
+        <ActionButton label={t('panel.apply')} onClick={onApply} />
       </div>
-      <p className="text-[10px] text-muted-foreground">Enter to apply · Escape to cancel</p>
+      <p className="text-[10px] text-muted-foreground">{t('panel.enterToApplyEscapeToCancel')}</p>
     </div>
   )
 }
 
 export default function CabinetPanel() {
+  const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
   const unit = useViewer((s) => s.unit)
@@ -899,7 +924,7 @@ export default function CabinetPanel() {
             <div className="px-1 pb-2 text-[11px] text-muted-foreground">
               Bay {bayIndex + 1} → Tier {tierIndex + 1} → Interior
             </div>
-            <PanelSection title="Interior">
+            <PanelSection title={t('panel.interior')}>
               <FurnitureTierInteriorControls
                 draft={furnitureDraft}
                 onApply={applyFurnitureInterior}
@@ -927,7 +952,7 @@ export default function CabinetPanel() {
             <div className="px-1 pb-2 text-[11px] text-muted-foreground">
               Bay {bayIndex + 1} → Tier {tierIndex + 1} → Front
             </div>
-            <PanelSection title="Front">
+            <PanelSection title={t('panel.front')}>
               <FurnitureTierFrontControls
                 draft={furnitureFrontDraft}
                 onApply={applyFurnitureFront}
@@ -954,11 +979,11 @@ export default function CabinetPanel() {
           <div className="px-1 pb-2 text-[11px] text-muted-foreground">
             Bay {bayIndex + 1} → Tier {tierIndex + 1}
           </div>
-          <PanelSection title="Tier">
+          <PanelSection title={t('panel.tier')}>
             <div className="space-y-2 px-1 pb-2">
               {adjacentTier ? (
                 <SliderControl
-                  label="Height"
+                  label={t('common.height')}
                   max={metersToLinearUnit(activeTier.height + adjacentTier.height - 0.05, unit)}
                   min={metersToLinearUnit(0.05, unit)}
                   onChange={(value) =>
@@ -982,7 +1007,7 @@ export default function CabinetPanel() {
               ) : null}
               <div className="flex gap-2">
                 <ActionButton
-                  label="Interior"
+                  label={t('panel.interior')}
                   onClick={() => {
                     setFurnitureDraft({
                       shelfCount: activeTier.shelves.count,
@@ -992,7 +1017,7 @@ export default function CabinetPanel() {
                   }}
                 />
                 <ActionButton
-                  label="Front"
+                  label={t('panel.front')}
                   onClick={() => {
                     setFurnitureFrontDraft(activeTier.front)
                     setFurnitureNavigation((current) => ({ ...current, editingFront: true }))
@@ -1001,7 +1026,7 @@ export default function CabinetPanel() {
               </div>
               <div className="flex gap-2">
                 <ActionButton
-                  label="Insert tier after"
+                  label={t('panel.insertTierAfter')}
                   onClick={() =>
                     updateFurniture(
                       insertFurnitureTier(furniture, {
@@ -1014,7 +1039,7 @@ export default function CabinetPanel() {
                 />
                 <ActionButton
                   disabled={activeBay.tiers.length === 1}
-                  label="Delete tier"
+                  label={t('panel.deleteTier')}
                   onClick={() => {
                     updateFurniture(
                       deleteFurnitureTier(furniture, {
@@ -1050,11 +1075,11 @@ export default function CabinetPanel() {
           width={320}
         >
           <div className="px-1 pb-2 text-[11px] text-muted-foreground">Bay {bayIndex + 1}</div>
-          <PanelSection title="Bay">
+          <PanelSection title={t('panel.bay')}>
             <div className="space-y-2 px-1 pb-2">
               {adjacentBay ? (
                 <SliderControl
-                  label="Width"
+                  label={t('panel.width')}
                   max={metersToLinearUnit(activeBay.width + adjacentBay.width - 0.05, unit)}
                   min={metersToLinearUnit(0.05, unit)}
                   onChange={(value) =>
@@ -1077,7 +1102,7 @@ export default function CabinetPanel() {
               ) : null}
               <div className="flex gap-2">
                 <ActionButton
-                  label="Insert bay after"
+                  label={t('panel.insertBayAfter')}
                   onClick={() =>
                     updateFurniture(
                       insertFurnitureBay(furniture, { afterBayId: activeBay.id, face: activeFace }),
@@ -1086,7 +1111,7 @@ export default function CabinetPanel() {
                 />
                 <ActionButton
                   disabled={activeFaceBays.length === 1}
-                  label="Delete bay"
+                  label={t('panel.deleteBay')}
                   onClick={() => {
                     updateFurniture(
                       deleteFurnitureBay(furniture, { bayId: activeBay.id, face: activeFace }),
@@ -1100,7 +1125,7 @@ export default function CabinetPanel() {
               </div>
             </div>
           </PanelSection>
-          <PanelSection title="Tiers">
+          <PanelSection title={t('panel.tiers')}>
             <div className="flex flex-col gap-2 px-1 pb-2">
               {activeBay.tiers.map((tier, index) => (
                 <button
@@ -1134,18 +1159,18 @@ export default function CabinetPanel() {
         title={node.name || 'Furniture Assembly'}
         width={320}
       >
-        <PanelSection title="Furniture type">
+        <PanelSection title={t('panel.furnitureType')}>
           <div className="px-1 pb-2">
             <SegmentedControl
               onChange={(value) =>
                 updateFurniture(setFurnitureKind(furniture, value as FurnitureKind))
               }
-              options={FURNITURE_KIND_OPTIONS}
+              options={FURNITURE_KIND_OPTIONS(t)}
               value={furniture.furnitureKind}
             />
           </div>
         </PanelSection>
-        <PanelSection title="Overall dimensions">
+        <PanelSection title={t('panel.overallDimensions')}>
           {(['width', 'height', 'depth'] as const).map((key) => (
             <SliderControl
               key={key}
@@ -1160,11 +1185,11 @@ export default function CabinetPanel() {
             />
           ))}
         </PanelSection>
-        <PanelSection title="Open Animation">
+        <PanelSection title={t('panel.openAnimation')}>
           <div className="flex items-center gap-2 px-1">
             <div className="min-w-0 flex-1">
               <SliderControl
-                label="Open"
+                label={t('panel.open')}
                 max={100}
                 min={0}
                 onChange={(value) => {
@@ -1209,7 +1234,7 @@ export default function CabinetPanel() {
           </div>
         </PanelSection>
         {isTwoSidedIsland && (
-          <PanelSection title="Face">
+          <PanelSection title={t('panel.face')}>
             <div className="px-1 pb-2">
               <SegmentedControl
                 onChange={(value) =>
@@ -1218,18 +1243,18 @@ export default function CabinetPanel() {
                     face: value as FurnitureFace,
                   }))
                 }
-                options={FURNITURE_FACE_OPTIONS}
+                options={FURNITURE_FACE_OPTIONS(t)}
                 value={activeFace}
               />
             </div>
           </PanelSection>
         )}
-        <PanelSection title="Bays">
+        <PanelSection title={t('panel.bays')}>
           <div className="mb-2 flex items-center justify-between gap-3 px-1">
-            <span className="text-xs">Bay count</span>
+            <span className="text-xs">{t('panel.bayCount')}</span>
             <div className="flex items-center gap-1 rounded-md border border-border/50 p-1">
               <button
-                aria-label="Remove last bay"
+                aria-label={t('panel.removeLastBay')}
                 className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground disabled:opacity-40"
                 disabled={activeFaceBays.length === 1}
                 onClick={() => {
@@ -1247,7 +1272,7 @@ export default function CabinetPanel() {
                 {activeFaceBays.length}
               </span>
               <button
-                aria-label="Add bay"
+                aria-label={t('panel.addBay')}
                 className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground"
                 onClick={() => {
                   const lastBay = activeFaceBays[activeFaceBays.length - 1]
@@ -1299,17 +1324,17 @@ export default function CabinetPanel() {
       width={320}
     >
       {node.type === 'cabinet' && !node.furniture && (
-        <PanelSection title="Furniture Builder">
+        <PanelSection title={t('panel.furnitureBuilder')}>
           <div className="px-1 pb-2">
             <ActionButton
-              label="Use furniture assembly"
+              label={t('panel.useFurnitureAssembly')}
               onClick={() => updateFurniture(createDefaultFurnitureAssembly())}
             />
           </div>
         </PanelSection>
       )}
       {node.type === 'cabinet-module' && parentRun?.type === 'cabinet' && (
-        <PanelSection title="Presets">
+        <PanelSection title={t('panel.presets')}>
           <div className="grid grid-cols-2 gap-2 px-1 pb-2">
             {CABINET_PRESETS.map((preset) => (
               <button
@@ -1325,9 +1350,9 @@ export default function CabinetPanel() {
         </PanelSection>
       )}
 
-      <PanelSection title="Dimensions">
+      <PanelSection title={t('panel.dimensions')}>
         <SliderControl
-          label="Width"
+          label={t('panel.width')}
           max={3}
           min={0.3}
           onChange={(value) => updateNode({ width: value })}
@@ -1339,7 +1364,7 @@ export default function CabinetPanel() {
         {!isHoodOnlyNode && (
           <>
             <SliderControl
-              label="Depth"
+              label={t('panel.depth')}
               max={1.2}
               min={0.3}
               onChange={(value) => updateNode({ depth: value })}
@@ -1349,7 +1374,7 @@ export default function CabinetPanel() {
               value={node.depth}
             />
             <SliderControl
-              label="Carcass height"
+              label={t('panel.carcassHeight')}
               max={
                 node.type === 'cabinet-module' && resolveCabinetType(node, parentRun) === 'tall'
                   ? 2.4
@@ -1371,7 +1396,7 @@ export default function CabinetPanel() {
       </PanelSection>
 
       {node.type === 'cabinet-module' && parentRun?.type === 'cabinet' && !isHoodOnlyNode && (
-        <PanelSection title="Cabinet Type">
+        <PanelSection title={t('panel.cabinetType')}>
           <div className="space-y-2 px-1 pb-2">
             <SegmentedControl
               onChange={(value) => {
@@ -1381,7 +1406,7 @@ export default function CabinetPanel() {
                 }
                 switchToBase()
               }}
-              options={CABINET_TIER_OPTIONS.map((option) => ({
+              options={CABINET_TIER_OPTIONS(t).map((option) => ({
                 value: option.value,
                 label: option.label,
               }))}
@@ -1389,11 +1414,11 @@ export default function CabinetPanel() {
             />
             {resolveCabinetType(node, parentRun) === 'base' &&
               (hasWallCabinet ? (
-                <ActionButton label="Remove wall cabinet" onClick={removeWallCabinet} />
+                <ActionButton label={t('panel.removeWallCabinet')} onClick={removeWallCabinet} />
               ) : (
                 <>
-                  <ActionButton label="Add wall cabinet" onClick={addWallCabinetAbove} />
-                  <ActionButton label="Add chimney" onClick={addHoodAbove} />
+                  <ActionButton label={t('panel.addWallCabinet')} onClick={addWallCabinetAbove} />
+                  <ActionButton label={t('panel.addChimney')} onClick={addHoodAbove} />
                 </>
               ))}
           </div>
@@ -1401,11 +1426,11 @@ export default function CabinetPanel() {
       )}
 
       {!isHoodOnlyNode && (
-        <PanelSection title="Open Animation">
+        <PanelSection title={t('panel.openAnimation')}>
           <div className="flex items-center gap-2 px-1">
             <div className="min-w-0 flex-1">
               <SliderControl
-                label="Open"
+                label={t('panel.open')}
                 max={100}
                 min={0}
                 onChange={(value) => {
@@ -1451,7 +1476,7 @@ export default function CabinetPanel() {
         </PanelSection>
       )}
 
-      <PanelSection title="Compartments">
+      <PanelSection title={t('panel.compartments')}>
         <div className="flex flex-col gap-2 px-1 pb-2">
           {rows.map(({ compartment, index }, displayIndex) => (
             <CompartmentCard
@@ -1477,7 +1502,7 @@ export default function CabinetPanel() {
         <div className="px-1 pb-1">
           <ActionButton
             icon={<Plus className="h-4 w-4" />}
-            label="Add compartment"
+            label={t('panel.addCompartment')}
             onClick={addCompartment}
           />
         </div>
@@ -1485,7 +1510,7 @@ export default function CabinetPanel() {
 
       {!isHoodOnlyNode && (
         <>
-          <PanelSection title="Fronts">
+          <PanelSection title={t('panel.fronts')}>
             <div className="space-y-2 px-1 pb-2">
               <div>
                 <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -1495,7 +1520,7 @@ export default function CabinetPanel() {
                   onChange={(value) =>
                     updateNode({ frontStyle: value as CabinetNodeType['frontStyle'] })
                   }
-                  options={FRONT_STYLE_OPTIONS.map((option) => ({
+                  options={FRONT_STYLE_OPTIONS(t).map((option) => ({
                     value: option.value,
                     label: option.label,
                   }))}
@@ -1510,7 +1535,7 @@ export default function CabinetPanel() {
                   onChange={(value) =>
                     updateNode({ frontOverlay: value as CabinetNodeType['frontOverlay'] })
                   }
-                  options={FRONT_OVERLAY_OPTIONS.map((option) => ({
+                  options={FRONT_OVERLAY_OPTIONS(t).map((option) => ({
                     value: option.value,
                     label: option.label,
                   }))}
@@ -1520,7 +1545,7 @@ export default function CabinetPanel() {
             </div>
           </PanelSection>
 
-          <PanelSection title="Handles">
+          <PanelSection title={t('panel.handles')}>
             <div className="space-y-2 px-1 pb-2">
               <div>
                 <div className="px-1 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -1530,7 +1555,7 @@ export default function CabinetPanel() {
                   onChange={(value) =>
                     updateNode({ handleStyle: value as CabinetNodeType['handleStyle'] })
                   }
-                  options={HANDLE_STYLE_OPTIONS.map((option) => ({
+                  options={HANDLE_STYLE_OPTIONS(t).map((option) => ({
                     value: option.value,
                     label: option.label,
                   }))}
@@ -1546,7 +1571,7 @@ export default function CabinetPanel() {
                     onChange={(value) =>
                       updateNode({ handlePosition: value as CabinetNodeType['handlePosition'] })
                     }
-                    options={HANDLE_POSITION_OPTIONS.map((option) => ({
+                    options={HANDLE_POSITION_OPTIONS(t).map((option) => ({
                       value: option.value,
                       label: option.label,
                     }))}

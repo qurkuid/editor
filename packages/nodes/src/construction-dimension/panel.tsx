@@ -17,6 +17,7 @@ import {
   setConstructionDimensionDrawingSuppressedSegments,
   useScene,
 } from '@pascal-app/core'
+import type { MessageId } from '@pascal-app/editor'
 import {
   ActionButton,
   ActionGroup,
@@ -26,6 +27,7 @@ import {
   SliderControl,
   triggerSFX,
   useDrawingView,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Trash2 } from 'lucide-react'
@@ -42,45 +44,56 @@ const MODE_LABELS: Record<ConstructionDimensionNode['mode'], string> = {
   coordinate: 'Coordinate',
 }
 
-const DATUM_POLICY_OPTIONS: Array<{ label: string; value: ConstructionDimensionDatumPolicy }> = [
-  { label: 'Centerline', value: 'centerline' },
-  { label: 'Wall face', value: 'wall-face' },
-  { label: 'Structural face', value: 'structural-face' },
-  { label: 'Finish face', value: 'finish-face' },
+const DATUM_POLICY_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{ label: string; value: ConstructionDimensionDatumPolicy }> => [
+  { label: t('panel.centerline'), value: 'centerline' },
+  { label: t('panel.wallFace'), value: 'wall-face' },
+  { label: t('panel.structuralFace'), value: 'structural-face' },
+  { label: t('panel.finishFace'), value: 'finish-face' },
 ]
 
-const TERMINATOR_OPTIONS: Array<{ label: string; value: ConstructionDimensionTerminator }> = [
-  { label: 'Architectural tick', value: 'architectural-tick' },
-  { label: 'Filled arrow', value: 'filled-arrow' },
-  { label: 'Open arrow', value: 'open-arrow' },
-  { label: 'Dot', value: 'dot' },
+const TERMINATOR_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{ label: string; value: ConstructionDimensionTerminator }> => [
+  { label: t('panel.architecturalTick'), value: 'architectural-tick' },
+  { label: t('panel.filledArrow'), value: 'filled-arrow' },
+  { label: t('panel.openArrow'), value: 'open-arrow' },
+  { label: t('panel.dot'), value: 'dot' },
 ]
 
-const TEXT_POSITION_OPTIONS: Array<{ label: string; value: ConstructionDimensionTextPosition }> = [
-  { label: 'Above line', value: 'above' },
-  { label: 'Centered on line', value: 'centered' },
+const TEXT_POSITION_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{ label: string; value: ConstructionDimensionTextPosition }> => [
+  { label: t('panel.aboveLine'), value: 'above' },
+  { label: t('panel.centeredOnLine'), value: 'centered' },
 ]
 
-const IMPERIAL_PRECISION_OPTIONS: Array<{
+const IMPERIAL_PRECISION_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{
   label: string
   value: ConstructionDimensionImperialPrecision
-}> = [
-  { label: 'Nearest inch', value: '1' },
-  { label: 'Nearest 1/2 inch', value: '1/2' },
-  { label: 'Nearest 1/4 inch', value: '1/4' },
-  { label: 'Nearest 1/8 inch', value: '1/8' },
-  { label: 'Nearest 1/16 inch', value: '1/16' },
+}> => [
+  { label: t('panel.nearestInch'), value: '1' },
+  { label: t('panel.nearest12Inch'), value: '1/2' },
+  { label: t('panel.nearest14Inch'), value: '1/4' },
+  { label: t('panel.nearest18Inch'), value: '1/8' },
+  { label: t('panel.nearest116Inch'), value: '1/16' },
 ]
 
-const METRIC_NOTATION_OPTIONS: Array<{
+const METRIC_NOTATION_OPTIONS = (
+  t: (key: MessageId) => string,
+): Array<{
   label: string
   value: ConstructionDimensionMetricNotation
-}> = [
-  { label: 'Meters', value: 'meters' },
-  { label: 'Millimeters', value: 'millimeters' },
+}> => [
+  { label: t('chrome.unitMeters'), value: 'meters' },
+  { label: t('chrome.unitMillimeters'), value: 'millimeters' },
 ]
 
 export default function ConstructionDimensionPanel() {
+  const t = useT()
   const selectedId = useViewer((state) => state.selection.selectedIds[0])
   const setSelection = useViewer((state) => state.setSelection)
   const dimension = useScene((state) => {
@@ -143,16 +156,16 @@ export default function ConstructionDimensionPanel() {
     <PanelWrapper
       icon="/icons/blueprint.webp"
       onClose={() => setSelection({ selectedIds: [] })}
-      title="Construction Dimension"
+      title={t('panel.constructionDimension')}
       width={320}
     >
-      <PanelSection title="Dimension">
+      <PanelSection title={t('panel.dimension')}>
         <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-muted-foreground">Mode</span>
+          <span className="text-muted-foreground">{t('panel.mode')}</span>
           <span className="font-medium text-foreground">{MODE_LABELS[dimension.mode]}</span>
         </div>
         <SliderControl
-          label="Feature count"
+          label={t('panel.featureCount')}
           max={999}
           min={1}
           onChange={(featureCount) => update({ featureCount })}
@@ -162,7 +175,7 @@ export default function ConstructionDimensionPanel() {
         />
         {supportsCenterMark ? (
           <label className="flex items-center justify-between gap-3 text-sm">
-            <span className="text-muted-foreground">Center mark</span>
+            <span className="text-muted-foreground">{t('panel.centerMark')}</span>
             <input
               checked={dimension.showCenterMark}
               onChange={(event) => update({ showCenterMark: event.target.checked })}
@@ -172,9 +185,9 @@ export default function ConstructionDimensionPanel() {
         ) : null}
       </PanelSection>
 
-      <PanelSection title="Drawing coordination">
+      <PanelSection title={t('panel.drawingCoordination')}>
         <SelectField
-          label="Primary drawing"
+          label={t('panel.primaryDrawing')}
           onChange={(drawingType) =>
             update({ drawingType: drawingType as ConstructionDrawingType })
           }
@@ -193,10 +206,10 @@ export default function ConstructionDimensionPanel() {
             )
           }
           options={[
-            { label: 'Shown', value: 'shown' },
-            { label: 'Omitted', value: 'omit' },
+            { label: t('panel.shown'), value: 'shown' },
+            { label: t('panel.omitted'), value: 'omit' },
             ...(activeDrawingType === 'floor-plan'
-              ? [{ label: 'Controlled by foundation', value: 'controlled' }]
+              ? [{ label: t('panel.controlledByFoundation'), value: 'controlled' }]
               : []),
           ]}
           value={activePresentation}
@@ -226,70 +239,70 @@ export default function ConstructionDimensionPanel() {
         </p>
       </PanelSection>
 
-      <PanelSection title="Notation">
+      <PanelSection title={t('panel.notation')}>
         <TextField
-          label="Prefix"
+          label={t('panel.prefix')}
           onCommit={(prefix) => update({ prefix })}
           value={dimension.prefix}
         />
         <TextField
-          label="Suffix"
+          label={t('panel.suffix')}
           onCommit={(suffix) => update({ suffix })}
           value={dimension.suffix}
         />
         <TextField
-          label="Text override"
+          label={t('panel.textOverride')}
           onCommit={(textOverride) => update({ textOverride: textOverride || null })}
-          placeholder="Use measured value"
+          placeholder={t('panel.useMeasuredValue')}
           value={dimension.textOverride ?? ''}
         />
       </PanelSection>
 
-      <PanelSection title="Standards">
+      <PanelSection title={t('panel.standards')}>
         <SelectField
-          label="Datum policy"
+          label={t('panel.datumPolicy')}
           onChange={(datumPolicy) =>
             update({ datumPolicy: datumPolicy as ConstructionDimensionDatumPolicy })
           }
-          options={DATUM_POLICY_OPTIONS}
+          options={DATUM_POLICY_OPTIONS(t)}
           value={dimension.datumPolicy}
         />
         <SelectField
-          label="Terminator"
+          label={t('panel.terminator')}
           onChange={(terminator) =>
             update({ terminator: terminator as ConstructionDimensionTerminator })
           }
-          options={TERMINATOR_OPTIONS}
+          options={TERMINATOR_OPTIONS(t)}
           value={dimension.terminator}
         />
         <SelectField
-          label="Text position"
+          label={t('panel.textPosition')}
           onChange={(textPosition) =>
             update({ textPosition: textPosition as ConstructionDimensionTextPosition })
           }
-          options={TEXT_POSITION_OPTIONS}
+          options={TEXT_POSITION_OPTIONS(t)}
           value={dimension.textPosition}
         />
         <SelectField
-          label="Imperial precision"
+          label={t('panel.imperialPrecision')}
           onChange={(imperialPrecision) =>
             update({
               imperialPrecision: imperialPrecision as ConstructionDimensionImperialPrecision,
             })
           }
-          options={IMPERIAL_PRECISION_OPTIONS}
+          options={IMPERIAL_PRECISION_OPTIONS(t)}
           value={dimension.imperialPrecision}
         />
         <SelectField
-          label="Metric notation"
+          label={t('panel.metricNotation')}
           onChange={(metricNotation) =>
             update({ metricNotation: metricNotation as ConstructionDimensionMetricNotation })
           }
-          options={METRIC_NOTATION_OPTIONS}
+          options={METRIC_NOTATION_OPTIONS(t)}
           value={dimension.metricNotation}
         />
         <SliderControl
-          label="Extension gap"
+          label={t('panel.extensionGap')}
           max={0.5}
           min={0}
           onChange={(extensionStartGap) => update({ extensionStartGap })}
@@ -298,7 +311,7 @@ export default function ConstructionDimensionPanel() {
           value={dimension.extensionStartGap}
         />
         <SliderControl
-          label="Extension overshoot"
+          label={t('panel.extensionOvershoot')}
           max={0.5}
           min={0}
           onChange={(extensionOvershoot) => update({ extensionOvershoot })}
@@ -308,12 +321,12 @@ export default function ConstructionDimensionPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
           <ActionButton
             className="border-red-500/40 text-red-200 hover:bg-red-500/15"
             icon={<Trash2 className="h-4 w-4" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={() => {
               triggerSFX('sfx:structure-delete')
               deleteNode(dimension.id)
@@ -347,13 +360,14 @@ function FoundationControllerField({
   value: string
   onChange: (value: NonNullable<ConstructionDimensionNode['controllingDimensionId']>) => void
 }) {
+  const t = useT()
   const foundationControllers = useScene(
     useShallow((state) => selectFoundationControllers(state.nodes, dimensionId)),
   )
   return (
     <SelectField
       disabled={foundationControllers.length === 0}
-      label="Foundation controller"
+      label={t('panel.foundationController')}
       onChange={(controllingDimensionId) =>
         onChange(
           controllingDimensionId as NonNullable<
@@ -365,7 +379,7 @@ function FoundationControllerField({
         label: controller.name || 'Foundation dimension',
         value: controller.id,
       }))}
-      placeholder="No foundation dimensions"
+      placeholder={t('panel.noFoundationDimensions')}
       value={value}
     />
   )

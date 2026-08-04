@@ -19,8 +19,10 @@ import { cn } from './../../../../../lib/utils'
 import useEditor from './../../../../../store/use-editor'
 import { ActionButton } from '../../../controls/action-button'
 import { PanelSection } from '../../../controls/panel-section'
+import { useT } from '../../../../../i18n/use-t'
 
 function ZoneItem({ zone }: { zone: ZoneNode }) {
+  const t = useT()
   const [cameraPopoverOpen, setCameraPopoverOpen] = useState(false)
   const deleteNode = useScene((state) => state.deleteNode)
   const updateNode = useScene((state) => state.updateNode)
@@ -67,7 +69,7 @@ function ZoneItem({ zone }: { zone: ZoneNode }) {
           <button
             className="relative flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 transition-colors hover:bg-black/5 hover:text-foreground group-hover/row:opacity-100 dark:hover:bg-white/10"
             onClick={(e) => e.stopPropagation()}
-            title="Camera snapshot"
+            title={t('panel.cameraSnapshot')}
           >
             <Camera className="h-3 w-3" />
             {zone.camera && (
@@ -133,6 +135,7 @@ function ZoneItem({ zone }: { zone: ZoneNode }) {
 }
 
 export function ZonePanel() {
+  const t = useT()
   const nodes = useScene((state) => state.nodes)
   const currentLevelId = useViewer((state) => state.selection.levelId)
   const selectedZoneId = useViewer((state) => state.selection.zoneId)
@@ -187,25 +190,25 @@ export function ZonePanel() {
         levelZones.map((zone) => <ZoneItem key={zone.id} zone={zone} />)
       )}
       {selectedZone ? (
-        <PanelSection className="mt-2 border-t" title="Actions">
+        <PanelSection className="mt-2 border-t" title={t('panel.actions')}>
           <ActionButton
             className="w-full flex-none"
             icon={<Save className="h-4 w-4" />}
-            label="Save to catalog"
+            label={t('panel.saveToCatalog')}
             onClick={() => emitter.emit('room-preset:create', { zoneId: selectedZone.id })}
             type="button"
           />
           <ActionButton
             className="w-full flex-none"
             icon={<Trash2 className="h-4 w-4 text-red-400" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={() => deleteSelectedZone(false)}
             type="button"
           />
           <ActionButton
             className="w-full flex-none"
             icon={<Trash2 className="h-4 w-4 text-red-400" />}
-            label="Delete with contents"
+            label={t('panel.deleteWithContents')}
             onClick={() => deleteSelectedZone(true)}
             type="button"
           />

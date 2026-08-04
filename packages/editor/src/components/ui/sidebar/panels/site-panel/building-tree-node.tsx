@@ -10,6 +10,7 @@ import {
 } from './../../../../../components/ui/primitives/tooltip'
 import { focusTreeNode, TreeNode, TreeNodeWrapper } from './tree-node'
 import { TreeNodeActions } from './tree-node-actions'
+import { useT } from '../../../../../i18n/use-t'
 
 interface BuildingTreeNodeProps {
   nodeId: BuildingNode['id']
@@ -22,6 +23,7 @@ export const BuildingTreeNode = memo(function BuildingTreeNode({
   depth,
   isLast,
 }: BuildingTreeNodeProps) {
+  const t = useT()
   const [expanded, setExpanded] = useState(true)
   const createNode = useScene((state) => state.createNode)
   const isVisible = useScene((s) => s.nodes[nodeId]?.visible !== false)
@@ -64,7 +66,7 @@ export const BuildingTreeNode = memo(function BuildingTreeNode({
                 <Plus className="h-3 w-3" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">Add new level</TooltipContent>
+            <TooltipContent side="right">{t('panel.addNewLevel')}</TooltipContent>
           </Tooltip>
         </div>
       }

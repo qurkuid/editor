@@ -4,6 +4,7 @@ import { type AnyNodeId, buildRiserDiagram, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import { X } from 'lucide-react'
 import { useMemo } from 'react'
+import { useT } from '../../i18n/use-t'
 import useEditor from '../../store/use-editor'
 
 const WASTE_COLOR = '#0ea5e9'
@@ -31,6 +32,7 @@ export function RiserDiagramPanel() {
 }
 
 function RiserDiagramContent() {
+  const t = useT()
   const setRiserOpen = useEditor((s) => s.setRiserOpen)
   const nodes = useScene((s) => s.nodes)
   const selectedIds = useViewer((s) => s.selection.selectedIds)
@@ -48,8 +50,8 @@ function RiserDiagramContent() {
     <div className="dark pointer-events-auto absolute top-4 right-4 z-30 flex max-h-[80vh] w-[26rem] flex-col overflow-hidden rounded-2xl border border-border/40 bg-background/95 text-foreground shadow-lg backdrop-blur-xl">
       <div className="flex items-center justify-between border-border/40 border-b px-4 py-2.5">
         <div className="flex flex-col">
-          <span className="font-medium text-sm">Riser Diagram</span>
-          <span className="text-muted-foreground text-xs">DWV plumbing isometric</span>
+          <span className="font-medium text-sm">{t('panel.riserDiagram')}</span>
+          <span className="text-muted-foreground text-xs">{t('panel.dwvPlumbingIsometric')}</span>
         </div>
         <button
           className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-white/10"
@@ -74,7 +76,7 @@ function RiserDiagramContent() {
           <svg
             height={Math.max(height, 120)}
             role="img"
-            aria-label="DWV riser diagram"
+            aria-label={t('panel.dwvRiserDiagram')}
             viewBox={`0 0 ${Math.max(width, 200)} ${Math.max(height, 120)}`}
             width="100%"
           >

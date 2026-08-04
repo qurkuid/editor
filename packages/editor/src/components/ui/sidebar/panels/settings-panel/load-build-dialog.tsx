@@ -1,3 +1,4 @@
+import { useT } from '../../../../../i18n/use-t'
 import type { BuildStats, SchemaIssue, ValidateBuildJsonResult } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import {
@@ -47,20 +48,20 @@ type StatRow = {
   count: number
 }
 
-function statsRows(stats: BuildStats): StatRow[] {
+function statsRows(stats: BuildStats, t: ReturnType<typeof useT>): StatRow[] {
   return (
     [
-      { icon: MapPin, label: 'Sites', count: stats.byType.site ?? 0 },
-      { icon: Building2, label: 'Buildings', count: stats.byType.building ?? 0 },
-      { icon: Layers, label: 'Levels', count: stats.byType.level ?? 0 },
-      { icon: Square, label: 'Walls', count: stats.byType.wall ?? 0 },
-      { icon: DoorOpen, label: 'Doors', count: stats.byType.door ?? 0 },
-      { icon: AppWindow, label: 'Windows', count: stats.byType.window ?? 0 },
-      { icon: Box, label: 'Items', count: stats.byType.item ?? 0 },
-      { icon: Square, label: 'Slabs', count: stats.byType.slab ?? 0 },
-      { icon: Square, label: 'Ceilings', count: stats.byType.ceiling ?? 0 },
-      { icon: Square, label: 'Zones', count: stats.byType.zone ?? 0 },
-      { icon: Scan, label: 'Scans', count: stats.byType.scan ?? 0 },
+      { icon: MapPin, label: t('panel.sites'), count: stats.byType.site ?? 0 },
+      { icon: Building2, label: t('panel.buildings'), count: stats.byType.building ?? 0 },
+      { icon: Layers, label: t('panel.levels'), count: stats.byType.level ?? 0 },
+      { icon: Square, label: t('panel.walls'), count: stats.byType.wall ?? 0 },
+      { icon: DoorOpen, label: t('panel.doors'), count: stats.byType.door ?? 0 },
+      { icon: AppWindow, label: t('panel.windows'), count: stats.byType.window ?? 0 },
+      { icon: Box, label: t('panel.items'), count: stats.byType.item ?? 0 },
+      { icon: Square, label: t('panel.slabs'), count: stats.byType.slab ?? 0 },
+      { icon: Square, label: t('panel.ceilings'), count: stats.byType.ceiling ?? 0 },
+      { icon: Square, label: t('panel.zones'), count: stats.byType.zone ?? 0 },
+      { icon: Scan, label: t('common.scans'), count: stats.byType.scan ?? 0 },
     ] satisfies StatRow[]
   ).filter((row) => row.count > 0)
 }
@@ -94,6 +95,7 @@ function formatFloorArea(m2: number, unit: LinearUnit): string {
 }
 
 export function LoadBuildDialog({ pending, onCancel, onConfirm }: Props) {
+  const t = useT()
   const [showAllWarnings, setShowAllWarnings] = useState(false)
   const [showSchemaIssues, setShowSchemaIssues] = useState(false)
   const unit = useViewer((state) => state.unit)
@@ -102,7 +104,7 @@ export function LoadBuildDialog({ pending, onCancel, onConfirm }: Props) {
 
   const { fileName, fileSizeBytes, result } = pending
   const { ok, parsed, stats, errors, warnings, schemaIssues, schemaIssueCount } = result
-  const rows = statsRows(stats)
+  const rows = statsRows(stats, t)
   const visibleWarnings = showAllWarnings ? warnings : warnings.slice(0, 3)
   const hiddenWarningCount = warnings.length - visibleWarnings.length
   const schemaIssuesByType = groupSchemaIssuesByType(schemaIssues)
@@ -171,7 +173,7 @@ export function LoadBuildDialog({ pending, onCancel, onConfirm }: Props) {
                   })}
                   {stats.floorAreaM2 > 0 && (
                     <div className="flex items-center justify-between border-t px-3 py-2">
-                      <span className="text-muted-foreground text-sm">Floor area</span>
+                      <span className="text-muted-foreground text-sm">{t('panel.floorArea')}</span>
                       <span className="font-medium text-sm">
                         {formatFloorArea(stats.floorAreaM2, unit)}
                       </span>

@@ -3,9 +3,8 @@
 import {
   type AnyNode,
   type AnyNodeId,
-  buildWallFaceBandCountPatch,
   bestConstructionMaterial,
-  withBandConstructionMaterials,
+  buildWallFaceBandCountPatch,
   calculateWallConstructionQuantities,
   createWallBandConstructionPreset,
   detectWallConstructionPreset,
@@ -32,7 +31,9 @@ import {
   type WallFaceBand,
   type WallNode,
   type WallTrimProfile,
+  withBandConstructionMaterials,
 } from '@pascal-app/core'
+import type { MessageId } from '@pascal-app/editor'
 import {
   ActionButton,
   ActionGroup,
@@ -46,6 +47,7 @@ import {
   SliderControl,
   triggerSFX,
   useInteractionScope,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Plus, Spline, Trash2 } from 'lucide-react'
@@ -55,34 +57,34 @@ import { WALL_LAYER_COLORS } from './construction-visual'
 
 type WallTrimKey = 'skirting' | 'crown' | 'chairRail'
 
-const WALL_TRIM_PROFILE_OPTIONS: Record<
-  WallTrimKey,
-  Array<{ label: string; value: WallTrimProfile }>
-> = {
+const WALL_TRIM_PROFILE_OPTIONS = (
+  t: (key: MessageId) => string,
+): Record<WallTrimKey, Array<{ label: string; value: WallTrimProfile }>> => ({
   skirting: [
-    { label: 'Flat', value: 'flat' },
-    { label: 'Modern', value: 'base-modern' },
-    { label: 'Colonial', value: 'base-colonial' },
-    { label: 'Shoe', value: 'base-shoe' },
-    { label: 'Ogee', value: 'base-ogee' },
+    { label: t('panel.flat'), value: 'flat' },
+    { label: t('panel.modern'), value: 'base-modern' },
+    { label: t('panel.colonial'), value: 'base-colonial' },
+    { label: t('panel.shoe'), value: 'base-shoe' },
+    { label: t('panel.ogee'), value: 'base-ogee' },
   ],
   crown: [
-    { label: 'Flat', value: 'flat' },
-    { label: 'Cove', value: 'crown-cove' },
-    { label: 'Ogee', value: 'crown-ogee' },
-    { label: 'Craft', value: 'crown-craftsman' },
-    { label: 'Layered', value: 'crown-layered' },
+    { label: t('panel.flat'), value: 'flat' },
+    { label: t('panel.cove'), value: 'crown-cove' },
+    { label: t('panel.ogee'), value: 'crown-ogee' },
+    { label: t('panel.craft'), value: 'crown-craftsman' },
+    { label: t('panel.layered'), value: 'crown-layered' },
   ],
   chairRail: [
-    { label: 'Flat', value: 'flat' },
-    { label: 'Round', value: 'rail-rounded' },
-    { label: 'Ogee', value: 'rail-ogee' },
-    { label: 'Picture', value: 'rail-picture' },
-    { label: 'Step', value: 'rail-stepped' },
+    { label: t('panel.flat'), value: 'flat' },
+    { label: t('panel.round'), value: 'rail-rounded' },
+    { label: t('panel.ogee'), value: 'rail-ogee' },
+    { label: t('panel.picture'), value: 'rail-picture' },
+    { label: t('panel.step'), value: 'rail-stepped' },
   ],
-}
+})
 
 export default function WallPanel() {
+  const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const unit = useViewer((s) => s.unit)
   const setSelection = useViewer((s) => s.setSelection)
@@ -224,9 +226,9 @@ export default function WallPanel() {
       title={node.name || 'Wall'}
       width={280}
     >
-      <PanelSection title="Dimensions">
+      <PanelSection title={t('panel.dimensions')}>
         <SliderControl
-          label="Length"
+          label={t('common.length')}
           max={metersToLinearUnit(20, unit)}
           min={metersToLinearUnit(0.1, unit)}
           onChange={(value) =>
@@ -240,7 +242,7 @@ export default function WallPanel() {
           value={displayLength}
         />
         <SliderControl
-          label="Height"
+          label={t('common.height')}
           max={metersToLinearUnit(6, unit)}
           min={metersToLinearUnit(0.1, unit)}
           onChange={(v) =>
@@ -254,13 +256,13 @@ export default function WallPanel() {
           value={Math.round(displayHeight * 100) / 100}
         />
         <div className="px-1 font-medium text-[10px] text-muted-foreground/80 uppercase tracking-wider">
-          Base
+          {t('panel.base2')}
         </div>
         <SegmentedControl
           onChange={handleBaseModeChange}
           options={[
-            { label: 'Fixed', value: 'fixed' },
-            { label: 'Follows level', value: 'terrain' },
+            { label: t('panel.fixed'), value: 'fixed' },
+            { label: t('panel.followsLevel'), value: 'terrain' },
           ]}
           value={followsTerrain ? 'terrain' : 'fixed'}
         />
@@ -270,7 +272,7 @@ export default function WallPanel() {
           </div>
         )}
         <SliderControl
-          label="Thickness"
+          label={t('panel.thickness')}
           max={metersToLinearUnit(1, unit)}
           min={metersToLinearUnit(0.05, unit)}
           onChange={(v) => {
@@ -304,7 +306,7 @@ export default function WallPanel() {
         />
         {!hasWallChildrenBlockingCurve && (
           <SliderControl
-            label="Curve"
+            label={t('common.curve')}
             max={Math.max(metersToLinearUnit(0.01, unit), displayMaxCurveOffset)}
             min={-Math.max(metersToLinearUnit(0.01, unit), displayMaxCurveOffset)}
             onChange={(v) =>
@@ -337,7 +339,7 @@ export default function WallPanel() {
       <WallTrimSection
         node={node}
         onUpdate={handleUpdate}
-        title="Skirting"
+        title={t('panel.skirting')}
         trimKey="skirting"
         trimValue={skirting}
         unit={unit}
@@ -347,7 +349,7 @@ export default function WallPanel() {
       <WallTrimSection
         node={node}
         onUpdate={handleUpdate}
-        title="Crown molding"
+        title={t('panel.crownMolding')}
         trimKey="crown"
         trimValue={crown}
         unit={unit}
@@ -357,7 +359,7 @@ export default function WallPanel() {
       <WallTrimSection
         node={node}
         onUpdate={handleUpdate}
-        title="Chair rail"
+        title={t('panel.chairRail')}
         trimKey="chairRail"
         trimValue={chairRail}
         unit={unit}
@@ -366,11 +368,11 @@ export default function WallPanel() {
       />
 
       {!hasWallChildrenBlockingCurve && (
-        <PanelSection title="Actions">
+        <PanelSection title={t('panel.actions')}>
           <ActionGroup>
             <ActionButton
               icon={<Spline className="h-3.5 w-3.5" />}
-              label="Curve"
+              label={t('common.curve')}
               onClick={handleCurve}
             />
           </ActionGroup>
@@ -393,6 +395,7 @@ function WallFaceBandSection({
   unitLabel: string
   wallHeightMeters: number
 }) {
+  const t = useT()
   const bandConfig = getWallFaceBandConfig(node, wallHeightMeters)
   const bandCount = bandConfig.count
   const lowerHeight = bandConfig.lowerHeight
@@ -428,9 +431,9 @@ function WallFaceBandSection({
     })
 
   return (
-    <PanelSection title="Wall bands">
+    <PanelSection title={t('panel.wallBands')}>
       <SliderControl
-        label="Bands"
+        label={t('panel.bands')}
         max={4}
         min={1}
         onChange={(value) => onUpdate(buildWallFaceBandCountPatch(node, Math.round(value)))}
@@ -440,7 +443,7 @@ function WallFaceBandSection({
       />
       {bandCount >= 2 && (
         <SliderControl
-          label="Lower"
+          label={t('panel.lower')}
           max={metersToLinearUnit(wallHeightMeters, unit)}
           min={metersToLinearUnit(0, unit)}
           onChange={(value) =>
@@ -459,7 +462,7 @@ function WallFaceBandSection({
       )}
       {bandCount >= 3 && (
         <SliderControl
-          label="Middle"
+          label={t('panel.middle')}
           max={metersToLinearUnit(Math.max(0, wallHeightMeters - lowerHeight), unit)}
           min={metersToLinearUnit(0, unit)}
           onChange={(value) =>
@@ -478,7 +481,7 @@ function WallFaceBandSection({
       )}
       {bandCount >= 4 && (
         <SliderControl
-          label="Upper"
+          label={t('panel.upper')}
           max={metersToLinearUnit(Math.max(0, wallHeightMeters - lowerHeight - middleHeight), unit)}
           min={metersToLinearUnit(0, unit)}
           onChange={(value) =>
@@ -497,12 +500,10 @@ function WallFaceBandSection({
       )}
       <div className="rounded-md border border-border/70 bg-muted/30 px-2.5 py-2 text-xs">
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Physical envelope</span>
+          <span className="text-muted-foreground">{t('panel.physicalEnvelope')}</span>
           <strong>{Math.round(physicalThickness * 1000)} mm</strong>
         </div>
-        <p className="mt-1 text-[10px] text-muted-foreground">
-          Uses the thickest active band for the 2D/3D wall footprint.
-        </p>
+        <p className="mt-1 text-[10px] text-muted-foreground">{t('panel.physicalEnvelopeHint')}</p>
       </div>
       {activeBands.map((band) => (
         <WallBandConstructionEditor
@@ -544,11 +545,11 @@ const WALL_LAYER_LABELS: Record<WallConstructionLayer['kind'], string> = {
   custom: '사용자 자재',
 }
 
-const WALL_BAND_LABELS: Record<WallFaceBand, string> = {
-  lower: 'Lower band',
-  middle: 'Middle band',
-  upper: 'Upper band',
-  top: 'Top band',
+const WALL_BAND_LABELS: Record<WallFaceBand, MessageId> = {
+  lower: 'panel.lowerBand',
+  middle: 'panel.middleBand',
+  upper: 'panel.upperBand',
+  top: 'panel.topBand',
 }
 
 export function WallBandConstructionEditor({
@@ -568,6 +569,7 @@ export function WallBandConstructionEditor({
   targetThickness: number
   wallHeightMeters: number
 }) {
+  const t = useT()
   const assemblyThickness = construction.layers.reduce((sum, layer) => sum + layer.thickness, 0)
   const cavityThickness = construction.layers
     .filter((layer) => layer.kind === 'cavity')
@@ -587,7 +589,7 @@ export function WallBandConstructionEditor({
   return (
     <div className="space-y-2 rounded-lg border border-border/70 bg-background/60 p-2.5">
       <div className="flex items-center justify-between">
-        <strong className="text-xs">{WALL_BAND_LABELS[band]}</strong>
+        <strong className="text-xs">{t(WALL_BAND_LABELS[band])}</strong>
         <span className="text-[10px] text-muted-foreground">
           {Math.round(assemblyThickness * 1000)} / {Math.round(targetThickness * 1000)} mm
         </span>
@@ -608,9 +610,9 @@ export function WallBandConstructionEditor({
         </div>
       )}
       <label className="block space-y-1 text-[10px] text-muted-foreground uppercase tracking-wider">
-        Assembly preset
+        {t('panel.assemblyPreset')}
         <select
-          aria-label={`${WALL_BAND_LABELS[band]} assembly preset`}
+          aria-label={`${t(WALL_BAND_LABELS[band])} — ${t('panel.assemblyPreset')}`}
           className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground normal-case tracking-normal"
           onChange={(event) => {
             const preset = event.target.value
@@ -673,7 +675,7 @@ export function WallBandConstructionEditor({
                 style={{ backgroundColor: WALL_LAYER_COLORS[layer.kind] }}
               />
               <select
-                aria-label={`${WALL_BAND_LABELS[band]} layer ${index + 1} type`}
+                aria-label={`${t(WALL_BAND_LABELS[band])} layer ${index + 1} type`}
                 className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
                 onChange={(event) => {
                   const next = createWallBandConstructionPreset(
@@ -720,7 +722,7 @@ export function WallBandConstructionEditor({
                 ))}
               </select>
               <button
-                aria-label={`${WALL_BAND_LABELS[band]} layer ${index + 1} remove`}
+                aria-label={`${t(WALL_BAND_LABELS[band])} layer ${index + 1} remove`}
                 className="rounded-md border border-border px-1.5 text-muted-foreground hover:text-destructive"
                 onClick={() =>
                   onChange({
@@ -737,7 +739,7 @@ export function WallBandConstructionEditor({
               <label className="text-[10px] text-muted-foreground">
                 {layer.kind === 'timber-stud' ? '각재 깊이 mm' : '두께 mm'}
                 <input
-                  aria-label={`${WALL_BAND_LABELS[band]} layer ${index + 1} thickness mm`}
+                  aria-label={`${t(WALL_BAND_LABELS[band])} layer ${index + 1} thickness mm`}
                   className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
                   min={0.1}
                   onChange={(event) =>
@@ -755,7 +757,7 @@ export function WallBandConstructionEditor({
                   <label className="text-[10px] text-muted-foreground">
                     각재 규격 mm
                     <input
-                      aria-label={`${WALL_BAND_LABELS[band]} layer ${index + 1} member width mm`}
+                      aria-label={`${t(WALL_BAND_LABELS[band])} layer ${index + 1} member width mm`}
                       className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
                       min={10}
                       onChange={(event) =>
@@ -771,7 +773,7 @@ export function WallBandConstructionEditor({
                   <label className="text-[10px] text-muted-foreground">
                     간격 mm
                     <input
-                      aria-label={`${WALL_BAND_LABELS[band]} layer ${index + 1} spacing mm`}
+                      aria-label={`${t(WALL_BAND_LABELS[band])} layer ${index + 1} spacing mm`}
                       className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
                       min={50}
                       onChange={(event) =>
@@ -799,7 +801,7 @@ export function WallBandConstructionEditor({
               <label className="block text-[10px] text-muted-foreground">
                 INTM 자재
                 <select
-                  aria-label={`${WALL_BAND_LABELS[band]} layer ${index + 1} INTM material`}
+                  aria-label={`${t(WALL_BAND_LABELS[band])} layer ${index + 1} INTM material`}
                   className="mt-0.5 w-full rounded border border-border bg-background px-1.5 py-1 text-xs text-foreground"
                   onChange={(event) => {
                     const product = materialsForLayer.find((item) => item.id === event.target.value)
@@ -902,6 +904,7 @@ function WallTrimSection({
   unitLabel: string
   wallHeightMeters: number
 }) {
+  const t = useT()
   const updateTrim = (patch: Partial<NonNullable<WallNode['skirting']>>) =>
     onUpdate({
       [trimKey]: {
@@ -909,7 +912,7 @@ function WallTrimSection({
         ...patch,
       },
     } as Partial<WallNode>)
-  const profileOptions = WALL_TRIM_PROFILE_OPTIONS[trimKey]
+  const profileOptions = WALL_TRIM_PROFILE_OPTIONS(t)[trimKey]
   const selectedProfile = profileOptions.some((option) => option.value === trimValue.profile)
     ? trimValue.profile
     : profileOptions[0]!.value
@@ -918,7 +921,7 @@ function WallTrimSection({
     <PanelSection title={title}>
       <ActionGroup>
         <ActionButton
-          label={trimValue.enabled ? `Hide ${title.toLowerCase()}` : `Show ${title.toLowerCase()}`}
+          label={`${trimValue.enabled ? t('panel.hideTrim') : t('panel.showTrim')}: ${title}`}
           onClick={() => updateTrim({ enabled: !trimValue.enabled })}
         />
       </ActionGroup>
@@ -927,9 +930,9 @@ function WallTrimSection({
           <SegmentedControl
             onChange={(next) => updateTrim({ sides: next as any })}
             options={[
-              { label: 'Interior', value: 'interior' },
-              { label: 'Exterior', value: 'exterior' },
-              { label: 'Both', value: 'both' },
+              { label: t('panel.interior'), value: 'interior' },
+              { label: t('panel.exterior'), value: 'exterior' },
+              { label: t('panel.both'), value: 'both' },
             ]}
             value={trimValue.sides}
           />
@@ -939,7 +942,7 @@ function WallTrimSection({
             value={selectedProfile}
           />
           <SliderControl
-            label="Height"
+            label={t('common.height')}
             max={metersToLinearUnit(Math.max(0.05, wallHeightMeters), unit)}
             min={metersToLinearUnit(0.01, unit)}
             onChange={(value) =>
@@ -956,7 +959,7 @@ function WallTrimSection({
             value={metersToLinearUnit(trimValue.height, unit)}
           />
           <SliderControl
-            label="Proud"
+            label={t('panel.proud')}
             max={metersToLinearUnit(0.2, unit)}
             min={metersToLinearUnit(0.001, unit)}
             onChange={(value) =>
@@ -974,7 +977,7 @@ function WallTrimSection({
           />
           {trimKey === 'chairRail' && (
             <SliderControl
-              label="Offset"
+              label={t('panel.offset')}
               max={metersToLinearUnit(Math.max(0.05, wallHeightMeters - trimValue.height), unit)}
               min={metersToLinearUnit(0, unit)}
               onChange={(value) =>

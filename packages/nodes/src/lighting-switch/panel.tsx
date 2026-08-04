@@ -12,12 +12,14 @@ import {
   PanelSection,
   PanelWrapper,
   SliderControl,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Power, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
 
 export default function LightingSwitchPanel() {
+  const t = useT()
   const selectedId = useViewer((state) => state.selection.selectedIds[0])
   const setSelection = useViewer((state) => state.setSelection)
   const node = useScene((state) =>
@@ -44,16 +46,16 @@ export default function LightingSwitchPanel() {
   return (
     <PanelWrapper
       onClose={() => setSelection({ selectedIds: [] })}
-      title="Light switch"
+      title={t('panel.lightSwitch')}
       width={320}
     >
-      <PanelSection title="Circuit">
+      <PanelSection title={t('panel.circuit')}>
         <select
           className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm text-foreground"
           onChange={(event) => update({ circuitId: event.target.value || null })}
           value={node.circuitId ?? ''}
         >
-          <option value="">Unassigned</option>
+          <option value="">{t('panel.unassigned')}</option>
           {circuits.map((candidate) => (
             <option key={candidate.id} value={candidate.id}>
               {candidate.name ?? `Circuit ${candidate.circuitNumber}`}
@@ -67,7 +69,7 @@ export default function LightingSwitchPanel() {
           onClick={() => circuit && updateNode(circuit.id, { enabled: !circuit.enabled })}
         />
       </PanelSection>
-      <PanelSection title="Position">
+      <PanelSection title={t('common.position')}>
         {(['X', 'Y', 'Z'] as const).map((label, index) => (
           <SliderControl
             key={label}
@@ -86,11 +88,11 @@ export default function LightingSwitchPanel() {
           />
         ))}
       </PanelSection>
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
           <ActionButton
             icon={<Trash2 className="h-4 w-4" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={() => {
               deleteNode(node.id)
               setSelection({ selectedIds: [] })

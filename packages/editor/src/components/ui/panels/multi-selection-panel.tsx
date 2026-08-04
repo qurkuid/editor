@@ -7,6 +7,7 @@ import { deleteSelection, duplicateSelectionAndPickUp } from '../../editor/group
 import { ActionButton, ActionGroup } from '../controls/action-button'
 import { PanelWrapper } from './panel-wrapper'
 import { formatSelectionBreakdown } from './selection-breakdown'
+import { useT } from '../../../i18n/use-t'
 
 /**
  * Docked right-side panel for a MULTI-selection — the compact sibling of the
@@ -20,6 +21,7 @@ import { formatSelectionBreakdown } from './selection-breakdown'
  * (e.g. community's "Save to my catalog").
  */
 export function MultiSelectionPanel({ footer }: { footer?: React.ReactNode }) {
+  const t = useT()
   const selectedIds = useViewer((s) => s.selection.selectedIds)
   const setSelection = useViewer((s) => s.setSelection)
   // String selector — recomputed on scene ticks, but the === compare keeps
@@ -41,13 +43,13 @@ export function MultiSelectionPanel({ footer }: { footer?: React.ReactNode }) {
         <ActionGroup>
           <ActionButton
             icon={<Copy className="h-4 w-4" />}
-            label="Duplicate"
+            label={t('common.duplicate')}
             onClick={() => duplicateSelectionAndPickUp()}
           />
           <ActionButton
             className="border-red-500/40 text-red-200 hover:bg-red-500/15"
             icon={<Trash2 className="h-4 w-4" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={() => deleteSelection()}
           />
         </ActionGroup>

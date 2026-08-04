@@ -9,12 +9,14 @@ import {
   SliderControl,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Move, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
 export default function SpawnPanel() {
+  const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
   const updateNode = useScene((s) => s.updateNode)
@@ -97,10 +99,10 @@ export default function SpawnPanel() {
     <PanelWrapper
       icon="/icons/spawn-point.webp"
       onClose={handleClose}
-      title="Spawn Point"
+      title={t('panel.spawnPoint')}
       width={300}
     >
-      <PanelSection title="Position">
+      <PanelSection title={t('common.position')}>
         <SliderControl
           label="X"
           max={node.position[0] + 2}
@@ -139,9 +141,9 @@ export default function SpawnPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Facing">
+      <PanelSection title={t('panel.facing')}>
         <SliderControl
-          label="Yaw"
+          label={t('panel.yaw')}
           max={storedRotationDegrees + 90}
           min={storedRotationDegrees - 90}
           onChange={handleRotationChange}
@@ -153,13 +155,17 @@ export default function SpawnPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
-          <ActionButton icon={<Move className="h-4 w-4" />} label="Move" onClick={handleMove} />
+          <ActionButton
+            icon={<Move className="h-4 w-4" />}
+            label={t('common.move')}
+            onClick={handleMove}
+          />
           <ActionButton
             className="border-red-500/40 text-red-200 hover:bg-red-500/15"
             icon={<Trash2 className="h-4 w-4" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={handleDelete}
           />
         </ActionGroup>

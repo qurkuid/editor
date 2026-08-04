@@ -19,6 +19,7 @@ import {
   SegmentedControl,
   SliderControl,
   triggerSFX,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { LayoutGrid, Trash2 } from 'lucide-react'
@@ -56,6 +57,7 @@ function num(value: unknown, fallback: number): number {
 }
 
 export default function SolarPanelPanel() {
+  const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
   const updateNode = useScene((s) => s.updateNode)
@@ -187,7 +189,7 @@ export default function SolarPanelPanel() {
       title={node.name || 'Solar Panel'}
       width={300}
     >
-      <PanelSection title="Preset">
+      <PanelSection title={t('panel.preset')}>
         <div className="grid grid-cols-2 gap-1.5 px-1 pt-1">
           {PRESET_CARDS.map((card) => {
             const dims = SOLAR_PANEL_PRESETS[card.key]
@@ -222,9 +224,9 @@ export default function SolarPanelPanel() {
         )}
       </PanelSection>
 
-      <PanelSection title="Array">
+      <PanelSection title={t('panel.array')}>
         <SliderControl
-          label="Rows"
+          label={t('panel.rows')}
           max={20}
           min={1}
           onChange={(v) => previewProp({ rows: Math.round(v) })}
@@ -235,7 +237,7 @@ export default function SolarPanelPanel() {
           value={num(node.rows, 4)}
         />
         <SliderControl
-          label="Columns"
+          label={t('panel.columns')}
           max={20}
           min={1}
           onChange={(v) => previewProp({ columns: Math.round(v) })}
@@ -246,7 +248,7 @@ export default function SolarPanelPanel() {
           value={num(node.columns, 5)}
         />
         <SliderControl
-          label="Gap X"
+          label={t('panel.gapX')}
           max={0.2}
           min={0}
           onChange={(v) => previewProp({ gapX: v })}
@@ -258,7 +260,7 @@ export default function SolarPanelPanel() {
           value={Math.round(num(node.gapX, 0.02) * 1000) / 1000}
         />
         <SliderControl
-          label="Gap Y"
+          label={t('panel.gapY')}
           max={0.2}
           min={0}
           onChange={(v) => previewProp({ gapY: v })}
@@ -270,14 +272,18 @@ export default function SolarPanelPanel() {
           value={Math.round(num(node.gapY, 0.02) * 1000) / 1000}
         />
         <ActionGroup>
-          <ActionButton disabled={!segment} label="Auto-fit to roof" onClick={handleAutoFit} />
+          <ActionButton
+            disabled={!segment}
+            label={t('panel.autoFitToRoof')}
+            onClick={handleAutoFit}
+          />
         </ActionGroup>
         {autoFitMessage ? <p className="px-1 text-amber-400 text-xs">{autoFitMessage}</p> : null}
       </PanelSection>
 
-      <PanelSection title="Panel">
+      <PanelSection title={t('panel.panel')}>
         <SliderControl
-          label="Width"
+          label={t('panel.width')}
           max={2.5}
           min={0.3}
           onChange={(v) => previewProp({ panelWidth: v })}
@@ -289,7 +295,7 @@ export default function SolarPanelPanel() {
           value={Math.round(num(node.panelWidth, 1) * 100) / 100}
         />
         <SliderControl
-          label="Height"
+          label={t('common.height')}
           max={3}
           min={0.3}
           onChange={(v) => previewProp({ panelHeight: v })}
@@ -301,10 +307,10 @@ export default function SolarPanelPanel() {
           value={Math.round(num(node.panelHeight, 1.65) * 100) / 100}
         />
         <ActionGroup>
-          <ActionButton label="Flip orientation" onClick={handleFlip} />
+          <ActionButton label={t('panel.flipOrientation')} onClick={handleFlip} />
         </ActionGroup>
         <SliderControl
-          label="Frame thickness"
+          label={t('panel.frameThickness')}
           max={0.1}
           min={0.005}
           onChange={(v) => previewProp({ frameThickness: v })}
@@ -316,7 +322,7 @@ export default function SolarPanelPanel() {
           value={Math.round(num(node.frameThickness, 0.04) * 1000) / 1000}
         />
         <SliderControl
-          label="Frame depth"
+          label={t('panel.frameDepth')}
           max={0.1}
           min={0.005}
           onChange={(v) => previewProp({ frameDepth: v })}
@@ -329,18 +335,18 @@ export default function SolarPanelPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Mounting">
+      <PanelSection title={t('panel.mounting')}>
         <SegmentedControl
           onChange={(v) => handleUpdate({ mountingType: v })}
           options={[
-            { label: 'Flush', value: 'flush' },
-            { label: 'Tilted', value: 'tilted' },
+            { label: t('panel.flush'), value: 'flush' },
+            { label: t('panel.tilted'), value: 'tilted' },
           ]}
           value={node.mountingType ?? 'flush'}
         />
         {node.mountingType === 'tilted' && (
           <SliderControl
-            label="Tilt angle"
+            label={t('panel.tiltAngle')}
             max={45}
             min={0}
             onChange={(v) => previewProp({ tiltAngle: v })}
@@ -353,7 +359,7 @@ export default function SolarPanelPanel() {
           />
         )}
         <SliderControl
-          label="Standoff"
+          label={t('panel.standoff')}
           max={0.3}
           min={0}
           onChange={(v) => previewProp({ standoffHeight: v })}
@@ -366,12 +372,12 @@ export default function SolarPanelPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
           <ActionButton
             className="hover:bg-red-500/20"
             icon={<Trash2 className="h-3.5 w-3.5 text-red-400" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={handleDelete}
           />
         </ActionGroup>

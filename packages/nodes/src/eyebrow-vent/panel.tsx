@@ -18,6 +18,7 @@ import {
   SliderControl,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Copy, Move, Trash2 } from 'lucide-react'
@@ -30,6 +31,7 @@ import type { EyebrowVentNode } from './schema'
  * placement tool uses. Mirrors the box-vent / cupola panel.
  */
 export default function EyebrowVentPanel() {
+  const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
   const updateNode = useScene((s) => s.updateNode)
@@ -145,18 +147,18 @@ export default function EyebrowVentPanel() {
       title={node.name || 'Eyebrow Vent'}
       width={300}
     >
-      <PanelSection title="Style">
+      <PanelSection title={t('panel.style')}>
         <SegmentedControl
           onChange={(v) => handleUpdate({ style: v as EyebrowVentNode['style'] })}
           options={[
-            { label: 'Scoop', value: 'scoop' },
-            { label: 'Half-round', value: 'half-round' },
-            { label: 'Slant-box', value: 'slant-box' },
+            { label: t('panel.scoop'), value: 'scoop' },
+            { label: t('panel.halfRound'), value: 'half-round' },
+            { label: t('panel.slantBox'), value: 'slant-box' },
           ]}
           value={node.style ?? 'scoop'}
         />
         <SliderControl
-          label="Louvers"
+          label={t('panel.louvers')}
           max={8}
           min={0}
           onChange={(v) => previewProp({ louverCount: Math.round(v) })}
@@ -168,7 +170,7 @@ export default function EyebrowVentPanel() {
         />
         {node.style === 'slant-box' ? (
           <SliderControl
-            label="Back height"
+            label={t('panel.backHeight')}
             max={1}
             min={0.15}
             onChange={(v) => previewProp({ backRatio: v })}
@@ -181,9 +183,9 @@ export default function EyebrowVentPanel() {
         ) : null}
       </PanelSection>
 
-      <PanelSection title="Dimensions">
+      <PanelSection title={t('panel.dimensions')}>
         <SliderControl
-          label="Width"
+          label={t('panel.width')}
           max={3}
           min={0.4}
           onChange={(v) => previewProp({ width: v })}
@@ -195,7 +197,7 @@ export default function EyebrowVentPanel() {
           value={Math.round(node.width * 100) / 100}
         />
         <SliderControl
-          label="Depth"
+          label={t('panel.depth')}
           max={1.5}
           min={0.2}
           onChange={(v) => previewProp({ depth: v })}
@@ -207,7 +209,7 @@ export default function EyebrowVentPanel() {
           value={Math.round(node.depth * 100) / 100}
         />
         <SliderControl
-          label="Height"
+          label={t('common.height')}
           max={1}
           min={0.08}
           onChange={(v) => previewProp({ height: v })}
@@ -220,7 +222,7 @@ export default function EyebrowVentPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Position">
+      <PanelSection title={t('common.position')}>
         <SliderControl
           label="X"
           max={Math.round(((segment?.width ?? 10) / 2) * 100) / 100}
@@ -273,7 +275,7 @@ export default function EyebrowVentPanel() {
           value={Math.round((node.position[2] ?? 0) * 100) / 100}
         />
         <SliderControl
-          label="Rotation"
+          label={t('panel.rotation')}
           max={180}
           min={-180}
           onChange={(deg) => previewProp({ rotation: (deg * Math.PI) / 180 })}
@@ -286,18 +288,22 @@ export default function EyebrowVentPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
-          <ActionButton icon={<Move className="h-3.5 w-3.5" />} label="Move" onClick={handleMove} />
+          <ActionButton
+            icon={<Move className="h-3.5 w-3.5" />}
+            label={t('common.move')}
+            onClick={handleMove}
+          />
           <ActionButton
             icon={<Copy className="h-3.5 w-3.5" />}
-            label="Duplicate"
+            label={t('common.duplicate')}
             onClick={handleDuplicate}
           />
           <ActionButton
             className="hover:bg-red-500/20"
             icon={<Trash2 className="h-3.5 w-3.5 text-red-400" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={handleDelete}
           />
         </ActionGroup>

@@ -13,12 +13,14 @@ import {
   PanelWrapper,
   SliderControl,
   ToggleControl,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
 
 export default function LightingFixturePanel() {
+  const t = useT()
   const selectedId = useViewer((state) => state.selection.selectedIds[0])
   const setSelection = useViewer((state) => state.setSelection)
   const node = useScene((state) =>
@@ -42,8 +44,12 @@ export default function LightingFixturePanel() {
 
   const update = (patch: Partial<LightingFixtureNode>) => updateNode(node.id, patch)
   return (
-    <PanelWrapper onClose={() => setSelection({ selectedIds: [] })} title="Light" width={320}>
-      <PanelSection title="Source">
+    <PanelWrapper
+      onClose={() => setSelection({ selectedIds: [] })}
+      title={t('panel.light')}
+      width={320}
+    >
+      <PanelSection title={t('panel.source')}>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           Type
           <select
@@ -53,19 +59,19 @@ export default function LightingFixturePanel() {
             }
             value={node.lightType}
           >
-            <option value="point">Point</option>
-            <option value="spot">Spot</option>
-            <option value="area">Area</option>
-            <option value="linear">Linear</option>
+            <option value="point">{t('panel.point')}</option>
+            <option value="spot">{t('panel.spot')}</option>
+            <option value="area">{t('panel.area')}</option>
+            <option value="linear">{t('panel.linear')}</option>
           </select>
         </label>
         <ToggleControl
           checked={node.enabled}
-          label="Enabled"
+          label={t('panel.enabled')}
           onChange={(enabled) => update({ enabled })}
         />
         <SliderControl
-          label="Brightness"
+          label={t('panel.brightness')}
           max={5000}
           min={0}
           onChange={(lumens) => update({ lumens })}
@@ -74,7 +80,7 @@ export default function LightingFixturePanel() {
           value={node.lumens}
         />
         <SliderControl
-          label="Temperature"
+          label={t('panel.temperature')}
           max={6500}
           min={1800}
           onChange={(colorTemperature) => update({ colorTemperature })}
@@ -83,7 +89,7 @@ export default function LightingFixturePanel() {
           value={node.colorTemperature}
         />
         <SliderControl
-          label="Range"
+          label={t('panel.range')}
           max={30}
           min={0.5}
           onChange={(range) => update({ range })}
@@ -93,7 +99,7 @@ export default function LightingFixturePanel() {
         />
         {node.lightType === 'spot' && (
           <SliderControl
-            label="Beam"
+            label={t('panel.beam')}
             max={120}
             min={5}
             onChange={(beamAngle) => update({ beamAngle })}
@@ -104,7 +110,7 @@ export default function LightingFixturePanel() {
         )}
         {node.lightType === 'linear' && (
           <SliderControl
-            label="Width"
+            label={t('panel.width')}
             max={0.5}
             min={0.01}
             onChange={(linearWidth) => update({ linearWidth })}
@@ -115,13 +121,13 @@ export default function LightingFixturePanel() {
           />
         )}
       </PanelSection>
-      <PanelSection title="Circuit">
+      <PanelSection title={t('panel.circuit')}>
         <select
           className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm text-foreground"
           onChange={(event) => update({ circuitId: event.target.value || null })}
           value={node.circuitId ?? ''}
         >
-          <option value="">Independent</option>
+          <option value="">{t('panel.independent')}</option>
           {circuits.map((circuit) => (
             <option key={circuit.id} value={circuit.id}>
               {circuit.name ?? `Circuit ${circuit.circuitNumber}`}
@@ -129,7 +135,7 @@ export default function LightingFixturePanel() {
           ))}
         </select>
       </PanelSection>
-      <PanelSection title="Position">
+      <PanelSection title={t('common.position')}>
         {(['X', 'Y', 'Z'] as const).map((label, index) => (
           <SliderControl
             key={label}
@@ -148,11 +154,11 @@ export default function LightingFixturePanel() {
           />
         ))}
       </PanelSection>
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
           <ActionButton
             icon={<Trash2 className="h-4 w-4" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={() => {
               deleteNode(node.id)
               setSelection({ selectedIds: [] })

@@ -16,6 +16,7 @@ import {
   SliderControl,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Copy, Move, Trash2 } from 'lucide-react'
@@ -28,6 +29,7 @@ import type { RidgeVentNode } from './schema'
  * Delete actions that route through the kind-owned ghost-drag flow.
  */
 export default function RidgeVentPanel() {
+  const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
   const updateNode = useScene((s) => s.updateNode)
@@ -134,29 +136,29 @@ export default function RidgeVentPanel() {
       title={node.name || 'Ridge Vent'}
       width={300}
     >
-      <PanelSection title="Style">
+      <PanelSection title={t('panel.style')}>
         <SegmentedControl
           onChange={(v) => handleUpdate({ style: v as RidgeVentNode['style'] })}
           options={[
-            { label: 'Standard', value: 'standard' },
-            { label: 'Shingled', value: 'shingled' },
-            { label: 'Flanged', value: 'metal' },
+            { label: t('panel.standard'), value: 'standard' },
+            { label: t('panel.shingled'), value: 'shingled' },
+            { label: t('panel.flanged'), value: 'metal' },
           ]}
           value={node.style ?? 'standard'}
         />
         <SegmentedControl
           onChange={(v) => handleUpdate({ endCaps: v === 'yes' })}
           options={[
-            { label: 'End Caps', value: 'yes' },
-            { label: 'Open', value: 'no' },
+            { label: t('panel.endCaps'), value: 'yes' },
+            { label: t('panel.open'), value: 'no' },
           ]}
           value={(node.endCaps ?? true) ? 'yes' : 'no'}
         />
       </PanelSection>
 
-      <PanelSection title="Dimensions">
+      <PanelSection title={t('panel.dimensions')}>
         <SliderControl
-          label="Length"
+          label={t('common.length')}
           max={8}
           min={0.5}
           onChange={(v) => handleUpdate({ length: v })}
@@ -168,7 +170,7 @@ export default function RidgeVentPanel() {
           value={Math.round(node.length * 100) / 100}
         />
         <SliderControl
-          label="Width"
+          label={t('panel.width')}
           max={0.6}
           min={0.1}
           onChange={(v) => handleUpdate({ width: v })}
@@ -180,7 +182,7 @@ export default function RidgeVentPanel() {
           value={Math.round(node.width * 100) / 100}
         />
         <SliderControl
-          label="Height"
+          label={t('common.height')}
           max={0.2}
           min={0.03}
           onChange={(v) => handleUpdate({ height: v })}
@@ -193,7 +195,7 @@ export default function RidgeVentPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Position">
+      <PanelSection title={t('common.position')}>
         <SliderControl
           label="X"
           max={halfW}
@@ -255,7 +257,7 @@ export default function RidgeVentPanel() {
           value={Math.round((node.position[2] ?? 0) * 100) / 100}
         />
         <SliderControl
-          label="Rotation"
+          label={t('panel.rotation')}
           max={180}
           min={-180}
           onChange={(deg) => handleUpdate({ rotation: (deg * Math.PI) / 180 })}
@@ -268,18 +270,22 @@ export default function RidgeVentPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
-          <ActionButton icon={<Move className="h-3.5 w-3.5" />} label="Move" onClick={handleMove} />
+          <ActionButton
+            icon={<Move className="h-3.5 w-3.5" />}
+            label={t('common.move')}
+            onClick={handleMove}
+          />
           <ActionButton
             icon={<Copy className="h-3.5 w-3.5" />}
-            label="Duplicate"
+            label={t('common.duplicate')}
             onClick={handleDuplicate}
           />
           <ActionButton
             className="hover:bg-red-500/20"
             icon={<Trash2 className="h-3.5 w-3.5 text-red-400" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={handleDelete}
           />
         </ActionGroup>

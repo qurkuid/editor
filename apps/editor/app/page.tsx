@@ -19,16 +19,16 @@ import { AiChatPanel } from '@/components/ai-chat-panel'
 import { FurnitureTab } from '@/components/furniture-tab'
 import { GuidedBuildTab } from '@/components/guided-build-tab'
 import { HostSettingsSection } from '@/components/host-settings-section'
+import { IntmMaterialLibrary } from '@/components/intm-material-library'
 import { LightingTab } from '@/components/lighting-tab'
 import { PaintingTab } from '@/components/painting-tab'
 import { SkpItemsPanel } from '@/components/skp-items-panel'
-import { IntmMaterialLibrary } from '@/components/intm-material-library'
 import { StatsTab } from '@/components/stats-tab'
 import {
   CommunityViewerToolbarLeft,
   CommunityViewerToolbarRight,
 } from '@/components/viewer-toolbar'
-import { localEditorSaveStatusLabel } from '@/lib/local-editor-save-status'
+import { localEditorSaveStatusKey } from '@/lib/local-editor-save-status'
 import { rawPainterIntegrationAdapter } from '@/lib/rawpainter-adapter'
 
 const EditorItemsPanel = SkpItemsPanel
@@ -165,16 +165,16 @@ export default function Home() {
         <div className="pointer-events-none absolute top-14 right-3 z-40">
           <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-border/60 bg-background/90 px-4 py-1.5 text-xs shadow-sm backdrop-blur">
             <span aria-live="polite" className="text-muted-foreground">
-              {localEditorSaveStatusLabel(saveStatus)}
+              {t(localEditorSaveStatusKey(saveStatus))}
             </span>
             <Link className="font-medium text-foreground hover:underline" href="/scenes">
-              Open recent scenes
+              {t('panel.openRecentScenes')}
             </Link>
             <span aria-hidden className="text-muted-foreground">
               ·
             </span>
             <Link className="font-medium text-foreground hover:underline" href="/scenes">
-              Create new
+              {t('panel.createNew')}
             </Link>
           </div>
         </div>

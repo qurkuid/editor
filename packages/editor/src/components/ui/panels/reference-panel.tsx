@@ -26,10 +26,12 @@ import { GuideCalibrationSection } from './guide-calibration-section'
 import { PanelWrapper } from './panel-wrapper'
 import { ReferenceScaleSection } from './reference-scale-section'
 import { ReferenceTransformSections } from './reference-transform-sections'
+import { useT } from '../../../i18n/use-t'
 
 type ReferenceNode = ScanNode | GuideNode
 
 export function ReferencePanel() {
+  const t = useT()
   const selectedReferenceId = useEditor((s) => s.selectedReferenceId)
   const setSelectedReferenceId = useEditor((s) => s.setSelectedReferenceId)
   const guideUi = useEditor((s) =>
@@ -146,7 +148,7 @@ export function ReferencePanel() {
     >
       {!isScan && (
         <>
-          <PanelSection title="Image">
+          <PanelSection title={t('panel.image')}>
             <input
               accept="image/*"
               className="hidden"
@@ -171,7 +173,7 @@ export function ReferencePanel() {
               <ActionButton
                 className="text-destructive hover:bg-destructive/10"
                 icon={<Trash2 className="h-3.5 w-3.5" />}
-                label="Delete"
+                label={t('common.delete')}
                 onClick={handleDeleteGuide}
               />
             </ActionGroup>

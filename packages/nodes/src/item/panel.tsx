@@ -10,6 +10,7 @@ import {
   SliderControl,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Copy, Link, Link2Off, Move, Trash2 } from 'lucide-react'
@@ -30,6 +31,7 @@ import { useCallback, useRef, useState } from 'react'
  * (see the wiki / plan recipe).
  */
 export default function ItemPanel() {
+  const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
   const deleteNode = useScene((s) => s.deleteNode)
@@ -105,7 +107,7 @@ export default function ItemPanel() {
       title={node.name || node.asset.name}
       width={300}
     >
-      <PanelSection title="Position">
+      <PanelSection title={t('common.position')}>
         <SliderControl
           label={
             <>
@@ -156,7 +158,7 @@ export default function ItemPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Rotation">
+      <PanelSection title={t('panel.rotation')}>
         <SliderControl
           label={
             <>
@@ -196,7 +198,7 @@ export default function ItemPanel() {
         </div>
       </PanelSection>
 
-      <PanelSection title="Scale">
+      <PanelSection title={t('panel.scale')}>
         <div className="flex items-center justify-between px-2 pb-2">
           <span className="font-medium text-[10px] text-muted-foreground/80 uppercase tracking-wider">
             Uniform Scale
@@ -282,9 +284,9 @@ export default function ItemPanel() {
         )}
       </PanelSection>
 
-      <PanelSection title="Info">
+      <PanelSection title={t('panel.info')}>
         <div className="flex items-center justify-between px-2 py-1 text-muted-foreground text-sm">
-          <span>Dimensions</span>
+          <span>{t('panel.dimensions')}</span>
           {(() => {
             const [w, h, d] = getScaledDimensions(node)
             return (
@@ -296,29 +298,33 @@ export default function ItemPanel() {
         </div>
       </PanelSection>
 
-      <PanelSection title="Collections">
+      <PanelSection title={t('panel.collections')}>
         <ActionGroup>
           <CollectionsPopover
             collectionIds={node.collectionIds}
             nodeId={selectedId as AnyNode['id']}
           >
-            <ActionButton label="Manage collections…" />
+            <ActionButton label={t('panel.manageCollections')} />
           </CollectionsPopover>
         </ActionGroup>
       </PanelSection>
 
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
-          <ActionButton icon={<Move className="h-3.5 w-3.5" />} label="Move" onClick={handleMove} />
+          <ActionButton
+            icon={<Move className="h-3.5 w-3.5" />}
+            label={t('common.move')}
+            onClick={handleMove}
+          />
           <ActionButton
             icon={<Copy className="h-3.5 w-3.5" />}
-            label="Duplicate"
+            label={t('common.duplicate')}
             onClick={handleDuplicate}
           />
           <ActionButton
             className="hover:bg-red-500/20"
             icon={<Trash2 className="h-3.5 w-3.5 text-red-400" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={handleDelete}
           />
         </ActionGroup>

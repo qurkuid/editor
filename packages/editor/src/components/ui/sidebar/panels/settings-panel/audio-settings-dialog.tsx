@@ -10,8 +10,10 @@ import {
 } from '../../../../../components/ui/primitives/dialog'
 import { Slider } from '../../../../../components/ui/slider'
 import useAudio from '../../../../../store/use-audio'
+import { useT } from '../../../../../i18n/use-t'
 
 export function AudioSettingsDialog() {
+  const t = useT()
   const {
     masterVolume,
     sfxVolume,
@@ -33,14 +35,14 @@ export function AudioSettingsDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Audio Settings</DialogTitle>
-          <DialogDescription>Adjust volume levels and mute settings</DialogDescription>
+          <DialogTitle>{t('panel.audioSettings')}</DialogTitle>
+          <DialogDescription>{t('panel.adjustVolumeLevelsAndMuteSettings')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-6 py-4">
           {/* Master Volume */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="font-medium text-sm">Master Volume</label>
+              <label className="font-medium text-sm">{t('panel.masterVolume')}</label>
               <span className="text-muted-foreground text-sm">{masterVolume}%</span>
             </div>
             <Slider
@@ -55,7 +57,7 @@ export function AudioSettingsDialog() {
           {/* Radio Volume */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="font-medium text-sm">Radio Volume</label>
+              <label className="font-medium text-sm">{t('panel.radioVolume')}</label>
               <span className="text-muted-foreground text-sm">{radioVolume}%</span>
             </div>
             <Slider
@@ -70,7 +72,7 @@ export function AudioSettingsDialog() {
           {/* SFX Volume */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="font-medium text-sm">Sound Effects</label>
+              <label className="font-medium text-sm">{t('panel.soundEffects')}</label>
               <span className="text-muted-foreground text-sm">{sfxVolume}%</span>
             </div>
             <Slider

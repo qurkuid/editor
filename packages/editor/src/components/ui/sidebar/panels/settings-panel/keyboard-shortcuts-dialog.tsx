@@ -10,15 +10,17 @@ import {
   DialogTrigger,
 } from './../../../../../components/ui/primitives/dialog'
 import { ShortcutToken } from './../../../../../components/ui/primitives/shortcut-token'
+import type { MessageId } from '../../../../../i18n/translate'
+import { useT } from '../../../../../i18n/use-t'
 
 type Shortcut = {
   keys: string[]
-  action: string
-  note?: string
+  actionKey: MessageId
+  noteKey?: MessageId
 }
 
 type ShortcutCategory = {
-  title: string
+  titleKey: MessageId
   shortcuts: Shortcut[]
 }
 
@@ -32,163 +34,162 @@ const KEY_DISPLAY_MAP: Record<string, string> = {
 
 const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   {
-    title: 'Editor Navigation',
+    titleKey: 'panel.editorNavigation',
     shortcuts: [
-      { keys: ['1'], action: 'Switch to Site phase' },
-      { keys: ['2'], action: 'Switch to Structure phase' },
-      { keys: ['3'], action: 'Switch to Furnish phase' },
-      { keys: ['F'], action: 'Switch to Furnish layer' },
-      { keys: ['Z'], action: 'Switch to Zones layer' },
+      { keys: ['1'], actionKey: 'panel.shortcutSwitchToSitePhase' },
+      { keys: ['2'], actionKey: 'panel.shortcutSwitchToStructurePhase' },
+      { keys: ['3'], actionKey: 'panel.shortcutSwitchToFurnishPhase' },
+      { keys: ['F'], actionKey: 'panel.shortcutSwitchToFurnishLayer' },
+      { keys: ['Z'], actionKey: 'panel.shortcutSwitchToZonesLayer' },
       {
         keys: ['Cmd/Ctrl', 'Arrow Up'],
-        action: 'Select next level in the active building',
+        actionKey: 'panel.shortcutSelectNextLevelInTheActiveBuilding',
       },
       {
         keys: ['Cmd/Ctrl', 'Arrow Down'],
-        action: 'Select previous level in the active building',
+        actionKey: 'panel.shortcutSelectPreviousLevelInTheActiveBuilding',
       },
-      { keys: ['Cmd/Ctrl', 'B'], action: 'Toggle sidebar' },
+      { keys: ['Cmd/Ctrl', 'B'], actionKey: 'panel.shortcutToggleSidebar' },
     ],
   },
   {
-    title: 'Modes & History',
+    titleKey: 'panel.modesHistory',
     shortcuts: [
-      { keys: ['V'], action: 'Switch to Select mode' },
-      { keys: ['B'], action: 'Switch to Build mode' },
-      { keys: ['M'], action: 'Activate the last measurement tool' },
-      { keys: ['X'], action: 'Switch to Delete mode' },
+      { keys: ['V'], actionKey: 'panel.shortcutSwitchToSelectMode' },
+      { keys: ['B'], actionKey: 'panel.shortcutSwitchToBuildMode' },
+      { keys: ['M'], actionKey: 'panel.shortcutActivateTheLastMeasurementTool' },
+      { keys: ['X'], actionKey: 'panel.shortcutSwitchToDeleteMode' },
       {
         keys: ['Esc'],
-        action: 'Cancel the active tool and return to Select mode',
+        actionKey: 'panel.shortcutCancelTheActiveToolAndReturnToSelectMode',
       },
-      { keys: ['Delete / Backspace'], action: 'Delete selected objects' },
-      { keys: ['Cmd/Ctrl', 'Z'], action: 'Undo' },
-      { keys: ['Cmd/Ctrl', 'Shift', 'Z'], action: 'Redo' },
+      { keys: ['Delete / Backspace'], actionKey: 'panel.shortcutDeleteSelectedObjects' },
+      { keys: ['Cmd/Ctrl', 'Z'], actionKey: 'panel.shortcutUndo' },
+      { keys: ['Cmd/Ctrl', 'Shift', 'Z'], actionKey: 'panel.shortcutRedo' },
     ],
   },
   {
-    title: 'Selection',
+    titleKey: 'panel.selection',
     shortcuts: [
       {
         keys: ['Cmd/Ctrl', 'C'],
-        action: 'Copy the selected objects',
-        note: 'The copied selection can be pasted into another level, project, or browser tab.',
+        actionKey: 'panel.shortcutCopyTheSelectedObjects',
+        noteKey: 'panel.noteTheCopiedSelectionCanBePasted',
       },
       {
         keys: ['Cmd/Ctrl', 'X'],
-        action: 'Cut the selected objects',
-        note: 'Copies the selection to the clipboard, then removes it from this scene.',
+        actionKey: 'panel.shortcutCutTheSelectedObjects',
+        noteKey: 'panel.noteCopiesTheSelectionToTheClipboard',
       },
       {
         keys: ['Cmd/Ctrl', 'V'],
-        action: 'Paste and place copied objects',
-        note:
-          'Carries a preview under the cursor. Click to place it, or press Escape to cancel.',
+        actionKey: 'panel.shortcutPasteAndPlaceCopiedObjects',
+        noteKey: 'panel.noteCarriesAPreviewUnderTheCursor',
       },
       {
         keys: ['Cmd/Ctrl', 'Left click'],
-        action: 'Add or remove an object from multi-selection',
-        note: 'Works in Select mode on the 3D canvas, the 2D floor plan, and the scene graph.',
+        actionKey: 'panel.shortcutAddOrRemoveAnObjectFromMultiSelection',
+        noteKey: 'panel.noteWorksInSelectModeOnThe',
       },
       {
         keys: ['Shift', 'Left click'],
-        action: 'Add or remove an object from canvas multi-selection',
-        note: 'In the scene graph, Shift-click selects the visible range like a file browser.',
+        actionKey: 'panel.shortcutAddOrRemoveAnObjectFromCanvasMultiSelection',
+        noteKey: 'panel.noteInTheSceneGraphShiftClick',
       },
       {
         keys: ['Left click'],
-        action: 'Move the whole multi-selection',
-        note:
-          'With 2+ objects selected, in 2D and 3D alike: drag the selection (or its dashed box) to slide it; click it to pick it up and place with the next click.',
+        actionKey: 'panel.shortcutMoveTheWholeMultiSelection',
+        noteKey: 'panel.noteWith2ObjectsSelected',
       },
       {
         keys: ['R', 'T'],
-        action: 'Rotate a multi-selection ±45° around its center',
-        note: 'Also works mid-move while carrying the selection.',
+        actionKey: 'panel.shortcutRotateAMultiSelection45AroundItsCenter',
+        noteKey: 'panel.noteAlsoWorksMidMoveWhileCarrying',
       },
       {
         keys: ['Esc'],
-        action: 'Clear the selection',
-        note: 'Clicking empty space does the same.',
+        actionKey: 'panel.shortcutClearTheSelection',
+        noteKey: 'panel.noteClickingEmptySpaceDoesTheSame',
       },
     ],
   },
   {
-    title: 'Direct Manipulation',
+    titleKey: 'panel.directManipulation',
     shortcuts: [
       {
         keys: ['Cmd/Ctrl', 'Left click'],
-        action: 'Move the selected movable object under the cursor',
-        note: 'Drag in Select mode with a single object selected. Guided snapping and guides are enabled by default.',
+        actionKey: 'panel.shortcutMoveTheSelectedMovableObjectUnderTheCursor',
+        noteKey: 'panel.noteDragInSelectModeWithA',
       },
       {
         keys: ['Cmd/Ctrl', 'Right click'],
-        action: 'Rotate the selected object under the cursor',
-        note: 'Drag left or right in Select mode with a single object selected. Rotation snaps to 15° increments by default.',
+        actionKey: 'panel.shortcutRotateTheSelectedObjectUnderTheCursor',
+        noteKey: 'panel.noteDragLeftOrRightInSelect',
       },
       {
         keys: ['Cmd/Ctrl', 'Shift', 'Right click'],
-        action: 'Rotate freely',
-        note: 'Hold Shift during the drag to bypass the 15° rotation increment.',
+        actionKey: 'panel.shortcutRotateFreely',
+        noteKey: 'panel.noteHoldShiftDuringTheDragTo',
       },
     ],
   },
   {
-    title: 'Drawing Tools',
+    titleKey: 'panel.drawingTools',
     shortcuts: [
       {
         keys: ['Shift'],
-        action: 'Bypass guided snapping and angle constraints',
-        note: 'Hold during the active gesture. Passive guide or measurement feedback may stay visible.',
+        actionKey: 'panel.shortcutBypassGuidedSnappingAndAngleConstraints',
+        noteKey: 'panel.noteHoldDuringTheActiveGesturePassive',
       },
       {
         keys: ['Shift'],
-        action: 'Rotate freely, bypassing the default 15° rotation snap',
-        note: 'Hold while dragging a rotate handle or direct-rotation gesture.',
+        actionKey: 'panel.shortcutRotateFreelyBypassingTheDefault15RotationSnap',
+        noteKey: 'panel.noteHoldWhileDraggingARotateHandle',
       },
     ],
   },
   {
-    title: 'Item Placement',
+    titleKey: 'panel.itemPlacement',
     shortcuts: [
       {
         keys: ['R', 'T'],
-        action: 'Rotate item; with a door selected, R toggles open/closed and T closes',
+        actionKey: 'panel.shortcutRotateItemWithADoorSelectedRTogglesOpenClosedAndTCloses',
       },
       {
         keys: ['E'],
-        action: 'Operate the selected node — doors, windows, and cabinet doors/drawers animate open/closed',
+        actionKey: 'panel.shortcutOperateTheSelectedNodeDoorsWindowsAndCabinetDoorsDrawersAnimateOpenClosed',
       },
       {
         keys: ['Shift'],
-        action: 'Temporarily bypass placement validation constraints',
-        note: 'Hold while placing.',
+        actionKey: 'panel.shortcutTemporarilyBypassPlacementValidationConstraints',
+        noteKey: 'panel.noteHoldWhilePlacing',
       },
     ],
   },
   {
-    title: 'Camera',
+    titleKey: 'common.camera',
     shortcuts: [
       {
         keys: ['W', 'A', 'S', 'D'],
-        action: 'Pan camera',
-        note: 'Moves in screen space, similar to dragging the camera view.',
+        actionKey: 'panel.shortcutPanCamera',
+        noteKey: 'panel.noteMovesInScreenSpaceSimilarTo',
       },
       {
         keys: ['Middle click'],
-        action: 'Pan camera',
-        note: 'Drag with the middle mouse button, or hold Space while dragging with the left mouse button.',
+        actionKey: 'panel.shortcutPanCamera',
+        noteKey: 'panel.noteDragWithTheMiddleMouseButton',
       },
       {
         keys: ['Right click'],
-        action: 'Orbit camera',
-        note: 'Drag with the right mouse button.',
+        actionKey: 'panel.shortcutOrbitCamera',
+        noteKey: 'panel.noteDragWithTheRightMouseButton',
       },
     ],
   },
 ]
 
 function getDisplayKey(key: string, isMac: boolean): string {
+  const t = useT()
   if (key === 'Cmd/Ctrl') return isMac ? '⌘' : 'Ctrl'
   if (key === 'Delete / Backspace') return isMac ? '⌫' : 'Backspace'
   return KEY_DISPLAY_MAP[key] ?? key
@@ -214,6 +215,7 @@ function ShortcutKeys({ keys }: { keys: string[] }) {
 }
 
 export function KeyboardShortcutsDialog() {
+  const t = useT()
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -224,7 +226,7 @@ export function KeyboardShortcutsDialog() {
       </DialogTrigger>
       <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-3xl">
         <DialogHeader className="shrink-0 border-b px-6 py-4">
-          <DialogTitle>Keyboard Shortcuts</DialogTitle>
+          <DialogTitle>{t('panel.keyboardShortcuts')}</DialogTitle>
           <DialogDescription>
             Shortcuts are context-aware. Guided constraints are enabled by default; hold Shift
             during an active gesture to build freely.
@@ -233,19 +235,19 @@ export function KeyboardShortcutsDialog() {
 
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-4">
           {SHORTCUT_CATEGORIES.map((category) => (
-            <section className="space-y-2" key={category.title}>
-              <h3 className="font-medium text-sm">{category.title}</h3>
+            <section className="space-y-2" key={category.titleKey}>
+              <h3 className="font-medium text-sm">{t(category.titleKey)}</h3>
               <div className="overflow-hidden rounded-md border border-border/80">
                 {category.shortcuts.map((shortcut, index) => (
                   <div
                     className="grid grid-cols-[minmax(130px,220px)_1fr] gap-3 px-3 py-2"
-                    key={`${category.title}-${shortcut.action}`}
+                    key={`${category.titleKey}-${shortcut.actionKey}`}
                   >
                     <ShortcutKeys keys={shortcut.keys} />
                     <div>
-                      <p className="text-sm">{shortcut.action}</p>
-                      {shortcut.note ? (
-                        <p className="text-muted-foreground text-xs">{shortcut.note}</p>
+                      <p className="text-sm">{t(shortcut.actionKey)}</p>
+                      {shortcut.noteKey ? (
+                        <p className="text-muted-foreground text-xs">{t(shortcut.noteKey)}</p>
                       ) : null}
                     </div>
                     {index < category.shortcuts.length - 1 ? (

@@ -27,6 +27,7 @@ import {
   PopoverTrigger,
 } from '../../../../components/ui/primitives/popover'
 import { cn } from '../../../../lib/utils'
+import { useT } from '../../../../i18n/use-t'
 
 interface CollectionsPopoverProps {
   nodeId: AnyNodeId
@@ -35,6 +36,7 @@ interface CollectionsPopoverProps {
 }
 
 export function CollectionsPopover({ nodeId, collectionIds, children }: CollectionsPopoverProps) {
+  const t = useT()
   const collections = useScene((s) => s.collections)
   const nodes = useScene((s) => s.nodes)
   const createCollection = useScene((s) => s.createCollection)
@@ -131,7 +133,7 @@ export function CollectionsPopover({ nodeId, collectionIds, children }: Collecti
                   setCreateName('')
                 }
               }}
-              placeholder="Collection name…"
+              placeholder={t('panel.collectionName')}
               value={createName}
             />
             <button

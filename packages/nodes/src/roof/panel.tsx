@@ -27,6 +27,7 @@ import {
   SliderControl,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Copy, Move, Plus, Trash2 } from 'lucide-react'
@@ -34,6 +35,7 @@ import { useCallback, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 export default function RoofPanel() {
+  const t = useT()
   const [ventType, setVentType] = useState<'box-vent' | 'ridge-vent' | 'turbine-vent'>('box-vent')
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
@@ -262,7 +264,7 @@ export default function RoofPanel() {
       title={node.name || 'Roof'}
       width={300}
     >
-      <PanelSection title="Segments">
+      <PanelSection title={t('panel.segments')}>
         <div className="flex flex-col gap-1">
           {segments.map((seg, i) => (
             <button
@@ -279,13 +281,13 @@ export default function RoofPanel() {
         <ActionGroup>
           <ActionButton
             icon={<Plus className="h-3.5 w-3.5" />}
-            label="Add Segment"
+            label={t('panel.addSegment2')}
             onClick={handleAddSegment}
           />
         </ActionGroup>
       </PanelSection>
 
-      <PanelSection title="Position">
+      <PanelSection title={t('common.position')}>
         <SliderControl
           label="X"
           max={50}
@@ -329,7 +331,7 @@ export default function RoofPanel() {
           value={Math.round(node.position[2] * 100) / 100}
         />
         <SliderControl
-          label="Rotation"
+          label={t('panel.rotation')}
           max={180}
           min={-180}
           onChange={(degrees) => {
@@ -358,7 +360,7 @@ export default function RoofPanel() {
         </div>
       </PanelSection>
 
-      <PanelSection title="Elements">
+      <PanelSection title={t('panel.elements')}>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             {chimneys.map((chimney, i) => (
@@ -375,7 +377,7 @@ export default function RoofPanel() {
             <ActionGroup>
               <ActionButton
                 icon={<Plus className="h-3.5 w-3.5" />}
-                label="Add Chimney"
+                label={t('panel.addChimney2')}
                 onClick={() => activateTool('chimney')}
               />
             </ActionGroup>
@@ -396,7 +398,7 @@ export default function RoofPanel() {
             <ActionGroup>
               <ActionButton
                 icon={<Plus className="h-3.5 w-3.5" />}
-                label="Add Dormer"
+                label={t('panel.addDormer')}
                 onClick={() => activateTool('dormer')}
               />
             </ActionGroup>
@@ -417,7 +419,7 @@ export default function RoofPanel() {
             <ActionGroup>
               <ActionButton
                 icon={<Plus className="h-3.5 w-3.5" />}
-                label="Add Skylight"
+                label={t('panel.addSkylight')}
                 onClick={() => activateTool('skylight')}
               />
             </ActionGroup>
@@ -438,7 +440,7 @@ export default function RoofPanel() {
             <ActionGroup>
               <ActionButton
                 icon={<Plus className="h-3.5 w-3.5" />}
-                label="Add Solar Panel"
+                label={t('panel.addSolarPanel')}
                 onClick={() => activateTool('solar-panel')}
               />
             </ActionGroup>
@@ -472,16 +474,16 @@ export default function RoofPanel() {
             <SegmentedControl<'box-vent' | 'ridge-vent' | 'turbine-vent'>
               onChange={setVentType}
               options={[
-                { label: 'Box', value: 'box-vent' },
-                { label: 'Ridge', value: 'ridge-vent' },
-                { label: 'Turbine', value: 'turbine-vent' },
+                { label: t('panel.box'), value: 'box-vent' },
+                { label: t('panel.ridge'), value: 'ridge-vent' },
+                { label: t('panel.turbine'), value: 'turbine-vent' },
               ]}
               value={ventType}
             />
             <ActionGroup>
               <ActionButton
                 icon={<Plus className="h-3.5 w-3.5" />}
-                label="Add Vent"
+                label={t('panel.addVent')}
                 onClick={() => activateTool(ventType)}
               />
             </ActionGroup>
@@ -491,7 +493,7 @@ export default function RoofPanel() {
             <ActionGroup>
               <ActionButton
                 icon={<Plus className="h-3.5 w-3.5" />}
-                label="Add Cupola"
+                label={t('panel.addCupola')}
                 onClick={() => activateTool('cupola')}
               />
             </ActionGroup>
@@ -501,7 +503,7 @@ export default function RoofPanel() {
             <ActionGroup>
               <ActionButton
                 icon={<Plus className="h-3.5 w-3.5" />}
-                label="Add Eyebrow Vent"
+                label={t('panel.addEyebrowVent')}
                 onClick={() => activateTool('eyebrow-vent')}
               />
             </ActionGroup>
@@ -522,7 +524,7 @@ export default function RoofPanel() {
             <ActionGroup>
               <ActionButton
                 icon={<Plus className="h-3.5 w-3.5" />}
-                label="Add Gutter"
+                label={t('panel.addGutter')}
                 onClick={() => activateTool('gutter')}
               />
             </ActionGroup>
@@ -530,18 +532,22 @@ export default function RoofPanel() {
         </div>
       </PanelSection>
 
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
-          <ActionButton icon={<Move className="h-3.5 w-3.5" />} label="Move" onClick={handleMove} />
+          <ActionButton
+            icon={<Move className="h-3.5 w-3.5" />}
+            label={t('common.move')}
+            onClick={handleMove}
+          />
           <ActionButton
             icon={<Copy className="h-3.5 w-3.5" />}
-            label="Duplicate"
+            label={t('common.duplicate')}
             onClick={handleDuplicate}
           />
           <ActionButton
             className="hover:bg-red-500/20"
             icon={<Trash2 className="h-3.5 w-3.5 text-red-400" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={handleDelete}
           />
         </ActionGroup>

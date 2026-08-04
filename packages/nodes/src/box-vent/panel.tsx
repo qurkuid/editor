@@ -18,6 +18,7 @@ import {
   SliderControl,
   triggerSFX,
   useEditor,
+  useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Copy, Move, Trash2 } from 'lucide-react'
@@ -37,6 +38,7 @@ import type { BoxVentNode } from './schema'
  * ghost commits; on Esc it cancels and the original mesh is restored.
  */
 export default function BoxVentPanel() {
+  const t = useT()
   const selectedId = useViewer((s) => s.selection.selectedIds[0])
   const setSelection = useViewer((s) => s.setSelection)
   const updateNode = useScene((s) => s.updateNode)
@@ -170,21 +172,21 @@ export default function BoxVentPanel() {
       title={node.name || 'Box Vent'}
       width={300}
     >
-      <PanelSection title="Style">
+      <PanelSection title={t('panel.style')}>
         <SegmentedControl
           onChange={(v) => handleUpdate({ style: v as BoxVentNode['style'] })}
           options={[
-            { label: 'Box', value: 'box' },
-            { label: 'Cap', value: 'cap' },
-            { label: 'Dome', value: 'dome' },
+            { label: t('panel.box'), value: 'box' },
+            { label: t('panel.cap'), value: 'cap' },
+            { label: t('panel.dome'), value: 'dome' },
           ]}
           value={node.style ?? 'cap'}
         />
       </PanelSection>
 
-      <PanelSection title="Dimensions">
+      <PanelSection title={t('panel.dimensions')}>
         <SliderControl
-          label="Width"
+          label={t('panel.width')}
           max={0.8}
           min={0.15}
           onChange={(v) => previewProp({ width: v })}
@@ -196,7 +198,7 @@ export default function BoxVentPanel() {
           value={Math.round(node.width * 100) / 100}
         />
         <SliderControl
-          label="Depth"
+          label={t('panel.depth')}
           max={0.8}
           min={0.15}
           onChange={(v) => previewProp({ depth: v })}
@@ -208,7 +210,7 @@ export default function BoxVentPanel() {
           value={Math.round(node.depth * 100) / 100}
         />
         <SliderControl
-          label="Height"
+          label={t('common.height')}
           max={0.4}
           min={0.05}
           onChange={(v) => previewProp({ height: v })}
@@ -225,7 +227,7 @@ export default function BoxVentPanel() {
             flare further past the body. */}
         {node.style === 'cap' && (
           <SliderControl
-            label="Hood Overhang"
+            label={t('panel.hoodOverhang')}
             max={Math.max(0.02, node.width)}
             min={0}
             onChange={(v) => previewProp({ hoodOverhang: v })}
@@ -240,7 +242,7 @@ export default function BoxVentPanel() {
         {node.style === 'box' && (
           <>
             <SliderControl
-              label="Base Inset"
+              label={t('panel.baseInset')}
               max={Math.max(0.005, Math.min(node.width, node.depth) / 2 - 0.005)}
               min={0}
               onChange={(v) => previewProp({ baseInset: v })}
@@ -252,7 +254,7 @@ export default function BoxVentPanel() {
               value={Math.round((node.baseInset ?? 0.06) * 1000) / 1000}
             />
             <SliderControl
-              label="Base Height"
+              label={t('panel.baseHeight')}
               max={Math.max(0.01, node.height - 0.005)}
               min={0.005}
               onChange={(v) => previewProp({ baseHeight: v })}
@@ -264,7 +266,7 @@ export default function BoxVentPanel() {
               value={Math.round((node.baseHeight ?? 0.04) * 1000) / 1000}
             />
             <SliderControl
-              label="Corner Bevel"
+              label={t('panel.cornerBevel')}
               max={Math.max(
                 0,
                 Math.min(node.width, node.depth) / 2 - (node.baseInset ?? 0.06) - 0.001,
@@ -283,7 +285,7 @@ export default function BoxVentPanel() {
         {node.style === 'cap' && (
           <>
             <SliderControl
-              label="Cap Height"
+              label={t('panel.capHeight')}
               max={Math.max(0.02, node.height - 0.01)}
               min={0.01}
               onChange={(v) => previewProp({ capHeight: v })}
@@ -295,7 +297,7 @@ export default function BoxVentPanel() {
               value={Math.round((node.capHeight ?? 0.07) * 1000) / 1000}
             />
             <SliderControl
-              label="Gap Height"
+              label={t('panel.gapHeight')}
               max={Math.max(0, node.height - Math.max(0.01, node.capHeight ?? 0.07) - 0.005)}
               min={0}
               onChange={(v) => previewProp({ capGap: v })}
@@ -307,7 +309,7 @@ export default function BoxVentPanel() {
               value={Math.round((node.capGap ?? 0) * 1000) / 1000}
             />
             <SliderControl
-              label="Top Taper"
+              label={t('panel.topTaper')}
               max={1}
               min={0}
               onChange={(v) => previewProp({ topTaper: v })}
@@ -323,7 +325,7 @@ export default function BoxVentPanel() {
         {node.style === 'dome' && (
           <>
             <SliderControl
-              label="Dome Curvature"
+              label={t('panel.domeCurvature')}
               max={1.5}
               min={0.3}
               onChange={(v) => previewProp({ domeCurvature: v })}
@@ -335,7 +337,7 @@ export default function BoxVentPanel() {
               value={Math.round((node.domeCurvature ?? 1.0) * 100) / 100}
             />
             <SliderControl
-              label="Base Flange"
+              label={t('panel.baseFlange')}
               max={0.2}
               min={0}
               onChange={(v) => previewProp({ hoodOverhang: v })}
@@ -350,7 +352,7 @@ export default function BoxVentPanel() {
         )}
       </PanelSection>
 
-      <PanelSection title="Position">
+      <PanelSection title={t('common.position')}>
         <SliderControl
           label="X"
           max={Math.round(((segment?.width ?? 10) / 2) * 100) / 100}
@@ -415,7 +417,7 @@ export default function BoxVentPanel() {
           value={Math.round((node.position[2] ?? 0) * 100) / 100}
         />
         <SliderControl
-          label="Rotation"
+          label={t('panel.rotation')}
           max={180}
           min={-180}
           onChange={(deg) => previewProp({ rotation: (deg * Math.PI) / 180 })}
@@ -428,18 +430,22 @@ export default function BoxVentPanel() {
         />
       </PanelSection>
 
-      <PanelSection title="Actions">
+      <PanelSection title={t('panel.actions')}>
         <ActionGroup>
-          <ActionButton icon={<Move className="h-3.5 w-3.5" />} label="Move" onClick={handleMove} />
+          <ActionButton
+            icon={<Move className="h-3.5 w-3.5" />}
+            label={t('common.move')}
+            onClick={handleMove}
+          />
           <ActionButton
             icon={<Copy className="h-3.5 w-3.5" />}
-            label="Duplicate"
+            label={t('common.duplicate')}
             onClick={handleDuplicate}
           />
           <ActionButton
             className="hover:bg-red-500/20"
             icon={<Trash2 className="h-3.5 w-3.5 text-red-400" />}
-            label="Delete"
+            label={t('common.delete')}
             onClick={handleDelete}
           />
         </ActionGroup>

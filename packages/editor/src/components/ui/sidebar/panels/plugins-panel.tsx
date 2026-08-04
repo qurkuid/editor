@@ -7,6 +7,7 @@ import { lazy, type ReactNode, Suspense, useState, useSyncExternalStore } from '
 import { assetPath } from '../../../../lib/asset-path'
 import { editorHostPanelRegistry } from '../../../../lib/plugin-panels'
 import { Button } from '../../primitives/button'
+import { useT } from '../../../../i18n/use-t'
 
 const PLUGIN_AUTHORING_URL =
   'https://editor.pascal.app/docs/developers/plugins'
@@ -34,6 +35,7 @@ function renderPluginIcon(ref: IconRef): ReactNode {
 }
 
 export function PluginsPanel() {
+  const t = useT()
   const [selectedPluginId, setSelectedPluginId] = useState<string | null>(null)
   const panels = useSyncExternalStore(
     editorHostPanelRegistry.subscribe,
@@ -89,12 +91,12 @@ export function PluginsPanel() {
 
           <dl className="mt-6 divide-y divide-border/50 rounded-xl border border-border/60">
             <div className="p-3">
-              <dt className="text-sidebar-foreground/50 text-xs">Plugin ID</dt>
+              <dt className="text-sidebar-foreground/50 text-xs">{t('panel.pluginId')}</dt>
               <dd className="mt-1 break-all text-sidebar-foreground text-sm">{pluginId}</dd>
             </div>
             {panel.creator && (
               <div className="p-3">
-                <dt className="text-sidebar-foreground/50 text-xs">Creator</dt>
+                <dt className="text-sidebar-foreground/50 text-xs">{t('panel.creator')}</dt>
                 <dd className="mt-1 text-sm">
                   {panel.creator.url ? (
                     <a
@@ -114,7 +116,7 @@ export function PluginsPanel() {
             )}
             {panel.pluginUrl && (
               <div className="p-3">
-                <dt className="text-sidebar-foreground/50 text-xs">Plugin</dt>
+                <dt className="text-sidebar-foreground/50 text-xs">{t('panel.plugin')}</dt>
                 <dd className="mt-1 text-sm">
                   <a
                     className="inline-flex items-center gap-1 text-sidebar-foreground underline-offset-4 hover:underline"
@@ -163,7 +165,7 @@ export function PluginsPanel() {
   return (
     <div className="flex h-full flex-col overflow-y-auto p-4">
       <div className="mb-5">
-        <h2 className="font-semibold text-lg text-sidebar-foreground">Plugins</h2>
+        <h2 className="font-semibold text-lg text-sidebar-foreground">{t('panel.plugins')}</h2>
         <p className="mt-1 text-sidebar-foreground/60 text-sm">
           Add focused tools and content to this project.
         </p>
