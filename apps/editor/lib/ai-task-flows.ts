@@ -96,4 +96,42 @@ export const AI_TASK_FLOWS: readonly AiTaskFlow[] = [
       },
     ],
   },
+  {
+    id: 'finishes',
+    title: { ko: '마감·재질 지정', en: 'Assign finishes' },
+    steps: [
+      {
+        id: 'floor',
+        label: { ko: '바닥 마감', en: 'Floor finish' },
+        prompt: {
+          ko: '방별 바닥 마감을 지정해줘. 거실·주방은 강마루, 침실은 원목마루, 화장실은 포세린 타일. (방·자재를 원하는 대로 고쳐 쓰세요)',
+          en: 'Assign floor finishes per room: engineered wood in the living room and kitchen, hardwood in the bedrooms, porcelain tile in the bathrooms. (Edit rooms and materials as you like.)',
+        },
+      },
+      {
+        id: 'walls',
+        label: { ko: '벽 마감', en: 'Wall finish' },
+        prompt: {
+          ko: '방별 벽 마감을 지정해줘. 전체는 도배지 - 회벽 화이트, 화장실은 벽타일. (방·자재를 원하는 대로 고쳐 쓰세요)',
+          en: 'Assign wall finishes per room: plaster-white wallpaper throughout, wall tile in the bathrooms. (Edit rooms and materials as you like.)',
+        },
+      },
+      {
+        id: 'ceiling',
+        label: { ko: '천장 마감', en: 'Ceiling finish' },
+        prompt: {
+          ko: '방별 천장 마감을 지정해줘. 전체는 도배지 화이트, 화장실은 SMC 천장재. (방·자재를 원하는 대로 고쳐 쓰세요)',
+          en: 'Assign ceiling finishes per room: white wallpaper throughout, SMC panels in the bathrooms. (Edit rooms and materials as you like.)',
+        },
+      },
+      {
+        id: 'accents',
+        label: { ko: '포인트 조정', en: 'Accents' },
+        prompt: {
+          ko: '포인트로 바꿀 곳을 지정해줘. 예: 거실 아트월은 톤 다운된 그레이, 안방 한쪽 벽은 포인트 벽지. (원하는 방·면·자재로 고쳐 쓰세요)',
+          en: 'Pick accent spots: for example a muted grey feature wall in the living room and an accent wallpaper on one master-bedroom wall. (Edit to taste.)',
+        },
+      },
+    ],
+  },
 ]
