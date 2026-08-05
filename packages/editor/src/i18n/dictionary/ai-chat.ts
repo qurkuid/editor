@@ -51,6 +51,12 @@ export const aiChatDictionary = {
     en: 'Modeling plan failed validation',
   },
 
+  'aiChat.queue.waiting': { ko: '대기 {n}건', en: '{n} queued' },
+  'aiChat.queue.autoApplied': {
+    ko: '대기 중인 다음 요청을 진행하기 위해 계획을 자동 적용했습니다 ({n}개 작업).',
+    en: 'Auto-applied the plan to continue with the queued request ({n} operations).',
+  },
+
   'aiChat.errors.requestFailed': { ko: 'AI 요청이 실패했습니다.', en: 'AI request failed' },
 
   'aiChat.loginRequired': {

@@ -16,6 +16,7 @@ import {
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 import useAiChatHistory, { type AiChatHistoryMessage } from '@/lib/ai-chat-history'
+import { conversationWindow, nextAiQueueStep } from '@/lib/ai-chat-queue'
 import { type AiModelingPlan, AiModelingPlanSchema, buildAiSceneContext } from '@/lib/ai-control'
 import { applyAiModelingPlanWithAssets } from '@/lib/ai-control-assets'
 import useAiPromptPresets from '@/lib/ai-prompt-presets-store'
@@ -55,6 +56,14 @@ type AiImageAttachment = {
   readonly mimeType: (typeof AI_CHAT_IMAGE_MIME_TYPES)[number]
   readonly size: number
   readonly dataUrl: string
+}
+
+/** A submitted request waiting for its turn. The scene context is NOT
+ * captured here — it is read fresh when the request dispatches, so queued
+ * work always sees the previous plan's changes. */
+type QueuedAiRequest = {
+  readonly messageId: string
+  readonly images: readonly Pick<AiImageAttachment, 'name' | 'mimeType' | 'dataUrl'>[]
 }
 
 export function validateAiChatImageFile(file: Pick<File, 'size' | 'type'>): string | null {
@@ -159,12 +168,6 @@ export function AiChatPanel() {
   const nodeCount = useScene((state) => Object.keys(state.nodes).length)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const aiProvider = useAiProvider((state) => state.provider)
-  const aiModel = useAiProvider((state) =>
-    state.provider === 'claude' ? state.claudeModel : state.codexModel,
-  )
-  const aiEffort = useAiProvider((state) =>
-    state.provider === 'claude' ? state.claudeEffort : state.codexEffort,
-  )
   const providerLabel =
     aiProvider === 'claude' ? t('hostSettings.aiProviderClaude') : t('hostSettings.aiProviderCodex')
   const [providerStatuses, setProviderStatuses] = useState<z.infer<
@@ -182,6 +185,7 @@ export function AiChatPanel() {
     [persistedMessages, t],
   )
   const [draft, setDraft] = useState('')
+  const [queuedRequests, setQueuedRequests] = useState<QueuedAiRequest[]>([])
   const [pendingPlan, setPendingPlan] = useState<AiModelingPlan | null>(null)
   const [isThinking, setIsThinking] = useState(false)
   const [thinkingSeconds, setThinkingSeconds] = useState(0)
@@ -223,11 +227,6 @@ export function AiChatPanel() {
         }),
       )
   }, [])
-
-  const conversation = useMemo(
-    () => messages.filter((message) => message.role !== 'status'),
-    [messages],
-  )
 
   async function handleImageSelection(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
@@ -287,38 +286,62 @@ export function AiChatPanel() {
     setImageError(null)
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  // Intake only: the message is enqueued and the composer is freed
+  // immediately — the pump effect below dispatches when the agent is idle.
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const content = draft.trim()
-    if (!(content && !isThinking && !isReadingImages)) return
+    if (!content || isReadingImages) return
 
     const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content }
-    const nextMessages = [...conversation, userMessage].slice(-AI_CHAT_API_MESSAGE_LIMIT)
-    const images = imageAttachments.map(({ name, mimeType, dataUrl }) => ({
-      name,
-      mimeType,
-      dataUrl,
-    }))
+    // A plan the user has already seen (idle, nothing queued) is discarded by
+    // a new request — unchanged semantics. Plans still in flight are instead
+    // auto-applied by the pump: queuing follow-up work blind means "keep going".
+    if (!isThinking && queuedRequests.length === 0 && pendingPlan) setPendingPlan(null)
     appendMessage(userMessage)
-    setDraft('')
-    setPendingPlan(null)
-    setIsThinking(true)
-
-    try {
-      const response = await jsonRequest('POST', withBasePath('/api/ai/chat'), {
-        messages: nextMessages.map(({ role, content: messageContent }) => ({
-          role,
-          content: messageContent,
+    setQueuedRequests((queue) => [
+      ...queue,
+      {
+        messageId: userMessage.id,
+        images: imageAttachments.map(({ name, mimeType, dataUrl }) => ({
+          name,
+          mimeType,
+          dataUrl,
         })),
-        images,
-        provider: aiProvider,
-        model: aiModel,
-        effort: aiEffort,
+      },
+    ])
+    setDraft('')
+    setImageAttachments([])
+    setImageError(null)
+  }
+
+  async function sendRequest(request: QueuedAiRequest) {
+    setIsThinking(true)
+    try {
+      // Scene context, provider settings, and history are all read at
+      // dispatch time, not submit time — a queued request must see the
+      // changes the previous plan just applied.
+      const history = useAiChatHistory
+        .getState()
+        .messages.filter((message) => message.role !== 'status')
+      const providerState = useAiProvider.getState()
+      const response = await jsonRequest('POST', withBasePath('/api/ai/chat'), {
+        messages: conversationWindow(history, request.messageId, AI_CHAT_API_MESSAGE_LIMIT).map(
+          ({ role, content }) => ({ role, content }),
+        ),
+        images: request.images,
+        provider: providerState.provider,
+        model:
+          providerState.provider === 'claude'
+            ? providerState.claudeModel
+            : providerState.codexModel,
+        effort:
+          providerState.provider === 'claude'
+            ? providerState.claudeEffort
+            : providerState.codexEffort,
         scene: buildAiSceneContext(),
       })
       const plan = AiModelingPlanSchema.parse(response)
-      setImageAttachments([])
-      setImageError(null)
       appendMessage({ id: crypto.randomUUID(), role: 'assistant', content: plan.message })
       setPendingPlan(plan.patches.length > 0 ? plan : null)
       // A guided flow moves its highlight to the next step once this one has
@@ -335,7 +358,7 @@ export function AiChatPanel() {
     }
   }
 
-  async function applyPlan() {
+  async function applyPlan(options: { auto?: boolean } = {}) {
     if (!pendingPlan) return
     setIsThinking(true)
     try {
@@ -343,7 +366,10 @@ export function AiChatPanel() {
       appendMessage({
         id: crypto.randomUUID(),
         role: 'status',
-        content: t('aiChat.pendingPlan.appliedStatus').replace('{n}', String(result.appliedOps)),
+        content: (options.auto
+          ? t('aiChat.queue.autoApplied')
+          : t('aiChat.pendingPlan.appliedStatus')
+        ).replace('{n}', String(result.appliedOps)),
       })
       setPendingPlan(null)
     } catch (error) {
@@ -352,16 +378,40 @@ export function AiChatPanel() {
         role: 'status',
         content: error instanceof Error ? error.message : t('aiChat.pendingPlan.applyFailed'),
       })
+      // Auto-apply must not retry forever: drop the failed plan so the queue
+      // keeps moving; the status line above reports what was lost.
+      if (options.auto) setPendingPlan(null)
     } finally {
       setIsThinking(false)
     }
   }
+
+  // The pump: drains the FIFO whenever the agent goes idle. A plan that
+  // arrives while more work is queued is applied automatically before the
+  // next dispatch, so each request builds on the previous one's scene.
+  // Guarded by nextAiQueueStep, so running after every render is idempotent.
+  useEffect(() => {
+    const step = nextAiQueueStep({
+      isBusy: isThinking,
+      hasPendingPlan: pendingPlan !== null,
+      queuedCount: queuedRequests.length,
+    })
+    if (step === 'wait') return
+    if (step === 'auto-apply') {
+      void applyPlan({ auto: true })
+      return
+    }
+    const [next, ...rest] = queuedRequests
+    setQueuedRequests(rest)
+    if (next) void sendRequest(next)
+  })
 
   const canResetChat =
     persistedMessages.length > 0 || pendingPlan !== null || imageAttachments.length > 0
 
   function resetChat() {
     resetChatHistory()
+    setQueuedRequests([])
     setPendingPlan(null)
     setImageAttachments([])
     setImageError(null)
@@ -435,6 +485,11 @@ export function AiChatPanel() {
               </span>
             )}
             {thinkingSeconds >= 60 && <span>{t('aiChat.thinkingLong')}</span>}
+            {queuedRequests.length > 0 && (
+              <span>
+                · {t('aiChat.queue.waiting').replace('{n}', String(queuedRequests.length))}
+              </span>
+            )}
           </div>
         )}
         {pendingPlan && (
@@ -445,7 +500,7 @@ export function AiChatPanel() {
             <p className="mt-1 text-[10px] text-muted-foreground">{t('aiChat.pendingPlan.desc')}</p>
             <button
               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 font-medium text-white text-xs hover:bg-emerald-500"
-              onClick={applyPlan}
+              onClick={() => void applyPlan()}
               type="button"
             >
               <Check className="h-3.5 w-3.5" /> {t('aiChat.pendingPlan.apply')}
@@ -577,7 +632,7 @@ export function AiChatPanel() {
               <input
                 accept={AI_CHAT_IMAGE_ACCEPT}
                 className="sr-only"
-                disabled={isThinking || isReadingImages}
+                disabled={isReadingImages}
                 multiple
                 onChange={handleImageSelection}
                 ref={fileInputRef}
@@ -586,9 +641,7 @@ export function AiChatPanel() {
               <button
                 aria-label={t('aiChat.attach.button.ariaLabel')}
                 className="flex shrink-0 items-center gap-1 rounded-md border border-border/70 px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={
-                  imageAttachments.length >= AI_CHAT_MAX_IMAGES || isThinking || isReadingImages
-                }
+                disabled={imageAttachments.length >= AI_CHAT_MAX_IMAGES || isReadingImages}
                 onClick={() => fileInputRef.current?.click()}
                 type="button"
               >
@@ -605,7 +658,7 @@ export function AiChatPanel() {
             <button
               aria-label={t('aiChat.send.ariaLabel')}
               className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background disabled:opacity-30"
-              disabled={!draft.trim() || isThinking || isReadingImages}
+              disabled={!draft.trim() || isReadingImages}
               type="submit"
             >
               <Send className="h-3.5 w-3.5" />
