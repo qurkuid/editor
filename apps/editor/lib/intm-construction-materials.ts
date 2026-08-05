@@ -49,6 +49,9 @@ const CATEGORY_BY_KIND: Record<ConstructionKind, MaterialCatalogItem['category']
   'timber-stud': 'wood',
   mdf: 'wood',
   finish: 'wallpaper',
+  glass: 'glass',
+  'glass-block': 'glass',
+  masonry: 'brick',
   custom: 'other',
 }
 
@@ -70,6 +73,9 @@ const COLOR_BY_KIND: Record<ConstructionKind, string> = {
   'timber-stud': '#c8a273',
   mdf: '#c9a880',
   finish: '#f2f0ec',
+  glass: '#bcd6e2',
+  'glass-block': '#cfe3ea',
+  masonry: '#b56a4f',
   custom: '#d8d5d0',
 }
 
