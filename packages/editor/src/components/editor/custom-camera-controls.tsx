@@ -451,6 +451,9 @@ export const CustomCameraControls = () => {
     if (plan.perspectiveFov !== null && isPerspectiveCamera(camera)) {
       camera.fov = plan.perspectiveFov
       camera.updateProjectionMatrix()
+      // Keep the store in sync so the FOV control reads the pose's value —
+      // ViewerCamera re-applies the same number, a visual no-op.
+      useViewer.getState().setFov(plan.perspectiveFov)
     }
     let appliedPlan = plan
     if (plan.pose.viewWidth !== undefined) {

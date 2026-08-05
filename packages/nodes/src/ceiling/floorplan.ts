@@ -1,8 +1,10 @@
-import type {
-  CeilingNode,
-  FloorplanGeometry,
-  FloorplanPoint,
-  GeometryContext,
+import {
+  type CeilingNode,
+  ceilingFeatureEdgeFrame,
+  ceilingProfileBounds,
+  type FloorplanGeometry,
+  type FloorplanPoint,
+  type GeometryContext,
 } from '@pascal-app/core'
 
 /**
@@ -52,6 +54,38 @@ export function buildCeilingFloorplan(
       opacity: showSelectedChrome ? 0.95 : 0.7,
     },
   ]
+
+  // Profile-swept feature footprints (curtain box / bulkhead / custom) —
+  // the swept band [minU, maxU] off the feature's edge, drawn as a solid
+  // thin outline so it reads apart from the dashed ceiling boundary.
+  const featureSegments: string[] = []
+  for (const feature of node.features ?? []) {
+    const frame = ceilingFeatureEdgeFrame(polygon, feature.edgeIndex)
+    if (!frame) continue
+    const bounds = ceilingProfileBounds(feature.profile)
+    const corner = (u: number, atEnd: boolean): FloorplanPoint => {
+      const base = atEnd ? frame.end : frame.start
+      return [base[0] + frame.inward[0] * u, base[1] + frame.inward[1] * u]
+    }
+    featureSegments.push(
+      ring([
+        corner(bounds.minU, false),
+        corner(bounds.minU, true),
+        corner(bounds.maxU, true),
+        corner(bounds.maxU, false),
+      ]),
+    )
+  }
+  if (featureSegments.length > 0) {
+    children.push({
+      kind: 'path',
+      d: featureSegments.join(' '),
+      fill: 'none',
+      stroke,
+      strokeWidth: 0.02,
+      opacity: showSelectedChrome ? 0.85 : 0.55,
+    })
+  }
 
   if (isSelected) {
     appendRingEditor(children, polygon, undefined)

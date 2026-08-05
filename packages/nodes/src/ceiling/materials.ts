@@ -10,7 +10,7 @@ import {
 import { createMaterial, createMaterialFromPreset, type RenderShading } from '@pascal-app/viewer'
 import type { Material } from 'three'
 import { float, mix, positionWorld, smoothstep } from 'three/tsl'
-import { BackSide, FrontSide, MeshBasicNodeMaterial } from 'three/webgpu'
+import { BackSide, DoubleSide, FrontSide, MeshBasicNodeMaterial } from 'three/webgpu'
 
 /**
  * The ceiling keeps its top placement grid separate from the underside finish.
@@ -30,6 +30,12 @@ const gridOpacity = mix(float(0.2), float(0.6), gridPattern)
 export type CeilingMaterials = {
   topMaterial: MeshBasicNodeMaterial
   bottomMaterial: MeshBasicNodeMaterial
+  /**
+   * Opaque DoubleSide material for the profile-swept feature mesh
+   * (curtain box / bulkhead / custom sections) — closed solids seen from
+   * every angle, so no reliance on triangle winding.
+   */
+  featureMaterial: MeshBasicNodeMaterial
 }
 
 function createCeilingMaterials(color = '#999999'): CeilingMaterials {
@@ -47,7 +53,12 @@ function createCeilingMaterials(color = '#999999'): CeilingMaterials {
     side: BackSide,
   })
 
-  return { topMaterial, bottomMaterial }
+  const featureMaterial = new MeshBasicNodeMaterial({
+    color,
+    side: DoubleSide,
+  })
+
+  return { topMaterial, bottomMaterial, featureMaterial }
 }
 
 const ceilingMaterialCache = new Map<string, CeilingMaterials>()

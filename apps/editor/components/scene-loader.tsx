@@ -14,6 +14,7 @@ import {
   Armchair,
   BarChart3,
   Bot,
+  Camera,
   Hammer,
   Layers,
   Lightbulb,
@@ -158,6 +159,22 @@ function buildSidebarTabs(
       icon: <Bot className="h-5 w-5" />,
     },
     {
+      id: 'views',
+      label: t('sidebarTabs.views'),
+      component: () => null, // Built-in ViewsPanel handles this
+      mobileDefaultSnap: 0.5,
+      mobileIcon: <Camera className="h-5 w-5" />,
+      icon: (
+        <Image
+          alt=""
+          className="h-8 w-8 object-contain"
+          height={32}
+          src="/icons/orbit.webp"
+          width={32}
+        />
+      ),
+    },
+    {
       id: 'settings',
       label: t('sidebarTabs.settings'),
       component: () => null,
@@ -200,6 +217,7 @@ function sceneGraphSignature(graph: SceneGraphWithCollections): string {
     rootNodeIds: graph.rootNodeIds,
     collections: graph.collections,
     installedPlugins: graph.installedPlugins,
+    savedViews: graph.savedViews,
   })
 }
 

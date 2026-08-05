@@ -23,6 +23,7 @@ export type SceneGraph = {
   collections?: Record<string, unknown>
   materials?: Record<string, unknown>
   installedPlugins?: string[]
+  savedViews?: unknown[]
 }
 
 type PersistedSelectionPath = {
@@ -385,12 +386,13 @@ function hasUsableSceneGraph(sceneGraph?: SceneGraph | null): sceneGraph is Scen
 export function applySceneGraphToEditor(sceneGraph?: SceneGraph | null) {
   const defaultInstalledPlugins = editorHostPanelRegistry.getDefaultInstalledPluginIds()
   if (hasUsableSceneGraph(sceneGraph)) {
-    const { nodes, rootNodeIds, collections, materials, installedPlugins } = sceneGraph
+    const { nodes, rootNodeIds, collections, materials, installedPlugins, savedViews } = sceneGraph
     useScene.getState().setScene(nodes as any, rootNodeIds as any, {
       collections: collections as any,
       materials: materials as any,
       installedPlugins: installedPlugins ?? defaultInstalledPlugins,
       hasExplicitPluginInstallState: installedPlugins !== undefined,
+      savedViews: savedViews as any,
     })
   } else {
     useScene.getState().clearScene()

@@ -14,7 +14,7 @@ import {
   useViewer,
 } from '@pascal-app/viewer'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { BackSide, type Mesh } from 'three/webgpu'
+import { BackSide, DoubleSide, type Mesh } from 'three/webgpu'
 import { createPlaceholderGeometry } from '../shared/placeholder-geometry'
 import { createCeilingSurfaceMaterial, getCeilingMaterials } from './materials'
 import { CEILING_SLOT_DEFAULT_COLOR } from './slots'
@@ -27,6 +27,7 @@ export const CeilingRenderer = ({ node }: { node: CeilingNode }) => {
   const ref = useRef<Mesh>(null!)
   const placeholderGeometry = useMemo(createEmptyGeometry, [])
   const gridPlaceholderGeometry = useMemo(createEmptyGeometry, [])
+  const featurePlaceholderGeometry = useMemo(createEmptyGeometry, [])
 
   useRegistry(node.id, 'ceiling', ref)
   // Build the real geometry on mount instead of relying on a child item to
@@ -61,8 +62,9 @@ export const CeilingRenderer = ({ node }: { node: CeilingNode }) => {
     () => () => {
       placeholderGeometry.dispose()
       gridPlaceholderGeometry.dispose()
+      featurePlaceholderGeometry.dispose()
     },
-    [gridPlaceholderGeometry, placeholderGeometry],
+    [featurePlaceholderGeometry, gridPlaceholderGeometry, placeholderGeometry],
   )
 
   const materials = useMemo(() => {
@@ -79,6 +81,7 @@ export const CeilingRenderer = ({ node }: { node: CeilingNode }) => {
       return {
         topMaterial: getCeilingMaterials(ceilingColor).topMaterial,
         bottomMaterial: createSurfaceRoleMaterial('ceiling', colorPreset, BackSide, sceneTheme),
+        featureMaterial: createSurfaceRoleMaterial('ceiling', colorPreset, DoubleSide, sceneTheme),
       }
     }
 
@@ -140,6 +143,11 @@ export const CeilingRenderer = ({ node }: { node: CeilingNode }) => {
         name="ceiling-grid"
         scale={0}
         visible={false}
+      />
+      <mesh
+        geometry={featurePlaceholderGeometry}
+        material={materials.featureMaterial}
+        name="ceiling-features"
       />
       {(node.children ?? []).map((childId) => (
         <NodeRenderer key={childId} nodeId={childId} />

@@ -18,6 +18,9 @@ export const apiGraphSchema = z
     rootNodeIds: z.array(z.string()),
     collections: z.unknown().optional(),
     installedPlugins: z.array(z.string().min(1)).optional(),
+    // Saved camera views — opaque document data, same pass-through rationale
+    // as `collections`.
+    savedViews: z.array(z.unknown()).optional(),
   })
   .superRefine((value, ctx) => {
     for (const [nodeId, node] of Object.entries(value.nodes)) {

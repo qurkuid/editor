@@ -72,9 +72,11 @@ import { AppSidebar } from '../ui/sidebar/app-sidebar'
 import type { ExtraPanel } from '../ui/sidebar/icon-rail'
 import { SettingsPanel, type SettingsPanelProps } from '../ui/sidebar/panels/settings-panel'
 import { SitePanel, type SitePanelProps } from '../ui/sidebar/panels/site-panel'
+import { ViewsPanel } from '../ui/sidebar/panels/views-panel'
 import type { SidebarTab } from '../ui/sidebar/tab-bar'
 import { useHostPanels } from '../ui/sidebar/use-plugin-panels'
 import { CustomCameraControls } from './custom-camera-controls'
+import { WalkToPointController } from './walk-to-point'
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog'
 import { DraftLengthHud } from './draft-length-hud'
 import { EditorLayoutV2 } from './editor-layout-v2'
@@ -803,6 +805,7 @@ const ViewerSceneContent = memo(function ViewerSceneContent({
       {!(isLoading || noEditing) && <ToolManager />}
       {isFirstPersonMode && <FirstPersonControls />}
       <CustomCameraControls />
+      <WalkToPointController />
       <ThumbnailGenerator onThumbnailCapture={onThumbnailCapture} />
       {!isFirstPersonMode && <SiteEdgeLabels />}
       <InteractiveSystem />
@@ -1383,6 +1386,7 @@ export default function Editor({
       <StairEditSystem />
       {isFirstPersonMode && <FirstPersonControls />}
       <CustomCameraControls />
+      <WalkToPointController />
       <ThumbnailGenerator onThumbnailCapture={onThumbnailCapture} />
       <InteractiveSystem />
     </Viewer>
@@ -1424,6 +1428,9 @@ export default function Editor({
       }
       if (tabId === 'settings') {
         return <SettingsPanel {...settingsPanelProps} />
+      }
+      if (tabId === 'views') {
+        return <ViewsPanel />
       }
       // External tabs (AI chat, catalog, etc.)
       const tab = tabMap.get(tabId)

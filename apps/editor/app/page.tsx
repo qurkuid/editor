@@ -5,6 +5,7 @@ import {
   Armchair,
   BarChart3,
   Bot,
+  Camera,
   Hammer,
   Layers,
   Lightbulb,
@@ -132,6 +133,22 @@ function buildSidebarTabs(t: ReturnType<typeof useT>) {
       mobileDefaultSnap: 0.85,
       mobileIcon: <Bot className="h-5 w-5" />,
       icon: <Bot className="h-5 w-5" />,
+    },
+    {
+      id: 'views',
+      label: t('sidebarTabs.views'),
+      component: () => null,
+      mobileDefaultSnap: 0.5,
+      mobileIcon: <Camera className="h-5 w-5" />,
+      icon: (
+        <Image
+          alt=""
+          className="h-8 w-8 object-contain"
+          height={32}
+          src="/icons/orbit.webp"
+          width={32}
+        />
+      ),
     },
     {
       id: 'settings',

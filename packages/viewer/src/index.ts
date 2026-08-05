@@ -154,6 +154,7 @@ export { packNormalToRGB, unpackRGBToNormal } from './lib/tsl-compat'
 export { useItemLightPool } from './store/use-item-light-pool'
 export {
   applyCountryUnitDefault,
+  DEFAULT_FOV,
   default as useViewer,
   type MetricNotation,
 } from './store/use-viewer'

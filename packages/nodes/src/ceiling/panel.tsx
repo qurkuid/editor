@@ -2,6 +2,7 @@
 
 import {
   type AnyNode,
+  type CeilingFeature,
   type CeilingNode,
   getCeilingClampBound,
   resolveCeilingHeight,
@@ -23,9 +24,17 @@ import {
   useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
-import { Edit, Move, Plus, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useRef } from 'react'
+import { ChevronLeft, ChevronRight, Edit, Move, Plus, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { SurfaceTexturePlacementSection } from '../shared/surface-texture-placement'
+import {
+  CEILING_FEATURE_LABELS,
+  CEILING_FEATURE_SEED_PROFILES,
+  ceilingProfileSize,
+  longestEdgeIndex,
+  scaleCeilingProfile,
+} from './presets'
+import { CeilingSectionEditor } from './section-editor'
 
 /**
  * Phase 5 Stage E — ceiling inspector (kind-owned).
@@ -206,6 +215,60 @@ export function CeilingPanel() {
     setSelection({ selectedIds: [] })
   }, [node, setMovingNode, setSelection])
 
+  // ── Profile-swept features (curtain box / bulkhead / custom) ──
+  const [expandedFeature, setExpandedFeature] = useState<number | null>(null)
+
+  useEffect(() => {
+    // Collapse any open section editor when the selection moves on.
+    if (selectedId) setExpandedFeature(null)
+  }, [selectedId])
+
+  const handleFeaturesChange = useCallback(
+    (features: CeilingFeature[]) => {
+      if (!selectedId) return
+      useScene.getState().updateNode(selectedId as AnyNode['id'], { features })
+    },
+    [selectedId],
+  )
+
+  const handleAddFeature = useCallback(
+    (kind: CeilingFeature['kind']) => {
+      const n = nodeRef.current
+      if (!n || n.polygon.length < 3) return
+      const features: CeilingFeature[] = [
+        ...(n.features ?? []),
+        {
+          kind,
+          edgeIndex: longestEdgeIndex(n.polygon),
+          profile: CEILING_FEATURE_SEED_PROFILES[kind].map(([u, v]) => [u, v]),
+        },
+      ]
+      handleFeaturesChange(features)
+      setExpandedFeature(features.length - 1)
+    },
+    [handleFeaturesChange],
+  )
+
+  const handleFeatureUpdate = useCallback(
+    (index: number, patch: Partial<CeilingFeature>) => {
+      const features = (nodeRef.current?.features ?? []).slice()
+      const feature = features[index]
+      if (!feature) return
+      features[index] = { ...feature, ...patch }
+      handleFeaturesChange(features)
+    },
+    [handleFeaturesChange],
+  )
+
+  const handleFeatureDelete = useCallback(
+    (index: number) => {
+      const features = (nodeRef.current?.features ?? []).filter((_, i) => i !== index)
+      handleFeaturesChange(features)
+      setExpandedFeature(null)
+    },
+    [handleFeaturesChange],
+  )
+
   if (!(node && node.type === 'ceiling' && selectedId)) return null
 
   const calculateArea = (polygon: Array<[number, number]>): number => {
@@ -384,6 +447,121 @@ export function CeilingPanel() {
             label={t('panel.addHole')}
             onClick={handleAddHole}
           />
+        </div>
+      </PanelSection>
+
+      <PanelSection title="Features">
+        {(node.features ?? []).length > 0 ? (
+          <div className="flex flex-col gap-1 pb-1">
+            {(node.features ?? []).map((feature, index) => {
+              const size = ceilingProfileSize(feature.profile)
+              const edgeCount = node.polygon.length
+              const isExpanded = expandedFeature === index
+              return (
+                <div
+                  className={`rounded-lg border p-2 transition-colors ${
+                    isExpanded
+                      ? 'border-primary/50 bg-primary/10'
+                      : 'border-transparent hover:bg-accent/30'
+                  }`}
+                  key={index}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-white text-xs">
+                      {CEILING_FEATURE_LABELS[feature.kind]}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <button
+                        className="flex h-6 w-6 items-center justify-center rounded-md bg-[#2C2C2E] text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground"
+                        onClick={() =>
+                          handleFeatureUpdate(index, {
+                            edgeIndex: (feature.edgeIndex - 1 + edgeCount) % edgeCount,
+                          })
+                        }
+                        type="button"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="min-w-9 text-center text-[10px] text-muted-foreground">
+                        Edge {(feature.edgeIndex % edgeCount) + 1}/{edgeCount}
+                      </span>
+                      <button
+                        className="flex h-6 w-6 items-center justify-center rounded-md bg-[#2C2C2E] text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground"
+                        onClick={() =>
+                          handleFeatureUpdate(index, {
+                            edgeIndex: (feature.edgeIndex + 1) % edgeCount,
+                          })
+                        }
+                        type="button"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className={`flex h-6 w-6 items-center justify-center rounded-md ${
+                          isExpanded
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-[#2C2C2E] text-muted-foreground hover:bg-[#3e3e3e] hover:text-foreground'
+                        }`}
+                        onClick={() => setExpandedFeature(isExpanded ? null : index)}
+                        type="button"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                        onClick={() => handleFeatureDelete(index)}
+                        type="button"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <SliderControl
+                    label="Width"
+                    max={2}
+                    min={0.02}
+                    onChange={(v) =>
+                      handleFeatureUpdate(index, {
+                        profile: scaleCeilingProfile(feature.profile, { width: v }),
+                      })
+                    }
+                    precision={3}
+                    step={0.005}
+                    unit="m"
+                    value={Math.round(size.width * 1000) / 1000}
+                  />
+                  <SliderControl
+                    label="Depth"
+                    max={1.5}
+                    min={0.02}
+                    onChange={(v) =>
+                      handleFeatureUpdate(index, {
+                        profile: scaleCeilingProfile(feature.profile, { depth: v }),
+                      })
+                    }
+                    precision={3}
+                    step={0.005}
+                    unit="m"
+                    value={Math.round(size.depth * 1000) / 1000}
+                  />
+                  {isExpanded && (
+                    <CeilingSectionEditor
+                      onChange={(profile) => handleFeatureUpdate(index, { profile })}
+                      profile={feature.profile}
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="px-2 py-3 text-center text-muted-foreground text-xs">No features</div>
+        )}
+
+        <div className="grid grid-cols-3 gap-1.5 px-1 pt-1 pb-1">
+          <ActionButton label="Curtain box" onClick={() => handleAddFeature('curtain-box')} />
+          <ActionButton label="Bulkhead" onClick={() => handleAddFeature('drop')} />
+          <ActionButton label="Custom" onClick={() => handleAddFeature('custom')} />
         </div>
       </PanelSection>
 

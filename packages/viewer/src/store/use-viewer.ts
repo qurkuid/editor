@@ -40,6 +40,10 @@ type ViewerState = {
   cameraMode: 'perspective' | 'orthographic'
   setCameraMode: (mode: 'perspective' | 'orthographic') => void
 
+  /** Perspective field of view in degrees. 55 ~ human eye. */
+  fov: number
+  setFov: (fov: number) => void
+
   sceneTheme: string
   setSceneTheme: (id: string) => void
 
@@ -182,6 +186,7 @@ type PersistedViewerState = Partial<
   Pick<
     ViewerState,
     | 'cameraMode'
+    | 'fov'
     | 'sceneTheme'
     | 'shadingByContext'
     | 'textures'
@@ -198,6 +203,9 @@ type PersistedViewerState = Partial<
 >
 
 const CAMERA_MODES = ['perspective', 'orthographic'] as const
+// 55° vertical FOV reads closest to unassisted human vision at typical
+// screen-viewing distances — the default for the perspective camera.
+export const DEFAULT_FOV = 55
 const RENDER_SHADINGS = ['solid', 'rendered'] as const
 const COLOR_PRESETS = ['clay', 'white', 'mono', 'blueprint'] as const
 const EDGE_MODES = ['off', 'soft', 'strong'] as const
@@ -307,6 +315,10 @@ function normalizePersistedViewerState(value: unknown): PersistedViewerState {
       CAMERA_MODES,
       'perspective',
     ),
+    fov:
+      typeof state.fov === 'number' && Number.isFinite(state.fov)
+        ? Math.min(120, Math.max(20, state.fov))
+        : DEFAULT_FOV,
     sceneTheme: pickString(state.sceneTheme, SCENE_THEME_IDS, 'studio'),
     shadingByContext: normalizeShadingByContext(state.shadingByContext),
     textures: typeof state.textures === 'boolean' ? state.textures : true,
@@ -348,6 +360,9 @@ const useViewer = create<ViewerState>()(
 
       cameraMode: 'perspective',
       setCameraMode: (mode) => set({ cameraMode: mode }),
+
+      fov: DEFAULT_FOV,
+      setFov: (fov) => set({ fov: Math.min(120, Math.max(20, fov)) }),
 
       sceneTheme: 'studio',
       setSceneTheme: (id) => set({ sceneTheme: id }),
@@ -547,6 +562,7 @@ const useViewer = create<ViewerState>()(
       }),
       partialize: (state) => ({
         cameraMode: state.cameraMode,
+        fov: state.fov,
         sceneTheme: state.sceneTheme,
         shadingByContext: state.shadingByContext,
         textures: state.textures,

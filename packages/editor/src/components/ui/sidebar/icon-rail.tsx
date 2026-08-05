@@ -35,13 +35,23 @@ const sitePanel: { id: PanelId; iconSrc: string; label: string } = {
   label: 'Site',
 }
 
+const viewsPanel: { id: PanelId; iconSrc: string; label: string } = {
+  id: 'views',
+  iconSrc: '/icons/orbit.webp',
+  label: 'Views',
+}
+
 const settingsPanel: { id: PanelId; iconSrc: string; label: string } = {
   id: 'settings',
   iconSrc: '/icons/settings.webp',
   label: 'Settings',
 }
 
-const panels: { id: PanelId; iconSrc: string; label: string }[] = [sitePanel, settingsPanel]
+const panels: { id: PanelId; iconSrc: string; label: string }[] = [
+  sitePanel,
+  viewsPanel,
+  settingsPanel,
+]
 
 export function IconRail({
   activePanel,
@@ -96,8 +106,8 @@ export function IconRail({
       {/* Divider */}
       <div className="mb-1 h-px w-8 bg-border/50" />
 
-      {/* Site panel */}
-      {[sitePanel].map((panel) => {
+      {/* Site + views panels */}
+      {[sitePanel, viewsPanel].map((panel) => {
         const isActive = activePanel === panel.id
         return (
           <Tooltip key={panel.id}>

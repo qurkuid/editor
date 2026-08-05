@@ -126,7 +126,9 @@ function ceilingHandles(_node: CeilingNodeType): HandleDescriptor<CeilingNodeTyp
 export const ceilingDefinition: NodeDefinition<typeof CeilingNode> = {
   kind: 'ceiling',
   snapProfile: 'structural',
-  schemaVersion: 1,
+  // v2: `features` — profile-swept sections (curtain box / bulkhead /
+  // custom) hung under the ceiling plane along a polygon edge.
+  schemaVersion: 2,
   schema: CeilingNode,
   category: 'structure',
   surfaceRole: 'ceiling',
@@ -144,6 +146,7 @@ export const ceilingDefinition: NodeDefinition<typeof CeilingNode> = {
     holeMetadata: [],
     construction: [],
     autoFromWalls: false,
+    features: [],
   }),
 
   capabilities: {

@@ -117,6 +117,12 @@ export {
   validateBodyTopology,
 } from './lib/body-topology'
 export {
+  type CeilingFeatureEdgeFrame,
+  ceilingFeatureEdgeFrame,
+  type CeilingProfileBounds,
+  ceilingProfileBounds,
+} from './lib/ceiling-features'
+export {
   clampDoorOperationState,
   getDoorRenderOpenAmount,
   getGarageVisibleOpeningRatio,

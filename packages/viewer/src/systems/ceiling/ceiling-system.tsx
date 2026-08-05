@@ -11,6 +11,7 @@ import {
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeSurfaceHolePolygons } from '../surface-hole-geometry'
+import { generateCeilingFeatureGeometry } from './ceiling-feature-geometry'
 
 type SceneNodes = ReturnType<typeof useScene.getState>['nodes']
 
@@ -100,6 +101,15 @@ function updateCeilingGeometry(
   if (gridMesh) {
     gridMesh.geometry.dispose()
     gridMesh.geometry = newGeo.clone()
+  }
+
+  // Profile-swept features (curtain box / bulkhead / custom sections) live
+  // on a sibling child mesh so they keep an opaque DoubleSide material
+  // instead of the flat surface's transparent BackSide one.
+  const featureMesh = mesh.getObjectByName('ceiling-features') as THREE.Mesh
+  if (featureMesh) {
+    featureMesh.geometry.dispose()
+    featureMesh.geometry = generateCeilingFeatureGeometry(node)
   }
 
   // Position at the ceiling height and reset X/Z so live-drag mesh

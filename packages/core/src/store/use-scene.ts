@@ -7,6 +7,7 @@ import { parseMaterialRef, toSceneMaterialRef } from '../material-library'
 import { getNodePluginId, isNodeKindEnabled, nodeRegistry } from '../registry/registry'
 import { BuildingNode } from '../schema'
 import type { Collection, CollectionId } from '../schema/collections'
+import type { SavedView, SavedViewId } from '../schema/saved-views'
 import { generateCollectionId } from '../schema/collections'
 import { DoorNode as DoorNodeSchema } from '../schema/nodes/door'
 import { ElevatorNode as ElevatorNodeSchema } from '../schema/nodes/elevator'
@@ -1213,6 +1214,10 @@ export type SceneState = {
   materials: Record<SceneMaterialId, SceneMaterial>
   installedPlugins: string[]
   hasExplicitPluginInstallState: boolean
+  // Named camera viewpoints (SketchUp-style scenes). Persisted with the
+  // document but NOT in the temporal snapshot — geometry undo must not
+  // delete or resurrect camera bookmarks.
+  savedViews: SavedView[]
 
   // 5. Read-only lock — when true all create/update/delete operations are no-ops
   readOnly: boolean
@@ -1230,6 +1235,7 @@ export type SceneState = {
       materials?: Record<SceneMaterialId, SceneMaterial>
       installedPlugins?: string[]
       hasExplicitPluginInstallState?: boolean
+      savedViews?: SavedView[]
     },
   ) => void
   setInstalledPlugins: (pluginIds: string[], options?: { explicit?: boolean }) => void
@@ -1262,6 +1268,11 @@ export type SceneState = {
   addSceneMaterial: (material: SceneMaterial) => void
   updateSceneMaterial: (id: SceneMaterialId, data: Partial<Omit<SceneMaterial, 'id'>>) => void
   removeSceneMaterial: (id: SceneMaterialId) => void
+
+  // Saved camera view actions
+  addSavedView: (view: SavedView) => void
+  updateSavedView: (id: SavedViewId, data: Partial<Omit<SavedView, 'id'>>) => void
+  removeSavedView: (id: SavedViewId) => void
 }
 
 // type PartializedStoreState = Pick<SceneState, 'rootNodeIds' | 'nodes'>;
@@ -1301,6 +1312,7 @@ const useScene: UseSceneStore = create<SceneState>()(
       materials: {} as Record<SceneMaterialId, SceneMaterial>,
       installedPlugins: [],
       hasExplicitPluginInstallState: false,
+      savedViews: [],
 
       // 5. Read-only lock
       readOnly: false,
@@ -1315,6 +1327,7 @@ const useScene: UseSceneStore = create<SceneState>()(
           materials: {},
           installedPlugins: [],
           hasExplicitPluginInstallState: false,
+          savedViews: [],
         })
       },
 
@@ -1371,6 +1384,7 @@ const useScene: UseSceneStore = create<SceneState>()(
           materials,
           installedPlugins: Array.from(new Set(extra?.installedPlugins ?? [])),
           hasExplicitPluginInstallState: extra?.hasExplicitPluginInstallState ?? false,
+          savedViews: extra?.savedViews ?? [],
         })
         // Mark all nodes as dirty to trigger re-validation
         Object.values(cleanedNodes).forEach((node) => {
@@ -1578,6 +1592,25 @@ const useScene: UseSceneStore = create<SceneState>()(
           delete materials[id]
           return { materials }
         })
+      },
+
+      addSavedView: (view) => {
+        if (get().readOnly) return
+        set((state) => ({ savedViews: [...state.savedViews, view] }))
+      },
+
+      updateSavedView: (id, data) => {
+        if (get().readOnly) return
+        set((state) => ({
+          savedViews: state.savedViews.map((view) =>
+            view.id === id ? { ...view, ...data, id } : view,
+          ),
+        }))
+      },
+
+      removeSavedView: (id) => {
+        if (get().readOnly) return
+        set((state) => ({ savedViews: state.savedViews.filter((view) => view.id !== id) }))
       },
     }),
     {

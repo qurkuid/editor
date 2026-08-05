@@ -11,6 +11,8 @@ export { BaseNode, generateId, Material, nodeType, objectId } from './base'
 export { CameraSchema } from './camera'
 // Collections
 export { type Collection, type CollectionId, generateCollectionId } from './collections'
+// Saved camera views (SketchUp-style scenes)
+export type { SavedView, SavedViewId } from './saved-views'
 export type {
   MaterialMapProperties,
   MaterialMaps,
@@ -46,7 +48,7 @@ export {
 export { BoxVentNode } from './nodes/box-vent'
 export { BuildingNode } from './nodes/building'
 export { CabinetModuleNode, CabinetNode } from './nodes/cabinet'
-export { CeilingNode } from './nodes/ceiling'
+export { CeilingFeature, CeilingNode } from './nodes/ceiling'
 export { ChimneyMaterialRole, ChimneyNode } from './nodes/chimney'
 export {
   COLUMN_PRESETS,
