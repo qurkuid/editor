@@ -355,7 +355,7 @@ export const SiteRenderer = ({ node }: { node: SiteNode }) => {
   // terrain still mounts the mesh.
   const showTerrain = terrainGrid !== null
 
-  if (!(node && lineGeometry)) {
+  if (!node) {
     return null
   }
 
@@ -394,10 +394,12 @@ export const SiteRenderer = ({ node }: { node: SiteNode }) => {
       )}
 
       {/* Simple boundary line */}
-      {/* @ts-ignore */}
-      <line frustumCulled={false} geometry={lineGeometry} renderOrder={9}>
-        <lineBasicMaterial color="#f59e0b" linewidth={2} opacity={0.6} transparent />
-      </line>
+      {lineGeometry && (
+        // @ts-expect-error three's <line> collides with the SVG line element type
+        <line frustumCulled={false} geometry={lineGeometry} renderOrder={9}>
+          <lineBasicMaterial color="#f59e0b" linewidth={2} opacity={0.6} transparent />
+        </line>
+      )}
     </group>
   )
 }
