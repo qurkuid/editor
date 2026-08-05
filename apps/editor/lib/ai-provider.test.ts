@@ -298,6 +298,41 @@ describe('AI provider boundary', () => {
     expect(prompt).not.toContain('aGVsbG8=')
   })
 
+  test('instructs dimension-driven floor-plan extraction instead of eyeballing', () => {
+    const request = AiChatRequestSchema.parse({
+      messages: [{ role: 'user', content: '도면대로 벽 세워줘' }],
+      images: [
+        {
+          name: 'plan.png',
+          mimeType: 'image/png',
+          dataUrl: 'data:image/png;base64,aGVsbG8=',
+        },
+      ],
+      scene: {
+        coordinateSystem: { groundPlane: 'XZ', upAxis: 'Y', unit: 'm' },
+        nodeCount: 0,
+        nodes: {},
+        rootNodeIds: [],
+        materials: {},
+        selection: {
+          buildingId: null,
+          levelId: null,
+          zoneId: null,
+          selectedIds: [],
+          selectedNodes: [],
+        },
+      },
+    })
+    const prompt = buildAiModelingPrompt(request)
+
+    expect(prompt).toContain('trace the exterior boundary')
+    expect(prompt).toContain('dimension chains')
+    expect(prompt).toContain('centreline')
+    expect(prompt).toContain('half-thickness gaps')
+    expect(prompt).toContain('never add walls or openings the drawing does not show')
+    expect(prompt).toContain('assume a wall height of 2.42')
+  })
+
   test('numbers every attached reference image with its filename and MIME type', () => {
     const request = AiChatRequestSchema.parse({
       messages: [{ role: 'user', content: 'Match these references' }],

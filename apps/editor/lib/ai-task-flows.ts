@@ -36,8 +36,8 @@ export const AI_TASK_FLOWS: readonly AiTaskFlow[] = [
         id: 'walls',
         label: { ko: '벽 세우기', en: 'Build walls' },
         prompt: {
-          ko: '첨부한 도면 이미지를 단순화해서(외곽 → 내벽 → 개구부 순서, 가구·치수 텍스트는 무시) 벽을 세워줘.',
-          en: 'Simplify the attached floor plan (exterior boundary → interior walls → openings, ignoring furniture and dimension text) and build the walls.',
+          ko: '첨부한 도면대로 벽을 세워줘. 치수선이 있으면 기재된 치수값에서 좌표를 추출하고(눈대중 금지), 외곽 → 내벽 순서로. 도면에 없는 벽은 추가하지 마.',
+          en: 'Build the walls exactly as the attached drawing shows. If it has dimension lines, extract coordinates from the stated values (no eyeballing), exterior boundary first, then interior walls. Do not add walls the drawing does not show.',
         },
       },
       {
@@ -52,8 +52,8 @@ export const AI_TASK_FLOWS: readonly AiTaskFlow[] = [
         id: 'openings',
         label: { ko: '문·창문 세우기', en: 'Doors and windows' },
         prompt: {
-          ko: '동선에 맞게 문을 달고, 외벽에는 채광·환기 규정에 맞게 창문을 배치해줘.',
-          en: 'Add doors that fit the circulation and place windows on the exterior walls per daylight and ventilation rules.',
+          ko: '도면의 창호 기호대로 문·창문을 달아줘. 위치·폭은 기호와 치수 기준, 문은 개폐 방향(호)까지 반영해서. 도면에 없는 개구부는 추가하지 마.',
+          en: "Add the doors and windows exactly as the drawing's opening symbols show — positions and widths from the symbols and dimensions, door swings from the drawn arcs. Do not invent openings.",
         },
       },
     ],
