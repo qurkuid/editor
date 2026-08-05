@@ -43,6 +43,8 @@ export const actionMenuDictionary = {
   'actionMenu.measurePerimeter': { ko: '둘레', en: 'Perimeter' },
   'actionMenu.measureVolume': { ko: '부피', en: 'Volume' },
 
+  'actionMenu.guideLine': { ko: '가이드선', en: 'Guide line' },
+
   'actionMenu.dimLinear': { ko: '선형 치수', en: 'Linear dimension' },
   'actionMenu.dimContinuous': { ko: '연속 치수', en: 'Continuous dimension' },
   'actionMenu.dimRadius': { ko: '반지름 치수', en: 'Radius dimension' },

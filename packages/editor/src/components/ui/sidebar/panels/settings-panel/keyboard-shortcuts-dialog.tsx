@@ -80,6 +80,12 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
         actionKey: 'panel.shortcutActivateTheLastMeasurementTool',
         rebindId: 'tool-measurement',
       },
+      {
+        keys: ['L'],
+        actionKey: 'panel.shortcutGuideLine',
+        noteKey: 'panel.shortcutGuideLineNote',
+        rebindId: 'tool-guide',
+      },
       { keys: ['X'], actionKey: 'panel.shortcutSwitchToDeleteMode', rebindId: 'mode-delete' },
       {
         keys: ['Esc'],

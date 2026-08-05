@@ -14,6 +14,7 @@ export type RebindableShortcutId =
   | 'tool-furnish'
   | 'tool-zone'
   | 'tool-measurement'
+  | 'tool-guide'
   | 'pivot-rotate'
 
 export type ShortcutOverrides = Partial<Record<RebindableShortcutId, string>>
@@ -28,6 +29,7 @@ export const DEFAULT_SHORTCUT_KEYS: Record<RebindableShortcutId, string> = {
   'tool-furnish': 'f',
   'tool-zone': 'z',
   'tool-measurement': 'm',
+  'tool-guide': 'l',
   'pivot-rotate': 'q',
 }
 

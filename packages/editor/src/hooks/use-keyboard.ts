@@ -386,6 +386,17 @@ export const useKeyboard = ({
         editor.setToolDefaults('measurement', { kind: editor.lastMeasurementKind })
         editor.setMode('build')
         editor.setTool('measurement')
+      } else if (e.key === shortcutKey('tool-guide') && !e.metaKey && !e.ctrlKey) {
+        if (isVersionPreviewMode) return
+        e.preventDefault()
+        // Guide lines are a floor-plan construct — the tool mounts in the 2D
+        // registered-tool layer, so surface the plan view along with it.
+        const editor = useEditor.getState()
+        editor.setPhase('structure')
+        editor.setStructureLayer('elements')
+        editor.setViewMode('2d')
+        editor.setMode('build')
+        editor.setTool('construction-guide')
       }
       if (e.key === shortcutKey('mode-select') && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()

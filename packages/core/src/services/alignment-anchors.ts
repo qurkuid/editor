@@ -276,10 +276,43 @@ export function polygonAnchors(
  * (a straight stair's `stair-segment` chain); every other kind derives its
  * anchors from `node` alone.
  */
+// How far along an axis-aligned construction guide its two alignment
+// anchors sit from the origin. The point-to-point resolver treats two
+// anchors sharing a constant X (or Z) as a full alignment line between
+// them, so this span is the reach within which moving footprints snap
+// flush to the guide.
+const GUIDE_ANCHOR_SPAN = 25
+
 export function nodeAlignmentAnchors(
   node: AnyNode,
   nodes?: Readonly<Record<string, AnyNode>>,
 ): AlignmentAnchor[] {
+  if (node.type === 'construction-guide') {
+    if (node.visible === false) return []
+    const [dirX, dirZ] = node.direction
+    const length = Math.hypot(dirX, dirZ)
+    if (length <= 1e-9) return []
+    const dx = dirX / length
+    const dz = dirZ / length
+    // Point-to-point can only represent axis-aligned lines — the same
+    // accepted limitation as a diagonal wall's face. Diagonal guides still
+    // snap drafting (wall tool) through `snapPointToGuides`.
+    if (Math.abs(dx) > 1e-6 && Math.abs(dz) > 1e-6) return []
+    return [
+      {
+        nodeId: node.id,
+        kind: 'corner',
+        x: node.origin[0] - dx * GUIDE_ANCHOR_SPAN,
+        z: node.origin[1] - dz * GUIDE_ANCHOR_SPAN,
+      },
+      {
+        nodeId: node.id,
+        kind: 'corner',
+        x: node.origin[0] + dx * GUIDE_ANCHOR_SPAN,
+        z: node.origin[1] + dz * GUIDE_ANCHOR_SPAN,
+      },
+    ]
+  }
   if (node.type === 'wall' || node.type === 'fence') {
     const seg = node as {
       id: string

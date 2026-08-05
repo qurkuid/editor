@@ -15,6 +15,7 @@ import {
   footprintAABBFrom,
   movingAlignmentAnchors,
   movingFootprintAnchors,
+  nodeAlignmentAnchors,
   polygonAnchors,
   wallSegmentAnchors,
 } from './alignment-anchors'
@@ -445,5 +446,32 @@ describe('collectAlignmentAnchors', () => {
     expect(Math.min(...xs)).toBeCloseTo(3.5, 2)
     expect(Math.max(...zs)).toBeCloseTo(6.5, 2)
     expect(Math.min(...zs)).toBeCloseTo(3.5, 2)
+  })
+})
+
+describe('construction guide alignment anchors', () => {
+  const guide = (origin: [number, number], direction: [number, number], visible = true): AnyNode =>
+    ({
+      id: 'cguide_align_test',
+      type: 'construction-guide',
+      object: 'node',
+      parentId: 'level_test',
+      visible,
+      metadata: {},
+      origin,
+      direction,
+    }) as unknown as AnyNode
+
+  test('an axis-aligned guide contributes two anchors sharing its fixed coordinate', () => {
+    const anchors = nodeAlignmentAnchors(guide([1.2, 3], [0, 1]))
+    expect(anchors).toHaveLength(2)
+    expect(anchors[0]?.x).toBeCloseTo(1.2)
+    expect(anchors[1]?.x).toBeCloseTo(1.2)
+    expect(anchors[0]?.z).not.toBeCloseTo(anchors[1]?.z ?? 0)
+  })
+
+  test('diagonal and hidden guides contribute nothing', () => {
+    expect(nodeAlignmentAnchors(guide([0, 0], [1, 1]))).toHaveLength(0)
+    expect(nodeAlignmentAnchors(guide([0, 0], [0, 1], false))).toHaveLength(0)
   })
 })

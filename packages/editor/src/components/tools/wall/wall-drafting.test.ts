@@ -19,8 +19,10 @@ import useEditor from '../../../store/use-editor'
 import useInteractionScope from '../../../store/use-interaction-scope'
 import {
   createWallOnCurrentLevel,
+  type GuideSnapLine,
   resolveEndpointWallSplit,
   resolveTerrainWallConstructionOptions,
+  snapPointToGuides,
   snapWallDraftPointDetailed,
 } from './wall-drafting'
 import type { WallPlanPoint } from './wall-snap-geometry'
@@ -455,5 +457,90 @@ describe('snapWallDraftPointDetailed', () => {
     })
     expect(freed.point).toEqual([2, 0])
     expect(freed.snap).toBeNull()
+  })
+})
+
+describe('construction guide snapping', () => {
+  const vertical = (x: number): GuideSnapLine => ({ origin: [x, 0], direction: [0, 1] })
+  const horizontal = (z: number): GuideSnapLine => ({ origin: [0, z], direction: [1, 0] })
+
+  test('sticks a nearby point to the guide line foot', () => {
+    const stuck = snapPointToGuides([1.1, 0.5], [vertical(1.03)])
+    expect(stuck?.[0]).toBeCloseTo(1.03)
+    expect(stuck?.[1]).toBeCloseTo(0.5)
+  })
+
+  test('ignores guides outside the stick radius', () => {
+    expect(snapPointToGuides([2, 0.5], [vertical(1)])).toBeNull()
+  })
+
+  test('a guide intersection beats the nearest single line', () => {
+    const stuck = snapPointToGuides([1.1, 2.1], [vertical(1), horizontal(2)])
+    expect(stuck?.[0]).toBeCloseTo(1)
+    expect(stuck?.[1]).toBeCloseTo(2)
+  })
+
+  test('an angle-locked ray slides along the ray to the guide', () => {
+    // 45° ray from the origin; vertical guide at x=2 crosses it at [2, 2].
+    const stuck = snapPointToGuides([1.93, 1.93], [vertical(2)], {
+      origin: [0, 0],
+      through: [1.93, 1.93],
+    })
+    expect(stuck?.[0]).toBeCloseTo(2)
+    expect(stuck?.[1]).toBeCloseTo(2)
+  })
+
+  test('snapWallDraftPointDetailed lands the drafted point on an off-grid guide', () => {
+    const snapped = snapWallDraftPointDetailed({
+      point: [1.1, 0.7],
+      walls: [],
+      step: 0.5,
+      magnetic: false,
+      guides: [vertical(1.03)],
+    })
+    expect(snapped.point[0]).toBeCloseTo(1.03)
+    expect(snapped.point[1]).toBeCloseTo(0.5)
+  })
+
+  test('Alt bypass skips guides too', () => {
+    const bypassed = snapWallDraftPointDetailed({
+      point: [1.1, 0.7],
+      walls: [],
+      bypassSnap: true,
+      guides: [vertical(1.03)],
+    })
+    expect(bypassed.point).toEqual([1.1, 0.7])
+  })
+})
+
+describe('guide snapping is on by default from the scene store', () => {
+  test('auto-collects the active level guides when none are passed', () => {
+    useViewer.setState({
+      selection: { buildingId: 'building_test', levelId: LEVEL_ID, zoneId: null, selectedIds: [] },
+    } as never)
+    seedLevel(
+      [],
+      [
+        {
+          id: 'cguide_snaptest',
+          type: 'construction-guide',
+          object: 'node',
+          parentId: LEVEL_ID,
+          visible: true,
+          metadata: {},
+          origin: [1.03, 0],
+          direction: [0, 1],
+        } as unknown as AnyNode,
+      ],
+    )
+
+    const snapped = snapWallDraftPointDetailed({
+      point: [1.1, 0.7],
+      walls: [],
+      step: 0.5,
+      magnetic: false,
+    })
+    expect(snapped.point[0]).toBeCloseTo(1.03)
+    expect(snapped.point[1]).toBeCloseTo(0.5)
   })
 })

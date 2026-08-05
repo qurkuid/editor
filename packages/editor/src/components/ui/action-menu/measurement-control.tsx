@@ -12,6 +12,7 @@ import {
   Crosshair,
   Grid2X2,
   Minus,
+  PencilRuler,
   Ruler,
   ScanSearch,
   Square,
@@ -92,6 +93,7 @@ export function MeasurementControl() {
     measurementOptions.find((option) => option.kind === selectedKind) ?? measurementOptions[0]
   const isActive = mode === 'build' && tool === 'measurement'
   const isConstructionDimensionActive = mode === 'build' && tool === 'construction-dimension'
+  const isGuideLineActive = mode === 'build' && tool === 'construction-guide'
   const activeConstructionDimensionOption = constructionDimensionOptions.find(
     (option) =>
       option.mode === (constructionDimensionMode ?? 'linear') &&
@@ -133,6 +135,16 @@ export function MeasurementControl() {
     setToolDefaults('measurement', { kind: 'smart' })
     setMode('build')
     setTool('measurement')
+  }
+
+  const activateGuideLine = () => {
+    setPhase('structure')
+    setStructureLayer('elements')
+    // Guide lines are a floor-plan construct — the tool mounts in the 2D
+    // registered-tool layer, so surface the plan view along with it.
+    setViewMode('2d')
+    setMode('build')
+    setTool('construction-guide')
   }
 
   const activateConstructionDimension = (
@@ -230,6 +242,27 @@ export function MeasurementControl() {
               </button>
             )
           })}
+
+          <div className="my-1.5 h-px bg-border/60" />
+          <button
+            aria-checked={isGuideLineActive}
+            className={cn(
+              'flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-sm transition-colors',
+              isGuideLineActive
+                ? 'bg-white/10 text-foreground'
+                : 'text-muted-foreground hover:bg-white/8 hover:text-foreground',
+            )}
+            onClick={() => {
+              activateGuideLine()
+              setIsOpen(false)
+            }}
+            role="menuitemradio"
+            type="button"
+          >
+            <PencilRuler aria-hidden="true" className="h-4 w-4" />
+            <span>{t('actionMenu.guideLine')}</span>
+            {isGuideLineActive ? <Check aria-hidden="true" className="ml-auto h-4 w-4" /> : null}
+          </button>
 
           {floorplanMode === 'expert' ? (
             <>

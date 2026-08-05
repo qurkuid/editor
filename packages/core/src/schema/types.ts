@@ -7,6 +7,7 @@ import { CeilingNode } from './nodes/ceiling'
 import { ChimneyNode } from './nodes/chimney'
 import { ColumnNode } from './nodes/column'
 import { ConstructionDimensionNode } from './nodes/construction-dimension'
+import { ConstructionGuideNode } from './nodes/construction-guide'
 import { CupolaNode } from './nodes/cupola'
 import { DoorNode } from './nodes/door'
 import { DormerNode } from './nodes/dormer'
@@ -60,6 +61,7 @@ export const AnyNode = z.discriminatedUnion('type', [
   LightingSwitchNode,
   ColumnNode,
   ConstructionDimensionNode,
+  ConstructionGuideNode,
   StructuralGridNode,
   WallNode,
   FenceNode,

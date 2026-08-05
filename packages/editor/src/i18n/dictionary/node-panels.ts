@@ -741,6 +741,20 @@ export const nodePanelsDictionary = {
   'panel.shortcutSwitchToFurnishPhase': { ko: '가구 단계로 전환', en: 'Switch to Furnish phase' },
   'panel.shortcutSwitchToSelectMode': { ko: '선택 모드로 전환', en: 'Switch to Select mode' },
   'panel.shortcutPivotRotate': { ko: '피벗 회전 시작/취소', en: 'Start / cancel pivot rotate' },
+  'panel.shortcutGuideLine': { ko: '가이드선 도구', en: 'Guide line tool' },
+  'panel.shortcutGuideLineNote': {
+    ko: '벽·가이드를 기준으로 클릭 → 평행 가이드 이동 → 클릭/거리 입력+Enter 로 배치',
+    en: 'Click a wall/guide as reference → slide the parallel guide → click or type a distance + Enter',
+  },
+  'panel.hintGuideLine': { ko: '가이드선', en: 'Guide Line' },
+  'panel.hintPickGuideReference': {
+    ko: '벽 또는 가이드를 기준으로 선택',
+    en: 'Pick a wall or guide as reference',
+  },
+  'panel.hintSlideGuide': { ko: '평행 가이드 이동', en: 'Slide the parallel guide' },
+  'panel.hintExactOffset': { ko: '정확한 간격 입력', en: 'Exact offset distance' },
+  'panel.hintPlaceGuide': { ko: '가이드 배치', en: 'Place the guide' },
+  'panel.hintStepBackOrExit': { ko: '뒤로 / 종료', en: 'Step back or exit' },
   'panel.shortcutPivotRotateNote': {
     ko: '화살표로 축 전환 (← X · ↑ Y · → Z), 숫자 입력으로 정확한 각도',
     en: 'Arrows switch the axis (← X · ↑ Y · → Z); type digits for an exact angle',

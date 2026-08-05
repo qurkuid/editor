@@ -2,7 +2,6 @@ import {
   type AnyNode,
   type AnyNodeId,
   createDefaultWallFaceBands,
-  withDefaultConstructionMaterials,
   DEFAULT_ANGLE_STEP,
   DEFAULT_LEVEL_HEIGHT,
   type DoorNode,
@@ -18,6 +17,7 @@ import {
   type WallNode,
   WallNode as WallSchema,
   type WindowNode,
+  withDefaultConstructionMaterials,
 } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import { sfxEmitter } from '../../../lib/sfx-bus'
@@ -381,6 +381,106 @@ export function resolveEndpointWallSplit(args: {
   return split ? split.point : null
 }
 
+export type GuideSnapLine = {
+  origin: readonly [number, number]
+  direction: readonly [number, number]
+}
+
+// Construction guides always attract (like the wall connect snap): a guide is
+// explicit drafting intent, so sticking to it is mode-independent. Alt
+// (bypassSnap) is the only way past it.
+export const GUIDE_LINE_SNAP_RADIUS = 0.15
+export const GUIDE_INTERSECTION_SNAP_RADIUS = 0.2
+
+/** The active level's visible construction-guide lines, as snap targets. */
+export function collectGuideSnapLines(
+  nodes: Record<string, AnyNode | undefined>,
+  levelId: string | null | undefined,
+): GuideSnapLine[] {
+  if (!levelId) return []
+  const guides: GuideSnapLine[] = []
+  for (const node of Object.values(nodes)) {
+    if (node?.type !== 'construction-guide' || node.parentId !== levelId) continue
+    if (node.visible === false) continue
+    guides.push({ origin: node.origin, direction: node.direction })
+  }
+  return guides
+}
+
+type GuideLineFrame = { px: number; pz: number; dx: number; dz: number }
+
+function intersectGuideLines(a: GuideLineFrame, b: GuideLineFrame): [number, number] | null {
+  const cross = a.dx * b.dz - a.dz * b.dx
+  if (Math.abs(cross) <= 1e-6) return null
+  const t = ((b.px - a.px) * b.dz - (b.pz - a.pz) * b.dx) / cross
+  return [a.px + a.dx * t, a.pz + a.dz * t]
+}
+
+/**
+ * Stick a mode-positioned draft point to nearby construction guides: a
+ * guide × guide intersection wins, then the nearest line foot. With an
+ * angle-locked `ray`, the stick slides along the ray to the ray × guide
+ * intersection so the angle lock is never broken. Null when nothing is in
+ * range.
+ */
+export function snapPointToGuides(
+  point: WallPlanPoint,
+  guides: readonly GuideSnapLine[],
+  ray?: { origin: WallPlanPoint; through: WallPlanPoint },
+): WallPlanPoint | null {
+  const lines: GuideLineFrame[] = []
+  for (const guide of guides) {
+    const length = Math.hypot(guide.direction[0], guide.direction[1])
+    if (length <= 1e-9) continue
+    lines.push({
+      px: guide.origin[0],
+      pz: guide.origin[1],
+      dx: guide.direction[0] / length,
+      dz: guide.direction[1] / length,
+    })
+  }
+  if (lines.length === 0) return null
+
+  let best: { point: [number, number]; distance: number } | null = null
+  for (let i = 0; i < lines.length; i++) {
+    for (let j = i + 1; j < lines.length; j++) {
+      const candidate = intersectGuideLines(lines[i]!, lines[j]!)
+      if (!candidate) continue
+      const distance = Math.hypot(candidate[0] - point[0], candidate[1] - point[1])
+      if (distance <= GUIDE_INTERSECTION_SNAP_RADIUS && (!best || distance < best.distance)) {
+        best = { point: candidate, distance }
+      }
+    }
+  }
+  if (best) return [...best.point]
+
+  let rayLine: GuideLineFrame | null = null
+  if (ray) {
+    const dx = ray.through[0] - ray.origin[0]
+    const dz = ray.through[1] - ray.origin[1]
+    const length = Math.hypot(dx, dz)
+    if (length > 1e-9) {
+      rayLine = { px: ray.origin[0], pz: ray.origin[1], dx: dx / length, dz: dz / length }
+    }
+  }
+
+  for (const line of lines) {
+    let candidate: [number, number] | null
+    if (rayLine) {
+      candidate = intersectGuideLines(rayLine, line)
+    } else {
+      const t = (point[0] - line.px) * line.dx + (point[1] - line.pz) * line.dz
+      candidate = [line.px + line.dx * t, line.pz + line.dz * t]
+    }
+    if (!candidate) continue
+    const distance = Math.hypot(candidate[0] - point[0], candidate[1] - point[1])
+    if (distance <= GUIDE_LINE_SNAP_RADIUS && (!best || distance < best.distance)) {
+      best = { point: candidate, distance }
+    }
+  }
+  return best ? [...best.point] : null
+}
+
 type SnapWallDraftArgs = {
   point: WallPlanPoint
   walls: WallNode[]
@@ -406,6 +506,12 @@ type SnapWallDraftArgs = {
   gridSnap?: (point: WallPlanPoint) => WallPlanPoint
   /** Optional magnetic snap radii. Omitted means wall tools keep their defaults. */
   snapRadii?: WallSnapRadii
+  /**
+   * Construction guide lines to stick to. When omitted, the active level's
+   * guides are collected from the scene store — guide snapping is on by
+   * default for every drafting path. Pass [] to disable.
+   */
+  guides?: readonly GuideSnapLine[]
 }
 
 export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSnapResult {
@@ -420,6 +526,7 @@ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSn
     magnetic = true,
     gridSnap,
     snapRadii,
+    guides,
   } = args
 
   if (bypassSnap) return { point, snap: null, targetWallIds: [] }
@@ -436,12 +543,29 @@ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSn
   // The angle path snaps the distance ALONG the 15° ray — a scalar, the
   // same in world and local frames — so the `gridSnap` world-grid override
   // only applies when the angle lock is off.
-  const basePoint: WallPlanPoint =
+  const modePoint: WallPlanPoint =
     start && angleSnap
       ? [...snapPointAlongAngleRay(start, point, DEFAULT_ANGLE_STEP, step)]
       : gridSnap
         ? gridSnap(point)
         : snapPointToGrid(point, step)
+
+  // Guide stick runs from the mode-positioned point (like the wall connect
+  // snap below) so grid quantise / angle lock are respected right up to the
+  // guide. On by default: with no explicit list, the active level's guides
+  // come from the scene store.
+  const guideLines =
+    guides ??
+    collectGuideSnapLines(useScene.getState().nodes, useViewer.getState().selection.levelId)
+  const guideStick =
+    guideLines.length > 0
+      ? snapPointToGuides(
+          modePoint,
+          guideLines,
+          start && angleSnap ? { origin: start, through: modePoint } : undefined,
+        )
+      : null
+  const basePoint: WallPlanPoint = guideStick ?? modePoint
 
   if (magnetic) {
     const wallSnap = findWallSnapTarget(basePoint, walls, {

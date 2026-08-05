@@ -83,6 +83,7 @@ export {
   setConstructionDimensionDrawingPresentation,
   setConstructionDimensionDrawingSuppressedSegments,
 } from './nodes/construction-dimension'
+export { ConstructionGuideNode } from './nodes/construction-guide'
 export { CupolaNode } from './nodes/cupola'
 export {
   DoorNode,
