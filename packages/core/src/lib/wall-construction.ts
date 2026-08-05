@@ -37,6 +37,24 @@ export const WALL_CONSTRUCTION_LAYER_DEFAULTS: Record<
   cavity: { kind: 'cavity', thickness: 0.01, wasteFactor: 0 },
   finish: { kind: 'finish', thickness: 0.001, wasteFactor: 0.1 },
   custom: { kind: 'custom', thickness: 0.01, wasteFactor: 0.1 },
+  // 12T 강화유리 — 판유리는 m² 발주라 장수 규격 없음.
+  glass: { kind: 'glass', thickness: 0.012, wasteFactor: 0.05 },
+  // 시멘트벽돌 0.5B (190×57×90), sheet 규격은 줄눈 10mm 포함 → 75장/㎡.
+  masonry: {
+    kind: 'masonry',
+    thickness: 0.09,
+    sheetWidth: 0.2,
+    sheetHeight: 0.067,
+    wasteFactor: 0.05,
+  },
+  // 유리블록 190×190×80, 줄눈 10mm 포함 → 25장/㎡.
+  'glass-block': {
+    kind: 'glass-block',
+    thickness: 0.08,
+    sheetWidth: 0.2,
+    sheetHeight: 0.2,
+    wasteFactor: 0.05,
+  },
 }
 
 export type WallConstructionPresetId =
@@ -46,6 +64,9 @@ export type WallConstructionPresetId =
   | 'stud-gypsum'
   | 'stud-gypsum-finish'
   | 'gypsum-stud-gypsum'
+  | 'glass'
+  | 'masonry'
+  | 'glass-block'
 
 export function createDefaultWallFaceBands(targetThickness = 0.1): WallFaceBandConfig {
   return {
@@ -79,6 +100,10 @@ export function createWallBandConstructionPreset(
         { ...WALL_CONSTRUCTION_LAYER_DEFAULTS['gypsum-board'] },
       ],
     }
+  }
+  if (preset === 'glass' || preset === 'masonry' || preset === 'glass-block') {
+    // The material defines the wall's physical thickness — no cavity fill.
+    return { mode: 'assembly', layers: [{ ...WALL_CONSTRUCTION_LAYER_DEFAULTS[preset] }] }
   }
   if (preset === 'stud-gypsum-finish') {
     const assembly: WallBandConstruction = {
@@ -154,6 +179,9 @@ export function detectWallConstructionPreset(
   if (construction.mode === 'assembly' && kinds === 'gypsum-board,timber-stud,gypsum-board') {
     return 'gypsum-stud-gypsum'
   }
+  if (construction.mode === 'assembly' && kinds === 'glass') return 'glass'
+  if (construction.mode === 'assembly' && kinds === 'masonry') return 'masonry'
+  if (construction.mode === 'assembly' && kinds === 'glass-block') return 'glass-block'
   return 'custom'
 }
 

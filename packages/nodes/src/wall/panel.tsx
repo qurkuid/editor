@@ -4,6 +4,7 @@ import {
   type AnyNode,
   type AnyNodeId,
   bestConstructionMaterial,
+  buildWallBandKindPatch,
   buildWallFaceBandCountPatch,
   calculateWallConstructionQuantities,
   createWallBandConstructionPreset,
@@ -14,9 +15,11 @@ import {
   getMaxWallCurveOffset,
   getWallBandConstruction,
   getWallBandSlotId,
+  getWallConstructionMaterialKind,
   getWallConstructionEnvelopeThickness,
   getWallCurveLength,
   getWallFaceBandConfig,
+  getWallKind,
   normalizeWallBandConstructionToThickness,
   normalizeWallCurveOffset,
   parseMaterialRef,
@@ -25,6 +28,7 @@ import {
   useLiveNodeOverrides,
   useScene,
   WALL_CHAIR_RAIL_DEFAULT,
+  WALL_CONSTRUCTION_LAYER_DEFAULTS,
   WALL_CROWN_DEFAULT,
   WALL_FACE_BAND_DEFAULT,
   WALL_SKIRTING_DEFAULT,
@@ -32,6 +36,7 @@ import {
   type WallConstructionLayer,
   type WallConstructionPresetId,
   type WallFaceBand,
+  type WallKind,
   type WallNode,
   type WallTrimProfile,
   withBandConstructionMaterials,
@@ -62,6 +67,15 @@ import { WALL_LAYER_COLORS } from './construction-visual'
 import { wallPaint } from './paint'
 
 type WallTrimKey = 'skirting' | 'crown' | 'chairRail'
+
+// Display only: the kind is derived from what the wall is built of
+// (band construction first, then painted slots) — never chosen up front.
+const WALL_KIND_LABEL_KEYS: Record<WallKind, MessageId> = {
+  solid: 'panel.wallSolid',
+  glass: 'panel.glass',
+  masonry: 'panel.wallMasonry',
+  'glass-block': 'panel.wallGlassBlock',
+}
 
 const WALL_TRIM_PROFILE_OPTIONS = (
   t: (key: MessageId) => string,
@@ -310,6 +324,14 @@ export default function WallPanel() {
           unit={unitLabel}
           value={Math.round(displayThickness * 1000) / 1000}
         />
+        <div className="flex items-center justify-between px-1">
+          <span className="font-medium text-[10px] text-muted-foreground/80 uppercase tracking-wider">
+            {t('panel.wallKind')}
+          </span>
+          <span className="text-[11px] text-muted-foreground">
+            {t(WALL_KIND_LABEL_KEYS[getWallKind(node)])}
+          </span>
+        </div>
         {!hasWallChildrenBlockingCurve && (
           <SliderControl
             label={t('common.curve')}
@@ -529,8 +551,18 @@ function WallFaceBandSection({
                 [band]: construction,
               },
             }
+            // The surface follows the build: a band constructed of glass /
+            // masonry / glass-block paints that material on both sides, and
+            // leaving such a build unwinds only the refs it wrote.
+            const materialKind = getWallConstructionMaterialKind(construction)
+            const { slots } = buildWallBandKindPatch(
+              { ...node, faceBands },
+              band,
+              materialKind ?? 'solid',
+            )
             onUpdate({
               faceBands,
+              slots,
               thickness: getWallConstructionEnvelopeThickness({ ...node, faceBands }),
             })
           }}
@@ -549,6 +581,9 @@ const WALL_LAYER_LABELS: Record<WallConstructionLayer['kind'], string> = {
   cavity: '공백',
   finish: '표면 마감',
   custom: '사용자 자재',
+  glass: '유리',
+  masonry: '조적벽돌',
+  'glass-block': '유리블록',
 }
 
 const WALL_BAND_LABELS: Record<WallFaceBand, MessageId> = {
@@ -700,6 +735,9 @@ export function WallBandConstructionEditor({
           <option value="stud-gypsum">33각재 + 석고</option>
           <option value="stud-gypsum-finish">33각재 + 석고 + 도배 마감</option>
           <option value="gypsum-stud-gypsum">석고 + 33각재 + 석고</option>
+          <option value="glass">유리 (강화 12T)</option>
+          <option value="masonry">조적 (시멘트벽돌 0.5B)</option>
+          <option value="glass-block">유리벽돌</option>
           <option value="custom">직접 구성</option>
         </select>
       </label>
@@ -753,7 +791,9 @@ export function WallBandConstructionEditor({
                         ? { kind, thickness: 0.01, wasteFactor: 0 }
                         : kind === 'finish' || kind === 'custom'
                           ? { kind, thickness: kind === 'finish' ? 0.001 : 0.01, wasteFactor: 0.1 }
-                          : next
+                          : kind === 'glass' || kind === 'masonry' || kind === 'glass-block'
+                            ? { ...WALL_CONSTRUCTION_LAYER_DEFAULTS[kind] }
+                            : next
                   if (!defaults) return
                   // Choosing a layer type should not then mean hunting the
                   // matching product out of a few thousand catalogue rows: the

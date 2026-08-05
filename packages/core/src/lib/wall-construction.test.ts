@@ -177,8 +177,21 @@ describe('physical wall band construction', () => {
       'stud-gypsum',
       'stud-gypsum-finish',
       'gypsum-stud-gypsum',
+      'glass',
+      'masonry',
+      'glass-block',
     ] as const) {
       expect(detectWallConstructionPreset(createWallBandConstructionPreset(preset))).toBe(preset)
     }
+  })
+
+  test('material presets define the physical thickness without cavity fill', () => {
+    const glass = createWallBandConstructionPreset('glass', 0.1)
+    expect(glass.mode).toBe('assembly')
+    expect(glass.layers).toEqual([{ kind: 'glass', thickness: 0.012, wasteFactor: 0.05 }])
+
+    const masonry = createWallBandConstructionPreset('masonry', 0.1)
+    expect(masonry.layers.some((layer) => layer.kind === 'cavity')).toBe(false)
+    expect(masonry.layers[0]?.thickness).toBe(0.09)
   })
 })

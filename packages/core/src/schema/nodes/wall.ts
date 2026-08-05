@@ -78,6 +78,9 @@ export const WallConstructionLayerKind = z.enum([
   'cavity',
   'finish',
   'custom',
+  'glass',
+  'masonry',
+  'glass-block',
 ])
 export type WallConstructionLayerKind = z.infer<typeof WallConstructionLayerKind>
 
@@ -379,6 +382,110 @@ export function buildEnabledWallFaceBandPatch(
   wall: Pick<WallNode, 'faceBands' | 'slots'>,
 ): Pick<WallNode, 'faceBands' | 'slots'> {
   return buildWallFaceBandCountPatch(wall, 2)
+}
+
+// A wall kind is never stored up front — it is derived from what the wall is
+// built of. The band construction layers decide first (a band constructed of
+// glass makes a 유리벽, of masonry brick a 조적벽); walls without such a
+// build fall back to the painted slot refs (bottom band first, then the two
+// faces). One shared table so the panel, the AI modeling prompt, and scene
+// data all mean the same thing by 유리벽/조적벽/유리벽돌 벽.
+export const WALL_KIND_SLOT_REFS = {
+  glass: 'library:preset-glass',
+  masonry: 'library:flooring-rusticbrick',
+  'glass-block': 'library:preset-glass-block',
+} as const
+export type WallMaterialKind = keyof typeof WALL_KIND_SLOT_REFS
+export type WallKind = 'solid' | WallMaterialKind
+
+export const WALL_GLASS_SLOT_REF = WALL_KIND_SLOT_REFS.glass
+
+const WALL_KIND_BAND_ORDER = ['lower', 'middle', 'upper', 'top'] as const satisfies readonly WallFaceBand[]
+
+function getWallKindByRef(ref: string | undefined): WallMaterialKind | null {
+  if (!ref) return null
+  for (const [kind, kindRef] of Object.entries(WALL_KIND_SLOT_REFS)) {
+    if (ref === kindRef) return kind as WallMaterialKind
+  }
+  return null
+}
+
+// The kind a construction is built of: the first structural layer whose kind
+// is itself a wall material kind (glass / masonry / glass-block).
+export function getWallConstructionMaterialKind(
+  construction: Pick<WallBandConstruction, 'layers'> | undefined,
+): WallMaterialKind | null {
+  for (const layer of construction?.layers ?? []) {
+    if (layer.kind in WALL_KIND_SLOT_REFS) return layer.kind as WallMaterialKind
+  }
+  return null
+}
+
+// The bands a wall's construction actually uses — mirrors the band count
+// rules, so stale construction entries on inactive bands are ignored.
+function getActiveWallKindBands(faceBands: WallNode['faceBands']): readonly WallFaceBand[] {
+  const count = faceBands?.enabled ? Math.max(1, Math.min(4, faceBands.count ?? 3)) : 1
+  if (count === 1) return ['upper']
+  if (count === 2) return ['lower', 'upper']
+  if (count === 3) return ['lower', 'middle', 'upper']
+  return WALL_KIND_BAND_ORDER
+}
+
+export function getWallKind(wall: Pick<WallNode, 'slots' | 'faceBands'>): WallKind {
+  // The build decides first: a band constructed of a kind material makes the
+  // wall that kind, bottom band first.
+  for (const band of getActiveWallKindBands(wall.faceBands)) {
+    const kind = getWallConstructionMaterialKind(wall.faceBands?.construction?.[band])
+    if (kind) return kind
+  }
+
+  const slots = wall.slots ?? {}
+  for (const band of WALL_KIND_BAND_ORDER) {
+    const kind = getWallKindByRef(slots[getWallBandSlotId('interior', band)])
+    if (kind && slots[getWallBandSlotId('exterior', band)] === WALL_KIND_SLOT_REFS[kind]) {
+      return kind
+    }
+  }
+  const faceKind = getWallKindByRef(slots.interior)
+  if (faceKind && slots.exterior === WALL_KIND_SLOT_REFS[faceKind]) return faceKind
+  return 'solid'
+}
+
+export function isGlassWall(wall: Pick<WallNode, 'slots' | 'faceBands'>): boolean {
+  return getWallKind(wall) === 'glass'
+}
+
+// A band's build-material slot pair: the band slots when bands are enabled,
+// the whole faces when the wall is a single band.
+function getWallBandKindSlotIds(
+  wall: Pick<WallNode, 'faceBands'>,
+  band: WallFaceBand,
+): readonly ['interior' | WallBandSurfaceSlotId, 'exterior' | WallBandSurfaceSlotId] {
+  if (wall.faceBands?.enabled !== true) return ['interior', 'exterior']
+  return [getWallBandSlotId('interior', band), getWallBandSlotId('exterior', band)]
+}
+
+export function buildWallBandKindPatch(
+  wall: Pick<WallNode, 'slots' | 'faceBands'>,
+  band: WallFaceBand,
+  kind: WallKind,
+): Pick<WallNode, 'slots'> {
+  const slots = { ...(wall.slots ?? {}) }
+  const kindRefs = new Set<string>(Object.values(WALL_KIND_SLOT_REFS))
+  for (const slotId of getWallBandKindSlotIds(wall, band)) {
+    if (kind === 'solid') {
+      // Only unwind refs this table wrote — custom paint is not ours to reset.
+      // Band slots return to the band palette; faces to the declared default.
+      const ref = slots[slotId]
+      if (ref && kindRefs.has(ref)) {
+        if (slotId === 'interior' || slotId === 'exterior') delete slots[slotId]
+        else slots[slotId] = getWallFaceBandDefaultSlot(slotId)
+      }
+    } else {
+      slots[slotId] = WALL_KIND_SLOT_REFS[kind]
+    }
+  }
+  return { slots }
 }
 
 export function getWallSurfaceSideFromBandSlot(slotId: string): WallSurfaceSide | null {

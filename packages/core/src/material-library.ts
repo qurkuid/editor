@@ -3,6 +3,7 @@ import {
   type MaterialTarget,
   MaterialTarget as MaterialTargetSchema,
 } from './schema/material'
+import type { WallConstructionLayerKind } from './schema/nodes/wall'
 
 export type MaterialSource = 'pascal' | 'community' | 'mine' | 'workspace'
 
@@ -28,7 +29,7 @@ export type MaterialCatalogItem = {
     unitPrice?: number
     unit?: string
   }
-  constructionKinds?: Array<'gypsum-board' | 'mdf' | 'timber-stud' | 'finish' | 'custom'>
+  constructionKinds?: Array<Exclude<WallConstructionLayerKind, 'cavity'>>
   preset: MaterialPresetPayload
 }
 
@@ -3412,6 +3413,41 @@ export const MATERIAL_CATALOG: MaterialCatalogItem[] = [
         aoMapIntensity: 1,
         side: 0,
         opacity: 1,
+        lightMapIntensity: 1,
+      },
+    },
+  },
+  {
+    id: 'preset-glass-block',
+    label: 'Glass block',
+    category: 'glass',
+    description: 'Frosted glass block finish',
+    previewColor: '#b8d8e2',
+    preset: {
+      maps: {},
+      mapProperties: {
+        color: '#c9e2ea',
+        roughness: 0.45,
+        metalness: 0.05,
+        repeatX: 1,
+        repeatY: 1,
+        rotation: 0,
+        wrapS: 'Repeat',
+        wrapT: 'Repeat',
+        normalScaleX: 1,
+        normalScaleY: 1,
+        emissiveIntensity: 1,
+        displacementScale: 0.02,
+        transparent: true,
+        flipY: true,
+        bumpScale: 1,
+        emissiveColor: '#000000',
+        aoMapIntensity: 1,
+        // FrontSide — same WebGPU MRT constraint as preset-glass below.
+        side: 0,
+        // ponytail: flat frosted glass stand-in — no block-grid texture yet;
+        // add albedo/normal maps when a real glass-block tile texture lands.
+        opacity: 0.55,
         lightMapIntensity: 1,
       },
     },

@@ -274,6 +274,9 @@ describe('AI provider boundary', () => {
     const prompt = buildAiModelingPrompt(request)
 
     expect(prompt).toContain('never guess it from screenshots or image pixels')
+    expect(prompt).toContain('library:preset-glass for glass')
+    expect(prompt).toContain('library:flooring-rusticbrick for masonry')
+    expect(prompt).toContain('library:preset-glass-block for glass block')
     expect(prompt).toContain('createRoundedRectangularFrameBody')
     expect(prompt).toContain('createFurniture')
     expect(prompt).toContain('setFurnitureTierInterior')

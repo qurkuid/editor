@@ -1,14 +1,20 @@
 import { describe, expect, test } from 'bun:test'
+import { getCatalogMaterialById, getLibraryMaterialIdFromRef } from '../../material-library'
 import {
   buildEnabledWallFaceBandPatch,
+  buildWallBandKindPatch,
   buildWallFaceBandCountPatch,
   getWallFaceBandConfig,
+  getWallKind,
+  isGlassWall,
   WALL_CHAIR_RAIL_DEFAULT,
   WALL_CHAIR_RAIL_SLOT_DEFAULT,
   WALL_CROWN_DEFAULT,
   WALL_CROWN_SLOT_DEFAULT,
   WALL_FACE_BAND_DEFAULT,
   WALL_FACE_BAND_SOLID_SLOT_DEFAULTS,
+  WALL_GLASS_SLOT_REF,
+  WALL_KIND_SLOT_REFS,
   WALL_SKIRTING_DEFAULT,
   WALL_SKIRTING_SLOT_DEFAULT,
   WALL_SURFACE_SLOT_DEFAULTS,
@@ -253,6 +259,212 @@ describe('wall face bands', () => {
       upperExterior: WALL_FACE_BAND_SOLID_SLOT_DEFAULTS.upper,
       topExterior: 'library:painted-top-exterior',
     })
+  })
+})
+
+describe('wall kinds', () => {
+  test('detects a kind only when both faces reference that kind finish', () => {
+    expect(getWallKind({ slots: undefined })).toBe('solid')
+    expect(getWallKind({ slots: { interior: WALL_GLASS_SLOT_REF } })).toBe('solid')
+    expect(
+      getWallKind({ slots: { interior: WALL_GLASS_SLOT_REF, exterior: WALL_GLASS_SLOT_REF } }),
+    ).toBe('glass')
+    expect(
+      getWallKind({
+        slots: {
+          interior: WALL_KIND_SLOT_REFS.masonry,
+          exterior: WALL_KIND_SLOT_REFS.masonry,
+        },
+      }),
+    ).toBe('masonry')
+    expect(
+      getWallKind({
+        slots: {
+          interior: WALL_KIND_SLOT_REFS['glass-block'],
+          exterior: WALL_KIND_SLOT_REFS['glass-block'],
+        },
+      }),
+    ).toBe('glass-block')
+    expect(
+      isGlassWall({ slots: { interior: WALL_GLASS_SLOT_REF, exterior: WALL_GLASS_SLOT_REF } }),
+    ).toBe(true)
+  })
+
+  test('every wall kind ref resolves to a wall-paintable catalog entry', () => {
+    for (const ref of Object.values(WALL_KIND_SLOT_REFS)) {
+      const item = getCatalogMaterialById(getLibraryMaterialIdFromRef(ref) ?? undefined)
+      expect(item).toBeDefined()
+      expect(item?.surfaces === undefined || item.surfaces.includes('wall')).toBe(true)
+    }
+  })
+
+  test('derives the kind from the band composition, bottom band first', () => {
+    expect(
+      getWallKind({
+        slots: {
+          lowerInterior: WALL_KIND_SLOT_REFS['glass-block'],
+          lowerExterior: WALL_KIND_SLOT_REFS['glass-block'],
+          upperInterior: 'library:band-upper',
+          upperExterior: 'library:band-upper',
+        },
+      }),
+    ).toBe('glass-block')
+    // One-sided band paint is decor, not the wall's build.
+    expect(
+      getWallKind({
+        slots: {
+          lowerInterior: WALL_KIND_SLOT_REFS.masonry,
+          lowerExterior: 'library:band-lower',
+        },
+      }),
+    ).toBe('solid')
+    // Bands shadow the faces, so the band composition wins the derivation.
+    expect(
+      getWallKind({
+        slots: {
+          interior: WALL_GLASS_SLOT_REF,
+          exterior: WALL_GLASS_SLOT_REF,
+          lowerInterior: WALL_KIND_SLOT_REFS.masonry,
+          lowerExterior: WALL_KIND_SLOT_REFS.masonry,
+        },
+      }),
+    ).toBe('masonry')
+  })
+
+  test('painting a kind material over the composition changes the derived kind', () => {
+    const banded = {
+      slots: {
+        lowerInterior: 'library:band-lower',
+        lowerExterior: 'library:band-lower',
+        upperInterior: 'library:band-upper',
+        upperExterior: 'library:band-upper',
+      },
+    }
+    expect(getWallKind(banded)).toBe('solid')
+
+    const glassBlockLower = {
+      slots: {
+        ...banded.slots,
+        lowerInterior: WALL_KIND_SLOT_REFS['glass-block'],
+        lowerExterior: WALL_KIND_SLOT_REFS['glass-block'],
+      },
+    }
+    expect(getWallKind(glassBlockLower)).toBe('glass-block')
+  })
+
+  test('selecting a band kind writes both sides of that band and derives the wall kind', () => {
+    const wall = {
+      faceBands: { ...WALL_FACE_BAND_DEFAULT, enabled: true, count: 2 },
+      slots: {
+        lowerInterior: 'library:band-lower',
+        lowerExterior: 'library:band-lower',
+        upperInterior: 'library:band-upper',
+        upperExterior: 'library:band-upper',
+      },
+    }
+
+    const patch = buildWallBandKindPatch(wall, 'lower', 'glass-block')
+    expect(patch.slots).toEqual({
+      lowerInterior: WALL_KIND_SLOT_REFS['glass-block'],
+      lowerExterior: WALL_KIND_SLOT_REFS['glass-block'],
+      upperInterior: 'library:band-upper',
+      upperExterior: 'library:band-upper',
+    })
+    expect(getWallKind(patch)).toBe('glass-block')
+  })
+
+  test('selecting a band kind on a single-band wall targets the whole faces', () => {
+    const wall = { faceBands: undefined, slots: { interior: 'library:interior-finish' } }
+
+    const patch = buildWallBandKindPatch(wall, 'upper', 'glass')
+    expect(patch.slots).toEqual({
+      interior: WALL_GLASS_SLOT_REF,
+      exterior: WALL_GLASS_SLOT_REF,
+    })
+    expect(getWallKind(patch)).toBe('glass')
+  })
+
+  test('derives the kind from the band construction before painted slots', () => {
+    // 기본 벽 (석고보드 + 각재) — 일반벽.
+    expect(
+      getWallKind({
+        faceBands: {
+          ...WALL_FACE_BAND_DEFAULT,
+          construction: {
+            upper: {
+              mode: 'assembly',
+              layers: [
+                { kind: 'timber-stud', thickness: 0.033, wasteFactor: 0.1 },
+                { kind: 'gypsum-board', thickness: 0.0095, wasteFactor: 0.1 },
+              ],
+            },
+          },
+        },
+        slots: undefined,
+      }),
+    ).toBe('solid')
+
+    // 유리로 시공한 벽 — 유리벽.
+    expect(
+      getWallKind({
+        faceBands: {
+          ...WALL_FACE_BAND_DEFAULT,
+          construction: {
+            upper: { mode: 'assembly', layers: [{ kind: 'glass', thickness: 0.012, wasteFactor: 0.05 }] },
+          },
+        },
+        slots: undefined,
+      }),
+    ).toBe('glass')
+
+    // 밴드 벽: 하단 밴드가 조적이면 조적벽. 비활성 밴드의 잔존 구성은 무시.
+    expect(
+      getWallKind({
+        faceBands: {
+          ...WALL_FACE_BAND_DEFAULT,
+          enabled: true,
+          count: 2,
+          construction: {
+            lower: {
+              mode: 'assembly',
+              layers: [{ kind: 'masonry', thickness: 0.09, wasteFactor: 0.05 }],
+            },
+            middle: {
+              mode: 'assembly',
+              layers: [{ kind: 'glass', thickness: 0.012, wasteFactor: 0.05 }],
+            },
+          },
+        },
+        slots: undefined,
+      }),
+    ).toBe('masonry')
+  })
+
+  test('returning a band to solid restores the band palette without touching custom paint', () => {
+    const banded = { ...WALL_FACE_BAND_DEFAULT, enabled: true, count: 2 }
+
+    const unwound = buildWallBandKindPatch(
+      {
+        faceBands: banded,
+        slots: {
+          lowerInterior: WALL_KIND_SLOT_REFS.masonry,
+          lowerExterior: WALL_KIND_SLOT_REFS.masonry,
+        },
+      },
+      'lower',
+      'solid',
+    )
+    expect(unwound.slots).toEqual({
+      lowerInterior: WALL_FACE_BAND_SOLID_SLOT_DEFAULTS.lower,
+      lowerExterior: WALL_FACE_BAND_SOLID_SLOT_DEFAULTS.lower,
+    })
+
+    const untouched = buildWallBandKindPatch(
+      { faceBands: banded, slots: { lowerInterior: 'library:custom-paint' } },
+      'lower',
+      'solid',
+    )
+    expect(untouched.slots).toEqual({ lowerInterior: 'library:custom-paint' })
   })
 })
 

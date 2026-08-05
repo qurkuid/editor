@@ -12,6 +12,9 @@ export const WALL_LAYER_COLORS: Record<WallConstructionLayer['kind'], string> = 
   cavity: '#8bc9e8',
   finish: '#8fb8d8',
   custom: '#8f93a2',
+  glass: '#bfe3f2',
+  masonry: '#c96f4a',
+  'glass-block': '#9fd8d2',
 }
 
 export type WallStudPlacement = {

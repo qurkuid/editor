@@ -281,8 +281,9 @@ export function syncEditorSelectionFromCurrentScene() {
   if (firstBuilding && firstLevel) {
     const isEmptyLevel = !firstLevel.children || firstLevel.children.length === 0
 
-    // For empty projects (new/blank), always start in structure/build/wall
-    // regardless of persisted state from a previous project
+    // For empty projects (new/blank), always start in structure with the
+    // select tool (V) regardless of persisted state from a previous project —
+    // arming the wall tool by default made every first click draw a wall.
     if (isEmptyLevel) {
       useViewer.getState().setSelection({
         buildingId: firstBuilding.id,
@@ -292,8 +293,7 @@ export function syncEditorSelectionFromCurrentScene() {
       })
       useEditor.getState().setPhase('structure')
       useEditor.getState().setStructureLayer('elements')
-      useEditor.getState().setMode('build')
-      useEditor.getState().setTool('wall')
+      useEditor.getState().setMode('select')
       return
     }
 
