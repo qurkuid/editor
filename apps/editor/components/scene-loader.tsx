@@ -3,6 +3,7 @@
 // Node registry bootstrap is loaded once at the root via
 // `<ClientBootstrap>` in `app/layout.tsx` — no per-page side-effect
 // import here.
+import { emitter } from '@pascal-app/core'
 import {
   applySceneGraphToEditor,
   Editor,
@@ -33,6 +34,7 @@ import { GuidedBuildTab } from './guided-build-tab'
 import { HostSettingsSection } from './host-settings-section'
 import { IntmMaterialLibrary } from './intm-material-library'
 import { LightingTab } from './lighting-tab'
+import { ModelingRailControls } from './modeling-rail-controls'
 import { PaintingTab } from './painting-tab'
 import { SkpItemsPanel } from './skp-items-panel'
 import { StatsTab } from './stats-tab'
@@ -224,6 +226,7 @@ function sceneGraphSignature(graph: SceneGraphWithCollections): string {
 export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
   const router = useRouter()
   const versionRef = useRef(meta.version)
+  const lastThumbnailAtRef = useRef(0)
   const lastRemoteGraphJsonRef = useRef<string | null>(null)
   const suppressRemoteSaveUntilRef = useRef(0)
   const [conflict, setConflict] = useState(false)
@@ -260,6 +263,14 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
         })
 
         if (response.status === 409) {
+          const body = (await response.json().catch(() => null)) as { error?: string } | null
+          if (body?.error === 'wipe_blocked') {
+            // The server refused to overwrite a populated scene with a (near)
+            // empty graph — almost always a failed load autosaving, not the
+            // user. Surface it as an error instead of a version conflict.
+            setSaveError('저장 차단: 빈 씬으로 덮어쓰기가 방지되었습니다. 새로고침 후 다시 시도하세요.')
+            return
+          }
           setConflict(true)
           return
         }
@@ -272,11 +283,22 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
         const next = (await response.json()) as SceneMeta
         versionRef.current = next.version
         setSaveError(null)
+
+        // Refresh the scenes-page card thumbnail alongside the autosave, at
+        // most once a minute — the capture renders a frame, so don't do it
+        // on every debounced save.
+        if (Date.now() - lastThumbnailAtRef.current > 60_000) {
+          lastThumbnailAtRef.current = Date.now()
+          emitter.emit('camera-controls:generate-thumbnail', {
+            projectId: meta.projectId ?? 'default',
+            snapLevels: true,
+          })
+        }
       } catch (error) {
         setSaveError(error instanceof Error ? error.message : 'Save failed')
       }
     },
-    [meta.id, meta.name],
+    [meta.id, meta.name, meta.projectId],
   )
 
   useEffect(() => {
@@ -310,12 +332,11 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
   }, [meta.id])
 
   const handleThumb = useCallback(
-    async (_blob: Blob) => {
-      // TODO(phase7): upload thumbnail via POST /api/scenes/[id]/thumbnail.
-      // Stub endpoint is not yet implemented in v0.1 — skip upload for now.
+    async (blob: Blob) => {
       await fetch(withBasePath(`/api/scenes/${meta.id}/thumbnail`), {
         method: 'POST',
-        // Intentionally no body — endpoint is a stub.
+        headers: { 'Content-Type': blob.type || 'image/webp' },
+        body: blob,
       }).catch(() => {
         // Swallow errors silently; thumbnail upload is best-effort.
       })
@@ -365,6 +386,7 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
       {/* Also mounted in app/page.tsx — this app has two Editor roots. */}
       <IntmMaterialLibrary />
       <Editor
+        actionMenuControls={<ModelingRailControls />}
         layoutVersion="v2"
         onLoad={handleLoad}
         onSave={handleSave}

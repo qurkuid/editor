@@ -10,6 +10,7 @@ import type {
   SceneListOptions,
   SceneMeta,
   SceneMutateOptions,
+  SceneRevisionMeta,
   SceneSaveOptions,
   SceneStore,
   SceneWithGraph,
@@ -73,6 +74,9 @@ export interface SceneOperations {
   renameStoredScene(id: string, newName: string, options?: SceneMutateOptions): Promise<SceneMeta>
   appendSceneEvent(options: SceneEventAppendOptions): Promise<SceneEvent | null>
   listSceneEvents(id: string, options?: SceneEventListOptions): Promise<SceneEvent[]>
+  setSceneThumbnail(id: string, thumbnailUrl: string | null): Promise<boolean>
+  listSceneRevisions(id: string, options?: { limit?: number }): Promise<SceneRevisionMeta[]>
+  loadSceneRevision(id: string, version: number): Promise<SceneGraph | null>
 }
 
 export function createSceneOperations(options: CreateSceneOperationsOptions): SceneOperations {
@@ -294,6 +298,24 @@ class SceneOperationsFacade implements SceneOperations {
     options?: SceneMutateOptions,
   ): Promise<SceneMeta> {
     return this.requireStore().rename(id, newName, options)
+  }
+
+  async setSceneThumbnail(id: string, thumbnailUrl: string | null): Promise<boolean> {
+    const store = this.requireStore()
+    if (!store.setThumbnailUrl) return false
+    return store.setThumbnailUrl(id, thumbnailUrl)
+  }
+
+  async listSceneRevisions(id: string, options?: { limit?: number }): Promise<SceneRevisionMeta[]> {
+    const store = this.requireStore()
+    if (!store.listRevisions) return []
+    return store.listRevisions(id, options)
+  }
+
+  async loadSceneRevision(id: string, version: number): Promise<SceneGraph | null> {
+    const store = this.requireStore()
+    if (!store.loadRevision) return null
+    return store.loadRevision(id, version)
   }
 
   async appendSceneEvent(options: SceneEventAppendOptions): Promise<SceneEvent | null> {

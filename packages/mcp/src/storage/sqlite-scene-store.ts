@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
@@ -17,15 +17,30 @@ import {
   type SceneMeta,
   type SceneMutateOptions,
   SceneNotFoundError,
+  type SceneRevisionMeta,
   type SceneSaveOptions,
   type SceneStore,
   SceneTooLargeError,
   SceneVersionConflictError,
+  SceneWipeBlockedError,
   type SceneWithGraph,
 } from './types'
 
 const DEFAULT_MAX_SCENE_BYTES = 10 * 1024 * 1024
 const DEFAULT_LIST_LIMIT = 100
+
+// Wipe guard of last resort: a stored scene at least this populated refuses a
+// save that would collapse it to (near) empty. The client-side autosave guard
+// has been bypassed once already — a failed load reset its node-count baseline
+// and a 355-node scene was overwritten with an empty graph.
+const WIPE_GUARD_MIN_STORED_NODES = 20
+const WIPE_GUARD_FLOOR_NODES = 5
+const WIPE_GUARD_RATIO = 0.1
+
+// Rotating whole-file DB backups: at most one `VACUUM INTO` snapshot per
+// interval, newest BACKUP_KEEP kept (48 × hourly ≈ two days of snapshots).
+const BACKUP_INTERVAL_MS = 60 * 60 * 1000
+const BACKUP_KEEP = 48
 const MAX_NAME_LENGTH = 200
 const MIN_NAME_LENGTH = 1
 
@@ -323,7 +338,7 @@ export class SqliteSceneStore implements SceneStore {
   }
 
   async save(opts: SceneSaveOptions): Promise<SceneMeta> {
-    return this.withWriteTransaction((db) => {
+    const meta = await this.withWriteTransaction((db) => {
       assertValidName(opts.name)
       if (!opts.graph || typeof opts.graph !== 'object') {
         throw new SceneInvalidError('graph is required')
@@ -365,6 +380,17 @@ export class SqliteSceneStore implements SceneStore {
       const version = (existing?.version ?? 0) + 1
       const createdAt = existing?.created_at ?? placeholder?.createdAt ?? now
       const nodeCount = Object.keys(opts.graph.nodes ?? {}).length
+
+      if (
+        existing &&
+        !opts.allowWipe &&
+        existing.node_count >= WIPE_GUARD_MIN_STORED_NODES &&
+        nodeCount < Math.max(WIPE_GUARD_FLOOR_NODES, existing.node_count * WIPE_GUARD_RATIO)
+      ) {
+        throw new SceneWipeBlockedError(
+          `Scene "${id}" has ${existing.node_count} stored nodes; saving ${nodeCount} would wipe it. Pass allowWipe to overwrite intentionally.`,
+        )
+      }
       const projectId = opts.projectId ?? existing?.project_id ?? (placeholder ? id : null)
       const ownerId = opts.ownerId ?? existing?.owner_id ?? placeholder?.ownerId ?? null
       const thumbnailUrl =
@@ -441,6 +467,38 @@ export class SqliteSceneStore implements SceneStore {
         graphHash: hashGraphJson(graphJson),
       }
     })
+    await this.maybeBackupDatabase()
+    return meta
+  }
+
+  /**
+   * Rotating whole-file backup beside the database (`<dir>/backups/`): at
+   * most one `VACUUM INTO` snapshot per BACKUP_INTERVAL_MS, newest
+   * BACKUP_KEEP kept. Best-effort — a backup failure must never fail the
+   * save that triggered it.
+   */
+  private async maybeBackupDatabase(): Promise<void> {
+    if (this.databasePath === ':memory:') return
+    try {
+      const dir = path.join(path.dirname(this.databasePath), 'backups')
+      mkdirSync(dir, { recursive: true })
+      const snapshots = readdirSync(dir)
+        .filter((file) => file.startsWith('pascal-') && file.endsWith('.db'))
+        .sort()
+      const newest = snapshots[snapshots.length - 1]
+      if (newest && Date.now() - statSync(path.join(dir, newest)).mtimeMs < BACKUP_INTERVAL_MS) {
+        return
+      }
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const target = path.join(dir, `pascal-${stamp}.db`)
+      const db = await this.database()
+      db.exec(`VACUUM INTO '${target.replaceAll("'", "''")}'`)
+      for (const old of snapshots.slice(0, Math.max(0, snapshots.length + 1 - BACKUP_KEEP))) {
+        unlinkSync(path.join(dir, old))
+      }
+    } catch (error) {
+      console.warn('[scene-store] database backup skipped:', error)
+    }
   }
 
   async load(id: string): Promise<SceneWithGraph | null> {
@@ -451,6 +509,58 @@ export class SqliteSceneStore implements SceneStore {
       ...rowToMeta(row),
       graph: parseGraph(row.graph_json, row.id),
     }
+  }
+
+  async setThumbnailUrl(id: string, thumbnailUrl: string | null): Promise<boolean> {
+    return this.withWriteTransaction((db) => {
+      const result = db
+        .query('UPDATE scenes SET thumbnail_url = ? WHERE id = ?')
+        .run(thumbnailUrl, sanitizeSlug(id))
+      return result.changes > 0
+    })
+  }
+
+  async listRevisions(id: string, opts: { limit?: number } = {}): Promise<SceneRevisionMeta[]> {
+    const db = await this.database()
+    const limit = Math.min(Math.max(1, opts.limit ?? 100), 500)
+    const rows = db
+      .query(
+        `SELECT version,
+                created_at,
+                author_kind,
+                author_id,
+                length(graph_json) AS size_bytes,
+                (SELECT count(*) FROM json_each(scene_revisions.graph_json, '$.nodes')) AS node_count
+           FROM scene_revisions
+          WHERE scene_id = ?
+          ORDER BY version DESC
+          LIMIT ?`,
+      )
+      .all(sanitizeSlug(id), limit) as Array<{
+      version: number
+      created_at: string
+      author_kind: string
+      author_id: string | null
+      size_bytes: number
+      node_count: number
+    }>
+    return rows.map((row) => ({
+      version: row.version,
+      createdAt: row.created_at,
+      authorKind: row.author_kind,
+      authorId: row.author_id,
+      sizeBytes: row.size_bytes,
+      nodeCount: row.node_count,
+    }))
+  }
+
+  async loadRevision(id: string, version: number): Promise<SceneGraph | null> {
+    const db = await this.database()
+    const row = db
+      .query('SELECT graph_json FROM scene_revisions WHERE scene_id = ? AND version = ?')
+      .get(sanitizeSlug(id), version) as { graph_json: string } | undefined
+    if (!row) return null
+    return parseGraph(row.graph_json, id)
   }
 
   async list(opts: SceneListOptions = {}): Promise<SceneMeta[]> {

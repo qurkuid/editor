@@ -92,6 +92,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       thumbnailUrl:
         parsed.data.thumbnailUrl === undefined ? existing.thumbnailUrl : parsed.data.thumbnailUrl,
       expectedVersion: expectedVersion ?? existing.version,
+      // Store-level wipe guard escape hatch — only an explicit caller opt-in
+      // may collapse a populated scene to (near) empty.
+      allowWipe: request.headers.get('X-Pascal-Allow-Wipe') === '1',
     })
     return sceneApiJson(request, meta, {
       headers: { ETag: `"${meta.version}"` },
@@ -204,6 +207,10 @@ async function handleStoreError(
   }
   if (code === 'not_found') {
     return sceneApiJson(request, { error: 'not_found' }, { status: 404 })
+  }
+  if (code === 'wipe_blocked') {
+    const message = error instanceof Error ? error.message : undefined
+    return sceneApiJson(request, { error: 'wipe_blocked', message }, { status: 409 })
   }
   if (code === 'too_large') {
     return sceneApiJson(request, { error: 'too_large' }, { status: 413 })

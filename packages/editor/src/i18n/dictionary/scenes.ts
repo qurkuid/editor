@@ -28,4 +28,19 @@ export const scenesDictionary = {
     ko: '해당 ID 의 장면을 찾을 수 없습니다:',
     en: "We couldn't find a scene with id",
   },
+
+  'scenes.versions': { ko: '버전', en: 'Versions' },
+  'scenes.versionHistory': { ko: '버전 기록', en: 'Version history' },
+  'scenes.versionCurrent': { ko: '현재', en: 'Current' },
+  'scenes.versionNodes': { ko: '노드', en: 'nodes' },
+  'scenes.versionRestore': { ko: '이 버전으로 복원', en: 'Restore this version' },
+  'scenes.versionRestoring': { ko: '복원 중…', en: 'Restoring…' },
+  'scenes.versionRestored': {
+    ko: '복원 완료 — 새 버전으로 저장되었습니다.',
+    en: 'Restored — saved as a new version.',
+  },
+  'scenes.versionRestoreFailed': { ko: '복원 실패', en: 'Restore failed' },
+  'scenes.versionEmpty': { ko: '저장된 버전이 없습니다.', en: 'No versions recorded.' },
+  'scenes.versionLoadFailed': { ko: '버전 목록을 불러오지 못했습니다.', en: 'Failed to load versions.' },
+  'scenes.close': { ko: '닫기', en: 'Close' },
 } as const satisfies Dictionary

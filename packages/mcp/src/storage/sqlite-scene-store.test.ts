@@ -9,7 +9,12 @@ import {
   SqliteSceneStore,
   type SqliteSceneStoreOptions,
 } from './sqlite-scene-store'
-import { SceneInvalidError, SceneTooLargeError, SceneVersionConflictError } from './types'
+import {
+  SceneInvalidError,
+  SceneTooLargeError,
+  SceneVersionConflictError,
+  SceneWipeBlockedError,
+} from './types'
 
 function makeGraph(overrides: Partial<SceneGraph> = {}): SceneGraph {
   return {
@@ -322,5 +327,171 @@ describe('SqliteSceneStore', () => {
     }
 
     await expect(store.load('bad')).rejects.toThrow(SceneInvalidError)
+  })
+})
+
+describe('wipe guard and rotating backups', () => {
+  let rootDir: string
+  let store: SqliteSceneStore
+
+  beforeEach(async () => {
+    rootDir = await mkTmpRoot()
+    store = createStore(rootDir)
+  })
+
+  afterEach(async () => {
+    store.close()
+    await rmrf(rootDir)
+  })
+
+  function populatedGraph(count: number): SceneGraph {
+    const nodes: Record<string, unknown> = {
+      site_abc: {
+        object: 'node',
+        id: 'site_abc',
+        type: 'site',
+        parentId: null,
+        visible: true,
+        metadata: {},
+      },
+    }
+    for (let i = 0; i < count - 1; i++) {
+      nodes[`wall_${i}`] = {
+        object: 'node',
+        id: `wall_${i}`,
+        type: 'wall',
+        parentId: 'site_abc',
+        visible: true,
+        metadata: {},
+      }
+    }
+    return {
+      nodes: nodes as SceneGraph['nodes'],
+      rootNodeIds: ['site_abc'] as SceneGraph['rootNodeIds'],
+    }
+  }
+
+  const emptyGraph = (): SceneGraph =>
+    ({ nodes: {}, rootNodeIds: [] }) as unknown as SceneGraph
+
+  test('blocks a save that collapses a populated scene to empty', async () => {
+    await store.save({ id: 's', name: 'S', graph: populatedGraph(30) })
+
+    await expect(
+      store.save({ id: 's', name: 'S', graph: emptyGraph(), expectedVersion: 1 }),
+    ).rejects.toBeInstanceOf(SceneWipeBlockedError)
+
+    // The stored graph is untouched and the version did not advance.
+    const kept = await store.load('s')
+    expect(kept?.nodeCount).toBe(30)
+    expect(kept?.version).toBe(1)
+  })
+
+  test('allowWipe overrides the guard for intentional clears', async () => {
+    await store.save({ id: 's', name: 'S', graph: populatedGraph(30) })
+    const cleared = await store.save({
+      id: 's',
+      name: 'S',
+      graph: emptyGraph(),
+      expectedVersion: 1,
+      allowWipe: true,
+    })
+    expect(cleared.version).toBe(2)
+    expect(cleared.nodeCount).toBe(0)
+  })
+
+  test('small scenes and gradual shrinks stay unguarded', async () => {
+    await store.save({ id: 'small', name: 'Small', graph: populatedGraph(10) })
+    const clearedSmall = await store.save({
+      id: 'small',
+      name: 'Small',
+      graph: emptyGraph(),
+      expectedVersion: 1,
+    })
+    expect(clearedSmall.nodeCount).toBe(0)
+
+    await store.save({ id: 'big', name: 'Big', graph: populatedGraph(30) })
+    const shrunk = await store.save({
+      id: 'big',
+      name: 'Big',
+      graph: populatedGraph(20),
+      expectedVersion: 1,
+    })
+    expect(shrunk.nodeCount).toBe(20)
+  })
+
+  test('save writes one rotating backup snapshot per interval', async () => {
+    await store.save({ id: 's', name: 'S', graph: populatedGraph(3) })
+    const backupsDir = path.join(rootDir, 'backups')
+    const first = (await fs.readdir(backupsDir)).filter((f) => f.endsWith('.db'))
+    expect(first.length).toBe(1)
+
+    // A second save inside the backup interval reuses the snapshot.
+    await store.save({ id: 's', name: 'S', graph: populatedGraph(4), expectedVersion: 1 })
+    const second = (await fs.readdir(backupsDir)).filter((f) => f.endsWith('.db'))
+    expect(second).toEqual(first)
+
+    // The snapshot is a readable SQLite database containing the scene.
+    const snapshot = new Database(path.join(backupsDir, first[0]!), { readonly: true })
+    const row = snapshot.query('SELECT node_count FROM scenes WHERE id = ?').get('s') as {
+      node_count: number
+    }
+    expect(row.node_count).toBe(3)
+    snapshot.close()
+  })
+})
+
+describe('revisions and thumbnails', () => {
+  let rootDir: string
+  let store: SqliteSceneStore
+
+  beforeEach(async () => {
+    rootDir = await mkTmpRoot()
+    store = createStore(rootDir)
+  })
+
+  afterEach(async () => {
+    store.close()
+    await rmrf(rootDir)
+  })
+
+  test('listRevisions returns per-version metadata, newest first', async () => {
+    await store.save({ id: 's', name: 'S', graph: makeGraph() })
+    const single = makeGraph()
+    delete (single.nodes as Record<string, unknown>).building_def
+    await store.save({ id: 's', name: 'S', graph: single, expectedVersion: 1 })
+
+    const revisions = await store.listRevisions('s')
+    expect(revisions.map((r) => r.version)).toEqual([2, 1])
+    expect(revisions[0]!.nodeCount).toBe(1)
+    expect(revisions[1]!.nodeCount).toBe(2)
+    expect(revisions[0]!.authorKind).toBe('mcp')
+    expect(revisions[0]!.sizeBytes).toBeGreaterThan(0)
+    expect(new Date(revisions[0]!.createdAt).getTime()).not.toBeNaN()
+  })
+
+  test('loadRevision round-trips an old graph', async () => {
+    const original = makeGraph()
+    await store.save({ id: 's', name: 'S', graph: original })
+    const single = makeGraph()
+    delete (single.nodes as Record<string, unknown>).building_def
+    await store.save({ id: 's', name: 'S', graph: single, expectedVersion: 1 })
+
+    const old = await store.loadRevision('s', 1)
+    expect(Object.keys(old?.nodes ?? {})).toEqual(Object.keys(original.nodes))
+    expect(await store.loadRevision('s', 99)).toBeNull()
+  })
+
+  test('setThumbnailUrl stores without bumping version or updatedAt', async () => {
+    const saved = await store.save({ id: 's', name: 'S', graph: makeGraph() })
+    const ok = await store.setThumbnailUrl('s', 'data:image/webp;base64,AAAA')
+    expect(ok).toBe(true)
+
+    const loaded = await store.load('s')
+    expect(loaded?.thumbnailUrl).toBe('data:image/webp;base64,AAAA')
+    expect(loaded?.version).toBe(saved.version)
+    expect(loaded?.updatedAt).toBe(saved.updatedAt)
+
+    expect(await store.setThumbnailUrl('missing', 'x')).toBe(false)
   })
 })

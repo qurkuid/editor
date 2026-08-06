@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { CreateSceneButton } from '@/components/save-button'
 import type { SceneMeta } from '@/components/scene-loader'
+import { SceneVersionsButton } from '@/components/scene-versions'
 import { TText } from '@/components/t-text'
 import { selfUrl } from '@/lib/self-url'
 
@@ -73,7 +74,7 @@ export default async function ScenesPage() {
         ) : (
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {scenes.map((scene) => (
-              <li key={scene.id}>
+              <li className="relative" key={scene.id}>
                 <Link
                   className="group block rounded-xl border border-border/60 bg-background p-4 transition-colors hover:border-border hover:bg-accent/30"
                   href={`/scene/${scene.id}`}
@@ -97,11 +98,20 @@ export default async function ScenesPage() {
                       {scene.name}
                     </h2>
                     <div className="mt-1 flex items-center justify-between text-muted-foreground text-xs">
-                      <span>{scene.nodeCount} nodes</span>
+                      <span>
+                        {scene.nodeCount} nodes · v{scene.version}
+                      </span>
                       <time dateTime={scene.updatedAt}>{formatDate(scene.updatedAt)}</time>
                     </div>
                   </div>
                 </Link>
+                {/* Sibling of the Link (absolutely positioned over the card)
+                    so opening the history never triggers navigation. */}
+                <SceneVersionsButton
+                  className="absolute top-6 right-6"
+                  sceneId={scene.id}
+                  sceneName={scene.name}
+                />
               </li>
             ))}
           </ul>

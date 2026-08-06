@@ -63,6 +63,13 @@ export interface SceneSaveOptions {
   agentSessionId?: string
   /** Optional high-level operation name for presence/debug metadata. */
   operation?: string
+  /**
+   * Permit a save that collapses a populated stored scene to (near) empty.
+   * Without it such a save fails with `SceneWipeBlockedError` — the guard of
+   * last resort against a failed client load autosaving an empty graph over
+   * real work.
+   */
+  allowWipe?: boolean
 }
 
 export type SceneSaveMode = 'draft' | 'checkpoint'
@@ -118,6 +125,16 @@ export interface ProjectStatus {
   updatedAt: string
 }
 
+/** Metadata of one saved revision — everything but the graph itself. */
+export interface SceneRevisionMeta {
+  version: number
+  createdAt: string
+  authorKind: string
+  authorId: string | null
+  sizeBytes: number
+  nodeCount: number
+}
+
 export interface SceneStore {
   readonly backend: 'sqlite' | 'supabase'
   createProject?(opts: ProjectCreateOptions): Promise<ProjectStatus>
@@ -129,6 +146,10 @@ export interface SceneStore {
   rename(id: SceneId, newName: string, opts?: SceneMutateOptions): Promise<SceneMeta>
   appendSceneEvent?(opts: SceneEventAppendOptions): Promise<SceneEvent>
   listSceneEvents?(sceneId: SceneId, opts?: SceneEventListOptions): Promise<SceneEvent[]>
+  /** Updates only the stored thumbnail; never bumps the version or `updatedAt`. */
+  setThumbnailUrl?(id: SceneId, thumbnailUrl: string | null): Promise<boolean>
+  listRevisions?(id: SceneId, opts?: { limit?: number }): Promise<SceneRevisionMeta[]>
+  loadRevision?(id: SceneId, version: number): Promise<SceneGraph | null>
 }
 
 export class SceneNotFoundError extends Error {
@@ -160,5 +181,13 @@ export class SceneTooLargeError extends Error {
   constructor(message = 'Scene too large') {
     super(message)
     this.name = 'SceneTooLargeError'
+  }
+}
+
+export class SceneWipeBlockedError extends Error {
+  readonly code = 'wipe_blocked' as const
+  constructor(message = 'Save would wipe a populated scene') {
+    super(message)
+    this.name = 'SceneWipeBlockedError'
   }
 }
