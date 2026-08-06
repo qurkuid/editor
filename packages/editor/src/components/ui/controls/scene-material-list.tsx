@@ -9,7 +9,7 @@ import {
   useScene,
 } from '@pascal-app/core'
 import { Copy, Paintbrush, Pencil, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import useEditor from '../../../store/use-editor'
 import { Button } from '../primitives/button'
 import { Input } from '../primitives/input'
@@ -27,7 +27,17 @@ function getSlotRecord(node: unknown): SlotRecord | null {
   return slots as SlotRecord
 }
 
-export function SceneMaterialList({ autoEditId }: { autoEditId?: SceneMaterialId | null }) {
+export function SceneMaterialList({
+  autoEditId,
+  filter,
+  rowActions,
+}: {
+  autoEditId?: SceneMaterialId | null
+  /** When provided, only materials passing the predicate render. */
+  filter?: (id: SceneMaterialId, sceneMaterial: SceneMaterial) => boolean
+  /** Host-injected extra controls, rendered at the start of each row's action group. */
+  rowActions?: (id: SceneMaterialId, sceneMaterial: SceneMaterial) => ReactNode
+}) {
   const materials = useScene((state) => state.materials)
   const nodes = useScene((state) => state.nodes)
   const addSceneMaterial = useScene((state) => state.addSceneMaterial)
@@ -66,9 +76,13 @@ export function SceneMaterialList({ autoEditId }: { autoEditId?: SceneMaterialId
     return counts
   }, [materialEntries, nodes])
 
+  const visibleEntries = filter
+    ? materialEntries.filter(([id, sceneMaterial]) => filter(id, sceneMaterial))
+    : materialEntries
+
   return (
     <div className="space-y-2">
-      {materialEntries.map(([id, sceneMaterial]) => (
+      {visibleEntries.map(([id, sceneMaterial]) => (
         <SceneMaterialRow
           addSceneMaterial={addSceneMaterial}
           activePaintTarget={activePaintTarget}
@@ -77,6 +91,7 @@ export function SceneMaterialList({ autoEditId }: { autoEditId?: SceneMaterialId
           isActive={activePaintRef === toSceneMaterialRef(id)}
           key={id}
           removeSceneMaterial={removeSceneMaterial}
+          rowActions={rowActions?.(id, sceneMaterial)}
           sceneMaterial={sceneMaterial}
           setActivePaintMaterial={setActivePaintMaterial}
           updateSceneMaterial={updateSceneMaterial}
@@ -97,6 +112,7 @@ function SceneMaterialRow({
   addSceneMaterial,
   updateSceneMaterial,
   removeSceneMaterial,
+  rowActions,
   setActivePaintMaterial,
 }: {
   id: SceneMaterialId
@@ -108,6 +124,7 @@ function SceneMaterialRow({
   addSceneMaterial: ReturnType<typeof useScene.getState>['addSceneMaterial']
   updateSceneMaterial: ReturnType<typeof useScene.getState>['updateSceneMaterial']
   removeSceneMaterial: ReturnType<typeof useScene.getState>['removeSceneMaterial']
+  rowActions?: ReactNode
   setActivePaintMaterial: ReturnType<typeof useEditor.getState>['setActivePaintMaterial']
 }) {
   const t = useT()
@@ -172,6 +189,7 @@ function SceneMaterialRow({
           Used by {usageCount} {usageCount === 1 ? 'part' : 'parts'}
         </span>
         <div className="flex items-center gap-1">
+          {rowActions}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

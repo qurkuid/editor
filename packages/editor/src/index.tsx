@@ -212,6 +212,9 @@ export {
   type WallPlanPoint,
   type WallSnapRadii,
 } from './components/tools/wall/wall-drafting'
+// The bottom action rail's button, for hosts filling `actionMenuControls` —
+// distinct from the panel-level `ActionButton` exported below.
+export { ActionButton as ActionMenuButton } from './components/ui/action-menu/action-button'
 // `ToolbarLeft` / `ToolbarRight` are the headless-spec aliases for the
 // existing `ViewerToolbarLeft` / `ViewerToolbarRight` exports — the
 // underlying components are the same; the alias just matches the names
@@ -238,6 +241,7 @@ export {
 } from './components/ui/controls/material-picker'
 export { MetricControl } from './components/ui/controls/metric-control'
 export { PanelSection } from './components/ui/controls/panel-section'
+export { SceneMaterialList } from './components/ui/controls/scene-material-list'
 export { SegmentedControl } from './components/ui/controls/segmented-control'
 export { SliderControl } from './components/ui/controls/slider-control'
 export { TerrainSculptPanel } from './components/ui/controls/terrain-sculpt-panel'
@@ -444,6 +448,7 @@ export {
 export {
   boundaryReshapeScope,
   curveReshapeScope,
+  dropEditScope,
   endpointReshapeScope,
   holeEditScope,
   movingNodeOf,
@@ -456,6 +461,7 @@ export {
   buildStairSurfaceMaterialPatch,
   getActivePaintMaterialLabel,
   hasActivePaintMaterial,
+  resolvePaintTargetFromSelection,
 } from './lib/material-paint'
 export {
   CREATABLE_MEASUREMENT_KINDS,
@@ -608,6 +614,7 @@ export {
   getIsCurveReshape,
   getMovingNode,
   useActiveHandleDrag,
+  useEditingDrop,
   useEditingHole,
   useEndpointReshape,
   useIsCurveReshape,

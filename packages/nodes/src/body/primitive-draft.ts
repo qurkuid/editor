@@ -24,6 +24,21 @@ export function shouldCloseLineDraft(
   return Math.hypot(cursor[0] - start[0], cursor[1] - start[1]) <= tolerance
 }
 
+/**
+ * Endpoint snap for the line primitive: once the draft can close (≥ 3 points),
+ * a cursor within `tolerance` of the start point sticks onto it exactly — the
+ * hover, rubber band, and the closing click all land on the same vertex.
+ */
+export function snapLineDraftPoint(
+  points: readonly BodyDraftPoint[],
+  point: BodyDraftPoint,
+  tolerance: number,
+): BodyDraftPoint {
+  const first = points[0]
+  if (!first || points.length < 3) return point
+  return shouldCloseLineDraft(first, point, tolerance) ? [first[0], first[1]] : point
+}
+
 export function resolveLineFaceDraft(points: readonly BodyDraftPoint[]): BodyDraftPoint[] | null {
   if (points.length < 3) return null
   const area = points.reduce((sum, point, index) => {

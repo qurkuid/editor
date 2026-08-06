@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   type ActiveInteractionScope,
   controlPointReshapeInfo,
+  editingDropInfo,
   editingHoleInfo,
   endpointReshapeInfo,
   handleDragInfo,
@@ -75,9 +76,15 @@ export const useActiveHandleDrag = (): { nodeId: string; label: string } | null 
 export const useEditingHole = (): { nodeId: string; holeIndex: number } | null =>
   useInteractionScope(useShallow((s) => editingHoleInfo(s.scope)))
 
+export const useEditingDrop = (): { nodeId: string; dropId: string } | null =>
+  useInteractionScope(useShallow((s) => editingDropInfo(s.scope)))
+
 // Imperative (non-React) reads for event handlers / effects.
 export const getEditingHole = (): { nodeId: string; holeIndex: number } | null =>
   editingHoleInfo(useInteractionScope.getState().scope)
+
+export const getEditingDrop = (): { nodeId: string; dropId: string } | null =>
+  editingDropInfo(useInteractionScope.getState().scope)
 
 export const getIsCurveReshape = (): boolean => isCurveReshape(useInteractionScope.getState().scope)
 

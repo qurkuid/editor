@@ -12,6 +12,7 @@ import {
   movingFootprintAnchors,
   type RoofEvent,
   resolveLevelId,
+  resolveWallFlushSnap,
   type ShelfEvent,
   sceneRegistry,
   useLiveTransforms,
@@ -52,7 +53,11 @@ import {
   resolveAlignmentForActiveBuilding,
 } from '../../../lib/world-grid-snap'
 import useAlignmentGuides from '../../../store/use-alignment-guides'
-import useEditor, { isAlignmentGuideActive, isMagneticSnapActive } from '../../../store/use-editor'
+import useEditor, {
+  isAlignmentGuideActive,
+  isGridSnapActive,
+  isMagneticSnapActive,
+} from '../../../store/use-editor'
 
 import useFacingPose from '../../../store/use-facing-pose'
 import { getFloorStackPreviewPosition } from '../shared/floor-stack-preview'
@@ -944,6 +949,26 @@ export function usePlacementCoordinator(config: PlacementCoordinatorConfig): Rea
           .set(projectAlignmentGuidesWorldToActiveBuildingLocal(ar.guides))
       } else {
         useAlignmentGuides.getState().clear()
+      }
+
+      // Wall-flush snap: pull the footprint's nearest edge flush onto the
+      // nearest wall face (the cabinet wall-attach feel, generalized to
+      // furniture). Wins over grid / alignment on the wall-normal axis;
+      // same mode gate as the cabinet `groupMoveSnap` (off in Off / Angles).
+      if (draft && asset.attachTo === undefined && (isMagneticSnapActive() || isGridSnapActive())) {
+        const flush = resolveWallFlushSnap({
+          nodes: useScene.getState().nodes,
+          levelId: (useViewer.getState().selection.levelId ?? null) as AnyNodeId | null,
+          x: result.gridPosition[0] + alignX,
+          z: result.gridPosition[2] + alignZ,
+          dimensions: getScaledDimensions(draft),
+          rotationY: cursorGroupRef.current.rotation.y,
+        })
+        if (flush) {
+          alignX = flush.x - result.gridPosition[0]
+          alignZ = flush.z - result.gridPosition[2]
+          useAlignmentGuides.getState().clear()
+        }
       }
 
       const gridPos: [number, number, number] = [

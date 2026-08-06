@@ -19,6 +19,7 @@ import useAiChatHistory, { type AiChatHistoryMessage } from '@/lib/ai-chat-histo
 import { conversationWindow, nextAiQueueStep } from '@/lib/ai-chat-queue'
 import { type AiModelingPlan, AiModelingPlanSchema, buildAiSceneContext } from '@/lib/ai-control'
 import { applyAiModelingPlanWithAssets } from '@/lib/ai-control-assets'
+import useAiMaterialRequest from '@/lib/ai-material-request'
 import useAiPromptPresets from '@/lib/ai-prompt-presets-store'
 import useAiProvider from '@/lib/ai-provider-store'
 import { AI_TASK_FLOWS, type AiTaskFlow } from '@/lib/ai-task-flows'
@@ -204,6 +205,19 @@ export function AiChatPanel() {
     }
     setDraft(step.prompt[locale] || step.prompt.ko)
   }
+
+  // A material queued from a paint-catalog AI button prefills the draft with
+  // its name and paintable ref; the user finishes the sentence with a location.
+  const pendingMaterial = useAiMaterialRequest((state) => state.pending)
+  useEffect(() => {
+    if (!pendingMaterial) return
+    useAiMaterialRequest.getState().clear()
+    setDraft(
+      t('aiChat.materialRequest.template')
+        .replace('{name}', pendingMaterial.name)
+        .replace('{ref}', pendingMaterial.ref),
+    )
+  }, [pendingMaterial, t])
 
   // The only signal during a long build is this indicator — without a clock a
   // multi-minute generation is indistinguishable from a dead request.

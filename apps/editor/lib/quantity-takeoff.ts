@@ -333,6 +333,46 @@ export function deriveTakeoff(
         materialRef,
       })
 
+      // Ceiling drop zones (단내림/우물천장 등): the zone's underside already
+      // counts in the projected polygon area above, so only the vertical
+      // reveal faces add finish area — closed edge lengths × depth, on the
+      // `reveal` slot's material.
+      if (node.type === 'ceiling') {
+        const drops = (
+          node as {
+            drops?: readonly {
+              polygon: readonly (readonly [number, number])[]
+              depthM: number
+              openEdges?: readonly number[]
+            }[]
+          }
+        ).drops
+        let revealArea = 0
+        for (const drop of drops ?? []) {
+          const ring = drop.polygon
+          if (ring.length < 3) continue
+          const open = new Set(drop.openEdges ?? [])
+          for (let i = 0; i < ring.length; i++) {
+            if (open.has(i)) continue
+            const a = ring[i]!
+            const b = ring[(i + 1) % ring.length]!
+            revealArea += Math.hypot(b[0] - a[0], b[1] - a[1]) * drop.depthM
+          }
+        }
+        if (revealArea > 0) {
+          const revealRef = slots.reveal
+          push(lines, {
+            category: 'ceiling',
+            key: revealRef ? `reveal:${revealRef}` : 'ceiling-reveal',
+            label: revealRef ? `구역 측면 마감 ${revealRef}` : '천장 구역 측면',
+            unit: 'm2',
+            quantity: revealArea,
+            nodeIds: [node.id],
+            materialRef: revealRef,
+          })
+        }
+      }
+
       // The surface's own build-up: joists/furring by the metre, boards by the
       // sheet, screed by volume. Same expansion walls use.
       const category = node.type === 'slab' ? 'floor' : 'ceiling'

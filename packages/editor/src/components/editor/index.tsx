@@ -165,6 +165,12 @@ export interface EditorProps {
   viewerToolbarLeft?: ReactNode
   viewerToolbarRight?: ReactNode
   /**
+   * Host-injected buttons appended to the bottom action rail's control modes.
+   * For controls whose wiring lives above this package (e.g. the body-tool
+   * primitives from `@pascal-app/nodes`).
+   */
+  actionMenuControls?: ReactNode
+  /**
    * Full-bleed surface swapped in over the 3D canvas (v2) — e.g. the studio
    * gallery. The canvas stays mounted underneath (no WebGL re-init) and the
    * viewer toolbar stays on top so the host's stage switch remains reachable.
@@ -1150,6 +1156,7 @@ export default function Editor({
   sidebarTabs,
   viewerToolbarLeft,
   viewerToolbarRight,
+  actionMenuControls,
   stageOverlay,
   inspectorFooter,
   multiSelectionFooter,
@@ -1487,7 +1494,7 @@ export default function Editor({
                   {!(isCaptureMode || stageOverlay) && <FloatingLevelSelector />}
                   {!(isVersionPreviewMode || isCaptureMode || isStudioMode) && (
                     <div className="pointer-events-auto">
-                      <ActionMenu />
+                      <ActionMenu extraControls={actionMenuControls} />
                     </div>
                   )}
                   {!(isVersionPreviewMode || isCaptureMode || isStudioMode) && (
@@ -1574,7 +1581,7 @@ export default function Editor({
           {/* Fixed UI overlays scoped to the viewer area */}
           <ViewerOverlays left={overlayLeft}>
             <div className="pointer-events-auto">
-              <ActionMenu />
+              <ActionMenu extraControls={actionMenuControls} />
             </div>
             <div className="pointer-events-auto">
               <PanelManager />

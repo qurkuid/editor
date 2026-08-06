@@ -22,6 +22,7 @@ import {
   resolveCircleDraft,
   resolveLineFaceDraft,
   shouldCloseLineDraft,
+  snapLineDraftPoint,
 } from './primitive-draft'
 import { type BodyDraftPoint, resolveRectangleDraft } from './rectangle-draft'
 
@@ -120,7 +121,11 @@ const BodyTool = () => {
         snap(event.localPosition[2], step),
       ]
       const anchor = pointsRef.current.at(-1)
-      return anchor ? constrainPlanDraftPoint(anchor, raw, getLengthMeters()) : raw
+      const constrained = anchor ? constrainPlanDraftPoint(anchor, raw, getLengthMeters()) : raw
+      // Endpoint snap wins over grid/constraints — closing is connectivity.
+      return primitive === 'line'
+        ? snapLineDraftPoint(pointsRef.current, constrained, CLOSE_TOLERANCE)
+        : constrained
     }
     const finish = (polygon: readonly BodyDraftPoint[], name: string) => {
       const body = BodyNode.parse({
@@ -161,9 +166,17 @@ const BodyTool = () => {
       if (current.length === 0) triggerSFX('sfx:structure-build-start')
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Enter' && primitive === 'line') {
+      if (
+        primitive === 'line' &&
+        (event.key === 'Enter' ||
+          ((event.key === 'c' || event.key === 'C') &&
+            !(event.metaKey || event.ctrlKey || event.altKey)))
+      ) {
         const polygon = resolveLineFaceDraft(pointsRef.current)
-        if (polygon) finish(polygon, 'Line Face')
+        if (polygon) {
+          event.preventDefault()
+          finish(polygon, 'Line Face')
+        }
         return
       }
       if (event.key !== 'Escape') return

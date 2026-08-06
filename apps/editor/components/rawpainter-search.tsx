@@ -23,7 +23,7 @@ export function RawPainterSearch({ value, onChange, onSubmit, onClear }: RawPain
       <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
       <input
         aria-label={t('rawpainter.search.ariaLabel')}
-        className="h-8 w-full rounded-lg border border-border/70 bg-background/80 pr-16 pl-8 text-xs outline-none placeholder:text-muted-foreground/70 focus:border-foreground/40 focus:ring-2 focus:ring-foreground/8"
+        className="h-8 w-full rounded-lg border border-border/70 bg-background/80 pr-16 pl-8 text-xs outline-none placeholder:text-muted-foreground/70 focus:border-foreground/40 focus:ring-2 focus:ring-foreground/8 [&::-webkit-search-cancel-button]:hidden"
         onChange={(event) => onChange(event.target.value)}
         placeholder={t('rawpainter.search.placeholder')}
         type="search"

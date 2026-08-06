@@ -1,16 +1,35 @@
 'use client'
 
-import { MaterialPaintPanel, useEditor, useT } from '@pascal-app/editor'
+import type { AnyNodeId } from '@pascal-app/core'
+import {
+  buildResetSurfaceMaterialUpdates,
+  resolvePaintTargetFromSelection,
+  useEditor,
+  useScene,
+  useT,
+  useViewer,
+} from '@pascal-app/editor'
+import { Eraser, House, RotateCcw, Star } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { RawPainterCatalog } from './rawpainter-catalog'
+import { FavoriteMaterialsGrid, MergedMaterialCatalog } from './paint-catalog'
 
-type CatalogView = 'rawpainter' | 'library'
+type CatalogView = 'materials' | 'favorites' | 'scene'
 
 export function PaintingTab() {
   const t = useT()
   const paintScope = useEditor((state) => state.paintScope)
   const setPaintScope = useEditor((state) => state.setPaintScope)
-  const [catalogView, setCatalogView] = useState<CatalogView>('rawpainter')
+  const paintEraser = useEditor((state) => state.paintEraser)
+  const setPaintEraser = useEditor((state) => state.setPaintEraser)
+  const setActivePaintTarget = useEditor((state) => state.setActivePaintTarget)
+  const [catalogView, setCatalogView] = useState<CatalogView>('materials')
+
+  const selectedIds = useViewer((state) => state.selection.selectedIds)
+  const nodes = useScene((state) => state.nodes)
+  const selectedId = selectedIds.length === 1 ? (selectedIds[0] ?? null) : null
+  const selectedNode = selectedId ? nodes[selectedId as AnyNodeId] : null
+  const canResetSelection =
+    selectedNode != null && resolvePaintTargetFromSelection({ nodes, selectedId }) != null
 
   useEffect(() => {
     const editor = useEditor.getState()
@@ -18,6 +37,19 @@ export function PaintingTab() {
     editor.setStructureLayer('elements')
     editor.setMode('material-paint')
   }, [])
+
+  // Keep the brush target in step with the selection (mirrors MaterialPaintPanel).
+  useEffect(() => {
+    const selectedPaintTarget = resolvePaintTargetFromSelection({ nodes, selectedId })
+    if (selectedPaintTarget) {
+      setActivePaintTarget(selectedPaintTarget)
+    }
+  }, [nodes, selectedId, setActivePaintTarget])
+
+  const resetSelection = () => {
+    if (!selectedNode) return
+    useScene.getState().updateNodes(buildResetSurfaceMaterialUpdates(nodes, selectedNode))
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -51,25 +83,58 @@ export function PaintingTab() {
       </div>
       <div className="flex shrink-0 gap-1 px-3 pb-2">
         <button
-          className={`flex-1 rounded-lg px-2 py-1.5 font-semibold text-xs ${catalogView === 'rawpainter' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}`}
-          onClick={() => setCatalogView('rawpainter')}
+          aria-pressed={paintEraser}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 font-semibold text-xs ${paintEraser ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+          onClick={() => setPaintEraser(!paintEraser)}
           type="button"
         >
-          {t('painting.catalog.rawpainter')}
+          <Eraser className="h-3.5 w-3.5" />
+          {t('painting.erase')}
         </button>
         <button
-          className={`flex-1 rounded-lg px-2 py-1.5 font-semibold text-xs ${catalogView === 'library' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}`}
-          onClick={() => setCatalogView('library')}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-muted px-2 py-1.5 font-semibold text-muted-foreground text-xs disabled:opacity-40"
+          disabled={!canResetSelection}
+          onClick={resetSelection}
           type="button"
         >
-          {t('painting.catalog.library')}
+          <RotateCcw className="h-3.5 w-3.5" />
+          {t('painting.resetAll')}
+        </button>
+      </div>
+      <div className="flex shrink-0 gap-1 px-3 pb-2">
+        <button
+          className={`flex-1 rounded-lg px-2 py-1.5 font-semibold text-xs ${catalogView === 'materials' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}`}
+          onClick={() => setCatalogView('materials')}
+          type="button"
+        >
+          {t('painting.catalog.materials')}
+        </button>
+        <button
+          className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 font-semibold text-xs ${catalogView === 'favorites' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}`}
+          onClick={() => setCatalogView('favorites')}
+          type="button"
+        >
+          <Star className={`h-3 w-3 ${catalogView === 'favorites' ? 'fill-current' : ''}`} />
+          {t('painting.catalog.favorites')}
+        </button>
+        <button
+          aria-label={t('painting.section.myMaterials')}
+          aria-pressed={catalogView === 'scene'}
+          className={`flex w-8 items-center justify-center rounded-lg ${catalogView === 'scene' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}`}
+          onClick={() => setCatalogView('scene')}
+          title={t('painting.section.myMaterials')}
+          type="button"
+        >
+          <House className="h-3.5 w-3.5" />
         </button>
       </div>
       <div className="min-h-0 flex-1 px-3 pb-3">
-        {catalogView === 'rawpainter' ? (
-          <RawPainterCatalog onApplied={() => setCatalogView('library')} />
+        {catalogView === 'materials' ? (
+          <MergedMaterialCatalog />
+        ) : catalogView === 'favorites' ? (
+          <FavoriteMaterialsGrid />
         ) : (
-          <MaterialPaintPanel />
+          <MergedMaterialCatalog sceneOnly />
         )}
       </div>
     </div>

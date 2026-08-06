@@ -127,6 +127,38 @@ describe('areas and finishes', () => {
     expect(report.totals.ceiling).toBeCloseTo(12)
   })
 
+  test('ceiling drop zones add their reveal faces, skipping open edges', () => {
+    const square = [
+      [0, 0],
+      [4, 0],
+      [4, 3],
+      [0, 3],
+    ]
+    const bulkhead = [
+      [1, 1],
+      [3, 1],
+      [3, 2],
+      [1, 2],
+    ]
+    const report = deriveTakeoff(
+      scene({
+        id: 'ceiling_a',
+        type: 'ceiling',
+        polygon: square,
+        slots: { reveal: 'library:paint-white' },
+        // Perimeter 6 m × 0.3 deep, edge 0 (2 m) open → (6 − 2) × 0.3.
+        drops: [{ id: 'drop_a', kind: 'bulkhead', polygon: bulkhead, depthM: 0.3, openEdges: [0] }],
+      }),
+    )
+
+    const reveal = line(report, 'ceiling', 'reveal:library:paint-white')
+    expect(reveal?.quantity).toBeCloseTo(1.2)
+    expect(reveal?.materialRef).toBe('library:paint-white')
+    // The projected ceiling area is unchanged — the zone underside already
+    // counts in the polygon area.
+    expect(report.totals.ceiling).toBeCloseTo(12 + 1.2)
+  })
+
   test('painted wall faces group by material, not by wall', () => {
     const report = deriveTakeoff(
       scene(

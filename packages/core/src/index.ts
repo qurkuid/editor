@@ -123,6 +123,13 @@ export {
   ceilingProfileBounds,
 } from './lib/ceiling-features'
 export {
+  bestConstructionMaterial,
+  matchScore as constructionMaterialMatchScore,
+  sectionFromName as constructionSectionFromName,
+  sheetFromName as constructionSheetFromName,
+  thicknessFromName as constructionThicknessFromName,
+} from './lib/construction-material-match'
+export {
   clampDoorOperationState,
   getDoorRenderOpenAmount,
   getGarageVisibleOpeningRatio,
@@ -186,6 +193,10 @@ export {
 } from './lib/guide-perspective'
 export { getDefaultLevelName, getLevelDisplayName } from './lib/level-name'
 export * from './lib/lighting'
+export {
+  withBandConstructionMaterials,
+  withDefaultConstructionMaterials,
+} from './lib/link-default-construction'
 export {
   areMeasurementPointsCoplanar,
   closestMeasurementFeatureBinding,
@@ -294,17 +305,6 @@ export {
   terrainSupportLift,
 } from './lib/terrain-support'
 export {
-  bestConstructionMaterial,
-  matchScore as constructionMaterialMatchScore,
-  sectionFromName as constructionSectionFromName,
-  sheetFromName as constructionSheetFromName,
-  thicknessFromName as constructionThicknessFromName,
-} from './lib/construction-material-match'
-export {
-  withBandConstructionMaterials,
-  withDefaultConstructionMaterials,
-} from './lib/link-default-construction'
-export {
   buildWallConstructionLayerSpans,
   calculateWallConstructionQuantities,
   createDefaultWallFaceBands,
@@ -367,6 +367,11 @@ export type {
 } from './registry'
 export * from './registry'
 export * from './schema'
+export {
+  SurfaceConstruction,
+  SurfaceConstructionLayer,
+  SurfaceConstructionLayerKind,
+} from './schema/nodes/surface-construction'
 export * from './services'
 export { isMovable, movePlanToward, moveToward, resolveMovable } from './services/movement'
 export {
@@ -535,8 +540,3 @@ export {
   type ValidationSeverity,
   validateBuildJson,
 } from './validation/validate-build-json'
-export {
-  SurfaceConstruction,
-  SurfaceConstructionLayer,
-  SurfaceConstructionLayerKind,
-} from './schema/nodes/surface-construction'

@@ -18,7 +18,12 @@ export const rawPainterProductSchema = z
     thumbnailUrl: z.string().nullish(),
     image: z.string().nullish(),
     img: z.string().nullish(),
+    detailImg: z.string().nullish(),
     hasSeamless: z.boolean().nullish(),
+    // mytexture rows (merged into the clone feed with negative ids) flag
+    // seamlessness as `isSeamless` and carry their images on S3 directly.
+    isSeamless: z.boolean().nullish(),
+    mytextureId: z.union([z.number(), z.string()]).nullish(),
     seamlessImage: z.string().nullish(),
     brand: z.string().nullish(),
     store: z.string().nullish(),

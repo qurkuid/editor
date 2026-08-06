@@ -246,6 +246,15 @@ export const useKeyboard = ({
         return
       }
 
+      if (e.key === 'Alt' && !e.repeat && useEditor.getState().mode === 'material-paint') {
+        // Alt in paint mode arms the eyedropper: the next click samples the
+        // hovered surface's material into the brush (one-shot — sampling
+        // disarms; releasing Alt without sampling disarms too, see keyup).
+        e.preventDefault()
+        useEditor.getState().setPaintSampling(true)
+        return
+      }
+
       // Brush size, on the keys every sculpting tool in the industry uses. Gated
       // on sculpt mode so `[`/`]` stay free everywhere else. Key-repeat is
       // allowed (unlike the cycles above) because holding to resize is the
@@ -718,6 +727,11 @@ export const useKeyboard = ({
       if (e.key === 'Alt') {
         const wasClean = altTapClean
         altTapClean = false
+        if (useEditor.getState().mode === 'material-paint') {
+          // Alt was the eyedropper hold — releasing it returns to painting.
+          if (useEditor.getState().paintSampling) useEditor.getState().setPaintSampling(false)
+          return
+        }
         if (!wasClean) return
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
           return

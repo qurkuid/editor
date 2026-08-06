@@ -15,6 +15,7 @@ import { siteBoundaryHandlesEnabled } from '../../lib/site-boundary'
 import useEditor, { type Phase, type Tool } from '../../store/use-editor'
 import {
   useControlPointReshape,
+  useEditingDrop,
   useEditingHole,
   useEndpointReshape,
   useIsCurveReshape,
@@ -138,6 +139,7 @@ export const ToolManager: React.FC = () => {
     }
   }, [reshapingNode, tangentReshape])
   const editingHole = useEditingHole()
+  const editingDrop = useEditingDrop()
   const selectedZoneId = useViewer((state) => state.selection.zoneId)
   const selectedIds = useViewer((state) => state.selection.selectedIds)
   const buildingId = useViewer((state) => state.selection.buildingId)
@@ -199,20 +201,29 @@ export const ToolManager: React.FC = () => {
     !isFloorplanDrivenReshape &&
     editingSlabHoleIsManual
 
-  // Show ceiling boundary editor when in structure/select mode with a ceiling selected (but not editing a hole)
+  // Show ceiling boundary editor when in structure/select mode with a ceiling
+  // selected (but not editing a hole or a drop zone)
   const showCeilingBoundaryEditor =
     phase === 'structure' &&
     mode === 'select' &&
     isSoleSelection &&
     selectedCeilingId !== undefined &&
     !isFloorplanDrivenReshape &&
-    (!editingHole || editingHole.nodeId !== selectedCeilingId)
+    (!editingHole || editingHole.nodeId !== selectedCeilingId) &&
+    (!editingDrop || editingDrop.nodeId !== selectedCeilingId)
 
   // Show ceiling hole editor when editing a hole on the selected ceiling
   const showCeilingHoleEditor =
     selectedCeilingId !== undefined &&
     editingHole !== null &&
     editingHole.nodeId === selectedCeilingId &&
+    !isFloorplanDrivenReshape
+
+  // Show ceiling drop-zone editor when reshaping a drop on the selected ceiling
+  const showCeilingDropEditor =
+    selectedCeilingId !== undefined &&
+    editingDrop !== null &&
+    editingDrop.nodeId === selectedCeilingId &&
     !isFloorplanDrivenReshape
 
   // Show zone boundary editor when in structure/select mode with a zone selected
@@ -322,6 +333,17 @@ export const ToolManager: React.FC = () => {
             return Registry ? (
               <Suspense fallback={null}>
                 <Registry ceilingId={selectedCeilingId} holeIndex={editingHole.holeIndex} />
+              </Suspense>
+            ) : null
+          })()}
+        {showCeilingDropEditor &&
+          selectedCeilingId &&
+          editingDrop &&
+          (() => {
+            const Registry = getRegistryAffordanceTool('ceiling', 'drop-edit')
+            return Registry ? (
+              <Suspense fallback={null}>
+                <Registry ceilingId={selectedCeilingId} dropId={editingDrop.dropId} />
               </Suspense>
             ) : null
           })()}

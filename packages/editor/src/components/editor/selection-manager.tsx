@@ -821,6 +821,87 @@ export const SelectionManager = () => {
 
       if (!isNodeInCurrentLevel(node)) return null
 
+      // Eyedropper: while the sampler is armed, a click reads the hovered
+      // surface's material into the brush instead of painting. Role resolution
+      // mirrors the paint dispatch below so exactly the paintable surfaces
+      // sample. `setActivePaintMaterial` clears the arm (one-shot), so the
+      // very next click paints with the sampled brush.
+      if (useEditor.getState().paintSampling) {
+        const sampleInteraction = (
+          role: string | null,
+          sample: () => ActivePaintMaterial | null,
+        ): PaintInteraction => ({
+          key: `${node.type}:${node.id}:${role ?? 'unsupported'}:sample`,
+          hoveredId: node.id as AnyNodeId,
+          hoverMode: role ? 'paint-ready' : 'paint-disabled',
+          paintHover: null,
+          apply: role
+            ? () => {
+                const sampled = sample()
+                // A theme-default surface carries no explicit material —
+                // nothing to pick up, stay armed.
+                if (!sampled) return
+                useEditor.getState().setActivePaintMaterial(sampled)
+                useEditor.getState().setActivePaintTarget(sampled.sourceTarget)
+              }
+            : null,
+          preview: () => previewCursor(role ? 'crosshair' : 'not-allowed'),
+        })
+
+        const samplePaintCap = nodeRegistry.get(node.type)?.capabilities?.paint
+        if (samplePaintCap) {
+          const materialIndex = getIntersectionMaterialIndex(getEventObject(event), event.faceIndex)
+          const role = samplePaintCap.resolveRole({
+            node,
+            materialIndex: materialIndex ?? null,
+            normal: event.normal,
+            localPosition: event.localPosition as readonly [number, number, number] | undefined,
+            hitObjectName: event.nativeEvent.object?.name,
+            hitObject: getEventObject(event),
+            ray: event.nativeEvent.ray,
+          })
+          return sampleInteraction(role, () =>
+            role
+              ? resolveActivePaintMaterialFromSelection({
+                  nodes: useScene.getState().nodes,
+                  selectedId: node.id,
+                  selectedMaterialTarget: { nodeId: node.id, role },
+                })
+              : null,
+          )
+        }
+
+        if (node.type === 'roof' || node.type === 'roof-segment') {
+          const roofNode =
+            node.type === 'roof'
+              ? node
+              : node.parentId
+                ? useScene.getState().nodes[node.parentId as AnyNodeId]
+                : null
+          if (roofNode?.type !== 'roof') return null
+          const role = resolveRoofMaterialTarget(event as RoofEvent | RoofSegmentEvent)
+          const segmentTarget = node.type === 'roof-segment' ? (node as RoofSegmentNode) : null
+          return sampleInteraction(role, () => {
+            if (!role) return null
+            const surface = segmentTarget
+              ? getEffectiveSegmentSurfaceMaterial(
+                  segmentTarget,
+                  role,
+                  getEffectiveRoofSurfaceMaterial(roofNode as RoofNode, role),
+                )
+              : getEffectiveRoofSurfaceMaterial(roofNode as RoofNode, role)
+            const sampled: ActivePaintMaterial = {
+              material: surface.material,
+              materialPreset: surface.materialPreset,
+              sourceTarget: 'roof',
+            }
+            return hasActivePaintMaterial(sampled) ? sampled : null
+          })
+        }
+
+        return null
+      }
+
       // The eraser clears a surface back to its default by painting with an
       // empty material — every `build*SurfaceMaterialPatch` interprets
       // `undefined` material/preset as "reset this role". So a single spec
@@ -1177,8 +1258,15 @@ export const SelectionManager = () => {
 
     // Cycling the application scope (Shift) fires no pointer event, so replay
     // the last hover to re-resolve the spread and re-apply the preview at once.
+    // Arming/disarming the eyedropper (Alt, toolbar button) is the same kind of
+    // pointerless change — the hover must swap between paint preview and
+    // sample cursor in place.
     const unsubscribePaintScope = useEditor.subscribe((state, prev) => {
-      if (state.paintScope === prev.paintScope || !lastEnterEvent) return
+      if (
+        (state.paintScope === prev.paintScope && state.paintSampling === prev.paintSampling) ||
+        !lastEnterEvent
+      )
+        return
       clearActivePreview()
       onEnter(lastEnterEvent)
     })

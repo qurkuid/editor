@@ -60,6 +60,7 @@ export const bodyDefinition: NodeDefinition<typeof BodyNode> = {
   toolHints: [
     { key: 'Left click', label: 'Draw active shape' },
     { key: 'Enter', label: 'Close line face' },
+    { key: 'C', label: 'Close line face' },
     { key: 'Esc', label: 'Cancel' },
   ],
   presentation: {

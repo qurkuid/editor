@@ -137,8 +137,9 @@ const MEP_ITEMS: MepItem[] = [
 /**
  * Activate a raw structure draw/cursor tool. Mirrors the editor's own
  * structure-tool activation (`setPhase`/`setStructureLayer`/`setMode`/`setTool`).
+ * Exported for the action rail's direct-modeling buttons (modeling-rail-controls).
  */
-function activateBuildTool(kind: string): void {
+export function activateBuildTool(kind: string): void {
   const ed = useEditor.getState()
   const definition = nodeRegistry.get(kind)
   const extension = getFloorplanNodeExtension(definition)

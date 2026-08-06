@@ -101,6 +101,11 @@ export const aiChatDictionary = {
     en: "Couldn't read the image file.",
   },
 
+  'aiChat.materialRequest.template': {
+    ko: '"{name}" 자재({ref})를 사용해서 다음 위치에 적용해줘: ',
+    en: 'Using the material "{name}" ({ref}), apply it to: ',
+  },
+
   'aiChat.op.create': { ko: '생성', en: 'Create' },
   'aiChat.op.update': { ko: '수정', en: 'Update' },
   'aiChat.op.delete': { ko: '삭제', en: 'Delete' },

@@ -9,6 +9,7 @@ import {
   getScaledDimensions,
   type ItemNode,
   movingFootprintAnchors,
+  resolveWallFlushSnap,
   type RoofSegmentNode,
   roofFacePointToSegment,
   useLiveNodeOverrides,
@@ -18,6 +19,7 @@ import {
   applyFloorplanAlignment,
   isGridSnapActive,
   isMagneticSnapActive,
+  useAlignmentGuides,
   useEditor,
   type WallPlanPoint,
 } from '@pascal-app/editor'
@@ -287,7 +289,7 @@ function buildFloorItemSession(
       // Figma-style alignment layered on the grid snap, mode-driven (matching 3D):
       // guides are DISPLAYED in every snapping mode; the magnetic pull onto them
       // is applied only in "lines" mode (`applySnap`).
-      const { point: snapped } = applyFloorplanAlignment(
+      let { point: snapped } = applyFloorplanAlignment(
         gridSnapped,
         movingFootprintAnchors(
           node as unknown as AnyNode,
@@ -298,6 +300,24 @@ function buildFloorItemSession(
         candidates,
         { applySnap: isMagneticSnapActive() },
       )
+
+      // Wall-flush snap — 2D parity with the 3D coordinator: pull the
+      // footprint's nearest edge flush onto the nearest wall face. Wins over
+      // grid / alignment on the wall-normal axis; off in Off / Angles.
+      if (isMagneticSnapActive() || isGridSnapActive()) {
+        const flush = resolveWallFlushSnap({
+          nodes,
+          levelId: startLevelId,
+          x: snapped[0],
+          z: snapped[1],
+          dimensions: getScaledDimensions(node),
+          rotationY,
+        })
+        if (flush) {
+          snapped = [flush.x, flush.z]
+          useAlignmentGuides.getState().clear()
+        }
+      }
 
       const sourceY = node.position[1]
       const nextPosition: [number, number, number] = [snapped[0], sourceY, snapped[1]]

@@ -401,6 +401,12 @@ type EditorState = {
   // default material instead of applying `activePaintMaterial`.
   paintEraser: boolean
   setPaintEraser: (eraser: boolean) => void
+  // One-shot eyedropper arm: while true, the next paint-mode click samples the
+  // clicked surface's material into `activePaintMaterial` instead of painting.
+  // Armed from the action-menu eyedropper button or by holding Alt in paint
+  // mode; sampling (or picking any brush) clears it.
+  paintSampling: boolean
+  setPaintSampling: (sampling: boolean) => void
   primeMaterialPaintFromSelection: () => MaterialPaintSelectionSnapshot
   /**
    * Terrain sculpt state. Lives here rather than in the tool component so the
@@ -935,6 +941,12 @@ function syncBrushModeScope(mode: Mode): void {
     scope.endIf((s) => s.kind === 'painting' || s.kind === 'sculpting')
     if (useEditor.getState().terrainSampling) useEditor.getState().setTerrainSampling(false)
   }
+  // The paint eyedropper is the same class of one-shot arm as the terrain one
+  // above, but its mode is `material-paint` — clear it on every exit path,
+  // including the switch into the *other* brush mode.
+  if (mode !== 'material-paint' && useEditor.getState().paintSampling) {
+    useEditor.getState().setPaintSampling(false)
+  }
 }
 
 /**
@@ -1157,9 +1169,10 @@ const useEditor = create<EditorState>()(
       setSelectedMaterialTarget: (target) => set({ selectedMaterialTarget: target }),
       activePaintMaterial: null,
       // Picking a material implies paint, not erase — clear the eraser so the
-      // next click applies the chosen material.
+      // next click applies the chosen material. The eyedropper arm drops for
+      // the same reason: the brush is chosen, sampling is done.
       setActivePaintMaterial: (material) =>
-        set({ activePaintMaterial: material, paintEraser: false }),
+        set({ activePaintMaterial: material, paintEraser: false, paintSampling: false }),
       activePaintTarget: 'wall',
       setActivePaintTarget: (target) =>
         set((state) =>
@@ -1180,6 +1193,8 @@ const useEditor = create<EditorState>()(
       },
       paintEraser: false,
       setPaintEraser: (eraser) => set({ paintEraser: eraser }),
+      paintSampling: false,
+      setPaintSampling: (sampling) => set({ paintSampling: sampling }),
       primeMaterialPaintFromSelection: () => {
         const selectedId =
           useViewer.getState().selection.selectedIds.length === 1

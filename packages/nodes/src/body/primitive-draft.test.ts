@@ -4,7 +4,28 @@ import {
   resolveCircleDraft,
   resolveLineFaceDraft,
   shouldCloseLineDraft,
+  snapLineDraftPoint,
 } from './primitive-draft'
+
+describe('snapLineDraftPoint', () => {
+  const triangle: [number, number][] = [
+    [0, 0],
+    [2, 0],
+    [2, 2],
+  ]
+
+  test('sticks onto the start point once the draft can close', () => {
+    expect(snapLineDraftPoint(triangle, [0.08, -0.05], 0.12)).toEqual([0, 0])
+  })
+
+  test('leaves the point alone outside the tolerance', () => {
+    expect(snapLineDraftPoint(triangle, [0.3, 0.3], 0.12)).toEqual([0.3, 0.3])
+  })
+
+  test('never snaps while the draft is too short to close', () => {
+    expect(snapLineDraftPoint([[0, 0], [2, 0]], [0.05, 0], 0.12)).toEqual([0.05, 0])
+  })
+})
 
 describe('Body primitive drafting', () => {
   test('creates a circle face from a center and an exact typed radius', () => {

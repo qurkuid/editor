@@ -2,6 +2,7 @@
 
 import { useViewer } from '@pascal-app/viewer'
 import { motion } from 'motion/react'
+import type { ReactNode } from 'react'
 import { TooltipProvider } from './../../../components/ui/primitives/tooltip'
 import { useIsMobile } from './../../../hooks/use-mobile'
 import { useReducedMotion } from './../../../hooks/use-reduced-motion'
@@ -16,7 +17,16 @@ import { SecondaryToggles } from './view-toggles'
 // just above that strip instead of inside it.
 const MOBILE_BOTTOM_OFFSET = 24
 
-export function ActionMenu({ className }: { className?: string }) {
+export function ActionMenu({
+  className,
+  extraControls,
+}: {
+  className?: string
+  /** Host-injected buttons rendered after the built-in control modes. Lets the
+   *  app add controls whose wiring lives above this package's layer (e.g. the
+   *  body-tool primitives from `@pascal-app/nodes`). */
+  extraControls?: ReactNode
+}) {
   const isMobile = useIsMobile()
   const hasSelectionOnMobile = useViewer((s) => isMobile && s.selection.selectedIds.length > 0)
   const hasReferenceOnMobile = useEditor((s) => isMobile && Boolean(s.selectedReferenceId))
@@ -56,6 +66,7 @@ export function ActionMenu({ className }: { className?: string }) {
             {/* Row 1: control modes only */}
             <div className="flex items-center justify-center gap-1">
               <ControlModes />
+              {extraControls}
             </div>
             {/* Row 2: secondary toggles (orbit + top view hidden) */}
             <div className="flex items-center justify-center gap-1 border-border/50 border-t pt-1">
@@ -65,6 +76,7 @@ export function ActionMenu({ className }: { className?: string }) {
         ) : (
           <div className="flex items-center justify-center gap-1 px-2 py-1.5">
             <ControlModes />
+            {extraControls}
             <div className="mx-1 h-5 w-px bg-border" />
             <SecondaryToggles />
             <div className="mx-1 h-5 w-px bg-border" />

@@ -22,6 +22,7 @@ import { GuidedBuildTab } from '@/components/guided-build-tab'
 import { HostSettingsSection } from '@/components/host-settings-section'
 import { IntmMaterialLibrary } from '@/components/intm-material-library'
 import { LightingTab } from '@/components/lighting-tab'
+import { ModelingRailControls } from '@/components/modeling-rail-controls'
 import { PaintingTab } from '@/components/painting-tab'
 import { SkpItemsPanel } from '@/components/skp-items-panel'
 import { StatsTab } from '@/components/stats-tab'
@@ -205,6 +206,7 @@ export default function Home() {
         projectId={PROJECT_ID}
         settingsPanelProps={{ hostSection: <HostSettingsSection /> }}
         sidebarTabs={sidebarTabs}
+        actionMenuControls={<ModelingRailControls />}
         viewerToolbarLeft={<CommunityViewerToolbarLeft />}
         viewerToolbarRight={<CommunityViewerToolbarRight />}
       />

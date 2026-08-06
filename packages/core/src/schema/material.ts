@@ -54,6 +54,10 @@ export const MaterialSchema = z.object({
       offset: z.tuple([z.number(), z.number()]).optional(),
       /** Texture rotation in degrees around the tile centre. */
       rotationDeg: z.number().optional(),
+      /** Optional height/bump map aligned with the albedo texture. */
+      bumpUrl: AssetUrl.optional(),
+      /** Bump strength; omitted or 0 leaves the surface flat. */
+      bumpScale: z.number().optional(),
     })
     .optional(),
 })

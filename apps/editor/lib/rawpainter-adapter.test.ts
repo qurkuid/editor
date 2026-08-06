@@ -162,6 +162,41 @@ describe('RawPainter host adapter', () => {
     )
   })
 
+  test('routes mytexture rows (negative ids) through the S3 image proxy arm', async () => {
+    // Given: a mytexture row from the merged clone feed — the clone asset
+    // endpoint 400s on its negative id; its only images live on S3.
+    const s3Image =
+      'https://mytexture-assets.s3.ap-northeast-2.amazonaws.com/thumbnails/HC801%20th.webp'
+    const mytextureProduct = {
+      id: -400,
+      mytextureId: 400,
+      category: '인테리어필름',
+      name: 'HC801 퓨어화이트',
+      img: s3Image,
+      detailImg: s3Image,
+      thumbnailUrl:
+        'https://mytexture-assets.s3.ap-northeast-2.amazonaws.com/lib-thumbnails/HC801%20lib.webp',
+      isSeamless: true,
+      options: [{ id: 0, size: null, price: '6600' }],
+    }
+
+    // When: the row becomes an editor material.
+    const material = normalizeRawPainterProduct(mytextureProduct)
+
+    // Then: the texture goes through the app proxy's mytexture arm (the S3
+    // bucket serves no CORS headers), never the numeric clone-asset path.
+    expect(material.appearance.maps.albedoMap).toBe(
+      `/api/materials/rawpainter/asset/mytexture?src=${encodeURIComponent(s3Image)}`,
+    )
+
+    // And: `isSeamless` counts as vendor-seamless — no local bake request runs.
+    const resolve = async () => {
+      throw new Error('must not run the local pipeline')
+    }
+    const seamless = await normalizeRawPainterProductSeamless(mytextureProduct, undefined, resolve)
+    expect(seamless.appearance.maps.albedoMap).toContain('/asset/mytexture?src=')
+  })
+
   test('stores a scene texture through the shared local seamless cache', async () => {
     // Given: a host adapter backed by the local seamless asset resolver.
     const resolvedUrls: string[] = []

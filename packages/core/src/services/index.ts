@@ -125,3 +125,8 @@ export {
   type DwvSeverity,
   validateDwv,
 } from './validate-dwv'
+export {
+  resolveWallFlushSnap,
+  WALL_FLUSH_SNAP_THRESHOLD_M,
+  type WallFlushSnapInput,
+} from './wall-flush-snap'

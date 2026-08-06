@@ -58,20 +58,25 @@ function number(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function rawPainterCategory(product: RawPainterProduct): MaterialCategory {
-  const value = `${text(product.category)} ${text(product.subCategory)}`.toLowerCase()
-  if (/목재|우드|wood|마루/.test(value)) return 'wood'
-  if (/석재|스톤|stone|대리석|디자인월/.test(value)) return 'stone'
-  if (/타일|tile/.test(value)) return 'tile'
-  if (/벽지|wallpaper/.test(value)) return 'wallpaper'
-  if (/콘크리트|cement|시멘트/.test(value)) return 'concrete'
-  if (/금속|metal/.test(value)) return 'metal'
-  if (/패브릭|fabric|폴리에스터/.test(value)) return 'fabric'
-  if (/카펫|carpet/.test(value)) return 'carpet'
-  if (/가죽|leather/.test(value)) return 'leather'
-  if (/유리|glass/.test(value)) return 'glass'
-  if (/페인트|paint|plaster/.test(value)) return 'colors'
+/** Map vendor category wording (Korean or English) onto the local taxonomy. */
+export function matchMaterialCategoryFromText(value: string): MaterialCategory {
+  const normalized = value.toLowerCase()
+  if (/목재|우드|wood|마루/.test(normalized)) return 'wood'
+  if (/석재|스톤|stone|대리석|디자인월/.test(normalized)) return 'stone'
+  if (/타일|tile/.test(normalized)) return 'tile'
+  if (/벽지|wallpaper/.test(normalized)) return 'wallpaper'
+  if (/콘크리트|cement|시멘트/.test(normalized)) return 'concrete'
+  if (/금속|metal/.test(normalized)) return 'metal'
+  if (/패브릭|fabric|폴리에스터/.test(normalized)) return 'fabric'
+  if (/카펫|carpet/.test(normalized)) return 'carpet'
+  if (/가죽|leather/.test(normalized)) return 'leather'
+  if (/유리|glass/.test(normalized)) return 'glass'
+  if (/페인트|paint|plaster/.test(normalized)) return 'colors'
   return 'other'
+}
+
+function rawPainterCategory(product: RawPainterProduct): MaterialCategory {
+  return matchMaterialCategoryFromText(`${text(product.category)} ${text(product.subCategory)}`)
 }
 
 export function parseRawPainterPhysicalSize(
@@ -104,6 +109,21 @@ function physicalSize(options: unknown): { widthM: number; heightM: number } | u
   return undefined
 }
 
+/**
+ * mytexture rows ride the clone feed with negative ids. The clone asset
+ * endpoint 400s on them — their only images are direct S3 URLs on the product,
+ * which the browser can't fetch cross-origin (no CORS on the bucket), so their
+ * texture routes through the app proxy's `mytexture` arm instead.
+ */
+function isMytextureProduct(product: RawPainterProduct): boolean {
+  const id = number(product.id)
+  return id !== null && id < 0
+}
+
+function mytextureImageUrl(product: RawPainterProduct): string {
+  return text(product.detailImg) || text(product.img) || text(product.thumbnailUrl)
+}
+
 export function normalizeRawPainterProduct(
   product: RawPainterProduct,
   assetOrigin?: string,
@@ -116,9 +136,14 @@ export function normalizeRawPainterProduct(
   // constructed URL even when `hasSeamless` is false, and that fallback serves
   // a low-quality auto-blur that tiles with a visible grid (e.g. HAT210).
   const textureKind = product.hasSeamless === true ? 'seamless' : null
-  const texturePath = withBasePath(
-    `/api/materials/rawpainter/asset/${externalId}${textureKind ? '?kind=seamless' : ''}`,
-  )
+  const mytextureImage = isMytextureProduct(product) ? mytextureImageUrl(product) : ''
+  const texturePath = mytextureImage
+    ? withBasePath(
+        `/api/materials/rawpainter/asset/mytexture?src=${encodeURIComponent(mytextureImage)}`,
+      )
+    : withBasePath(
+        `/api/materials/rawpainter/asset/${externalId}${textureKind ? '?kind=seamless' : ''}`,
+      )
   const textureUrl = assetOrigin ? new URL(texturePath, assetOrigin).href : texturePath
   const brand = text(product.brand)
   const store = text(product.store)
@@ -147,6 +172,8 @@ export function normalizeRawPainterProduct(
 }
 
 export function hasVendorSeamlessTexture(product: RawPainterProduct): boolean {
+  // mytexture rows have one S3 image; `isSeamless` says it already tiles.
+  if (isMytextureProduct(product)) return product.isSeamless === true
   return product.hasSeamless === true
 }
 

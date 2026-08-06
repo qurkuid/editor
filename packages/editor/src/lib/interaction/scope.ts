@@ -19,7 +19,14 @@ export type ReshapeDriver = 'tool' | 'floorplan'
 // node, one in-flight reshape. Grouping them as sub-states of `reshaping`
 // (rather than four sibling scopes) keeps the union small while still making
 // "curving and hole-editing at once" unrepresentable.
-export type ReshapeKind = 'curve' | 'hole' | 'endpoint' | 'boundary' | 'control-point' | 'tangent'
+export type ReshapeKind =
+  | 'curve'
+  | 'hole'
+  | 'drop'
+  | 'endpoint'
+  | 'boundary'
+  | 'control-point'
+  | 'tangent'
 
 export type InteractionScope =
   | { kind: 'idle' }
@@ -51,6 +58,8 @@ export type InteractionScope =
       // Floorplan affordances own their commit and must not mount a second 3D reshape tool.
       driver: ReshapeDriver
       holeIndex?: number
+      // Set only for `reshape: 'drop'` — the ceiling drop zone being reshaped.
+      dropId?: string
       endpoint?: 'start' | 'end'
       index?: number
       side?: 'in' | 'out'
@@ -143,6 +152,29 @@ export function holeEditScope(target: {
     nodeId: target.nodeId,
     reshape: 'hole',
     holeIndex: target.holeIndex,
+    driver: target.driver ?? 'tool',
+  }
+}
+
+// The ceiling drop zone currently being reshaped (sister of `editingHoleInfo`).
+export function editingDropInfo(
+  scope: InteractionScope,
+): { nodeId: string; dropId: string } | null {
+  return scope.kind === 'reshaping' && scope.reshape === 'drop' && scope.dropId !== undefined
+    ? { nodeId: scope.nodeId, dropId: scope.dropId }
+    : null
+}
+
+export function dropEditScope(target: {
+  nodeId: string
+  dropId: string
+  driver?: ReshapeDriver
+}): ActiveInteractionScope {
+  return {
+    kind: 'reshaping',
+    nodeId: target.nodeId,
+    reshape: 'drop',
+    dropId: target.dropId,
     driver: target.driver ?? 'tool',
   }
 }

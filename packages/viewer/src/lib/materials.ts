@@ -212,20 +212,20 @@ export function getTextureKey(material?: MaterialSchema): string {
   const [repeatX, repeatY] = resolveTextureRepeat(texture.repeat, texture.scale)
   const [offsetX, offsetY] = texture.offset ?? [0, 0]
   const rotation = texture.rotationDeg ?? 0
-  return `${texture.url}-${repeatX}x${repeatY}-${offsetX},${offsetY}r${rotation}`
+  const bump = texture.bumpUrl ? `-b${texture.bumpUrl}s${texture.bumpScale ?? 0}` : ''
+  return `${texture.url}-${repeatX}x${repeatY}-${offsetX},${offsetY}r${rotation}${bump}`
 }
 
-function getTexture(material?: MaterialSchema): THREE.Texture | undefined {
-  const textureConfig = material?.texture
-  if (!textureConfig?.url) return undefined
-
-  const cacheKey = getTextureKey(material)
+function loadSceneTexture(
+  url: string,
+  textureConfig: NonNullable<MaterialSchema['texture']>,
+  slot: 'map' | 'bumpMap',
+  cacheKey: string,
+): THREE.Texture {
   const cached = textureCache.get(cacheKey)
   if (cached) return cached
 
-  const resolvedUrl = /^(?:asset|blob|data):/.test(textureConfig.url)
-    ? textureConfig.url
-    : (resolveCdnUrl(textureConfig.url) ?? textureConfig.url)
+  const resolvedUrl = /^(?:asset|blob|data):/.test(url) ? url : (resolveCdnUrl(url) ?? url)
   let texture: THREE.Texture
   if (isStoredAssetUrl(resolvedUrl)) {
     texture = new THREE.Texture()
@@ -251,15 +251,34 @@ function getTexture(material?: MaterialSchema): THREE.Texture | undefined {
     texture.rotation = (textureConfig.rotationDeg * Math.PI) / 180
   }
   texture.updateMatrix()
-  texture.colorSpace = THREE.SRGBColorSpace
+  texture.colorSpace = slot === 'map' ? THREE.SRGBColorSpace : THREE.NoColorSpace
   stampPascalTextureRef(texture, {
     kind: 'project-asset',
     src: resolvedUrl,
-    slot: 'map',
+    slot,
   })
 
   textureCache.set(cacheKey, texture)
   return texture
+}
+
+function getTexture(material?: MaterialSchema): THREE.Texture | undefined {
+  const textureConfig = material?.texture
+  if (!textureConfig?.url) return undefined
+  return loadSceneTexture(textureConfig.url, textureConfig, 'map', getTextureKey(material))
+}
+
+// The bump map shares the albedo's tiling so height detail stays registered
+// with the image it was derived from.
+function getBumpTexture(material?: MaterialSchema): THREE.Texture | undefined {
+  const textureConfig = material?.texture
+  if (!textureConfig?.bumpUrl || !(textureConfig.bumpScale ?? 0)) return undefined
+  return loadSceneTexture(
+    textureConfig.bumpUrl,
+    textureConfig,
+    'bumpMap',
+    `${getTextureKey(material)}-bumpmap`,
+  )
 }
 
 function isStandardMaterial(material: THREE.Material): material is StandardMaterial {
@@ -605,6 +624,7 @@ export function createMaterial(
   }
 
   if (map) materialParams.map = map
+  const bumpMap = shading === 'solid' ? undefined : getBumpTexture(material)
 
   const threeMaterial =
     shading === 'solid'
@@ -613,6 +633,7 @@ export function createMaterial(
           ...materialParams,
           roughness: props.roughness,
           metalness: props.metalness,
+          ...(bumpMap ? { bumpMap, bumpScale: material?.texture?.bumpScale ?? 1 } : {}),
         })
 
   maybeApplyGlassFresnel(threeMaterial)
