@@ -44,6 +44,7 @@ const HORIZONTAL_SURFACE_MAX_OCCLUDER_NORMAL_Y = 0.5
 const HORIZONTAL_SURFACE_TYPES = new Set(['slab', 'ceiling', 'site'])
 
 export type MeasurementRaycastContext = {
+  excludeNodeIds?: ReadonlySet<string>
   ownerByObject: Map<Object3D, string>
   roots: Object3D[]
   includeZoneLayer?: boolean
@@ -102,6 +103,11 @@ export type MeasurementSurfaceQuerySession = {
   }): MeasurementAxisSurfaceIntersection[]
   invalidate(): void
   dispose(): void
+}
+
+export type MeasurementSurfaceQueryOptions = {
+  includeZoneLayer?: boolean
+  excludeNodeIds?: readonly string[]
 }
 
 function areSameMeasurementPoint(
@@ -309,7 +315,7 @@ export function collectMeasurementSurfaceRoots(
 
 export function createMeasurementRaycastContext(
   scene: Object3D,
-  options: { includeZoneLayer?: boolean } = {},
+  options: MeasurementSurfaceQueryOptions = {},
 ): MeasurementRaycastContext {
   const entries = Array.from(sceneRegistry.nodes.entries())
   const ownerByObject = new Map(entries.map(([id, object]) => [object, id]))
@@ -333,6 +339,10 @@ export function createMeasurementRaycastContext(
     .map(([, object]) => object)
 
   return {
+    excludeNodeIds:
+      options.excludeNodeIds && options.excludeNodeIds.length > 0
+        ? new Set(options.excludeNodeIds)
+        : undefined,
     ownerByObject,
     roots: collectMeasurementSurfaceRoots(scene, registeredRoots),
     includeZoneLayer: options.includeZoneLayer,
@@ -380,6 +390,7 @@ function collectVisibleMeasurementSurfaceHits(
       continue
     }
     if (targetNodeId) {
+      if (context.excludeNodeIds?.has(targetNodeId)) continue
       if (
         !targetType ||
         targetType === 'measurement' ||
@@ -637,7 +648,11 @@ function resolveSurfacePoint(
         candidateToVerify.candidateWorld,
         rawNormalWorld,
         verificationRaycaster,
-        { ownerByObject: context.ownerByObject, roots: [rawWorldHit.intersection.object] },
+        {
+          excludeNodeIds: context.excludeNodeIds,
+          ownerByObject: context.ownerByObject,
+          roots: [rawWorldHit.intersection.object],
+        },
       )
       candidateToVerify.verified = verifiedHit !== null
       candidateToVerify.verifiedHit = verifiedHit
@@ -758,7 +773,7 @@ function collectMeasurementAxisSurfaceIntersections(
 
 export function createMeasurementSurfaceQuerySession(
   scene: Object3D,
-  options: { includeZoneLayer?: boolean } = {},
+  options: MeasurementSurfaceQueryOptions = {},
 ): MeasurementSurfaceQuerySession {
   const pointerRaycaster = new Raycaster()
   const verificationRaycaster = new Raycaster()

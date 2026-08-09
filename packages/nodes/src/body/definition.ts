@@ -1,6 +1,7 @@
 import type { NodeDefinition } from '@pascal-app/core'
 import type { FloorplanNodeExtension } from '@pascal-app/editor'
 import { buildBodyFloorplan } from './floorplan'
+import { bodyFloorplanMoveTarget } from './floorplan-move'
 import { buildBodyGeometry } from './geometry'
 import {
   bodyMeasurementFeatures,
@@ -55,7 +56,9 @@ export const bodyDefinition: NodeDefinition<typeof BodyNode> = {
   parametrics: bodyParametrics,
   affordanceTools: {
     selection: () => import('./selection'),
+    move: () => import('./move-tool'),
   },
+  floorplanMoveTarget: bodyFloorplanMoveTarget,
   tool: () => import('./tool'),
   toolHints: [
     { key: 'Left click', label: 'Draw active shape' },

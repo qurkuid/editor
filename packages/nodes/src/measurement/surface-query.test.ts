@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { useScene } from '@pascal-app/core'
+import { createRectangleBody, useScene } from '@pascal-app/core'
 import {
   DoubleSide,
   Group,
@@ -26,6 +26,38 @@ function createSurface(z: number) {
 }
 
 describe('smart measurement surface priority', () => {
+  test('excludes configured semantic owners from visible hits', () => {
+    const ownNode = createRectangleBody({ width: 1, depth: 1 })
+    const otherNode = createRectangleBody({ width: 1, depth: 1 })
+    const ownBody = createSurface(0.2)
+    const otherBody = createSurface(0)
+    ownBody.userData.pascalNodeId = ownNode.id
+    otherBody.userData.pascalNodeId = otherNode.id
+    ownBody.updateMatrixWorld(true)
+    otherBody.updateMatrixWorld(true)
+    useScene.setState({
+      nodes: {
+        [ownNode.id]: ownNode,
+        [otherNode.id]: otherNode,
+      },
+    })
+
+    const hit = castVisibleMeasurementSurface(
+      new Raycaster(new Vector3(0, 0, 1), new Vector3(0, 0, -1)),
+      {
+        excludeNodeIds: new Set([ownNode.id]),
+        ownerByObject: new Map(),
+        roots: [ownBody, otherBody],
+      },
+    )
+
+    expect(hit?.targetNodeId).toBe(otherNode.id)
+    ownBody.geometry.dispose()
+    ownBody.material.dispose()
+    otherBody.geometry.dispose()
+    otherBody.material.dispose()
+  })
+
   test('recovers a semantic owner from generated geometry identity', () => {
     const body = createSurface(0)
     body.userData.pascalNodeId = 'body_1'
