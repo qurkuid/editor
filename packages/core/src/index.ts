@@ -102,6 +102,7 @@ export {
   updateRoundedRectangularFrameOpening,
   updateRoundedRectangularFrameRadius,
 } from './lib/body-frame-edit'
+export { type ImprintBodyFaceResult, imprintBodyFace } from './lib/body-imprint'
 export { pushPullBodyFace } from './lib/body-push-pull'
 export {
   type BodyTopologyDiagnostic,
@@ -118,8 +119,8 @@ export {
 } from './lib/body-topology'
 export {
   type CeilingFeatureEdgeFrame,
-  ceilingFeatureEdgeFrame,
   type CeilingProfileBounds,
+  ceilingFeatureEdgeFrame,
   ceilingProfileBounds,
 } from './lib/ceiling-features'
 export {

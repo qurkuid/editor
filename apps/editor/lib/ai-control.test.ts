@@ -5,6 +5,7 @@ import {
   getBodyLoopVertices,
   insertFurnitureBay,
   insertFurnitureTier,
+  pushPullBodyFace,
   setFurnitureTierInterior,
 } from '@pascal-app/core'
 import { type AnyNodeId, BodyNode, CabinetNode, LevelNode, WallNode } from '@pascal-app/core/schema'
@@ -190,6 +191,52 @@ describe('AI modeling control plane', () => {
 
     useScene.temporal.getState().undo()
     expect(BodyNode.parse(useScene.getState().nodes[body.id]).revision).toBe(0)
+  })
+
+  test('imprints and raises a closed body face without guessing the inset face id', () => {
+    const body = BodyNode.parse({
+      ...pushPullBodyFace(createRectangleBody({ width: 1.2, depth: 0.8 }), 'face:0', 1.2).body,
+      id: 'body_ai_imprint',
+      parentId: levelId,
+    })
+    useScene.setState((state) => ({ nodes: { ...state.nodes, [body.id]: body } }))
+    useScene.temporal.getState().clear()
+
+    const result = applyAiModelingPlan({
+      message: 'Imprinted and raised a rectangular boss.',
+      patches: [
+        {
+          op: 'imprintBodyFace',
+          id: body.id,
+          faceId: 'face:0',
+          profilePoints: [
+            [0.2, 1.2, 0.1],
+            [1, 1.2, 0.1],
+            [1, 1.2, 0.7],
+            [0.2, 1.2, 0.7],
+          ],
+          distance: 0.15,
+        },
+      ],
+    })
+
+    const updated = BodyNode.parse(useScene.getState().nodes[body.id])
+    expect(result.appliedOps).toBe(1)
+    expect(updated.faces.some((face) => face.id === 'face:0:imprint:2')).toBe(true)
+    expect(
+      getBodyLoopVertices(updated, 'face:0:imprint:2:outer:2').every(
+        (point) => Math.abs(point[1] - 1.35) < 1e-9,
+      ),
+    ).toBe(true)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+
+    useScene.temporal.getState().undo()
+    expect(BodyNode.parse(useScene.getState().nodes[body.id]).revision).toBe(1)
+    expect(
+      BodyNode.parse(useScene.getState().nodes[body.id]).faces.some(
+        (face) => face.id === 'face:0:imprint:2',
+      ),
+    ).toBe(false)
   })
 
   test('creates a rounded hollow frame as one structured operation and one undo step', () => {

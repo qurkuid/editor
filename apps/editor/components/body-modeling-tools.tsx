@@ -20,8 +20,10 @@ export function selectBodyPrimitive(
   actions: {
     setPrimitive: (primitive: BodyPrimitive) => void
     activateBodyTool: () => void
+    setFaceDraft?: (draft: null) => void
   },
 ) {
+  actions.setFaceDraft?.(null)
   actions.setPrimitive(primitive)
   actions.activateBodyTool()
 }
@@ -36,6 +38,7 @@ export function BodyModelingTools({
   const t = useT()
   const primitive = useBodyToolOptions((state) => state.primitive)
   const setPrimitive = useBodyToolOptions((state) => state.setPrimitive)
+  const setFaceDraft = useBodyToolOptions((state) => state.setFaceDraft)
 
   return (
     <section className="overflow-hidden rounded-xl border border-sky-400/20 bg-sky-400/5">
@@ -64,7 +67,11 @@ export function BodyModelingTools({
               )}
               key={id}
               onClick={() =>
-                selectBodyPrimitive(id, { activateBodyTool: onActivate, setPrimitive })
+                selectBodyPrimitive(id, {
+                  activateBodyTool: onActivate,
+                  setFaceDraft,
+                  setPrimitive,
+                })
               }
               type="button"
             >

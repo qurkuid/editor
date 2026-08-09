@@ -15,6 +15,7 @@ import { useViewer } from '@pascal-app/viewer'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BufferGeometry, Float32BufferAttribute, Mesh } from 'three'
+import { BodyFaceDraftTool } from './face-imprint-tool'
 import { buildBodyGeometry } from './geometry'
 import { useBodyToolOptions } from './options'
 import {
@@ -36,6 +37,7 @@ const BodyTool = () => {
   const activeLevelId = useViewer((state) => state.selection.levelId)
   const viewMode = useEditor((state) => state.viewMode)
   const primitive = useBodyToolOptions((state) => state.primitive)
+  const faceDraft = useBodyToolOptions((state) => state.faceDraft)
   const pointsRef = useRef<BodyDraftPoint[]>([])
   const [points, setPoints] = useState<BodyDraftPoint[]>([])
   const [hover, setHover] = useState<BodyDraftPoint | null>(null)
@@ -95,16 +97,16 @@ const BodyTool = () => {
   useEffect(() => () => pathGeometry.dispose(), [pathGeometry])
 
   useEffect(() => {
-    if (!(activeLevelId && bodyToolUses3DInteraction(viewMode))) return
+    if (!(activeLevelId && !faceDraft && bodyToolUses3DInteraction(viewMode))) return
     const previous = gl.domElement.style.cursor
     gl.domElement.style.cursor = 'crosshair'
     return () => {
       if (gl.domElement.style.cursor === 'crosshair') gl.domElement.style.cursor = previous
     }
-  }, [activeLevelId, gl.domElement, viewMode])
+  }, [activeLevelId, faceDraft, gl.domElement, viewMode])
 
   useEffect(() => {
-    if (!(activeLevelId && bodyToolUses3DInteraction(viewMode))) return
+    if (!(activeLevelId && !faceDraft && bodyToolUses3DInteraction(viewMode))) return
     pointsRef.current = []
     setPoints([])
     setHover(null)
@@ -200,8 +202,9 @@ const BodyTool = () => {
         .getState()
         .endIf((scope) => scope.kind === 'drafting' && scope.tool === 'body')
     }
-  }, [activeLevelId, clearLength, getLengthMeters, primitive, viewMode])
+  }, [activeLevelId, clearLength, faceDraft, getLengthMeters, primitive, viewMode])
 
+  if (faceDraft) return <BodyFaceDraftTool bodyId={faceDraft.bodyId} faceId={faceDraft.faceId} />
   if (!activeLevelId) return null
   return (
     <group>

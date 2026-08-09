@@ -110,6 +110,7 @@ export const aiChatDictionary = {
   'aiChat.op.update': { ko: '수정', en: 'Update' },
   'aiChat.op.delete': { ko: '삭제', en: 'Delete' },
   'aiChat.op.pushPullBodyFace': { ko: 'Push/Pull', en: 'Push/Pull' },
+  'aiChat.op.imprintBodyFace': { ko: '면 각인', en: 'Face imprint' },
   'aiChat.op.transformBody': { ko: 'Body 변환', en: 'Body transform' },
   'aiChat.op.paintBodyFace': { ko: 'Body 재질', en: 'Body material' },
   'aiChat.op.makeMaterialSeamless': { ko: 'AI 심리스', en: 'AI seamless' },

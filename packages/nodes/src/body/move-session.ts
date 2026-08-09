@@ -23,10 +23,6 @@ type BodyMoveSessionOptions = {
   readonly preview: BodyMovePreviewMode
 }
 
-type BodyMoveEffectStateOptions = BodyMoveSessionOptions & {
-  readonly placementDragMode: boolean
-}
-
 export type BodyMoveSession = {
   readonly preview: (translation: readonly [number, number, number]) => boolean
   readonly canCommit: () => boolean
@@ -35,7 +31,6 @@ export type BodyMoveSession = {
 }
 
 export type BodyMoveEffectState = {
-  readonly anchor: [number, number] | null
   readonly session: BodyMoveSession
 }
 
@@ -87,18 +82,19 @@ export function resolveBodyMoveTranslation(options: {
   return [options.planTranslation[0], 0, options.planTranslation[1]]
 }
 
-export function createBodyMoveInitialDragAnchor(
-  body: BodyNode,
-  placementDragMode: boolean,
-): [number, number] | null {
-  return placementDragMode ? null : bodyPlanCenter(body)
+export function resolveBodyPointMoveTranslation(options: {
+  readonly basePoint: readonly [number, number, number]
+  readonly targetPoint: readonly [number, number, number]
+}): [number, number, number] {
+  return [
+    options.targetPoint[0] - options.basePoint[0],
+    options.targetPoint[1] - options.basePoint[1],
+    options.targetPoint[2] - options.basePoint[2],
+  ]
 }
 
-export function createBodyMoveEffectState(
-  options: BodyMoveEffectStateOptions,
-): BodyMoveEffectState {
+export function createBodyMoveEffectState(options: BodyMoveSessionOptions): BodyMoveEffectState {
   return {
-    anchor: createBodyMoveInitialDragAnchor(options.body, options.placementDragMode),
     session: createBodyMoveSession({ body: options.body, preview: options.preview }),
   }
 }

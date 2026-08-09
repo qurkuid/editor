@@ -11,9 +11,9 @@ import { createBodyFloorplanMoveTarget } from './floorplan-move'
 import {
   bodyMinimumVertexY,
   createBodyMoveEffectState,
-  createBodyMoveInitialDragAnchor,
   createBodyMoveSession,
   resolveBodyMoveTranslation,
+  resolveBodyPointMoveTranslation,
 } from './move-session'
 
 if (!globalThis.requestAnimationFrame) {
@@ -126,13 +126,6 @@ describe('Body move session', () => {
     expect(storedBody(body.id)).toEqual(body)
   })
 
-  test('uses body center as the first 3D click-to-move anchor but preserves press-drag offset', () => {
-    const body = rectangleBody()
-
-    expect(createBodyMoveInitialDragAnchor(body, false)).toEqual([0.6, 0.4])
-    expect(createBodyMoveInitialDragAnchor(body, true)).toBeNull()
-  })
-
   test('resolves 3D surface stacking translation from surface point, body center, and minimum Y', () => {
     const body: BodyNode = {
       ...rectangleBody(),
@@ -164,24 +157,32 @@ describe('Body move session', () => {
     ).toEqual([0.4, 0, 0.6])
   })
 
+  test('keeps the chosen base point attached to the destination inference point', () => {
+    const translation = resolveBodyPointMoveTranslation({
+      basePoint: [1.2, 0.35, -0.4],
+      targetPoint: [2.75, 1.1, 3.2],
+    })
+
+    expect(translation[0]).toBeCloseTo(1.55)
+    expect(translation[1]).toBeCloseTo(0.75)
+    expect(translation[2]).toBeCloseTo(3.6)
+  })
+
   test('creates a fresh effect-owned session after StrictMode cleanup', () => {
     const body = rectangleBody()
     seedScene(body)
 
     const firstMount = createBodyMoveEffectState({
       body,
-      placementDragMode: false,
       preview: 'override',
     })
     firstMount.session.cancel()
 
     const secondMount = createBodyMoveEffectState({
       body,
-      placementDragMode: false,
       preview: 'override',
     })
 
-    expect(secondMount.anchor).toEqual([0.6, 0.4])
     expect(secondMount.session.preview([0.4, 0, 0.6])).toBe(true)
     expect(secondMount.session.canCommit()).toBe(true)
   })

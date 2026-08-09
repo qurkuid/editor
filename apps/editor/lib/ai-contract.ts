@@ -44,6 +44,18 @@ const PushPullBodyFacePatchSchema = z.object({
     .refine((value) => value !== 0, 'Expected a non-zero distance'),
 })
 
+const ImprintBodyFacePatchSchema = z.object({
+  op: z.literal('imprintBodyFace'),
+  id: AnyNodeIdSchema,
+  faceId: z.string().trim().min(1),
+  profilePoints: z.array(Point3Schema).min(3).max(512),
+  distance: z
+    .number()
+    .finite()
+    .refine((value) => value !== 0, 'Expected a non-zero distance')
+    .optional(),
+})
+
 const TransformBodyPatchSchema = z.object({
   op: z.literal('transformBody'),
   id: AnyNodeIdSchema,
@@ -147,6 +159,7 @@ export const AiModelingPatchSchema = z.discriminatedUnion('op', [
   UpdatePatchSchema,
   DeletePatchSchema,
   PushPullBodyFacePatchSchema,
+  ImprintBodyFacePatchSchema,
   TransformBodyPatchSchema,
   PaintBodyFacePatchSchema,
   MakeMaterialSeamlessPatchSchema,

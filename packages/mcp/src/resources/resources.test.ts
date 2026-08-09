@@ -222,6 +222,7 @@ describe('pascal://agent-guide', () => {
       expect(text).toContain('get_project_status')
       expect(text).toContain('editorUrl')
       expect(text).toContain('0 to 1 along the wall')
+      expect(text).toContain('two-click point-to-point workflow')
     } finally {
       await pair.close()
     }

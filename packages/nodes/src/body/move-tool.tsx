@@ -1,16 +1,20 @@
 'use client'
 
 import {
+  type AnyNodeId,
   type BodyEvent,
   type BodyNode,
   emitter,
   type GridEvent,
+  type MeasurementPoint,
   sceneRegistry,
+  useScene,
 } from '@pascal-app/core'
 import {
   CursorSphere,
   consumePlacementDragRelease,
   getSegmentGridStep,
+  isGridSnapActive,
   isMagneticSnapActive,
   markToolCancelConsumed,
   snapBuildingLocalToWorldGrid,
@@ -20,16 +24,28 @@ import {
 import { useViewer } from '@pascal-app/viewer'
 import { useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createMeasurementSurfaceQuerySession } from '../measurement/surface-query'
+import { Vector3 } from 'three'
+import {
+  associateSurfaceHit,
+  createMeasurementSurfaceQuerySession,
+  worldPointScreenDistance,
+} from '../measurement/surface-query'
+import { resolveBodyFaceId } from './face-target'
+import { matchBodyMeasurementFeature, resolveBodyMeasurementFaceId } from './measurement'
 import {
   bodyPlanCenter,
   createBodyMoveEffectState,
-  createBodyMoveInitialDragAnchor,
   resolveBodyMoveTranslation,
+  resolveBodyPointMoveTranslation,
 } from './move-session'
+import {
+  type BodyMoveSnap,
+  BodyMoveSnapMarker,
+  bodyMoveSnapFromBinding,
+  bodyMoveSnapFromSurfaceHit,
+} from './move-snap'
 
 type PointerEventSource = PointerEvent | { readonly nativeEvent: PointerEvent }
-
 function normalizePointerEvent(source: PointerEventSource): PointerEvent {
   return 'nativeEvent' in source ? source.nativeEvent : source
 }
@@ -44,9 +60,8 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
   const { camera, gl, scene } = useThree()
   const activatedAtRef = useRef<number>(Date.now())
   const originalCenterRef = useRef(bodyPlanCenter(node))
-  const dragAnchorRef = useRef<[number, number] | null>(
-    createBodyMoveInitialDragAnchor(node, useEditor.getState().placementDragMode),
-  )
+  const basePointRef = useRef<[number, number, number] | null>(null)
+  const dragAnchorRef = useRef<[number, number] | null>(null)
   const surfaceQuery = useMemo(
     () => createMeasurementSurfaceQuerySession(scene, { excludeNodeIds: [node.id] }),
     [node.id, scene],
@@ -55,6 +70,8 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
     const center = originalCenterRef.current
     return [center[0], 0, center[1]]
   })
+  const [baseSnap, setBaseSnap] = useState<BodyMoveSnap | null>(null)
+  const [targetSnap, setTargetSnap] = useState<BodyMoveSnap | null>(null)
 
   const exitMoveMode = useCallback(() => {
     useEditor.getState().setMovingNode(null)
@@ -66,31 +83,169 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
     const bodyId = node.id
     const effectState = createBodyMoveEffectState({
       body: node,
-      placementDragMode: useEditor.getState().placementDragMode,
       preview: 'override',
     })
     const session = effectState.session
-    dragAnchorRef.current = effectState.anchor
+    const placementDragMode = useEditor.getState().placementDragMode
+    dragAnchorRef.current = null
+    basePointRef.current = null
     let committed = false
+
+    const bodyObject = sceneRegistry.nodes.get(bodyId)
+    const levelObject =
+      (node.parentId ? sceneRegistry.nodes.get(node.parentId) : undefined) ??
+      bodyObject?.parent ??
+      scene
+
+    const eventPointInLevel = (event: BodyEvent): [number, number, number] => {
+      const local = levelObject.worldToLocal(new Vector3(...event.position))
+      return [local.x, local.y, local.z]
+    }
+
+    const resolveBaseCandidate = (event: BodyEvent) => {
+      const point = eventPointInLevel(event)
+      const visibleFaceId = event.normal
+        ? resolveBodyMeasurementFaceId(node, point, event.normal)
+        : resolveBodyFaceId(event.object)
+      const inferenceSnap = isGridSnapActive() || isMagneticSnapActive()
+      const snap = inferenceSnap
+        ? bodyMoveSnapFromBinding(
+            node,
+            matchBodyMeasurementFeature(
+              node,
+              point,
+              Number.POSITIVE_INFINITY,
+              (candidate) =>
+                worldPointScreenDistance(
+                  levelObject.localToWorld(new Vector3(...candidate)),
+                  normalizePointerEvent(event.nativeEvent),
+                  camera,
+                  gl.domElement,
+                ),
+              visibleFaceId,
+            ),
+          )
+        : null
+      return { point: snap?.point ?? point, snap }
+    }
+
+    const resolveDestinationAssociation = (
+      resolved: ReturnType<typeof surfaceQuery.resolvePointer>,
+      nativeEvent: PointerEvent,
+    ) => {
+      if (!resolved) return { associated: null, snap: null }
+      const targetNode = resolved.hit.targetNodeId
+        ? useScene.getState().nodes[resolved.hit.targetNodeId as AnyNodeId]
+        : undefined
+      if (targetNode?.type === 'body') {
+        const visibleFaceId = resolveBodyMeasurementFaceId(
+          targetNode,
+          resolved.hit.point,
+          resolved.hit.normal,
+        )
+        const binding = matchBodyMeasurementFeature(
+          targetNode,
+          resolved.hit.point,
+          Number.POSITIVE_INFINITY,
+          (candidate) =>
+            worldPointScreenDistance(
+              levelObject.localToWorld(new Vector3(...candidate)),
+              nativeEvent,
+              camera,
+              gl.domElement,
+            ),
+          visibleFaceId,
+        )
+        const snap = bodyMoveSnapFromBinding(targetNode, binding)
+        return {
+          associated: snap
+            ? {
+                ...resolved.hit,
+                point: [snap.point[0], snap.point[1], snap.point[2]] satisfies MeasurementPoint,
+              }
+            : null,
+          snap: snap
+            ? {
+                ...snap,
+                normal: [
+                  resolved.hit.normal[0],
+                  resolved.hit.normal[1],
+                  resolved.hit.normal[2],
+                ] satisfies MeasurementPoint,
+              }
+            : null,
+        }
+      }
+      const associated = associateSurfaceHit(resolved.hit)
+      return { associated, snap: bodyMoveSnapFromSurfaceHit(associated) }
+    }
+
+    const clearSnapFeedback = () => {
+      setBaseSnap(null)
+      setTargetSnap(null)
+    }
+
+    const previewBaseCandidate = (event: BodyEvent) => {
+      if (placementDragMode || basePointRef.current || event.node.id !== bodyId) return
+      event.stopPropagation()
+      const candidate = resolveBaseCandidate(event)
+      setBaseSnap(candidate.snap)
+      setCursorLocalPos(candidate.point)
+    }
+
+    const clearBaseHover = (event: BodyEvent) => {
+      if (!placementDragMode && !basePointRef.current && event.node.id === bodyId) {
+        setBaseSnap(null)
+      }
+    }
 
     const applyPreview = (event: GridEvent) => {
       if (isFloorplanSourcedEvent(event)) return
       const nativeEvent = normalizePointerEvent(event.nativeEvent)
       const forceFree = nativeEvent.altKey
-      const step = forceFree ? 0 : getSegmentGridStep()
+      const step = forceFree || !isGridSnapActive() ? 0 : getSegmentGridStep()
       const [x, z] = snapBuildingLocalToWorldGrid(
         [event.localPosition[0], event.localPosition[2]],
         step,
       )
+
+      if (!placementDragMode) {
+        const basePoint = basePointRef.current
+        if (!basePoint) {
+          setTargetSnap(null)
+          return
+        }
+        const magneticSnap = isMagneticSnapActive()
+        const inferenceSnap = isGridSnapActive() || magneticSnap
+        const resolved = forceFree
+          ? null
+          : surfaceQuery.resolvePointer({
+              event: nativeEvent,
+              camera,
+              canvas: gl.domElement,
+              levelObject,
+              anchorOrAnchors: basePoint,
+              applyMagneticSnap: magneticSnap,
+              showAlignmentGuides: false,
+            })
+        const { associated, snap } = inferenceSnap
+          ? resolveDestinationAssociation(resolved, nativeEvent)
+          : { associated: null, snap: null }
+        const hit = snap ? associated : resolved?.hit
+        setTargetSnap(snap)
+        const targetPoint: [number, number, number] = hit ? [...hit.point] : [x, basePoint[1], z]
+        const translation = resolveBodyPointMoveTranslation({ basePoint, targetPoint })
+        session.preview(translation)
+        setCursorLocalPos(targetPoint)
+        return
+      }
+
       const anchor = dragAnchorRef.current ?? [x, z]
       dragAnchorRef.current = anchor
       const dx = x - anchor[0]
       const dz = z - anchor[1]
-      const bodyObject = sceneRegistry.nodes.get(bodyId)
-      const levelObject =
-        (node.parentId ? sceneRegistry.nodes.get(node.parentId) : undefined) ??
-        bodyObject?.parent ??
-        scene
+      const magneticSnap = isMagneticSnapActive()
+      const inferenceSnap = isGridSnapActive() || magneticSnap
       const resolved = forceFree
         ? null
         : surfaceQuery.resolvePointer({
@@ -100,11 +255,15 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
             levelObject,
             anchorOrAnchors: null,
             surfacePreference: { kind: 'horizontal' },
-            applyMagneticSnap: isMagneticSnapActive(),
+            applyMagneticSnap: magneticSnap,
             showAlignmentGuides: false,
           })
-      const surfacePoint =
-        resolved && Math.abs(resolved.hit.normal[1]) >= 0.85 ? resolved.hit.point : null
+      const { associated, snap } = inferenceSnap
+        ? resolveDestinationAssociation(resolved, nativeEvent)
+        : { associated: null, snap: null }
+      setTargetSnap(snap)
+      const hit = snap ? associated : resolved?.hit
+      const surfacePoint = hit && Math.abs(hit.normal[1]) >= 0.85 ? hit.point : null
       const translation = resolveBodyMoveTranslation({
         body: node,
         planTranslation: [dx, dz],
@@ -127,6 +286,7 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
       triggerSFX('sfx:item-place')
       useViewer.getState().setSelection({ selectedIds: [bodyId] })
       useEditor.getState().setMovingNodeOrigin('3d')
+      clearSnapFeedback()
       exitMoveMode()
       nativeEvent?.stopPropagation?.()
     }
@@ -137,6 +297,16 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
     }
 
     const commitFromBody = (event: BodyEvent) => {
+      if (!placementDragMode && !basePointRef.current) {
+        if (event.node.id !== bodyId) return
+        const candidate = resolveBaseCandidate(event)
+        basePointRef.current = candidate.point
+        setBaseSnap(candidate.snap)
+        setTargetSnap(null)
+        setCursorLocalPos(candidate.point)
+        event.stopPropagation()
+        return
+      }
       commitCurrent(event.nativeEvent)
     }
 
@@ -149,27 +319,39 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
     const onCancel = () => {
       session.cancel()
       useViewer.getState().setSelection({ selectedIds: [bodyId] })
+      clearSnapFeedback()
       markToolCancelConsumed()
       exitMoveMode()
     }
 
     emitter.on('grid:move', applyPreview)
     emitter.on('grid:click', commitFromGrid)
+    emitter.on('body:move', previewBaseCandidate)
+    emitter.on('body:leave', clearBaseHover)
     emitter.on('body:click', commitFromBody)
     emitter.on('tool:cancel', onCancel)
     window.addEventListener('pointerup', onPlacementDragPointerUp)
 
     return () => {
       if (!committed) session.cancel()
+      clearSnapFeedback()
       emitter.off('grid:move', applyPreview)
       emitter.off('grid:click', commitFromGrid)
+      emitter.off('body:move', previewBaseCandidate)
+      emitter.off('body:leave', clearBaseHover)
       emitter.off('body:click', commitFromBody)
       emitter.off('tool:cancel', onCancel)
       window.removeEventListener('pointerup', onPlacementDragPointerUp)
     }
   }, [camera, exitMoveMode, gl.domElement, node, scene, surfaceQuery])
 
-  return <CursorSphere position={cursorLocalPos} showTooltip={false} />
+  return (
+    <group>
+      <CursorSphere position={cursorLocalPos} showTooltip={false} />
+      {baseSnap && <BodyMoveSnapMarker persistent snap={baseSnap} />}
+      {targetSnap && <BodyMoveSnapMarker persistent={false} snap={targetSnap} />}
+    </group>
+  )
 }
 
 export default MoveBodyTool

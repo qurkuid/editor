@@ -1,11 +1,11 @@
 import {
   createDefaultFurnitureAssembly,
   createDefaultWallFaceBands,
-  withDefaultConstructionMaterials,
   createRoundedRectangularFrameBody,
   deleteFurnitureBay,
   deleteFurnitureTier,
   type FurnitureAssembly,
+  imprintBodyFace,
   insertFurnitureBay,
   insertFurnitureTier,
   pushPullBodyFace,
@@ -14,6 +14,7 @@ import {
   runAsSingleSceneHistoryStep,
   setFurnitureTierInterior,
   toSceneMaterialRef,
+  withDefaultConstructionMaterials,
 } from '@pascal-app/core'
 import { transformBody } from '@pascal-app/core/body-transform'
 import {
@@ -130,9 +131,7 @@ function normalizePatches(plan: AiModelingPlan): {
             ? {
                 ...patch.node,
                 thickness,
-                faceBands: withDefaultConstructionMaterials(
-                  createDefaultWallFaceBands(thickness),
-                ),
+                faceBands: withDefaultConstructionMaterials(createDefaultWallFaceBands(thickness)),
               }
             : patch.node,
         )
@@ -179,6 +178,22 @@ function normalizePatches(plan: AiModelingPlan): {
         const result = pushPullBodyFace(current, patch.faceId, patch.distance)
         simulatedNodes.set(result.body.id, result.body)
         return [{ op: 'update', id: result.body.id, data: result.body }]
+      }
+      case 'imprintBodyFace': {
+        const current = simulatedNodes.get(patch.id)
+        if (!current) {
+          throw new Error(`invalid AI patch: patches[${index}] body id "${patch.id}" not found`)
+        }
+        if (current.type !== 'body') {
+          throw new RangeError(`AI imprint target is not a body: ${patch.id}`)
+        }
+        const result = imprintBodyFace(current, patch.faceId, patch.profilePoints)
+        const body =
+          patch.distance === undefined
+            ? result.body
+            : pushPullBodyFace(result.body, result.insetFaceId, patch.distance).body
+        simulatedNodes.set(body.id, body)
+        return [{ op: 'update', id: body.id, data: body }]
       }
       case 'transformBody': {
         const current = simulatedNodes.get(patch.id)

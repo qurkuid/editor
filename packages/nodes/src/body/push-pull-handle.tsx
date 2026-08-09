@@ -2,7 +2,6 @@
 
 import { type BodyNode, getBodyFaceFrame, sceneRegistry } from '@pascal-app/core'
 import {
-  DimensionPill,
   isGridSnapActive,
   isMagneticSnapActive,
   parseDraftLength,
@@ -20,7 +19,9 @@ import {
   associateSurfaceHit,
   createMeasurementSurfaceQuerySession,
 } from '../measurement/surface-query'
+import { isBodyFaceImprintEligible, isBodyFacePushPullEligible } from './face-imprint-geometry'
 import { resolvePushPullDistance } from './push-pull'
+import { PushPullFaceActions } from './push-pull-face-actions'
 import { type BodyPushPullSession, createBodyPushPullSession } from './push-pull-session'
 import { projectPushPullSnapDistance, snapPushPullDistanceToGrid } from './push-pull-snap'
 
@@ -65,12 +66,8 @@ export function PushPullHandle({ body, faceId, target }: PushPullHandleProps) {
   useEffect(() => () => surfaceQuery.dispose(), [surfaceQuery])
 
   const face = body.faces.find((candidate) => candidate.id === faceId) ?? null
-  const eligible =
-    face !== null &&
-    face.innerLoopIds.length === 0 &&
-    body.halfEdges
-      .filter((edge) => edge.loopId === face.outerLoopId)
-      .every((edge) => edge.curveId === undefined)
+  const eligible = faceId !== null && isBodyFacePushPullEligible(body, faceId)
+  const imprintEligible = face !== null && isBodyFaceImprintEligible(body, face.id)
   const frame = useMemo(() => {
     if (!faceId) return null
     try {
@@ -245,7 +242,7 @@ export function PushPullHandle({ body, faceId, target }: PushPullHandleProps) {
     target,
   ])
 
-  if ((!eligible && !dragging) || !frame) return null
+  if ((!eligible && !dragging) || !frame || !face) return null
   const position: [number, number, number] = [
     frame.centroid[0] + frame.normal[0] * 0.18,
     frame.centroid[1] + frame.normal[1] * 0.18,
@@ -255,34 +252,14 @@ export function PushPullHandle({ body, faceId, target }: PushPullHandleProps) {
   return (
     <group ref={outerRef}>
       <Html center position={position} zIndexRange={[100, 0]}>
-        {dragging ? (
-          <div className="pointer-events-none">
-            <DimensionPill
-              parts={[
-                {
-                  key: 'distance',
-                  prefix: 'Push/Pull',
-                  value: distance,
-                  signed: true,
-                },
-              ]}
-              primary="distance"
-              unit={unit}
-            />
-          </div>
-        ) : (
-          <button
-            className="whitespace-nowrap rounded-full border border-border/60 bg-background/90 px-3 py-1.5 font-medium text-foreground text-xs shadow-md backdrop-blur hover:bg-accent"
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              begin()
-            }}
-            type="button"
-          >
-            Push/Pull
-          </button>
-        )}
+        <PushPullFaceActions
+          bodyId={body.id}
+          distance={distance}
+          dragging={dragging}
+          faceId={face.id}
+          imprintEligible={imprintEligible}
+          onBegin={begin}
+        />
       </Html>
     </group>
   )

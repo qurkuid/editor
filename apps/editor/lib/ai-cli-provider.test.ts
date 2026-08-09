@@ -18,6 +18,7 @@ const emptyFieldPatch = {
   parentId: null,
   cascade: null,
   faceId: null,
+  profilePoints: null,
   distance: null,
   translation: null,
   rotationY: null,
@@ -130,6 +131,41 @@ describe('Codex CLI provider boundary', () => {
     expect(plan).toEqual({
       message: 'Body face ready to push.',
       patches: [{ op: 'pushPullBodyFace', id: 'body_selected', faceId: 'face:0', distance: 1.2 }],
+    })
+  })
+
+  test('converts a deterministic body face imprint command from the CLI contract', () => {
+    const profilePoints = [
+      [0.2, 1.2, 0.1],
+      [1, 1.2, 0.1],
+      [1, 1.2, 0.7],
+      [0.2, 1.2, 0.7],
+    ] as const
+    const plan = parseCodexCliPlan({
+      message: 'Body face inset ready.',
+      patches: [
+        {
+          ...emptyFieldPatch,
+          op: 'imprintBodyFace',
+          id: 'body_selected',
+          faceId: 'face:0',
+          profilePoints,
+          distance: 0.15,
+        },
+      ],
+    })
+
+    expect(plan).toEqual({
+      message: 'Body face inset ready.',
+      patches: [
+        {
+          op: 'imprintBodyFace',
+          id: 'body_selected',
+          faceId: 'face:0',
+          profilePoints,
+          distance: 0.15,
+        },
+      ],
     })
   })
 

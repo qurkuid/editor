@@ -31,6 +31,7 @@ export function ModelingRailControls() {
   const paintSampling = useEditor((s) => s.paintSampling)
   const primitive = useBodyToolOptions((s) => s.primitive)
   const setPrimitive = useBodyToolOptions((s) => s.setPrimitive)
+  const setFaceDraft = useBodyToolOptions((s) => s.setFaceDraft)
 
   const bodyActive = mode === 'build' && activeTool === 'body'
   const eyedropperActive = mode === 'material-paint' && paintSampling
@@ -65,6 +66,7 @@ export function ModelingRailControls() {
             onClick={() =>
               selectBodyPrimitive(id, {
                 activateBodyTool: () => activateBuildTool('body'),
+                setFaceDraft,
                 setPrimitive,
               })
             }

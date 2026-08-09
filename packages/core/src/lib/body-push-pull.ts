@@ -1,4 +1,5 @@
 import { BodyNode, type BodyNode as BodyNodeType } from '../schema/nodes/body'
+import { pushPullInsetBodyFace, resolveInsetFace } from './body-inset-push-pull'
 import {
   pushPullBodyFace as extrudePlanarBodyFace,
   getBodyFaceFrame,
@@ -96,6 +97,8 @@ export function pushPullBodyFace(
   if (!Number.isFinite(distance) || distance === 0) {
     throw new RangeError('Push/pull requires a non-zero finite distance')
   }
+  const inset = resolveInsetFace(source, faceId)
+  if (inset) return pushPullInsetBodyFace(source, faceId, distance, inset)
   return source.faces.length === 1
     ? extrudePlanarBodyFace(source, faceId, distance)
     : moveClosedBodyFace(source, faceId, distance)

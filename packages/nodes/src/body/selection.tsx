@@ -14,6 +14,7 @@ import { createPortal } from '@react-three/fiber'
 import { useEffect, useState } from 'react'
 import type { Object3D } from 'three'
 import { resolveBodyFaceId } from './face-target'
+import { useBodyToolOptions } from './options'
 import { PushPullHandle } from './push-pull-handle'
 
 const BodySelectionAffordance = () => {
@@ -26,6 +27,8 @@ const BodySelectionAffordance = () => {
   })
   const [target, setTarget] = useState<Object3D | null>(null)
   const [selectedFaceId, setSelectedFaceId] = useState<string | null>(null)
+  const pendingFace = useBodyToolOptions((state) => state.pendingFace)
+  const setPendingFace = useBodyToolOptions((state) => state.setPendingFace)
   const bodyId = body?.id ?? null
 
   useEffect(() => {
@@ -60,6 +63,13 @@ const BodySelectionAffordance = () => {
       setSelectedFaceId(body.faces[0]?.id ?? null)
     }
   }, [body, selectedFaceId])
+
+  useEffect(() => {
+    if (!body || !pendingFace || pendingFace.bodyId !== body.id) return
+    if (!body.faces.some((face) => face.id === pendingFace.faceId)) return
+    setSelectedFaceId(pendingFace.faceId)
+    setPendingFace(null)
+  }, [body, pendingFace, setPendingFace])
 
   if (!body || !target || viewMode === '2d') return null
   const mount = target.parent ?? target

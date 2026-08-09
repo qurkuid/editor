@@ -8,6 +8,7 @@ export const CodexCliPatchSchema = z.object({
     'update',
     'delete',
     'pushPullBodyFace',
+    'imprintBodyFace',
     'transformBody',
     'paintBodyFace',
     'makeMaterialSeamless',
@@ -29,6 +30,10 @@ export const CodexCliPatchSchema = z.object({
   parentId: z.string().nullable().default(null),
   cascade: z.boolean().nullable().default(null),
   faceId: z.string().nullable().default(null),
+  profilePoints: z
+    .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
+    .nullable()
+    .default(null),
   distance: z.number().finite().nullable().default(null),
   translation: z
     .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
@@ -93,6 +98,26 @@ export function parseCodexCliPlan(input: unknown): AiModelingPlan {
           id: z.string().min(1).parse(patch.id),
           faceId: z.string().min(1).parse(patch.faceId),
           distance: z.number().finite().parse(patch.distance),
+        }
+      case 'imprintBodyFace':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          faceId: z.string().min(1).parse(patch.faceId),
+          profilePoints: z
+            .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
+            .min(3)
+            .max(512)
+            .parse(patch.profilePoints),
+          ...(patch.distance === null
+            ? {}
+            : {
+                distance: z
+                  .number()
+                  .finite()
+                  .refine((value) => value !== 0)
+                  .parse(patch.distance),
+              }),
         }
       case 'transformBody':
         return {
