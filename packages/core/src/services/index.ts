@@ -126,7 +126,10 @@ export {
   validateDwv,
 } from './validate-dwv'
 export {
+  resolveWallAlignedPlacement,
   resolveWallFlushSnap,
   WALL_FLUSH_SNAP_THRESHOLD_M,
+  type WallAlignAnchor,
+  wallAnchorForViewerSide,
   type WallFlushSnapInput,
 } from './wall-flush-snap'

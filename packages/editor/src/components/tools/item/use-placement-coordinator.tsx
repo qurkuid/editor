@@ -5,6 +5,7 @@ import {
   type AnyNodeId,
   type CeilingEvent,
   collectAlignmentAnchors,
+  findLevelAncestorId,
   emitter,
   type GridEvent,
   getScaledDimensions,
@@ -956,9 +957,13 @@ export function usePlacementCoordinator(config: PlacementCoordinatorConfig): Rea
       // furniture). Wins over grid / alignment on the wall-normal axis;
       // same mode gate as the cabinet `groupMoveSnap` (off in Off / Angles).
       if (draft && asset.attachTo === undefined && (isMagneticSnapActive() || isGridSnapActive())) {
+        // Prefer the draft's own level ancestor — `selection.levelId` can be
+        // null (no floor picked), which would silently disable the snap.
         const flush = resolveWallFlushSnap({
           nodes: useScene.getState().nodes,
-          levelId: (useViewer.getState().selection.levelId ?? null) as AnyNodeId | null,
+          levelId: (findLevelAncestorId(draft.id as AnyNodeId, useScene.getState().nodes) ??
+            useViewer.getState().selection.levelId ??
+            null) as AnyNodeId | null,
           x: result.gridPosition[0] + alignX,
           z: result.gridPosition[2] + alignZ,
           dimensions: getScaledDimensions(draft),

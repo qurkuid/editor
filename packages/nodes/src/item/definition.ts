@@ -10,6 +10,7 @@ import { buildItemContextualDimensions, buildItemFloorplan } from './floorplan'
 import { itemFloorplanMoveTarget } from './floorplan-move'
 import { itemPaint } from './paint'
 import { itemParametrics } from './parametrics'
+import { itemQuickActions } from './quick-actions'
 import { ItemNode } from './schema'
 
 // The two floor gizmos flank the item at mid-height so they never overlap,
@@ -168,6 +169,7 @@ function itemWallMoveHandle(): HandleDescriptor<ItemNodeType> {
 export const itemDefinition: NodeDefinition<typeof ItemNode> = {
   kind: 'item',
   snapProfile: 'item',
+  quickActions: itemQuickActions as NodeDefinition<typeof ItemNode>['quickActions'],
   facingIndicator: true,
   schemaVersion: 1,
   schema: ItemNode,

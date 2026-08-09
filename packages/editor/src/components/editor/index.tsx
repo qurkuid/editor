@@ -86,6 +86,7 @@ import { FirstPersonControls, FirstPersonOverlay } from './first-person-controls
 import { FloatingActionMenu } from './floating-action-menu'
 import { FloatingBuildingActionMenu } from './floating-building-action-menu'
 import { FloorplanModeCoordinator } from './floorplan-mode-coordinator'
+import { WallAlignPickController } from './wall-align-pick-controller'
 import { FloorplanPanel } from './floorplan-panel'
 import { Grid } from './grid'
 import { GroupFloatingActionMenu } from './group-floating-action-menu'
@@ -1468,6 +1469,7 @@ export default function Editor({
     return (
       <>
         <FloorplanModeCoordinator />
+        <WallAlignPickController />
         {showLoader && (
           <div className="fixed inset-0 z-60">
             <SceneLoader className="bg-background" />
@@ -1544,6 +1546,7 @@ export default function Editor({
   return (
     <div className="dark flex h-full w-full gap-3 bg-neutral-100 p-3 text-foreground">
       <FloorplanModeCoordinator />
+      <WallAlignPickController />
       {showLoader && (
         <div className="fixed inset-0 z-60">
           <SceneLoader className="bg-background" />
