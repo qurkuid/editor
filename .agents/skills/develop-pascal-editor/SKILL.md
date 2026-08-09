@@ -10,10 +10,17 @@ Deliver the requested behavior on the real editor surface while preserving the r
 ## Start with the current truth
 
 1. Read `AGENTS.md` and the architecture pages named for the touched area.
-2. Inspect `git status --short`; treat existing tracked and untracked changes as user work.
-3. Search the node registry, schemas, tools, panels, and tests before adding a new abstraction. Extend an existing capability when it already owns the behavior.
-4. Check the running editor at `http://localhost:3002` before starting or restarting it. Do not replace a user-managed dev server without an explicit request.
-5. Define an observable success condition: exact UI entry, interaction sequence, scene mutation, undo behavior, and validation evidence.
+2. Read `packages/mcp/src/modeling-agent-manual.ts` before any scene-modeling work.
+3. Inspect `git status --short`; treat existing tracked and untracked changes as user work.
+4. Search the node registry, schemas, tools, panels, and tests before adding a new abstraction. Extend an existing capability when it already owns the behavior.
+5. Check the running editor at `http://localhost:3002` before starting or restarting it. Do not replace a user-managed dev server without an explicit request.
+6. Define an observable success condition: exact UI entry, interaction sequence, scene mutation, undo behavior, and validation evidence.
+
+## Keep the modeling manual current
+
+- Update `packages/mcp/src/modeling-agent-manual.ts` in the same change whenever modeling behavior, AI operations, MCP capabilities, interaction modifiers, units, validation, or agent execution rules change.
+- Import or serve `MODELING_AGENT_MANUAL`; never copy its text into another prompt or guide.
+- Add or update tests proving `pascal://agent-guide` and `buildAiModelingPrompt` expose the new instruction.
 
 ## Required model relay
 
@@ -21,6 +28,7 @@ Deliver the requested behavior on the real editor surface while preserving the r
 - Hand the approved plan to `gpt-5.6-luna` with `max` reasoning for code implementation, focused fixes, tests, browser verification, and completion of the validation loop.
 - Keep the Sol planning artifact as the implementation contract. Luna may make local implementation decisions but must return to Sol planning when evidence invalidates the architecture or acceptance criteria.
 - Apply this relay to both Codex and Claude-driven Pascal Editor work when their execution surface provides the requested model adapter.
+- On Codex, use the installed `luna-max` agent type for the Luna implementation lane. Do not combine an explicit model override with another fixed `agent_type`; the role TOML wins, and the current native child surface may ignore a model-only override. Spawn `luna-max` with isolated context, then verify the resolved model and effort before assigning implementation work.
 - Verify the model and effort actually used. If Luna or `max` is unavailable, do not silently substitute another model or effort; report the unavailable route before continuing with a different profile.
 
 ## Respect package ownership
