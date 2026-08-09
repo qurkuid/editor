@@ -8,6 +8,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { WallNode, ZoneNode } from '@pascal-app/core/schema'
 import useScene from '@pascal-app/core/store'
 import { SceneBridge } from '../bridge/scene-bridge'
+import { MODELING_AGENT_MANUAL } from '../modeling-agent-manual'
 import { createSceneOperations } from '../operations'
 import { registerAgentGuide } from './agent-guide'
 import { registerCatalogItems } from './catalog-items'
@@ -213,6 +214,9 @@ describe('pascal://agent-guide', () => {
       const content = res.contents[0] as { uri: string; mimeType?: string; text?: string }
       expect(content.mimeType).toBe('text/markdown')
       const text = content.text ?? ''
+      expect(text).toBe(MODELING_AGENT_MANUAL)
+      expect(text).toContain('# Pascal Modeling Agent Manual')
+      expect(text).toContain('Read this manual before every modeling task')
       expect(text).toContain('create_project')
       expect(text).toContain('save_scene')
       expect(text).toContain('get_project_status')
@@ -228,7 +232,7 @@ describe('pascal://agent-guide', () => {
     try {
       const res = await pair.client.readResource({ uri: 'pascal://agent/guide' })
       const text = (res.contents[0] as { text?: string }).text ?? ''
-      expect(text).toContain('Pascal MCP Agent Guide')
+      expect(text).toContain('Pascal Modeling Agent Manual')
     } finally {
       await pair.close()
     }

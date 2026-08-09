@@ -308,6 +308,11 @@ captured by Zundo's temporal middleware as a single undoable step.
 
 | Name | Purpose | Key input | Output |
 | --- | --- | --- | --- |
+| `get_session_context` | Return the active project/scene binding for this MCP server session, or the exact create/open next step. | — | `{ activeProjectId, activeSceneId, version, editorUrl, nextStep }` |
+| `create_project` | Create and explicitly bind a new empty browser-visible project. | `{ name, id?, isPrivate? }` | project status + `editorUrl` |
+| `open_project` | Explicitly bind a saved or empty project; saved graphs load and empty projects clear the bridge graph/history. | `{ id }` | project status + `editorUrl` |
+| `get_project_status` | Read-only project status and active identity inspection; never changes the active graph. | `{ id }` | project status + `{ activeProjectId, activeSceneId, isActive }` |
+| `list_scenes` | List saved scenes and identify the active row. | `{ projectId?, limit? }` | `{ activeSceneId, scenes[] }` |
 | `get_scene` | Return the full scene graph. | — | `{ nodes, rootNodeIds, collections }` |
 | `get_node` | Fetch a node by id. | `{ id }` | the node, or `InvalidParams` if not found |
 | `describe_node` | Node summary with ancestry, children count and properties. | `{ id }` | `{ id, type, parentId, ancestry[], childrenCount, properties, description }` |
@@ -353,7 +358,8 @@ The vision tools require the MCP host to support the sampling capability
 | --- | --- | --- |
 | `pascal://scene/current` | `application/json` | Full `{ nodes, rootNodeIds, collections }` snapshot. |
 | `pascal://scene/current/summary` | `text/markdown` | Human-readable summary with node counts, bounding box, and level areas. |
-| `pascal://agent/guide` | `text/markdown` | MCP-first construction workflow, scene invariants, and tool preferences for agents. |
+| `pascal://agent-guide` | `text/markdown` | Canonical modeling manual shared with the in-editor modeling agent. Read it before each task. |
+| `pascal://agent/guide` | `text/markdown` | Legacy alias for `pascal://agent-guide`. |
 | `pascal://catalog/items` | `application/json` | Dependency-free built-in catalog subset for common residential furniture and fixtures. |
 | `pascal://constraints/{levelId}` | `application/json` | Slab footprints and wall polygons for the given level — useful as planner context. |
 
@@ -364,6 +370,14 @@ The vision tools require the MCP host to support the sampling capability
 | `from_brief` | `{ brief: string, constraints?: string }` | Guided workflow for turning a prose brief (e.g. "2-bed apartment in 80 m²") into an incremental sequence of `apply_patch` calls starting from an empty site. |
 | `iterate_on_feedback` | `{ feedback: string }` | Minimal-diff instructions: examine the current scene, then propose the smallest patch set that satisfies the feedback. |
 | `renovation_from_photos` | `{ currentPhotos: string[], referencePhotos: string[], goals: string }` | Chains the vision tools with the scene mutation tools to produce a renovation plan grounded in photos. |
+
+Project session workflow:
+
+1. Call `get_session_context` before the first mutation. It returns the active project, scene, version, and `editorUrl`, or the exact `create_project` / `open_project` next step.
+2. Call `create_project` for a new project or `open_project` for a saved project. Each MCP server session has one explicit active project binding; opening or creating a project clears the previous graph and undo history.
+3. Use `get_project_status` for read-only inspection. It reports the requested project and active identity but never switches the active graph.
+4. `load_scene` remains a compatible legacy activation surface. Use `open_project` for explicit project-session workflows.
+5. `create_house_from_brief` and saved `create_from_template` calls reuse the active project. If no project is active they create one first; an explicit different `projectId` is rejected until `open_project` activates it.
 
 ## Limitations
 

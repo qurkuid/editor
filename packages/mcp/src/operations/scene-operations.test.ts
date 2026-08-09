@@ -3,8 +3,10 @@ import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
+import { LevelNode, WallNode } from '@pascal-app/core/schema'
+import { SceneBridge } from '../bridge/scene-bridge'
 import { SqliteSceneStore } from '../storage/sqlite-scene-store'
-import { createSceneOperations } from './scene-operations'
+import { createSceneOperations, NoActiveProjectError } from './scene-operations'
 
 function makeGraph(): SceneGraph {
   return {
@@ -75,5 +77,49 @@ describe('SceneOperationsFacade scene events', () => {
       }),
     ).toBeNull()
     await expect(operations.listSceneEvents('live')).rejects.toThrow('scene_events_unavailable')
+  })
+})
+
+describe('SceneOperationsFacade project binding', () => {
+  test('rejects store-backed mutations until a project is active', () => {
+    const bridge = new SceneBridge()
+    bridge.loadDefault()
+    const store: Parameters<typeof createSceneOperations>[0]['store'] = {
+      backend: 'sqlite',
+      save: async () => {
+        throw new Error('not used')
+      },
+      load: async () => null,
+      list: async () => [],
+      delete: async () => false,
+      rename: async () => {
+        throw new Error('not used')
+      },
+    }
+    const operations = createSceneOperations({ bridge, store })
+    const level = bridge.findNodes({ type: 'level' })[0]
+    if (level?.type !== 'level') throw new Error('test fixture missing level')
+    const wall = WallNode.parse({ start: [0, 0], end: [1, 0] })
+
+    expect(() => operations.createNode(wall, level.id)).toThrow(NoActiveProjectError)
+    expect(() => operations.updateNode(level.id, { label: 'blocked' })).toThrow(
+      NoActiveProjectError,
+    )
+    expect(() => operations.deleteNode(level.id)).toThrow(NoActiveProjectError)
+    expect(() =>
+      operations.applyPatch([{ op: 'update', id: level.id, data: { label: 'blocked' } }]),
+    ).toThrow(NoActiveProjectError)
+    expect(() => operations.undo()).toThrow(NoActiveProjectError)
+    expect(() => operations.redo()).toThrow(NoActiveProjectError)
+  })
+
+  test('keeps bridge-only embedded mutations available without a project', () => {
+    const bridge = new SceneBridge()
+    bridge.setScene({}, [])
+    const operations = createSceneOperations({ bridge })
+    const level = LevelNode.parse({ level: 0, children: [], height: 2.5 })
+
+    expect(operations.createNode(level)).toBe(level.id)
+    expect(operations.getNode(level.id)).toEqual(level)
   })
 })

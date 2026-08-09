@@ -21,6 +21,15 @@ export type CreateSceneOperationsOptions = {
   store?: SceneStore
 }
 
+export class NoActiveProjectError extends Error {
+  readonly code = 'active_project_required' as const
+
+  constructor() {
+    super('An active project is required for store-backed scene mutations')
+    this.name = 'NoActiveProjectError'
+  }
+}
+
 export interface SceneOperations {
   readonly hasBridge: boolean
   readonly hasStore: boolean
@@ -66,6 +75,7 @@ export interface SceneOperations {
   clearHistory(): void
 
   createProject(options: ProjectCreateOptions): Promise<ProjectStatus>
+  openProject(id: string): Promise<ProjectStatus | null>
   getProjectStatus(id: string): Promise<ProjectStatus | null>
   saveScene(options: SceneSaveOptions): Promise<SceneMeta>
   loadStoredScene(id: string): Promise<SceneWithGraph | null>
@@ -195,15 +205,15 @@ class SceneOperationsFacade implements SceneOperations {
   }
 
   createNode(node: AnyNode, parentId?: AnyNodeId): AnyNodeId {
-    return this.requireBridge().createNode(node, parentId)
+    return this.requireMutationBridge().createNode(node, parentId)
   }
 
   updateNode(id: AnyNodeId, data: Partial<AnyNode>): void {
-    this.requireBridge().updateNode(id, data)
+    this.requireMutationBridge().updateNode(id, data)
   }
 
   deleteNode(id: AnyNodeId, cascade?: boolean): string[] {
-    return this.requireBridge().deleteNode(id, cascade)
+    return this.requireMutationBridge().deleteNode(id, cascade)
   }
 
   applyPatch(patches: Patch[]): {
@@ -211,15 +221,15 @@ class SceneOperationsFacade implements SceneOperations {
     deletedIds: AnyNodeId[]
     createdIds: AnyNodeId[]
   } {
-    return this.requireBridge().applyPatch(patches)
+    return this.requireMutationBridge().applyPatch(patches)
   }
 
   undo(steps?: number): number {
-    return this.requireBridge().undo(steps)
+    return this.requireMutationBridge().undo(steps)
   }
 
   redo(steps?: number): number {
-    return this.requireBridge().redo(steps)
+    return this.requireMutationBridge().redo(steps)
   }
 
   validateScene(): ValidationResult {
@@ -243,7 +253,40 @@ class SceneOperationsFacade implements SceneOperations {
     if (!store.createProject) {
       throw new Error('create_project_unavailable')
     }
-    return store.createProject(options)
+    const status = await store.createProject(options)
+    if (this.#bridge) {
+      this.#bridge.setScene({}, [])
+      this.#bridge.clearHistory()
+      this.#bridge.clearActiveScene()
+    }
+    return status
+  }
+
+  async openProject(id: string): Promise<ProjectStatus | null> {
+    const store = this.requireStore()
+    const status = await this.getProjectStatus(id)
+    if (!status) return null
+
+    const scene = await store.load(id)
+    const bridge = this.requireBridge()
+    if (scene) {
+      bridge.loadJSON(scene.graph)
+      bridge.clearHistory()
+      bridge.setActiveScene(scene)
+      return status
+    }
+
+    bridge.setScene({}, [])
+    bridge.clearHistory()
+    bridge.setActiveScene({
+      id: status.id,
+      name: status.name,
+      projectId: status.projectId,
+      ownerId: status.ownerId,
+      thumbnailUrl: status.thumbnailUrl,
+      version: status.version,
+    })
+    return status
   }
 
   async getProjectStatus(id: string): Promise<ProjectStatus | null> {
@@ -337,6 +380,14 @@ class SceneOperationsFacade implements SceneOperations {
       throw new Error('scene_bridge_unavailable')
     }
     return this.#bridge
+  }
+
+  private requireMutationBridge(): SceneBridge {
+    const bridge = this.requireBridge()
+    if (this.#store && !bridge.getActiveScene()) {
+      throw new NoActiveProjectError()
+    }
+    return bridge
   }
 
   private requireStore(): SceneStore {

@@ -4,11 +4,11 @@ import type { SceneOperations } from '../../operations'
 import { ErrorCode, McpError, throwMcpError } from '../errors'
 import { currentLevelContext, projectStatusPayload } from './metadata'
 
-export const getProjectStatusInput = {
+export const openProjectInput = {
   id: z.string().min(1).max(64),
 }
 
-export const getProjectStatusOutput = {
+export const openProjectOutput = {
   id: z.string(),
   projectId: z.string(),
   name: z.string(),
@@ -27,41 +27,32 @@ export const getProjectStatusOutput = {
   graphHash: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  activeProjectId: z.string().nullable(),
-  activeSceneId: z.string().nullable(),
-  isActive: z.boolean(),
   levelIds: z.array(z.string()),
   defaultLevelId: z.string().nullable(),
   nextStep: z.string(),
 }
 
-export function registerGetProjectStatus(server: McpServer, operations: SceneOperations): void {
+export function registerOpenProject(server: McpServer, operations: SceneOperations): void {
   server.registerTool(
-    'get_project_status',
+    'open_project',
     {
-      title: 'Get project status',
+      title: 'Open project',
       description:
-        'Authoritative status/debug call for a Pascal project: editor URL, browser-visible version, latest saved version, published version, node count, and graph hash.',
-      inputSchema: getProjectStatusInput,
-      outputSchema: getProjectStatusOutput,
+        'Open a saved Pascal project into this MCP session. Empty projects bind to a cleared graph; saved projects load their graph. This is the explicit project activation boundary.',
+      inputSchema: openProjectInput,
+      outputSchema: openProjectOutput,
     },
     async ({ id }) => {
       try {
-        const status = await operations.getProjectStatus(id)
+        const status = await operations.openProject(id)
         if (!status) {
           throwMcpError(ErrorCode.InvalidParams, 'project_not_found', { id })
         }
-        const activeScene = operations.getActiveScene()
-        const activeProjectId = activeScene?.projectId ?? activeScene?.id ?? null
-        const nextStep =
-          status.nodeCount > 0
-            ? 'Open editorUrl or continue editing, then save_scene again.'
-            : 'Project is empty. Build a scene with semantic tools or create_from_template, then save_scene.'
+        const nextStep = status.isEmpty
+          ? 'The empty project is now active. Build with semantic tools, then save_scene when a meaningful checkpoint is ready.'
+          : 'The project is now active. Continue editing, then save_scene with saveMode: "checkpoint" for a meaningful version.'
         const payload = {
           ...projectStatusPayload(status, nextStep),
-          activeProjectId,
-          activeSceneId: activeScene?.id ?? null,
-          isActive: activeScene?.id === status.id || activeProjectId === status.projectId,
           ...currentLevelContext(operations),
         }
         return {
@@ -71,7 +62,7 @@ export function registerGetProjectStatus(server: McpServer, operations: SceneOpe
       } catch (err) {
         if (err instanceof McpError) throw err
         const msg = err instanceof Error ? err.message : String(err)
-        throwMcpError(ErrorCode.InternalError, msg)
+        throwMcpError(ErrorCode.InvalidRequest, msg)
       }
     },
   )

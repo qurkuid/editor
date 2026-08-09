@@ -95,6 +95,31 @@ export function registerCreateFromTemplate(server: McpServer, bridge: SceneOpera
       const nodes = cloned.nodes as Record<AnyNodeId, AnyNode>
       const rootNodeIds = cloned.rootNodeIds as AnyNodeId[]
 
+      let saveProjectId = projectId
+      if (save && bridge.hasStore) {
+        const active = bridge.getActiveScene()
+        const activeProjectId = active?.projectId ?? active?.id
+        if (saveProjectId && activeProjectId && saveProjectId !== activeProjectId) {
+          throwMcpError(
+            ErrorCode.InvalidRequest,
+            `project_not_active: call open_project with id "${saveProjectId}" before replacing it`,
+          )
+        }
+        saveProjectId ??= activeProjectId
+        if (!saveProjectId && bridge.canCreateProject) {
+          const project = await bridge.createProject({ name: name ?? entry.name })
+          saveProjectId = project.projectId
+          bridge.setActiveScene({
+            id: project.id,
+            name: project.name,
+            projectId: project.projectId,
+            ownerId: project.ownerId,
+            thumbnailUrl: project.thumbnailUrl,
+            version: project.version,
+          })
+        }
+      }
+
       try {
         bridge.setScene(nodes, rootNodeIds)
       } catch (err) {
@@ -109,7 +134,7 @@ export function registerCreateFromTemplate(server: McpServer, bridge: SceneOpera
       }
 
       if (!save) {
-        bridge.clearActiveScene()
+        if (!bridge.hasStore) bridge.clearActiveScene()
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(basePayload) }],
           structuredContent: basePayload,
@@ -129,11 +154,6 @@ export function registerCreateFromTemplate(server: McpServer, bridge: SceneOpera
       }
 
       try {
-        let saveProjectId = projectId
-        if (!saveProjectId && bridge.canCreateProject) {
-          const project = await bridge.createProject({ name: name ?? entry.name })
-          saveProjectId = project.projectId
-        }
         const meta = await bridge.saveScene({
           ...(saveProjectId !== undefined ? { id: saveProjectId, projectId: saveProjectId } : {}),
           name: name ?? entry.name,

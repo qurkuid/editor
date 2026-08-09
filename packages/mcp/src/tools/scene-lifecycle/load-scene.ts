@@ -46,6 +46,7 @@ export function registerLoadScene(server: McpServer, bridge: SceneOperations): v
       }
       try {
         bridge.loadJSON(result.graph)
+        bridge.clearHistory()
         bridge.setActiveScene(result)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)

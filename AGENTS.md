@@ -25,6 +25,12 @@ Public, open-source home of `@pascal-app/{core,viewer,editor,mcp}` and the stand
 - For any feature implementation, bug fix, or interaction/UI change in this repository, automatically invoke `.agents/skills/develop-pascal-editor/SKILL.md` before editing. This includes modeling and Body topology, placement or reshape tools, 2D/3D parity, selection, materials/RawPainter, AI scene control, reference images, units, sidebar workflows, and runtime verification.
 - Use it together with narrower named skills when applicable; its repository workflow and real-browser completion gate remain authoritative for Pascal editor development.
 
+## Modeling agent manual
+
+- Before any scene modeling task, read `packages/mcp/src/modeling-agent-manual.ts`. It is the canonical manual shared by the in-editor modeling agent and `pascal://agent-guide` for MCP clients.
+- Any change that adds or changes a modeling operation, MCP tool/resource/prompt, node capability, interaction modifier, unit rule, validation rule, or AI control path must update that manual in the same change.
+- Do not duplicate the manual in another document or prompt. Import or serve `MODELING_AGENT_MANUAL` so both agent surfaces stay synchronized.
+
 ## Layer Boundaries (read once, internalise)
 
 - **`packages/core`** owns domain data and pure logic. It must not import Three.js, `packages/viewer`, `apps/editor`, rendering/UI concepts, tools, modes, phases, or view-specific concepts such as floorplan or paint preview.

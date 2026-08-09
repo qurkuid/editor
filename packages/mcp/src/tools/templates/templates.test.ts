@@ -125,6 +125,32 @@ describe('create_from_template', () => {
     expect(loaded).not.toBeNull()
   })
 
+  test('saves a template into the active project instead of creating another project', async () => {
+    const project = await store.createProject({ id: 'active-template', name: 'Active template' })
+    bridge.setActiveScene({
+      id: project.id,
+      name: project.name,
+      projectId: project.projectId,
+      ownerId: project.ownerId,
+      thumbnailUrl: project.thumbnailUrl,
+      version: project.version,
+    })
+
+    const result = await client.callTool({
+      name: 'create_from_template',
+      arguments: { id: 'two-bedroom', save: true, name: 'Updated active project' },
+    })
+
+    expect(result.isError).toBeFalsy()
+    const scene = parseToolText(result.content as StoredTextContent[]).scene as {
+      id: string
+      projectId: string
+    }
+    expect(scene.id).toBe('active-template')
+    expect(scene.projectId).toBe('active-template')
+    expect(bridge.getActiveScene()?.id).toBe('active-template')
+  })
+
   test('two invocations produce disjoint id sets', async () => {
     const a = await client.callTool({
       name: 'create_from_template',
@@ -159,6 +185,28 @@ describe('create_from_template', () => {
     expect(parsed.published).toBe(true)
     expect(parsed.nodeCount as number).toBeGreaterThan(0)
     expect(parsed.nextStep as string).toContain('get_project_status')
+  })
+
+  test('create_house_from_brief reuses the explicitly active project', async () => {
+    const project = await store.createProject({ id: 'active-brief', name: 'Active brief' })
+    bridge.setActiveScene({
+      id: project.id,
+      name: project.name,
+      projectId: project.projectId,
+      ownerId: project.ownerId,
+      thumbnailUrl: project.thumbnailUrl,
+      version: project.version,
+    })
+
+    const result = await client.callTool({
+      name: 'create_house_from_brief',
+      arguments: { brief: 'Create a compact studio.', projectName: 'Updated brief' },
+    })
+
+    expect(result.isError).toBeFalsy()
+    const parsed = parseToolText(result.content as StoredTextContent[])
+    expect(parsed.projectId).toBe('active-brief')
+    expect(bridge.getActiveScene()?.id).toBe('active-brief')
   })
 })
 

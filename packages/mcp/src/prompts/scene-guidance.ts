@@ -1,7 +1,8 @@
 export const SCENE_DESIGN_GUIDANCE = [
   'Scene design workflow:',
   '  - Use meters. X/Z are horizontal floor-plan axes; Y is vertical.',
-  '  - Read `pascal://agent/guide` when you need construction rules; do not inspect repository code for ordinary scene editing.',
+  '  - Before the first mutation, call `get_session_context`; then call `create_project` for a new project or `open_project` for a saved project. Read the canonical manual at `pascal://agent-guide` before ordinary scene editing.',
+  '  - `get_project_status` is read-only and never changes the active project. Use `open_project` to switch the explicit one-project MCP session binding.',
   '  - Door default: 0.9m wide by 2.1m high, floor-mounted.',
   '  - Window default: 1.5m wide by 1.5m high with a 0.9m sill height.',
   '  - For clear concrete requests, act with reasonable defaults instead of asking for clarification.',

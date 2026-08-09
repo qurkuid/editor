@@ -63,6 +63,34 @@ export function projectStatusPayload(status: ProjectStatus, nextStep?: string) {
   }
 }
 
+export function activeSessionPayload(operations: SceneOperations, nextStep?: string) {
+  const active = operations.getActiveScene()
+  if (!active) {
+    return {
+      activeProjectId: null,
+      activeSceneId: null,
+      projectId: null,
+      sceneId: null,
+      name: null,
+      version: null,
+      editorUrl: null,
+      ...(nextStep ? { nextStep } : {}),
+    }
+  }
+
+  const projectId = active.projectId ?? active.id
+  return {
+    activeProjectId: projectId,
+    activeSceneId: active.id,
+    projectId,
+    sceneId: active.id,
+    name: active.name,
+    version: active.version,
+    editorUrl: `/editor/${active.id}`,
+    ...(nextStep ? { nextStep } : {}),
+  }
+}
+
 export function currentLevelContext(operations: SceneOperations) {
   const levels = operations.findNodes({ type: 'level' }).sort((a, b) => {
     const aa = a.type === 'level' ? a.level : 0

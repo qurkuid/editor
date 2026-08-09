@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { MODELING_AGENT_MANUAL } from '@pascal-app/mcp'
 import {
   AI_CHAT_MAX_IMAGE_BYTES,
   AI_CHAT_MAX_IMAGES,
@@ -273,6 +274,10 @@ describe('AI provider boundary', () => {
     })
     const prompt = buildAiModelingPrompt(request)
 
+    expect(prompt).toContain(MODELING_AGENT_MANUAL)
+    expect(prompt).toContain('# Pascal Modeling Agent Manual')
+    expect(prompt).toContain('Read this manual before every modeling task')
+    expect(prompt).toContain('Hold Alt to force free movement')
     expect(prompt).toContain('never guess it from screenshots or image pixels')
     expect(prompt).toContain('library:preset-glass for glass')
     expect(prompt).toContain('library:flooring-rusticbrick for masonry')

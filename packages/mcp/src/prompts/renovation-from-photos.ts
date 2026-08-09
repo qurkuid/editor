@@ -4,6 +4,7 @@ import type { SceneOperations } from '../operations'
 
 const PREAMBLE = [
   'You are renovating an existing room based on photos of the current space and reference photos of the target aesthetic.',
+  'Before the first tool call, read the canonical modeling manual at `pascal://agent-guide`.',
   '',
   'Follow this procedure:',
   '  1. Call `analyze_floorplan_image` and/or `analyze_room_photo` on EACH current photo to extract walls, rooms, fixtures, and approximate dimensions. Do the same for reference photos.',

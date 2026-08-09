@@ -27,8 +27,10 @@ export const listScenesOutput = {
       url: z.string().optional(),
       published: z.boolean().optional(),
       graphHash: z.string().optional(),
+      isActive: z.boolean(),
     }),
   ),
+  activeSceneId: z.string().nullable(),
 }
 
 export function registerListScenes(server: McpServer, operations: SceneOperations): void {
@@ -47,7 +49,14 @@ export function registerListScenes(server: McpServer, operations: SceneOperation
           ...(projectId !== undefined ? { projectId } : {}),
           limit: limit ?? DEFAULT_LIMIT,
         })
-        const payload = { scenes }
+        const activeScene = operations.getActiveScene()
+        const payload = {
+          activeSceneId: activeScene?.id ?? null,
+          scenes: scenes.map((scene) => ({
+            ...scene,
+            isActive: scene.id === activeScene?.id,
+          })),
+        }
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(payload) }],
           structuredContent: payload,
