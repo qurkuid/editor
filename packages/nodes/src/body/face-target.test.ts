@@ -13,4 +13,11 @@ describe('Body face targeting', () => {
     expect(resolveBodyFaceId(child)).toBe('face:side:2')
     expect(resolveBodyFaceId(new Group())).toBeNull()
   })
+
+  test('resolves the hit face from a merged imported mesh', () => {
+    const mesh = new Mesh()
+    mesh.userData.faceIdsByTriangle = ['face:first', 'face:second']
+
+    expect(resolveBodyFaceId(mesh, 1)).toBe('face:second')
+  })
 })

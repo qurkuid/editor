@@ -11,6 +11,7 @@ type PushPullFaceActionsProps = {
   readonly dragging: boolean
   readonly imprintEligible: boolean
   readonly onBegin: () => void
+  readonly previewValid: boolean
 }
 
 export function PushPullFaceActions({
@@ -20,11 +21,18 @@ export function PushPullFaceActions({
   dragging,
   imprintEligible,
   onBegin,
+  previewValid,
 }: PushPullFaceActionsProps) {
   const unit = useViewer((state) => state.unit)
   if (dragging) {
     return (
-      <div className="pointer-events-none">
+      <div
+        aria-invalid={!previewValid}
+        className={`pointer-events-none ${
+          previewValid ? '' : 'rounded-full bg-destructive/10 ring-2 ring-destructive/70'
+        }`}
+        data-push-pull-preview-state={previewValid ? 'valid' : 'invalid'}
+      >
         <DimensionPill
           parts={[{ key: 'distance', prefix: 'Push/Pull', value: distance, signed: true }]}
           primary="distance"

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createRectangleBody } from '@pascal-app/core'
+import { createRectangleBody, sweepBodyFace } from '@pascal-app/core'
 import { buildBodyFloorplan } from './floorplan'
 
 describe('buildBodyFloorplan', () => {
@@ -20,5 +20,23 @@ describe('buildBodyFloorplan', () => {
       strokeWidth: 1.5,
       vectorEffect: 'non-scaling-stroke',
     })
+  })
+
+  test('renders nondegenerate swept footprints without exposing edit affordances', () => {
+    const body = sweepBodyFace(createRectangleBody({ width: 1.2, depth: 0.8 }), 'face:0', [
+      [0, 0, 0],
+      [0, 1, 0],
+      [0, 1, 1],
+    ]).body
+
+    const geometry = buildBodyFloorplan(body)
+
+    expect(geometry?.kind).toBe('group')
+    expect(geometry?.kind === 'group' ? geometry.children.length : 0).toBeGreaterThan(1)
+    expect(
+      geometry?.kind === 'group'
+        ? geometry.children.every((child) => child.kind === 'polygon')
+        : false,
+    ).toBe(true)
   })
 })

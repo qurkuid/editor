@@ -2,9 +2,15 @@
 
 import type {
   BodyNode,
+  ManipulationSnapCandidate,
   MeasurementFeatureBinding,
   MeasurementPoint,
   MeasurementSnapKind,
+} from '@pascal-app/core'
+import {
+  manipulationSnapCandidateFromFeature,
+  manipulationSnapMarkerToken,
+  manipulationSnapTier,
 } from '@pascal-app/core'
 import { Html } from '@react-three/drei'
 import type { associateSurfaceHit } from '../measurement/surface-query'
@@ -15,12 +21,14 @@ type BodyMoveSnapKind = Extract<
   'endpoint' | 'midpoint' | 'edge' | 'center' | 'face'
 >
 
-export type BodyMoveSnap = {
-  featureId: string
+export type BodyMoveSnap = Pick<
+  ManipulationSnapCandidate,
+  'featureId' | 'point' | 'normal' | 'snapKind'
+> & {
   label: string
-  normal?: MeasurementPoint
-  point: MeasurementPoint
   snapKind: BodyMoveSnapKind
+  tier: ReturnType<typeof manipulationSnapTier>
+  markerToken: ReturnType<typeof manipulationSnapMarkerToken>
 }
 
 const BODY_MOVE_SNAP_COLORS: Record<BodyMoveSnapKind, string> = {
@@ -63,13 +71,10 @@ export function bodyMoveSnapFromBinding(
   if (!feature || !isBodyMoveSnapKind(feature.snapKind)) return null
   const label = bodyMoveSnapLabel(feature.snapKind, feature.label)
   if (!label) return null
+  const candidate = manipulationSnapCandidateFromFeature(feature, binding)
   return {
-    featureId: feature.id,
+    ...candidate,
     label,
-    ...(feature.normal
-      ? { normal: [feature.normal[0], feature.normal[1], feature.normal[2]] }
-      : {}),
-    point: [...binding.point],
     snapKind: feature.snapKind,
   }
 }
@@ -86,6 +91,8 @@ export function bodyMoveSnapFromSurfaceHit(
     normal: [...hit.normal],
     point: [...hit.point],
     snapKind: hit.semantic.snapKind,
+    tier: manipulationSnapTier(hit.semantic.snapKind),
+    markerToken: manipulationSnapMarkerToken(hit.semantic.snapKind),
   }
 }
 

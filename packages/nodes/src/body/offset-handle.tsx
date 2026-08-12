@@ -2,9 +2,9 @@
 
 import { type BodyNode, getBodyFaceFrame, sceneRegistry } from '@pascal-app/core'
 import {
+  EDITOR_LAYER,
   isGridSnapActive,
   isMagneticSnapActive,
-  parseDraftLength,
   swallowNextClick,
   triggerSFX,
   useDraftLengthHud,
@@ -15,41 +15,68 @@ import { useViewer } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { type Group, type Object3D, Raycaster, Vector2, Vector3 } from 'three'
+import {
+  BufferGeometry,
+  type Group,
+  Line,
+  LineBasicMaterial,
+  type Object3D,
+  Plane,
+  Raycaster,
+  Vector2,
+  Vector3,
+} from 'three'
 import {
   associateSurfaceHit,
   createMeasurementSurfaceQuerySession,
 } from '../measurement/surface-query'
-import { isBodyFaceImprintEligible, isBodyFacePushPullEligible } from './face-imprint-geometry'
-import { useBodyToolOptions } from './options'
-import { resolvePushPullDistance } from './push-pull'
-import { PushPullFaceActions } from './push-pull-face-actions'
-import { type BodyPushPullSession, createBodyPushPullSession } from './push-pull-session'
+import { isBodyFaceOffsetEligible } from './face-imprint-geometry'
+import { OffsetFaceActions } from './offset-face-actions'
+import { createOffsetPointerInteraction, resolveOffsetPointerDistance } from './offset-interaction'
 import {
-  projectPushPullDistance,
-  resolvePushPullRayCandidate,
-  snapPushPullDistanceToGrid,
-} from './push-pull-snap'
+  type BodyOffsetPreviewPoint,
+  type BodyOffsetSession,
+  createBodyOffsetSession,
+} from './offset-session'
+import { useBodyToolOptions } from './options'
+import { snapPushPullDistanceToGrid } from './push-pull-snap'
 
-const PUSH_PULL_HANDLE = 'body:push-pull'
+const OFFSET_HANDLE = 'body:offset'
 
-type PushPullHandleProps = {
+type OffsetHandleProps = {
   readonly body: BodyNode
   readonly faceId: string | null
+  readonly hitPoint: readonly [number, number, number] | null
   readonly target: Object3D
   readonly autoStart?: boolean
 }
 
-export function PushPullHandle({ autoStart = false, body, faceId, target }: PushPullHandleProps) {
+export function resolveOffsetDistance(
+  cursorDistance: number,
+  typedDistance: number | null,
+  typedInput = false,
+): number {
+  return typedInput ? (typedDistance ?? Number.NaN) : (typedDistance ?? cursorDistance)
+}
+
+export function resolveOffsetDisplayDistance(distance: number): number {
+  return Number.isFinite(distance) ? distance : 0
+}
+
+export function OffsetHandle({
+  autoStart = false,
+  body,
+  faceId,
+  hitPoint,
+  target,
+}: OffsetHandleProps) {
   const { camera, gl, scene } = useThree()
-  const unit = useViewer((state) => state.unit)
-  const metricNotation = useViewer((state) => state.metricNotation)
   const surfaceQuery = useMemo(
     () => createMeasurementSurfaceQuerySession(scene, { excludeNodeIds: [body.id] }),
     [body.id, scene],
   )
   const outerRef = useRef<Group>(null)
-  const sessionRef = useRef<BodyPushPullSession | null>(null)
+  const sessionRef = useRef<BodyOffsetSession | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
   const cursorDistanceRef = useRef(0)
   const hasValidPreviewRef = useRef(false)
@@ -58,13 +85,21 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
   const [dragging, setDragging] = useState(false)
   const [distance, setDistance] = useState(0)
   const [previewValid, setPreviewValid] = useState(false)
+  const [previewOutlinePoints, setPreviewOutlinePoints] = useState<BodyOffsetPreviewPoint[] | null>(
+    null,
+  )
   const {
     clear: clearLength,
     getLengthMeters,
     raw,
   } = useDraftLengthInput(() => sessionRef.current !== null, {
     onEscape: () => finishRef.current(true),
+    signed: true,
   })
+  const typedLengthMeters = useMemo(
+    () => (raw.trim() ? getLengthMeters() : null),
+    [getLengthMeters, raw],
+  )
 
   useFrame(() => {
     const outer = outerRef.current
@@ -77,8 +112,7 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
   useEffect(() => () => surfaceQuery.dispose(), [surfaceQuery])
 
   const face = body.faces.find((candidate) => candidate.id === faceId) ?? null
-  const eligible = faceId !== null && isBodyFacePushPullEligible(body, faceId)
-  const imprintEligible = face !== null && isBodyFaceImprintEligible(body, face.id)
+  const eligible = faceId !== null && isBodyFaceOffsetEligible(body, faceId)
   const frame = useMemo(() => {
     if (!faceId) return null
     try {
@@ -87,30 +121,29 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
       return null
     }
   }, [body, faceId])
+  const interaction = useMemo(
+    () => (faceId && hitPoint ? createOffsetPointerInteraction(body, faceId, hitPoint) : null),
+    [body, faceId, hitPoint],
+  )
 
   const applyDistance = useCallback(
     (cursorDistance: number, typedLength?: number | null) => {
       const session = sessionRef.current
       if (!session) return
-      const typedRaw = useDraftLengthHud.getState().raw.trim()
-      const typedInput = typedRaw.length > 0
-      const typedValue = typedLength === undefined ? getLengthMeters() : typedLength
-      const distance =
-        typedInput && (typedValue === null || !Number.isFinite(typedValue))
-          ? Number.NaN
-          : resolvePushPullDistance(cursorDistance, typedValue)
-      const valid = session.preview(distance)
+      const typedInput = useDraftLengthHud.getState().raw.trim().length > 0
+      const nextDistance = resolveOffsetDistance(
+        cursorDistance,
+        typedLength === undefined ? getLengthMeters() : typedLength,
+        typedInput,
+      )
+      const valid = session.preview(nextDistance)
       hasValidPreviewRef.current = valid
       setPreviewValid(valid)
+      setPreviewOutlinePoints(valid ? session.previewFaceLoopPoints() : null)
       useDraftLengthHud.getState().setPreviewInvalid(!valid)
-      setDistance(valid ? distance : 0)
+      setDistance(resolveOffsetDisplayDistance(nextDistance))
     },
     [getLengthMeters],
-  )
-
-  const typedLengthMeters = useMemo(
-    () => parseDraftLength(raw, unit, metricNotation),
-    [metricNotation, raw, unit],
   )
 
   useEffect(() => {
@@ -128,19 +161,23 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
       cursorDistanceRef.current = 0
       hasValidPreviewRef.current = false
       setPreviewValid(false)
+      setPreviewOutlinePoints(null)
+      const createdFaceId = session.createdFaceId()
       sessionRef.current = null
       const committed = cancelled || !session.canCommit() ? false : session.commit()
       if (cancelled || !committed) session.cancel()
       if (committed) triggerSFX('sfx:structure-build')
+      if (committed && createdFaceId) {
+        useBodyToolOptions.getState().setSelectedFace({ bodyId: body.id, faceId: createdFaceId })
+      }
       clearLength()
-      useDraftLengthHud.getState().setPreviewInvalid(false)
       useViewer.getState().setInputDragging(false)
       document.body.style.cursor = ''
       setDistance(0)
       setDragging(false)
       useBodyToolOptions.getState().setSelectionAction(null)
     },
-    [clearLength],
+    [body.id, clearLength],
   )
   finishRef.current = finish
 
@@ -152,22 +189,21 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
   )
 
   const begin = useCallback(() => {
-    if (!eligible || !frame || !face || sessionRef.current) return
+    if (!eligible || !frame || !face || !interaction || !hitPoint || sessionRef.current) return
     clearLength()
-    useDraftLengthHud.getState().setPreviewInvalid(false)
+    useDraftLengthHud.getState().setSignedMode(true)
     useViewer.getState().setInputDragging(true)
     document.body.style.cursor = 'ns-resize'
     setDragging(true)
     cursorDistanceRef.current = 0
     hasValidPreviewRef.current = false
     setPreviewValid(false)
+    setPreviewOutlinePoints(null)
 
-    const anchorWorld = target.localToWorld(new Vector3(...frame.centroid))
-    const normalWorld = new Vector3(...frame.normal)
-      .transformDirection(target.matrixWorld)
-      .normalize()
-    const anchorPoint: [number, number, number] = [anchorWorld.x, anchorWorld.y, anchorWorld.z]
-    const normalPoint: [number, number, number] = [normalWorld.x, normalWorld.y, normalWorld.z]
+    const anchorWorld = target.localToWorld(new Vector3(...hitPoint))
+    const normalWorld = new Vector3(...frame.normal).transformDirection(target.matrixWorld)
+    normalWorld.normalize()
+    const dragPlane = new Plane().setFromNormalAndCoplanarPoint(normalWorld, anchorWorld)
     const raycaster = new Raycaster()
     const levelObject =
       (body.parentId ? sceneRegistry.nodes.get(body.parentId) : undefined) ?? target.parent ?? scene
@@ -186,22 +222,15 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
         -((event.clientY - rect.top) / rect.height) * 2 + 1,
       )
       raycaster.setFromCamera(pointer, camera)
-      const candidate = resolvePushPullRayCandidate({
-        rayOrigin: [raycaster.ray.origin.x, raycaster.ray.origin.y, raycaster.ray.origin.z],
-        rayDirection: [
-          raycaster.ray.direction.x,
-          raycaster.ray.direction.y,
-          raycaster.ray.direction.z,
-        ],
-        anchor: anchorPoint,
-        normal: normalPoint,
-      })
-      if (!candidate) return
-      let cursorDistance = projectPushPullDistance({
-        anchor: anchorPoint,
-        normal: normalPoint,
-        point: candidate,
-      })
+      const hit = new Vector3()
+      if (!raycaster.ray.intersectPlane(dragPlane, hit)) return
+      const localHit = target.worldToLocal(hit.clone())
+      let cursorDistance = resolveOffsetPointerDistance(interaction, [
+        localHit.x,
+        localHit.y,
+        localHit.z,
+      ])
+      if (cursorDistance === null) return
       if (!event.altKey && isMagneticSnapActive()) {
         const resolved = surfaceQuery.resolvePointer({
           event,
@@ -215,11 +244,13 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
         if (resolved) {
           const associated = associateSurfaceHit(resolved.hit)
           const snapWorld = levelObject.localToWorld(new Vector3(...associated.point))
-          cursorDistance = projectPushPullDistance({
-            anchor: anchorPoint,
-            normal: normalPoint,
-            point: [snapWorld.x, snapWorld.y, snapWorld.z],
-          })
+          const snapLocal = target.worldToLocal(snapWorld.clone())
+          cursorDistance = resolveOffsetPointerDistance(interaction, [
+            snapLocal.x,
+            snapLocal.y,
+            snapLocal.z,
+          ])
+          if (cursorDistance === null) return
         }
       } else if (!event.altKey && isGridSnapActive()) {
         cursorDistance = snapPushPullDistanceToGrid(
@@ -252,10 +283,10 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
       window.removeEventListener('click', onCommit, true)
       window.removeEventListener('keydown', onKeyDown, true)
     }
-    sessionRef.current = createBodyPushPullSession({
+    sessionRef.current = createBodyOffsetSession({
       body,
       faceId: face.id,
-      handle: PUSH_PULL_HANDLE,
+      handle: OFFSET_HANDLE,
     })
     window.addEventListener('pointermove', onPointerMove, true)
     window.addEventListener('keydown', onKeyDown, true)
@@ -271,6 +302,8 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
     face,
     frame,
     gl.domElement,
+    hitPoint,
+    interaction,
     scene,
     surfaceQuery,
     target,
@@ -282,7 +315,44 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
     return () => window.cancelAnimationFrame(frameId)
   }, [autoStart, begin])
 
-  if ((!eligible && !dragging) || !frame || !face) return null
+  const previewOutline = useMemo(() => {
+    if (!previewOutlinePoints) return null
+    const [firstPoint, ...remainingPoints] = previewOutlinePoints
+    if (!firstPoint) return null
+    const geometry = new BufferGeometry().setFromPoints(
+      [firstPoint, ...remainingPoints, firstPoint].map((point) => new Vector3(...point)),
+    )
+    const line = new Line(
+      geometry,
+      new LineBasicMaterial({
+        color: 0x6ca3ff,
+        depthTest: false,
+        depthWrite: false,
+        opacity: 0.95,
+        transparent: true,
+      }),
+    )
+    line.layers.set(EDITOR_LAYER)
+    line.renderOrder = 1002
+    line.frustumCulled = false
+    line.raycast = () => {}
+    return line
+  }, [previewOutlinePoints])
+
+  useEffect(() => {
+    if (!previewOutline) return
+    return () => {
+      previewOutline.geometry.dispose()
+      const material = previewOutline.material
+      if (Array.isArray(material)) {
+        material.forEach((entry) => {
+          entry.dispose()
+        })
+      } else material.dispose()
+    }
+  }, [previewOutline])
+
+  if ((!eligible && !dragging) || !frame || !face || !interaction) return null
   const position: [number, number, number] = [
     frame.centroid[0] + frame.normal[0] * 0.18,
     frame.centroid[1] + frame.normal[1] * 0.18,
@@ -291,13 +361,11 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
 
   return (
     <group ref={outerRef}>
+      {previewOutline ? <primitive object={previewOutline} /> : null}
       <Html center position={position} zIndexRange={[100, 0]}>
-        <PushPullFaceActions
-          bodyId={body.id}
+        <OffsetFaceActions
           distance={distance}
           dragging={dragging}
-          faceId={face.id}
-          imprintEligible={imprintEligible}
           onBegin={begin}
           previewValid={previewValid}
         />

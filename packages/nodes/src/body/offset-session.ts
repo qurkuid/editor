@@ -1,7 +1,12 @@
-import { type BodyNode, useLiveNodeOverrides, useScene } from '@pascal-app/core'
 import {
-  executePushPullBodyFace,
-  type PushPullBodyFaceOperationResult,
+  type BodyNode,
+  getBodyLoopVertices,
+  useLiveNodeOverrides,
+  useScene,
+} from '@pascal-app/core'
+import {
+  executeOffsetBodyFace,
+  type OffsetBodyFaceOperationResult,
 } from '@pascal-app/core/modeling-operations'
 import { useInteractionScope } from '@pascal-app/editor'
 
@@ -12,15 +17,29 @@ type BodyGeometryPatch = Pick<
   'revision' | 'vertices' | 'halfEdges' | 'loops' | 'faces' | 'shells' | 'curves' | 'bodyDefaults'
 >
 
-type BodyPushPullSessionOptions = {
+type BodyOffsetSessionOptions = {
   readonly body: BodyNode
   readonly faceId: string
   readonly handle: string
 }
 
-export type BodyPushPullSession = {
+export type BodyOffsetPreviewPoint = [number, number, number]
+
+export function getOffsetPreviewFaceLoopPoints(
+  body: BodyNode,
+  faceId: string | null,
+): BodyOffsetPreviewPoint[] | null {
+  const face = faceId ? body.faces.find((candidate) => candidate.id === faceId) : null
+  if (!face) return null
+  const points = getBodyLoopVertices(body, face.outerLoopId)
+  return points.length >= 3 ? points : null
+}
+
+export type BodyOffsetSession = {
   readonly preview: (distance: number) => boolean
   readonly canCommit: () => boolean
+  readonly createdFaceId: () => string | null
+  readonly previewFaceLoopPoints: () => BodyOffsetPreviewPoint[] | null
   readonly commit: () => boolean
   readonly cancel: () => void
 }
@@ -46,10 +65,9 @@ function endHandleDrag(nodeId: BodyNode['id'], handle: string): void {
     )
 }
 
-export function createBodyPushPullSession(
-  options: BodyPushPullSessionOptions,
-): BodyPushPullSession {
+export function createBodyOffsetSession(options: BodyOffsetSessionOptions): BodyOffsetSession {
   let current: BodyNode | null = null
+  let currentCreatedFaceId: string | null = null
   let distance = 0
   let rejected = false
   let active = true
@@ -70,6 +88,10 @@ export function createBodyPushPullSession(
     clearPreview()
     endHandleDrag(nodeId, options.handle)
     active = false
+    current = null
+    currentCreatedFaceId = null
+    distance = 0
+    rejected = false
   }
 
   return {
@@ -77,26 +99,29 @@ export function createBodyPushPullSession(
       if (!active) return false
       if (!Number.isFinite(nextDistance) || Math.abs(nextDistance) < MIN_DISTANCE) {
         current = null
+        currentCreatedFaceId = null
         distance = 0
         rejected = false
         clearPreview()
         return false
       }
-      let result: PushPullBodyFaceOperationResult
+      let result: OffsetBodyFaceOperationResult
       try {
-        result = executePushPullBodyFace(options.body, {
+        result = executeOffsetBodyFace(options.body, {
           faceId: options.faceId,
           distance: nextDistance,
         })
       } catch (error) {
         if (!(error instanceof RangeError)) throw error
         current = null
+        currentCreatedFaceId = null
         distance = 0
         rejected = true
         clearPreview()
         return false
       }
       current = result.body
+      currentCreatedFaceId = result.createdFaceId
       distance = nextDistance
       rejected = false
       useLiveNodeOverrides.getState().set(nodeId, bodyGeometryPatch(result.body))
@@ -104,6 +129,9 @@ export function createBodyPushPullSession(
       return true
     },
     canCommit: () => active && current !== null && Math.abs(distance) >= MIN_DISTANCE,
+    createdFaceId: () => currentCreatedFaceId,
+    previewFaceLoopPoints: () =>
+      current ? getOffsetPreviewFaceLoopPoints(current, currentCreatedFaceId) : null,
     commit: () => {
       if (!active) return false
       const committed = current

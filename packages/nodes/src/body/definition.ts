@@ -1,4 +1,4 @@
-import type { NodeDefinition } from '@pascal-app/core'
+import { type NodeDefinition, PASCAL_ARCHITECTURE_BODY_REF } from '@pascal-app/core'
 import type { FloorplanNodeExtension } from '@pascal-app/editor'
 import { buildBodyFloorplan } from './floorplan'
 import { bodyFloorplanMoveTarget } from './floorplan-move'
@@ -10,6 +10,7 @@ import {
 } from './measurement'
 import { bodyPaint } from './paint'
 import { bodyParametrics } from './parametrics'
+import { bodyScaleHandles } from './scale-handles'
 import { BodyNode } from './schema'
 
 export const bodyDefinition: NodeDefinition<typeof BodyNode> = {
@@ -17,6 +18,7 @@ export const bodyDefinition: NodeDefinition<typeof BodyNode> = {
   schemaVersion: 1,
   schema: BodyNode,
   category: 'structure',
+  semanticRef: PASCAL_ARCHITECTURE_BODY_REF,
   extensions: {
     'pascal:editor/floorplan': {
       tool: () => import('./floorplan-tool'),
@@ -46,6 +48,7 @@ export const bodyDefinition: NodeDefinition<typeof BodyNode> = {
     paint: bodyPaint,
   },
   geometry: buildBodyGeometry,
+  handles: bodyScaleHandles,
   floorplan: buildBodyFloorplan,
   measurement: {
     features: (node) => bodyMeasurementFeatures(node),

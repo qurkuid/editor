@@ -12,6 +12,7 @@ import {
 } from '@pascal-app/core'
 import {
   CursorSphere,
+  constrainSpatialDraftPoint,
   consumePlacementDragRelease,
   getSegmentGridStep,
   isGridSnapActive,
@@ -19,6 +20,8 @@ import {
   markToolCancelConsumed,
   snapBuildingLocalToWorldGrid,
   triggerSFX,
+  useDraftLengthHud,
+  useDraftLengthInput,
   useEditor,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
@@ -44,6 +47,7 @@ import {
   bodyMoveSnapFromBinding,
   bodyMoveSnapFromSurfaceHit,
 } from './move-snap'
+import { useBodyToolOptions } from './options'
 
 type PointerEventSource = PointerEvent | { readonly nativeEvent: PointerEvent }
 function normalizePointerEvent(source: PointerEventSource): PointerEvent {
@@ -72,8 +76,13 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
   })
   const [baseSnap, setBaseSnap] = useState<BodyMoveSnap | null>(null)
   const [targetSnap, setTargetSnap] = useState<BodyMoveSnap | null>(null)
+  const sessionActiveRef = useRef(false)
+  const { clear: clearLength, getLengthMeters } = useDraftLengthInput(
+    () => sessionActiveRef.current,
+  )
 
   const exitMoveMode = useCallback(() => {
+    useBodyToolOptions.getState().setSelectionAction(null)
     useEditor.getState().setMovingNode(null)
   }, [])
 
@@ -87,6 +96,9 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
     })
     const session = effectState.session
     const placementDragMode = useEditor.getState().placementDragMode
+    sessionActiveRef.current = true
+    clearLength()
+    useDraftLengthHud.getState().setPreviewInvalid(false)
     dragAnchorRef.current = null
     basePointRef.current = null
     let committed = false
@@ -203,6 +215,11 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
       if (isFloorplanSourcedEvent(event)) return
       const nativeEvent = normalizePointerEvent(event.nativeEvent)
       const forceFree = nativeEvent.altKey
+      const typedRaw = useDraftLengthHud.getState().raw.trim()
+      const typedInput = typedRaw.length > 0
+      const typedLength = typedInput ? getLengthMeters() : null
+      const hasValidTypedLength = !typedInput || typedLength !== null
+      useDraftLengthHud.getState().setPreviewInvalid(!hasValidTypedLength)
       const step = forceFree || !isGridSnapActive() ? 0 : getSegmentGridStep()
       const [x, z] = snapBuildingLocalToWorldGrid(
         [event.localPosition[0], event.localPosition[2]],
@@ -234,9 +251,15 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
         const hit = snap ? associated : resolved?.hit
         setTargetSnap(snap)
         const targetPoint: [number, number, number] = hit ? [...hit.point] : [x, basePoint[1], z]
-        const translation = resolveBodyPointMoveTranslation({ basePoint, targetPoint })
+        const constrainedTargetPoint =
+          hasValidTypedLength && typedLength !== null
+            ? constrainSpatialDraftPoint(basePoint, targetPoint, typedLength)
+            : targetPoint
+        const translation = hasValidTypedLength
+          ? resolveBodyPointMoveTranslation({ basePoint, targetPoint: constrainedTargetPoint })
+          : ([Number.NaN, Number.NaN, Number.NaN] as [number, number, number])
         session.preview(translation)
-        setCursorLocalPos(targetPoint)
+        setCursorLocalPos(constrainedTargetPoint)
         return
       }
 
@@ -264,19 +287,42 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
       setTargetSnap(snap)
       const hit = snap ? associated : resolved?.hit
       const surfacePoint = hit && Math.abs(hit.normal[1]) >= 0.85 ? hit.point : null
-      const translation = resolveBodyMoveTranslation({
-        body: node,
-        planTranslation: [dx, dz],
-        surfacePoint,
-      })
+      const targetPoint: [number, number, number] = surfacePoint ? [...surfacePoint] : [x, 0, z]
+      const constrainedTargetPoint =
+        hasValidTypedLength && typedLength !== null
+          ? constrainSpatialDraftPoint([anchor[0], 0, anchor[1]], targetPoint, typedLength)
+          : targetPoint
+      const translation = hasValidTypedLength
+        ? surfacePoint
+          ? resolveBodyMoveTranslation({
+              body: node,
+              planTranslation: [dx, dz],
+              surfacePoint: constrainedTargetPoint,
+            })
+          : resolveBodyMoveTranslation({
+              body: node,
+              planTranslation: [
+                constrainedTargetPoint[0] - anchor[0],
+                constrainedTargetPoint[2] - anchor[1],
+              ],
+              surfacePoint: null,
+            })
+        : ([Number.NaN, Number.NaN, Number.NaN] as [number, number, number])
       session.preview(translation)
       const center = originalCenterRef.current
-      setCursorLocalPos([center[0] + translation[0], translation[1], center[1] + translation[2]])
+      setCursorLocalPos([
+        center[0] + constrainedTargetPoint[0] - anchor[0],
+        constrainedTargetPoint[1],
+        center[1] + constrainedTargetPoint[2] - anchor[1],
+      ])
     }
 
-    const commitCurrent = (nativeEvent?: { stopPropagation?: () => void }) => {
+    const commitCurrent = (
+      nativeEvent?: { stopPropagation?: () => void },
+      allowImmediate = false,
+    ) => {
       if (committed) return
-      if (Date.now() - activatedAtRef.current < 150) {
+      if (!allowImmediate && Date.now() - activatedAtRef.current < 150) {
         nativeEvent?.stopPropagation?.()
         return
       }
@@ -287,6 +333,8 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
       useViewer.getState().setSelection({ selectedIds: [bodyId] })
       useEditor.getState().setMovingNodeOrigin('3d')
       clearSnapFeedback()
+      clearLength()
+      useDraftLengthHud.getState().setPreviewInvalid(false)
       exitMoveMode()
       nativeEvent?.stopPropagation?.()
     }
@@ -318,6 +366,8 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
 
     const onCancel = () => {
       session.cancel()
+      clearLength()
+      useDraftLengthHud.getState().setPreviewInvalid(false)
       useViewer.getState().setSelection({ selectedIds: [bodyId] })
       clearSnapFeedback()
       markToolCancelConsumed()
@@ -331,9 +381,26 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
     emitter.on('body:click', commitFromBody)
     emitter.on('tool:cancel', onCancel)
     window.addEventListener('pointerup', onPlacementDragPointerUp)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        onCancel()
+        return
+      }
+      if (event.key !== 'Enter' || !session.canCommit()) return
+      event.preventDefault()
+      event.stopPropagation()
+      commitCurrent(event, true)
+    }
+    window.addEventListener('keydown', onKeyDown, true)
 
     return () => {
       if (!committed) session.cancel()
+      sessionActiveRef.current = false
+      clearLength()
+      useDraftLengthHud.getState().setPreviewInvalid(false)
+      useBodyToolOptions.getState().setSelectionAction(null)
       clearSnapFeedback()
       emitter.off('grid:move', applyPreview)
       emitter.off('grid:click', commitFromGrid)
@@ -342,8 +409,9 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
       emitter.off('body:click', commitFromBody)
       emitter.off('tool:cancel', onCancel)
       window.removeEventListener('pointerup', onPlacementDragPointerUp)
+      window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [camera, exitMoveMode, gl.domElement, node, scene, surfaceQuery])
+  }, [camera, clearLength, exitMoveMode, getLengthMeters, gl.domElement, node, scene, surfaceQuery])
 
   return (
     <group>

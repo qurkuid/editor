@@ -1,26 +1,24 @@
 import { type BodyNode, useLiveNodeOverrides, useScene } from '@pascal-app/core'
 import {
-  executePushPullBodyFace,
-  type PushPullBodyFaceOperationResult,
+  executeSweepBodyFace,
+  type SweepBodyFaceOperationResult,
 } from '@pascal-app/core/modeling-operations'
 import { useInteractionScope } from '@pascal-app/editor'
-
-const MIN_DISTANCE = 0.000001
 
 type BodyGeometryPatch = Pick<
   BodyNode,
   'revision' | 'vertices' | 'halfEdges' | 'loops' | 'faces' | 'shells' | 'curves' | 'bodyDefaults'
 >
 
-type BodyPushPullSessionOptions = {
+type BodySweepSessionOptions = {
   readonly body: BodyNode
   readonly faceId: string
-  readonly handle: string
 }
 
-export type BodyPushPullSession = {
-  readonly preview: (distance: number) => boolean
+export type BodySweepSession = {
+  readonly preview: (pathPoints: readonly [number, number, number][]) => boolean
   readonly canCommit: () => boolean
+  readonly result: () => SweepBodyFaceOperationResult | null
   readonly commit: () => boolean
   readonly cancel: () => void
 }
@@ -38,87 +36,69 @@ function bodyGeometryPatch(body: BodyNode): BodyGeometryPatch {
   }
 }
 
-function endHandleDrag(nodeId: BodyNode['id'], handle: string): void {
+function endSweepScope(nodeId: BodyNode['id']): void {
   useInteractionScope
     .getState()
     .endIf(
-      (scope) => scope.kind === 'handle-drag' && scope.nodeId === nodeId && scope.handle === handle,
+      (scope) => scope.kind === 'reshaping' && scope.nodeId === nodeId && scope.reshape === 'sweep',
     )
 }
 
-export function createBodyPushPullSession(
-  options: BodyPushPullSessionOptions,
-): BodyPushPullSession {
-  let current: BodyNode | null = null
-  let distance = 0
-  let rejected = false
+export function createBodySweepSession(options: BodySweepSessionOptions): BodySweepSession {
+  let current: SweepBodyFaceOperationResult | null = null
   let active = true
   const nodeId = options.body.id
 
   useInteractionScope.getState().begin({
-    kind: 'handle-drag',
+    kind: 'reshaping',
     nodeId,
-    handle: options.handle,
+    reshape: 'sweep',
+    driver: 'tool',
   })
 
-  const clearPreview = (): void => {
+  const clearPreview = () => {
     useLiveNodeOverrides.getState().clear(nodeId)
     useScene.getState().markDirty(nodeId)
   }
-
-  const clear = (): void => {
+  const clear = () => {
     clearPreview()
-    endHandleDrag(nodeId, options.handle)
+    endSweepScope(nodeId)
     active = false
   }
 
   return {
-    preview: (nextDistance) => {
-      if (!active) return false
-      if (!Number.isFinite(nextDistance) || Math.abs(nextDistance) < MIN_DISTANCE) {
+    preview: (pathPoints) => {
+      if (!active || pathPoints.length < 2) {
         current = null
-        distance = 0
-        rejected = false
         clearPreview()
         return false
       }
-      let result: PushPullBodyFaceOperationResult
       try {
-        result = executePushPullBodyFace(options.body, {
+        current = executeSweepBodyFace(options.body, {
           faceId: options.faceId,
-          distance: nextDistance,
+          pathPoints: pathPoints.map((point) => [...point] as [number, number, number]),
         })
       } catch (error) {
         if (!(error instanceof RangeError)) throw error
         current = null
-        distance = 0
-        rejected = true
         clearPreview()
         return false
       }
-      current = result.body
-      distance = nextDistance
-      rejected = false
-      useLiveNodeOverrides.getState().set(nodeId, bodyGeometryPatch(result.body))
+      useLiveNodeOverrides.getState().set(nodeId, bodyGeometryPatch(current.body))
       useScene.getState().markDirty(nodeId)
       return true
     },
-    canCommit: () => active && current !== null && Math.abs(distance) >= MIN_DISTANCE,
+    canCommit: () => active && current !== null,
+    result: () => current,
     commit: () => {
-      if (!active) return false
-      const committed = current
-      if (!committed || Math.abs(distance) < MIN_DISTANCE) {
-        if (rejected) return false
-        clear()
-        return false
-      }
+      if (!active || !current) return false
+      const committed = current.body
       clear()
       useScene.getState().updateNode(nodeId, bodyGeometryPatch(committed))
       return true
     },
     cancel: () => {
-      if (!active) return
-      clear()
+      if (active) clear()
     },
   }
 }

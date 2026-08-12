@@ -2,6 +2,7 @@ import {
   type AnyNodeId,
   createDefaultWallFaceBands,
   type NodeDefinition,
+  PASCAL_ARCHITECTURE_WALL_REF,
   withDefaultConstructionMaterials,
 } from '@pascal-app/core'
 import type { FloorplanNodeExtension } from '@pascal-app/editor'
@@ -42,6 +43,7 @@ export const wallDefinition: NodeDefinition<typeof WallNode> = {
   schemaVersion: 8,
   schema: WallNode,
   category: 'structure',
+  semanticRef: PASCAL_ARCHITECTURE_WALL_REF,
   surfaceRole: 'wall',
   extensions: {
     'pascal:editor/floorplan': {

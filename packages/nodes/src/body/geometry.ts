@@ -10,13 +10,51 @@ import {
   DoubleSide,
   Float32BufferAttribute,
   Group,
+  LineBasicMaterial,
+  LineSegments,
+  type Material,
   Mesh,
   MeshStandardMaterial,
   ShapeUtils,
   Vector2,
 } from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 type Point3 = [number, number, number]
+
+const COPLANAR_EPSILON = 1e-6
+
+function facePlane(points: Point3[]): { normal: Point3; point: Point3 } | undefined {
+  let nx = 0
+  let ny = 0
+  let nz = 0
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index]!
+    const next = points[(index + 1) % points.length]!
+    nx += (current[1] - next[1]) * (current[2] + next[2])
+    ny += (current[2] - next[2]) * (current[0] + next[0])
+    nz += (current[0] - next[0]) * (current[1] + next[1])
+  }
+  const length = Math.hypot(nx, ny, nz)
+  if (length <= COPLANAR_EPSILON) return undefined
+  return { normal: [nx / length, ny / length, nz / length], point: points[0]! }
+}
+
+function areCoplanar(
+  first: { normal: Point3; point: Point3 },
+  second: { normal: Point3; point: Point3 },
+): boolean {
+  const normalDot =
+    first.normal[0] * second.normal[0] +
+    first.normal[1] * second.normal[1] +
+    first.normal[2] * second.normal[2]
+  if (Math.abs(normalDot) < 1 - COPLANAR_EPSILON) return false
+  const planeDistance =
+    (second.point[0] - first.point[0]) * first.normal[0] +
+    (second.point[1] - first.point[1]) * first.normal[1] +
+    (second.point[2] - first.point[2]) * first.normal[2]
+  return Math.abs(planeDistance) <= COPLANAR_EPSILON
+}
 
 function faceProjection(points: Point3[]): (point: Point3) => Vector2 {
   let nx = 0
@@ -54,11 +92,41 @@ function surfaceCoordinate(point: Point3, origin: Point3, axis: Point3): number 
 export function buildBodyGeometry(body: BodyNode, ctx?: GeometryContext): Group {
   const group = new Group()
   if (!validateBodyTopology(body).valid) return group
+  const halfEdgesById = new Map(body.halfEdges.map((edge) => [edge.id, edge]))
+  const verticesById = new Map(body.vertices.map((vertex) => [vertex.id, vertex]))
+  const halfEdgesByLoop = new Map<string, typeof body.halfEdges>()
+  for (const edge of body.halfEdges) {
+    halfEdgesByLoop.set(edge.loopId, [...(halfEdgesByLoop.get(edge.loopId) ?? []), edge])
+  }
+  const loopVertices = (loopId: string): Point3[] => {
+    const edges = halfEdgesByLoop.get(loopId) ?? []
+    const start = edges[0]
+    if (!start) return []
+    const points: Point3[] = []
+    const visited = new Set<string>()
+    let current = start
+    while (!visited.has(current.id)) {
+      visited.add(current.id)
+      const vertex = verticesById.get(current.vertexId)
+      const next = halfEdgesById.get(current.nextId)
+      if (!vertex || !next || next.loopId !== loopId) return []
+      points.push(vertex.position)
+      current = next
+    }
+    return current.id === start.id && visited.size === edges.length ? points : []
+  }
+  const importedFromSketchUp =
+    typeof body.metadata === 'object' &&
+    body.metadata !== null &&
+    !Array.isArray(body.metadata) &&
+    body.metadata.source === 'SketchUp'
+  const importedMeshes: Mesh[] = []
+  const importedMaterials = new Map<string, Material>()
 
   for (const face of body.faces) {
-    const contour = getBodyLoopVertices(body, face.outerLoopId)
+    const contour = loopVertices(face.outerLoopId)
     if (contour.length < 3) continue
-    const holes = face.innerLoopIds.map((loopId) => getBodyLoopVertices(body, loopId))
+    const holes = face.innerLoopIds.map(loopVertices)
     if (holes.some((hole) => hole.length < 3)) continue
     const project = faceProjection(contour)
     const triangles = ShapeUtils.triangulateShape(
@@ -80,21 +148,91 @@ export function buildBodyGeometry(body: BodyNode, ctx?: GeometryContext): Group 
     )
     geometry.setIndex(triangles.flat())
     geometry.computeVertexNormals()
-    const resolvedMaterial = resolveMaterialRef(face.surface.materialRef, ctx?.materials)?.clone()
+    const materialKey = face.surface.materialRef ?? 'default'
+    const cachedMaterial = importedFromSketchUp ? importedMaterials.get(materialKey) : undefined
+    const resolvedMaterial = cachedMaterial ?? resolveMaterialRef(face.surface.materialRef, ctx?.materials)?.clone()
     if (resolvedMaterial) resolvedMaterial.side = DoubleSide
-    const mesh = new Mesh(
-      geometry,
+    const material =
       resolvedMaterial ??
-        new MeshStandardMaterial({
+      new MeshStandardMaterial({
           color: '#94a3b8',
           roughness: 0.82,
           metalness: 0,
           side: DoubleSide,
-        }),
-    )
+        })
+    if (importedFromSketchUp && !importedMaterials.has(materialKey)) {
+      importedMaterials.set(materialKey, material)
+    }
+    const mesh = new Mesh(geometry, material)
     mesh.name = `face:${face.id}`
     mesh.userData = { bodyId: body.id, faceId: face.id, pascalNodeId: body.id }
-    group.add(mesh)
+    if (importedFromSketchUp) {
+      mesh.userData.materialKey = materialKey
+      importedMeshes.push(mesh)
+    }
+    else group.add(mesh)
+  }
+
+  if (importedMeshes.length > 0) {
+    const meshesByMaterial = new Map<string, Mesh[]>()
+    for (const mesh of importedMeshes) {
+      const key = mesh.userData.materialKey
+      meshesByMaterial.set(key, [...(meshesByMaterial.get(key) ?? []), mesh])
+    }
+    for (const meshes of meshesByMaterial.values()) {
+      const mergedGeometry = mergeGeometries(
+        meshes.map((mesh) => mesh.geometry),
+        false,
+      )
+      if (!mergedGeometry) continue
+      const faceIdsByTriangle = meshes.flatMap((mesh) =>
+        Array((mesh.geometry.getIndex()?.count ?? 0) / 3).fill(mesh.userData.faceId),
+      )
+      const mesh = new Mesh(mergedGeometry, meshes[0]?.material)
+      mesh.name = 'body:sketchup'
+      mesh.userData = { bodyId: body.id, faceIdsByTriangle, pascalNodeId: body.id }
+      group.add(mesh)
+    }
+    for (const mesh of importedMeshes) mesh.geometry.dispose()
+  }
+
+  const loopsById = new Map(body.loops.map((loop) => [loop.id, loop]))
+  const planesByFaceId = new Map(
+    body.faces.flatMap((face) => {
+      const plane = facePlane(loopVertices(face.outerLoopId))
+      return plane ? [[face.id, plane] as const] : []
+    }),
+  )
+  const seamPositions: number[] = []
+  const visitedTwinPairs = new Set<string>()
+  for (const halfEdge of body.halfEdges) {
+    if (!halfEdge.twinId) continue
+    const twin = halfEdgesById.get(halfEdge.twinId)
+    if (!twin) continue
+    const pairId = [halfEdge.id, twin.id].sort().join(':')
+    if (visitedTwinPairs.has(pairId)) continue
+    visitedTwinPairs.add(pairId)
+    const faceId = loopsById.get(halfEdge.loopId)?.faceId
+    const twinFaceId = loopsById.get(twin.loopId)?.faceId
+    if (!faceId || !twinFaceId || faceId === twinFaceId) continue
+    const plane = planesByFaceId.get(faceId)
+    const twinPlane = planesByFaceId.get(twinFaceId)
+    if (!plane || !twinPlane || !areCoplanar(plane, twinPlane)) continue
+    const start = verticesById.get(halfEdge.vertexId)?.position
+    const end = verticesById.get(twin.vertexId)?.position
+    if (!start || !end) continue
+    seamPositions.push(...start, ...end)
+  }
+  if (seamPositions.length > 0) {
+    const seamGeometry = new BufferGeometry()
+    seamGeometry.setAttribute('position', new Float32BufferAttribute(seamPositions, 3))
+    const seams = new LineSegments(
+      seamGeometry,
+      new LineBasicMaterial({ color: '#334155', depthTest: true, depthWrite: false }),
+    )
+    seams.name = 'body:coplanar-seams'
+    seams.userData = { bodyId: body.id, pascalNodeId: body.id }
+    group.add(seams)
   }
   return group
 }

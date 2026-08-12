@@ -45,8 +45,9 @@ describe('Body transform measurement resolution', () => {
     })
     const transformed = transformBody(source, {
       translation: [1, 0, 0],
-      rotationY: Math.PI / 2,
-      uniformScale: 2,
+      rotationAxis: [0, 1, 0],
+      rotationAngle: Math.PI / 2,
+      scale: [2, 2, 2],
       pivot: [0, 0, 0],
     })
     const nodes = [transformed, measurement]

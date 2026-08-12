@@ -7,14 +7,40 @@ export type BodyFaceDraft = {
   readonly faceId: string
 }
 
+export type BodyPoint = readonly [number, number, number]
+
+export function bodyActionToolChanged<T>(armedTool: T, currentTool: T): boolean {
+  return armedTool !== currentTool
+}
+
+export type BodySelectionAction =
+  | { readonly bodyId: string; readonly kind: 'move' }
+  | { readonly bodyId: string; readonly kind: 'rotate' }
+  | { readonly bodyId: string; readonly kind: 'scale' }
+  | { readonly bodyId: string; readonly kind: 'push-pull'; readonly faceId: string | null }
+  | {
+      readonly bodyId: string
+      readonly kind: 'offset'
+      readonly faceId: string | null
+      readonly hitPoint: BodyPoint | null
+    }
+  | {
+      readonly bodyId: string
+      readonly kind: 'sweep'
+      readonly faceId: string | null
+      readonly hitPoint: BodyPoint | null
+    }
+
 type BodyToolOptions = {
   primitive: BodyPrimitive
   setPrimitive: (primitive: BodyPrimitive) => void
   faceDraft: BodyFaceDraft | null
   setFaceDraft: (draft: BodyFaceDraft | null) => void
   clearFaceDraftIfMatches: (draft: BodyFaceDraft) => void
-  pendingFace: BodyFaceDraft | null
-  setPendingFace: (draft: BodyFaceDraft | null) => void
+  selectedFace: BodyFaceDraft | null
+  setSelectedFace: (draft: BodyFaceDraft | null) => void
+  selectionAction: BodySelectionAction | null
+  setSelectionAction: (action: BodySelectionAction | null) => void
 }
 
 export const useBodyToolOptions = create<BodyToolOptions>((set) => ({
@@ -28,6 +54,8 @@ export const useBodyToolOptions = create<BodyToolOptions>((set) => ({
         ? { faceDraft: null }
         : state,
     ),
-  pendingFace: null,
-  setPendingFace: (pendingFace) => set({ pendingFace }),
+  selectedFace: null,
+  setSelectedFace: (selectedFace) => set({ selectedFace }),
+  selectionAction: null,
+  setSelectionAction: (selectionAction) => set({ selectionAction }),
 }))

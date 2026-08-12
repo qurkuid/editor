@@ -7,6 +7,7 @@ import {
   type SceneMaterialId,
   useScene,
 } from '@pascal-app/core'
+import { executePaintBodyFace } from '@pascal-app/core/modeling-operations'
 import type { Mesh, Object3D } from 'three'
 import { buildSlotPreviewMaterial, resolvePaintMaterialRef } from '../shared/slot-paint'
 
@@ -42,23 +43,24 @@ function commitBodyRoles(
   if (!resolution) return
   const { ref, newSceneMaterial } = resolution
 
+  const currentNode = state.nodes[nodeId]
+  if (currentNode?.type !== 'body') return
+  const painted = validRoles.reduce(
+    (current, role) => executePaintBodyFace(current, { faceId: role, material: ref }).body,
+    currentNode,
+  )
+
   useScene.setState((current) => {
     if (current.readOnly) return current
     const currentNode = current.nodes[nodeId]
     if (currentNode?.type !== 'body') return current
     return {
       materials: newSceneMaterial
-        ? {
-            ...current.materials,
-            [newSceneMaterial.id as SceneMaterialId]: newSceneMaterial,
-          }
+        ? { ...current.materials, [newSceneMaterial.id]: newSceneMaterial }
         : current.materials,
       nodes: {
         ...current.nodes,
-        [nodeId]: {
-          ...currentNode,
-          faces: patchFaceMaterials(currentNode, validRoles, ref),
-        },
+        [nodeId]: { ...currentNode, faces: painted.faces },
       },
     }
   })

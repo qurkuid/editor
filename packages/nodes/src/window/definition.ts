@@ -6,6 +6,7 @@ import type {
   WallNode,
   WindowNode as WindowNodeType,
 } from '@pascal-app/core'
+import { PASCAL_ARCHITECTURE_WINDOW_REF } from '@pascal-app/core'
 import type { FloorplanNodeExtension } from '@pascal-app/editor'
 import {
   buildWindowFloorplanSchedule,
@@ -170,6 +171,7 @@ export const windowDefinition: NodeDefinition<typeof WindowNode> = {
   schemaVersion: 2,
   schema: WindowNode,
   category: 'structure',
+  semanticRef: PASCAL_ARCHITECTURE_WINDOW_REF,
   extensions: {
     'pascal:editor/floorplan': {
       contextualDimensions: buildWindowContextualDimensions,

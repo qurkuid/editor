@@ -11,7 +11,7 @@ import { useBodyToolOptions } from './options'
 import { resolveRectangleDraft } from './rectangle-draft'
 import { bodyToolUses3DInteraction } from './tool'
 
-test('body definition loads a selection-time Push/Pull affordance', async () => {
+test('body definition loads the selection affordance', async () => {
   const selection = bodyDefinition.affordanceTools?.selection
   expect(typeof selection).toBe('function')
   if (typeof selection !== 'function') throw new Error('Expected selection affordance')
@@ -53,6 +53,28 @@ test('clears only the matching face draft when its tool instance is released', (
   useBodyToolOptions.getState().clearFaceDraftIfMatches(first)
   expect(useBodyToolOptions.getState().faceDraft).toEqual(replacement)
   useBodyToolOptions.getState().setFaceDraft(null)
+})
+
+test('keeps Body actions inert until a face is armed for Push/Pull', () => {
+  const options = useBodyToolOptions.getState()
+  expect(options.selectionAction).toBeNull()
+
+  options.setSelectionAction({ bodyId: 'body:0', kind: 'push-pull', faceId: null })
+  expect(useBodyToolOptions.getState().selectionAction).toEqual({
+    bodyId: 'body:0',
+    kind: 'push-pull',
+    faceId: null,
+  })
+
+  options.setSelectionAction({ bodyId: 'body:0', kind: 'push-pull', faceId: 'face:0' })
+  expect(useBodyToolOptions.getState().selectionAction).toEqual({
+    bodyId: 'body:0',
+    kind: 'push-pull',
+    faceId: 'face:0',
+  })
+
+  options.setSelectionAction(null)
+  expect(useBodyToolOptions.getState().selectionAction).toBeNull()
 })
 
 test('limits face imprint to line-edged faces on closed Bodies', () => {

@@ -3,9 +3,11 @@ import {
   type BodyNode,
   createRectangleBody,
   getBodyLoopVertices,
+  pushPullBodyFace,
   useLiveNodeOverrides,
   useScene,
 } from '@pascal-app/core'
+import { executePushPullBodyFace } from '@pascal-app/core/modeling-operations'
 import { useInteractionScope } from '@pascal-app/editor'
 import { createBodyPushPullSession } from './push-pull-session'
 
@@ -45,6 +47,10 @@ function storedBody(id: BodyNode['id']): BodyNode {
     throw new TypeError(`Expected stored body ${id}`)
   }
   return node
+}
+
+function solidBody(): BodyNode {
+  return pushPullBodyFace(createRectangleBody({ width: 1.2, depth: 0.8 }), 'face:0', 1.2).body
 }
 
 function seedScene(body: BodyNode): void {
@@ -95,6 +101,8 @@ describe('Body Push/Pull session transaction', () => {
     const override = useLiveNodeOverrides.getState().get(body.id)
     expect(override?.faces).toBeDefined()
     const overrideBody = { ...body, ...override }
+    const canonical = executePushPullBodyFace(body, { faceId: 'face:0', distance: 1.2 })
+    expect(overrideBody).toMatchObject(canonical.body)
     expect(getBodyLoopVertices(overrideBody, 'loop:0').every((point) => point[1] === 1.2)).toBe(
       true,
     )
@@ -181,5 +189,51 @@ describe('Body Push/Pull session transaction', () => {
     expect(useScene.temporal.getState().pastStates).toHaveLength(pastBefore)
     expect(storedBody(body.id)).toEqual(body)
     expect(useInteractionScope.getState().scope.kind).toBe('idle')
+  })
+
+  test('clears a rejected RangeError preview and requires a later valid preview to commit', () => {
+    // Given
+    const body = solidBody()
+    seedScene(body)
+    const session = createBodyPushPullSession({
+      body,
+      faceId: 'face:0',
+      handle: 'body:push-pull',
+    })
+
+    expect(session.preview(0.3)).toBe(true)
+    useScene.getState().clearDirty(body.id)
+
+    expect(session.preview(-1.2)).toBe(false)
+    expect(useLiveNodeOverrides.getState().get(body.id)).toBeUndefined()
+    expect(useScene.getState().dirtyNodes.has(body.id)).toBe(true)
+    expect(useInteractionScope.getState().scope.kind).toBe('handle-drag')
+    expect(session.commit()).toBe(false)
+    expect(storedBody(body.id)).toEqual(body)
+
+    expect(session.preview(0.4)).toBe(true)
+    expect(session.commit()).toBe(true)
+    expect(useInteractionScope.getState().scope.kind).toBe('idle')
+  })
+
+  test('rethrows non-RangeError preview failures', () => {
+    const source = createRectangleBody({ width: 1.2, depth: 0.8 })
+    const malformed = {
+      ...source,
+      faces: source.faces.map((face) => ({
+        ...face,
+        surface: { ...face.surface, uvU: ['not-a-number', 0, 0] },
+      })),
+    } as unknown as BodyNode
+    const session = createBodyPushPullSession({
+      body: malformed,
+      faceId: 'face:0',
+      handle: 'body:push-pull',
+    })
+
+    expect(() => session.preview(0.4)).toThrow()
+    expect(useLiveNodeOverrides.getState().get(malformed.id)).toBeUndefined()
+    expect(useInteractionScope.getState().scope.kind).toBe('handle-drag')
+    session.cancel()
   })
 })

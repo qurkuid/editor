@@ -3,10 +3,14 @@ import {
   type BodyNode,
   createRectangleBody,
   getBodyLoopVertices,
+  nodeRegistry,
+  registerNode,
   useLiveNodeOverrides,
   useLiveTransforms,
   useScene,
 } from '@pascal-app/core'
+import { useInteractionScope } from '@pascal-app/editor'
+import { bodyDefinition } from './definition'
 import { createBodyFloorplanMoveTarget } from './floorplan-move'
 import {
   bodyMinimumVertexY,
@@ -26,6 +30,8 @@ if (!globalThis.requestAnimationFrame) {
 if (!globalThis.cancelAnimationFrame) {
   globalThis.cancelAnimationFrame = () => {}
 }
+
+if (!nodeRegistry.get('body')) registerNode(bodyDefinition as never)
 
 function expectLoopCloseTo(
   actual: ReadonlyArray<readonly [number, number, number]>,
@@ -225,5 +231,34 @@ describe('Body move session', () => {
       [2.2, 0, 1.8],
       [1, 0, 1.8],
     ])
+  })
+
+  test('floorplan body move keeps polygon grid snapping active when Shift is held', () => {
+    const body = rectangleBody()
+    seedScene(body)
+    const scope = useInteractionScope.getState()
+    scope.begin({ kind: 'moving', node: body, nodeId: body.id, nodeType: 'body', view: '2d' })
+
+    const session = createBodyFloorplanMoveTarget({
+      node: body,
+      nodes: useScene.getState().nodes,
+    })
+
+    session.apply({
+      planPoint: [1.6, 1.4],
+      modifiers: { shiftKey: true, altKey: false, ctrlKey: false, metaKey: false },
+    })
+
+    const override = useLiveNodeOverrides.getState().get(body.id)
+    expect(override?.vertices).toBeDefined()
+    expectLoopCloseTo(getBodyLoopVertices({ ...body, ...override }, 'loop:0'), [
+      [0.9, 0, 1.1],
+      [2.1, 0, 1.1],
+      [2.1, 0, 1.9],
+      [0.9, 0, 1.9],
+    ])
+
+    session.commit?.()
+    scope.end()
   })
 })

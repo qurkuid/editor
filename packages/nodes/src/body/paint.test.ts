@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
-import { createRectangleBody, type SceneMaterialId, useScene } from '@pascal-app/core'
+import {
+  clearSceneHistory,
+  createRectangleBody,
+  type SceneMaterialId,
+  useScene,
+} from '@pascal-app/core'
 import { Group, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three'
 import { bodyPaint } from './paint'
 
@@ -84,6 +89,27 @@ describe('bodyPaint', () => {
     expect(refs).toHaveLength(1)
     expect(storedBody.faces[0]?.surface.materialRef).toBe(`scene:${refs[0]}`)
     expect(state.materials[refs[0] as SceneMaterialId]?.material.properties?.color).toBe('#336699')
+  })
+
+  test('routes library refs through the canonical paint executor without creating a scene material', () => {
+    const body = createRectangleBody({ width: 1.2, depth: 0.8 })
+    useScene.setState({ nodes: { [body.id]: body }, materials: {} } as never)
+    clearSceneHistory()
+
+    bodyPaint.commit?.({
+      node: body,
+      role: 'face:0',
+      material: undefined,
+      materialPreset: 'library:wood-woodplank48',
+    })
+
+    expect(useScene.getState().nodes[body.id]).toMatchObject({
+      faces: [{ surface: { materialRef: 'library:wood-woodplank48' } }],
+    })
+    expect(useScene.getState().materials).toEqual({})
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+    useScene.temporal.getState().undo()
+    expect(useScene.getState().nodes[body.id]).toEqual(body)
   })
 
   test('previews and restores only the hit face mesh', () => {

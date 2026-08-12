@@ -3,6 +3,7 @@ import { RoundedFrameOpeningEditor, RoundedFrameRadiusEditor } from './radius-ed
 import type { BodyNode } from './schema'
 
 export const bodyParametrics: ParametricDescriptor<BodyNode> = {
+  trailingSection: () => import('./sketchup-attributes'),
   groups: [
     {
       label: 'Rounded frame',

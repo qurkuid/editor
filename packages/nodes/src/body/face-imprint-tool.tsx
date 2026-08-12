@@ -1,6 +1,7 @@
 'use client'
 
-import { type AnyNodeId, imprintBodyFace, sceneRegistry, useScene } from '@pascal-app/core'
+import { type AnyNodeId, sceneRegistry, useScene } from '@pascal-app/core'
+import { executeImprintBodyFace } from '@pascal-app/core/modeling-operations'
 import {
   constrainPlanDraftPoint,
   isGridSnapActive,
@@ -141,9 +142,12 @@ export function BodyFaceDraftTool({ bodyId, faceId }: BodyFaceDraft) {
     const finish = (polygon: readonly BodyDraftPoint[]): boolean => {
       const profile = polygon.map(projection.fromPlane)
       try {
-        const result = imprintBodyFace(body, face.id, profile)
+        const result = executeImprintBodyFace(body, {
+          faceId: face.id,
+          profilePoints: profile,
+        })
         useScene.getState().updateNode(body.id, bodyGeometryPatch(result.body))
-        useBodyToolOptions.getState().setPendingFace({
+        useBodyToolOptions.getState().setSelectedFace({
           bodyId: body.id,
           faceId: result.insetFaceId,
         })

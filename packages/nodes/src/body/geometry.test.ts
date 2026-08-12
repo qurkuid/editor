@@ -3,10 +3,11 @@ import {
   createRectangleBody,
   createRoundedRectangularFrameBody,
   type GeometryContext,
+  offsetBodyFace,
   pushPullBodyFace,
   type SceneMaterialId,
 } from '@pascal-app/core'
-import { Mesh } from 'three'
+import { LineSegments, Mesh } from 'three'
 import { buildBodyGeometry } from './geometry'
 
 describe('buildBodyGeometry', () => {
@@ -43,6 +44,17 @@ describe('buildBodyGeometry', () => {
     })
     expect((face as Mesh).geometry.getAttribute('position').count).toBe(4)
     expect((face as Mesh).geometry.getIndex()?.count).toBe(6)
+  })
+
+  test('merges imported SketchUp faces into one selectable mesh', () => {
+    const source = pushPullBodyFace(createRectangleBody({ width: 1.2, depth: 0.8 }), 'face:0', 1)
+      .body
+    const body = { ...source, metadata: { source: 'SketchUp' } }
+    const group = buildBodyGeometry(body)
+    const mesh = group.children[0] as Mesh
+
+    expect(group.children).toHaveLength(1)
+    expect(mesh.userData.faceIdsByTriangle).toContain('face:0')
   })
 
   test('resolves a face material ref and emits UVs from the persistent surface frame', () => {
@@ -98,5 +110,25 @@ describe('buildBodyGeometry', () => {
         'uv',
       ),
     ).toBeDefined()
+  })
+
+  test('renders one persistent seam primitive for a committed inward face offset', () => {
+    const pushed = pushPullBodyFace(createRectangleBody({ width: 1.2, depth: 0.8 }), 'face:0', 1)
+    const offset = offsetBodyFace(pushed.body, 'face:0', -0.2)
+    const group = buildBodyGeometry(offset.body)
+    const seams = group.children.filter((child) => child instanceof LineSegments)
+
+    expect(seams).toHaveLength(1)
+    expect(seams[0]?.name).toBe('body:coplanar-seams')
+    expect(seams[0]?.geometry.getAttribute('position').count).toBe(8)
+    expect(seams[0]?.userData).toEqual({ bodyId: offset.body.id, pascalNodeId: offset.body.id })
+    expect(seams[0]?.material).toMatchObject({ depthTest: true, depthWrite: false })
+  })
+
+  test('does not render seams between perpendicular faces of a pushed solid', () => {
+    const result = pushPullBodyFace(createRectangleBody({ width: 1.2, depth: 0.8 }), 'face:0', 1)
+    const group = buildBodyGeometry(result.body)
+
+    expect(group.children.filter((child) => child instanceof LineSegments)).toHaveLength(0)
   })
 })

@@ -6,7 +6,7 @@ import {
   useLiveTransforms,
   useScene,
 } from '@pascal-app/core'
-import { transformBody } from '@pascal-app/core/body-transform'
+import { executeTransformBody } from '@pascal-app/core/modeling-operations'
 import type * as THREE from 'three'
 
 const MIN_TRANSLATION = 0.000001
@@ -133,12 +133,13 @@ export function createBodyMoveSession(options: BodyMoveSessionOptions): BodyMove
         return false
       }
       const normalized: [number, number, number] = [translation[0], translation[1], translation[2]]
-      current = transformBody(options.body, {
+      current = executeTransformBody(options.body, {
         translation: normalized,
-        rotationY: 0,
-        uniformScale: 1,
+        rotationAxis: [0, 1, 0],
+        rotationAngle: 0,
+        scale: [1, 1, 1],
         pivot: [0, 0, 0],
-      })
+      }).body
       lastTranslation = normalized
       if (options.preview === 'override') {
         useLiveTransforms.getState().clear(nodeId)
