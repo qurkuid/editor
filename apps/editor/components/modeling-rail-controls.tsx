@@ -2,9 +2,9 @@
 
 import { ActionMenuButton, type MessageId, useEditor, useT } from '@pascal-app/editor'
 import { type BodyPrimitive, useBodyToolOptions } from '@pascal-app/nodes'
-import { Circle, type LucideIcon, Minus, Pipette, Square } from 'lucide-react'
+import { Circle, type LucideIcon, Minus, Pipette, Spline, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { selectBodyPrimitive } from './body-modeling-tools'
+import { ArcSegmentsControl, PolygonSidesControl, selectBodyPrimitive } from './body-modeling-tools'
 import { activateBuildTool } from './build-tab'
 
 const PRIMITIVES: ReadonlyArray<{
@@ -15,11 +15,12 @@ const PRIMITIVES: ReadonlyArray<{
   { id: 'line', labelKey: 'bodyModeling.primitive.line', icon: Minus },
   { id: 'rectangle', labelKey: 'bodyModeling.primitive.rectangle', icon: Square },
   { id: 'circle', labelKey: 'bodyModeling.primitive.circle', icon: Circle },
+  { id: 'arc', labelKey: 'bodyModeling.primitive.arc', icon: Spline },
 ]
 
 /**
  * Bottom action-rail additions, injected via `Editor`'s `actionMenuControls`
- * slot: the Build tab's Direct Modeling primitives (line / rectangle / circle)
+ * slot: the Build tab's Direct Modeling primitives (line / rectangle / circle / arc)
  * plus the paint eyedropper. Lives in the app layer because the body-tool
  * option store comes from `@pascal-app/nodes`, which `@pascal-app/editor`
  * must not import.
@@ -77,6 +78,8 @@ export function ModelingRailControls() {
           </ActionMenuButton>
         )
       })}
+      <ArcSegmentsControl compact />
+      <PolygonSidesControl compact />
       <ActionMenuButton
         aria-label={t('actionMenu.eyedropper')}
         aria-pressed={eyedropperActive}
