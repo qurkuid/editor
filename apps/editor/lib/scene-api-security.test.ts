@@ -47,6 +47,20 @@ test('accepts bearer token auth when configured', () => {
   expect(guardSceneApiRequest(request)).toBeNull()
 })
 
+test('allows same-origin requests through a reverse proxy', () => {
+  process.env.PASCAL_SCENE_API_TOKEN = 'secret'
+  const request = new Request('http://127.0.0.1:3022/floorplan/api/scenes', {
+    headers: {
+      authorization: 'Bearer secret',
+      origin: 'https://intm.kr',
+      'x-forwarded-host': 'intm.kr',
+      'x-forwarded-proto': 'https',
+    },
+  })
+
+  expect(guardSceneApiRequest(request)).toBeNull()
+})
+
 test('applies configured CORS origins for preflight', () => {
   process.env.PASCAL_SCENE_API_ORIGINS = 'https://app.example'
   const request = new Request('https://editor.example/api/scenes', {
