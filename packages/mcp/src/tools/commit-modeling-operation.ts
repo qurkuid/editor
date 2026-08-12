@@ -51,7 +51,7 @@ export function registerCommitModelingOperation(
     {
       title: 'Commit modeling operation',
       description:
-        'Validate and commit one canonical Body operation, including face offset and Follow Path sweep, as one scene update and one undo step.',
+        'Validate and commit one canonical Body operation, including face offset, Follow Path sweep, arrays, and Body booleans, as one scene update and one undo step.',
       inputSchema: commitModelingOperationInput,
       outputSchema: commitModelingOperationOutput,
     },
@@ -99,14 +99,14 @@ export function registerCommitModelingOperation(
           ),
         )
       }
-      if (node.type !== 'body') {
+      if (!operation.targetNodeTypes.includes(node.type)) {
         return toolResult(
           invalidCommitPayload(
             operationId,
             nodeId,
             diagnostic(
               modelingOperationDiagnosticCode(operationId, 'node.invalid_type'),
-              `Body operation requires a Body node, received ${node.type}`,
+              `Operation ${operationId} requires one of ${operation.targetNodeTypes.join(', ')}, received ${node.type}`,
               [nodeId],
             ),
           ),
@@ -114,15 +114,44 @@ export function registerCommitModelingOperation(
       }
 
       try {
-        const result = evaluateModelingOperation(node, parsed.data)
+        const result = evaluateModelingOperation(
+          node,
+          parsed.data,
+          operationId === 'groupBodies' ||
+            operationId === 'createComponent' ||
+            operationId === 'intersectBodies' ||
+            operationId === 'unionBodies' ||
+            operationId === 'subtractBodies' ||
+            operationId === 'outerShellBodies' ||
+            operationId === 'trimBodies' ||
+            operationId === 'splitBodies'
+            ? (id) => {
+                const candidate = operations.getNode(id as typeof node.id)
+                return candidate ?? null
+              }
+            : undefined,
+        )
         const graphBeforeCommit = operations.exportSceneGraph()
         const activeSceneBeforeCommit = operations.getActiveScene()
         const temporalBeforeCommit = useScene.temporal.getState()
         const pastStatesBeforeCommit = temporalBeforeCommit.pastStates
         const futureStatesBeforeCommit = temporalBeforeCommit.futureStates
         try {
-          commitModelingResult(operations, nodeId, result)
+          const createdIds = commitModelingResult(operations, nodeId, result)
           await publishLiveSceneSnapshot(operations, 'commit_modeling_operation')
+          const affectedNodeIds = [nodeId, ...createdIds]
+          const payload: CommitPayload = {
+            success: true,
+            operationId,
+            operationVersion: operation.version,
+            manifestVersion: MODELING_OPERATION_MANIFEST.version,
+            nodeId,
+            affectedNodeIds,
+            diagnostics: [],
+            result: toModelingPreview(result),
+            historySteps: 1,
+          }
+          return toolResult(payload)
         } catch (error) {
           operations.loadJSON(graphBeforeCommit)
           useScene.temporal.setState({
@@ -133,18 +162,6 @@ export function registerCommitModelingOperation(
           else operations.clearActiveScene()
           throw error
         }
-        const payload: CommitPayload = {
-          success: true,
-          operationId,
-          operationVersion: operation.version,
-          manifestVersion: MODELING_OPERATION_MANIFEST.version,
-          nodeId,
-          affectedNodeIds: [nodeId],
-          diagnostics: [],
-          result: toModelingPreview(result),
-          historySteps: 1,
-        }
-        return toolResult(payload)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         return toolResult(

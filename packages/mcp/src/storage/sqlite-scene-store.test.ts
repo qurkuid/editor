@@ -3,7 +3,12 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { createRectangleBody, getBodySemanticHash } from '@pascal-app/core'
+import {
+  createRectangleBody,
+  getBodySemanticHash,
+  pushPullBodyFace,
+  splitBodies,
+} from '@pascal-app/core'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
 import {
   executeImprintBodyFace,
@@ -170,6 +175,38 @@ describe('SqliteSceneStore', () => {
     expect(loaded?.graph).toEqual(graph)
   })
 
+  test('round-trips fixed-order split Body pieces through save and reopen', async () => {
+    const target = BodyNode.parse({
+      ...pushPullBodyFace(createRectangleBody({ width: 2, depth: 2 }), 'face:0', 2).body,
+      id: 'body_sqlite_split_target',
+    })
+    const tool = BodyNode.parse({
+      ...pushPullBodyFace(
+        createRectangleBody({ width: 2, depth: 2, origin: [1, 0, 1] }),
+        'face:0',
+        2,
+      ).body,
+      id: 'body_sqlite_split_tool',
+    })
+    const pieces = splitBodies(target, tool).pieces
+    const graph = makeGraph({
+      nodes: Object.fromEntries(pieces.map(({ body }) => [body.id, body])) as SceneGraph['nodes'],
+      rootNodeIds: pieces.map(({ body }) => body.id) as SceneGraph['rootNodeIds'],
+    })
+
+    await store.save({ id: 'split-pieces', name: 'Split pieces', graph })
+    store.close()
+    store = createStore(rootDir)
+
+    const loaded = await store.load('split-pieces')
+    expect(loaded?.graph.rootNodeIds).toEqual(pieces.map(({ body }) => body.id))
+    expect(
+      loaded?.graph.rootNodeIds.map((id) =>
+        getBodySemanticHash(BodyNode.parse(loaded.graph.nodes[id])),
+      ),
+    ).toEqual(pieces.map(({ body }) => getBodySemanticHash(body)))
+  })
+
   test('proves operation commit, SQLite save, close/reopen, and semantic hash parity', async () => {
     const material = SceneMaterial.parse({
       id: 'mat_sqlite_operation',
@@ -214,6 +251,25 @@ describe('SqliteSceneStore', () => {
             [0.5, 1, 1.5],
           ],
           distance: 0.25,
+        },
+        build: executeImprintBodyFace,
+      },
+      {
+        id: 'sqlite-imprint-through',
+        operationId: MODELING_OPERATION_IDS.imprintBodyFace,
+        source: executePushPullBodyFace(createRectangleBody({ width: 2, depth: 2 }), {
+          faceId: 'face:0',
+          distance: 1,
+        }).body,
+        input: {
+          faceId: 'face:0',
+          profilePoints: [
+            [0.5, 1, 0.5],
+            [1.5, 1, 0.5],
+            [1.5, 1, 1.5],
+            [0.5, 1, 1.5],
+          ],
+          distance: -1,
         },
         build: executeImprintBodyFace,
       },

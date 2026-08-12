@@ -37,11 +37,20 @@ const ImprintPreviewSchema = z.object({
   insetFaceId: z.string(),
   extrusion: z
     .object({
-      movedFaceId: z.string(),
+      movedFaceId: z.string().nullable(),
       createdFaceIds: z.array(z.string()),
       topologyRemap: TopologyRemapSchema,
+      throughCut: z.literal(true).optional(),
+      blockingDistance: z.number().optional(),
     })
     .nullable(),
+  topologyRemap: TopologyRemapSchema,
+})
+const SplitBodyFacePreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.splitBodyFace),
+  version: z.literal(1),
+  body: BodyPreviewSchema,
+  splitFaceId: z.string(),
   topologyRemap: TopologyRemapSchema,
 })
 const TransformPreviewSchema = z.object({
@@ -77,14 +86,118 @@ const SweepPreviewSchema = z.object({
   createdFaceIds: z.array(z.string()),
   topologyRemap: TopologyRemapSchema,
 })
+const ArrayBodyLinearPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.arrayBodyLinear),
+  version: z.literal(1),
+  body: BodyPreviewSchema,
+  clones: z.array(BodyPreviewSchema),
+  topologyRemap: TopologyRemapSchema,
+})
+const ArrayBodyCircularPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.arrayBodyCircular),
+  version: z.literal(1),
+  body: BodyPreviewSchema,
+  clones: z.array(BodyPreviewSchema),
+  topologyRemap: TopologyRemapSchema,
+})
+const IntersectBodiesPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.intersectBodies),
+  version: z.literal(1),
+  body: BodyPreviewSchema,
+  toolBodyId: z.string(),
+  topologyRemap: TopologyRemapSchema,
+})
+const UnionBodiesPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.unionBodies),
+  version: z.literal(1),
+  body: BodyPreviewSchema,
+  toolBodyId: z.string(),
+  topologyRemap: TopologyRemapSchema,
+})
+const SubtractBodiesPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.subtractBodies),
+  version: z.literal(1),
+  body: BodyPreviewSchema,
+  toolBodyId: z.string(),
+  topologyRemap: TopologyRemapSchema,
+})
+const OuterShellBodiesPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.outerShellBodies),
+  version: z.literal(1),
+  body: BodyPreviewSchema,
+  toolBodyId: z.string(),
+  topologyRemap: TopologyRemapSchema,
+})
+const TrimBodiesPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.trimBodies),
+  version: z.literal(1),
+  body: BodyPreviewSchema,
+  toolBodyId: z.string(),
+  topologyRemap: TopologyRemapSchema,
+})
+const SplitBodiesPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.splitBodies),
+  version: z.literal(1),
+  toolBodyId: z.string(),
+  topologyRemap: TopologyRemapSchema,
+  pieces: z.array(
+    z.object({
+      kind: z.enum(['target-only', 'intersection', 'tool-only']),
+      body: BodyPreviewSchema,
+      topologyRemap: TopologyRemapSchema,
+    }),
+  ),
+})
+const BodyContainerWritePreviewSchema = z.object({
+  id: z.string(),
+  data: z.record(z.string(), z.unknown()),
+})
+const GroupBodiesPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.groupBodies),
+  version: z.literal(1),
+  container: BodyPreviewSchema,
+  bodyUpdates: z.array(BodyContainerWritePreviewSchema),
+})
+const CreateComponentPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.createComponent),
+  version: z.literal(1),
+  container: BodyPreviewSchema,
+  bodyUpdates: z.array(BodyContainerWritePreviewSchema),
+  createdNodes: z.array(BodyPreviewSchema).optional(),
+})
+const MakeComponentUniquePreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.makeComponentUnique),
+  version: z.literal(1),
+  id: z.string(),
+  data: z.record(z.string(), z.unknown()),
+})
+const ExplodeComponentPreviewSchema = z.object({
+  operation: z.literal(MODELING_OPERATION_IDS.explodeComponent),
+  version: z.literal(1),
+  componentId: z.string(),
+  bodyUpdates: z.array(BodyContainerWritePreviewSchema),
+})
 
 export const ModelingPreviewSchema = z.discriminatedUnion('operation', [
   PushPullPreviewSchema,
   ImprintPreviewSchema,
+  SplitBodyFacePreviewSchema,
   TransformPreviewSchema,
   PaintPreviewSchema,
   OffsetPreviewSchema,
   SweepPreviewSchema,
+  ArrayBodyLinearPreviewSchema,
+  ArrayBodyCircularPreviewSchema,
+  UnionBodiesPreviewSchema,
+  SubtractBodiesPreviewSchema,
+  IntersectBodiesPreviewSchema,
+  OuterShellBodiesPreviewSchema,
+  TrimBodiesPreviewSchema,
+  SplitBodiesPreviewSchema,
+  GroupBodiesPreviewSchema,
+  CreateComponentPreviewSchema,
+  MakeComponentUniquePreviewSchema,
+  ExplodeComponentPreviewSchema,
 ])
 
 export const modelingOperationToolInput = {

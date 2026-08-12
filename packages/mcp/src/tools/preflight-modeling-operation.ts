@@ -48,7 +48,7 @@ export function registerPreflightModelingOperation(
     {
       title: 'Preflight modeling operation',
       description:
-        'Validate one canonical Body operation and return a read-only preview for Push/Pull, imprint, transform, paint, face offset, or Follow Path sweep.',
+        'Validate one canonical Body operation and return a read-only preview for Push/Pull, imprint, transform, paint, face offset, Follow Path sweep, arrays, or Body booleans.',
       inputSchema: preflightModelingOperationInput,
       outputSchema: preflightModelingOperationOutput,
     },
@@ -96,14 +96,14 @@ export function registerPreflightModelingOperation(
           ),
         )
       }
-      if (node.type !== 'body') {
+      if (!operation.targetNodeTypes.includes(node.type)) {
         return toolResult(
           invalidPreflightPayload(
             operationId,
             nodeId,
             diagnostic(
               modelingOperationDiagnosticCode(operationId, 'node.invalid_type'),
-              `Body operation requires a Body node, received ${node.type}`,
+              `Operation ${operationId} requires one of ${operation.targetNodeTypes.join(', ')}, received ${node.type}`,
               [nodeId],
             ),
           ),
@@ -111,14 +111,55 @@ export function registerPreflightModelingOperation(
       }
 
       try {
-        const result = evaluateModelingOperation(node, parsed.data)
+        const result = evaluateModelingOperation(
+          node,
+          parsed.data,
+          operationId === 'groupBodies' ||
+            operationId === 'createComponent' ||
+            operationId === 'intersectBodies' ||
+            operationId === 'unionBodies' ||
+            operationId === 'subtractBodies' ||
+            operationId === 'outerShellBodies' ||
+            operationId === 'trimBodies' ||
+            operationId === 'splitBodies'
+            ? (id) => {
+                const candidate = operations.getNode(id as typeof node.id)
+                return candidate ?? null
+              }
+            : undefined,
+        )
+        const affectedNodeIds =
+          result.operation === 'groupBodies'
+            ? [nodeId, ...result.bodyUpdates.map((update) => update.id)]
+            : result.operation === 'createComponent'
+              ? [
+                  nodeId,
+                  result.container.id,
+                  ...(result.createdNodes ?? []).map((created) => created.id),
+                ]
+              : result.operation === 'makeComponentUnique'
+                ? [result.id]
+                : result.operation === 'explodeComponent'
+                  ? [result.componentId, ...result.bodyUpdates.map((update) => update.id)]
+                  : result.operation === 'intersectBodies' ||
+                      result.operation === 'unionBodies' ||
+                      result.operation === 'subtractBodies' ||
+                      result.operation === 'outerShellBodies'
+                    ? [nodeId, result.toolBodyId]
+                    : result.operation === 'trimBodies'
+                      ? [nodeId]
+                      : result.operation === 'splitBodies'
+                        ? result.pieces.map(({ body }) => body.id)
+                        : 'clones' in result
+                          ? [nodeId, ...result.clones.map((clone) => clone.id)]
+                          : [nodeId]
         const payload: PreflightPayload = {
           valid: true,
           operationId,
           operationVersion: operation.version,
           manifestVersion: MODELING_OPERATION_MANIFEST.version,
           nodeId,
-          affectedNodeIds: [nodeId],
+          affectedNodeIds,
           diagnostics: [],
           preview: toModelingPreview(result),
         }

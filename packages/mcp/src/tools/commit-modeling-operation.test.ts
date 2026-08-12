@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { createRectangleBody, getBodySemanticHash } from '@pascal-app/core'
+import { createRectangleBody, getBodySemanticHash, inspectBodySolid } from '@pascal-app/core'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
 import {
   executeOffsetBodyFace,
@@ -60,6 +60,24 @@ function parsePreflightPayload(result: Awaited<ReturnType<Client['callTool']>>) 
   if (content?.type !== 'text') throw new TypeError('Expected text tool content')
   const decoded: unknown = JSON.parse(content.text)
   return PreflightModelingOperationPayloadSchema.parse(decoded)
+}
+
+function solidToolPair(prefix: string): readonly [BodyNode, BodyNode] {
+  const target = BodyNode.parse({
+    ...executePushPullBodyFace(createRectangleBody({ width: 2, depth: 2 }), {
+      faceId: 'face:0',
+      distance: 2,
+    }).body,
+    id: `body_${prefix}_target`,
+  })
+  const tool = BodyNode.parse({
+    ...executePushPullBodyFace(createRectangleBody({ width: 2, depth: 2, origin: [1, 0, 1] }), {
+      faceId: 'face:0',
+      distance: 2,
+    }).body,
+    id: `body_${prefix}_tool`,
+  })
+  return [target, tool]
 }
 
 describe('commit_modeling_operation', () => {
@@ -139,6 +157,220 @@ describe('commit_modeling_operation', () => {
     expect(bridge.getNode('body_commit')).not.toEqual(before.nodes.body_commit)
     expect(bridge.undo()).toBe(1)
     expect(bridge.getNode('body_commit')).toEqual(before.nodes.body_commit)
+  })
+
+  test('commits an open Body face split and restores it with one undo', async () => {
+    const before = JSON.stringify(bridge.getNode('body_commit'))
+    const historyBefore = bridge.getHistory()
+    const result = await client.callTool({
+      name: 'commit_modeling_operation',
+      arguments: {
+        operationId: MODELING_OPERATION_IDS.splitBodyFace,
+        nodeId: 'body_commit',
+        input: {
+          faceId: 'face:0',
+          pathPoints: [
+            [0, 0, 0.4],
+            [0.6, 0, 0.4],
+            [1.2, 0, 0.4],
+          ],
+        },
+      },
+    })
+    const payload = parsePayload(result)
+    expect(payload.success).toBe(true)
+    expect(payload.result?.operation).toBe(MODELING_OPERATION_IDS.splitBodyFace)
+    expect(payload.result?.splitFaceId).toBe('face:0:split:1')
+    expect(payload.historySteps).toBe(1)
+    expect(bridge.getHistory().pastCount).toBe(historyBefore.pastCount + 1)
+    expect(bridge.undo()).toBe(1)
+    expect(JSON.stringify(bridge.getNode('body_commit'))).toBe(before)
+  })
+
+  test('commits a linear Body array and restores all clones with one undo', async () => {
+    const before = bridge.exportJSON()
+    const historyBefore = bridge.getHistory()
+    const result = await client.callTool({
+      name: 'commit_modeling_operation',
+      arguments: {
+        operationId: MODELING_OPERATION_IDS.arrayBodyLinear,
+        nodeId: 'body_commit',
+        input: { count: 3, offset: [1, 0, 0] },
+      },
+    })
+    const payload = parsePayload(result)
+
+    expect(payload.success).toBe(true)
+    expect(payload.operationId).toBe(MODELING_OPERATION_IDS.arrayBodyLinear)
+    expect(payload.affectedNodeIds).toHaveLength(3)
+    expect(payload.result?.clones).toHaveLength(2)
+    expect(payload.historySteps).toBe(1)
+    expect(bridge.getHistory().pastCount).toBe(historyBefore.pastCount + 1)
+    expect(Object.keys(bridge.exportJSON().nodes)).toHaveLength(3)
+    expect(bridge.undo()).toBe(1)
+    expect(bridge.exportJSON()).toEqual(before)
+  })
+
+  test('commits Body intersection by deleting the tool and restores both with one undo', async () => {
+    const target = BodyNode.parse({
+      ...executePushPullBodyFace(
+        BodyNode.parse({
+          ...createRectangleBody({ width: 2, depth: 2 }),
+          id: 'body_commit_target',
+        }),
+        { faceId: 'face:0', distance: 2 },
+      ).body,
+      id: 'body_commit_target',
+    })
+    const tool = BodyNode.parse({
+      ...executePushPullBodyFace(
+        BodyNode.parse({
+          ...createRectangleBody({ width: 2, depth: 2, origin: [1, 0, 1] }),
+          id: 'body_commit_tool',
+        }),
+        { faceId: 'face:0', distance: 2 },
+      ).body,
+      id: 'body_commit_tool',
+    })
+    bridge.setScene({ [target.id]: target, [tool.id]: tool }, [target.id, tool.id])
+    bridge.clearHistory()
+    const before = bridge.exportJSON()
+    const historyBefore = bridge.getHistory()
+
+    const result = await client.callTool({
+      name: 'commit_modeling_operation',
+      arguments: {
+        operationId: MODELING_OPERATION_IDS.intersectBodies,
+        nodeId: target.id,
+        input: { toolBodyId: tool.id },
+      },
+    })
+    const payload = parsePayload(result)
+
+    expect(payload.success).toBe(true)
+    expect(payload.affectedNodeIds).toEqual([target.id, tool.id])
+    expect(payload.historySteps).toBe(1)
+    expect(bridge.getHistory().pastCount).toBe(historyBefore.pastCount + 1)
+    expect(bridge.getNode(tool.id)).toBeNull()
+    expect(inspectBodySolid(BodyNode.parse(bridge.getNode(target.id))).validSolid).toBe(true)
+    expect(bridge.undo()).toBe(1)
+    expect(bridge.exportJSON()).toEqual(before)
+  })
+
+  test('commits union and subtraction by deleting the tool and restores both with one undo', async () => {
+    for (const operation of [
+      MODELING_OPERATION_IDS.unionBodies,
+      MODELING_OPERATION_IDS.subtractBodies,
+    ]) {
+      const target = BodyNode.parse({
+        ...executePushPullBodyFace(
+          BodyNode.parse({
+            ...createRectangleBody({ width: 2, depth: 2 }),
+            id: `body_commit_${operation}_target`,
+          }),
+          { faceId: 'face:0', distance: 2 },
+        ).body,
+        id: `body_commit_${operation}_target`,
+      })
+      const tool = BodyNode.parse({
+        ...executePushPullBodyFace(
+          BodyNode.parse({
+            ...createRectangleBody({ width: 2, depth: 2, origin: [1, 0, 1] }),
+            id: `body_commit_${operation}_tool`,
+          }),
+          { faceId: 'face:0', distance: 2 },
+        ).body,
+        id: `body_commit_${operation}_tool`,
+      })
+      bridge.setScene({ [target.id]: target, [tool.id]: tool }, [target.id, tool.id])
+      operations.setActiveScene({
+        id: `commit-${operation}`,
+        name: 'Commit boolean scene',
+        projectId: null,
+        thumbnailUrl: null,
+        version: 7,
+        createdAt: '2026-08-11T00:00:00.000Z',
+        updatedAt: '2026-08-11T00:00:00.000Z',
+        ownerId: null,
+        sizeBytes: 0,
+        nodeCount: 2,
+      })
+      bridge.clearHistory()
+      const before = bridge.exportJSON()
+      const historyBefore = bridge.getHistory()
+
+      const result = await client.callTool({
+        name: 'commit_modeling_operation',
+        arguments: {
+          operationId: operation,
+          nodeId: target.id,
+          input: { toolBodyId: tool.id },
+        },
+      })
+      const payload = parsePayload(result)
+
+      expect(payload.success).toBe(true)
+      expect(payload.operationId).toBe(operation)
+      expect(payload.affectedNodeIds).toEqual([target.id, tool.id])
+      expect(payload.historySteps).toBe(1)
+      expect(bridge.getHistory().pastCount).toBe(historyBefore.pastCount + 1)
+      expect(bridge.getNode(tool.id)).toBeNull()
+      expect(inspectBodySolid(BodyNode.parse(bridge.getNode(target.id))).validSolid).toBe(true)
+      expect(bridge.undo()).toBe(1)
+      expect(bridge.exportJSON()).toEqual(before)
+    }
+  })
+
+  test('preflights and commits Solid Tools with exact tool lifetime and one undo', async () => {
+    for (const operation of [
+      MODELING_OPERATION_IDS.outerShellBodies,
+      MODELING_OPERATION_IDS.trimBodies,
+      MODELING_OPERATION_IDS.splitBodies,
+    ]) {
+      const [target, tool] = solidToolPair(operation)
+      bridge.setScene({ [target.id]: target, [tool.id]: tool }, [target.id, tool.id])
+      bridge.clearHistory()
+      const before = bridge.exportJSON()
+
+      const preflight = parsePreflightPayload(
+        await client.callTool({
+          name: 'preflight_modeling_operation',
+          arguments: {
+            operationId: operation,
+            nodeId: target.id,
+            input: { toolBodyId: tool.id },
+          },
+        }),
+      )
+      expect(preflight.valid).toBe(true)
+      expect(bridge.exportJSON()).toEqual(before)
+
+      const payload = parsePayload(
+        await client.callTool({
+          name: 'commit_modeling_operation',
+          arguments: {
+            operationId: operation,
+            nodeId: target.id,
+            input: { toolBodyId: tool.id },
+          },
+        }),
+      )
+      expect(payload.success).toBe(true)
+      expect(payload.historySteps).toBe(1)
+      expect(bridge.getHistory().pastCount).toBe(1)
+      expect(bridge.getNode(tool.id) === null).toBe(
+        operation === MODELING_OPERATION_IDS.outerShellBodies,
+      )
+      expect(Object.keys(bridge.exportJSON().nodes)).toHaveLength(
+        operation === MODELING_OPERATION_IDS.outerShellBodies
+          ? 1
+          : operation === MODELING_OPERATION_IDS.splitBodies
+            ? 3
+            : 2,
+      )
+      expect(bridge.undo()).toBe(1)
+      expect(bridge.exportJSON()).toEqual(before)
+    }
   })
 
   test('does not mutate scene or history for an invalid request', async () => {
@@ -368,6 +600,31 @@ describe('commit_modeling_operation', () => {
     expect(imprintPayload.historySteps).toBe(1)
     expect(bridge.getHistory().pastCount).toBe(historyBefore.pastCount + 1)
 
+    expect(bridge.undo()).toBe(1)
+    expect(JSON.stringify(bridge.getNode('body_commit'))).toBe(JSON.stringify(before))
+
+    const throughCut = await client.callTool({
+      name: 'commit_modeling_operation',
+      arguments: {
+        operationId: MODELING_OPERATION_IDS.imprintBodyFace,
+        nodeId: 'body_commit',
+        input: {
+          faceId: 'face:0',
+          profilePoints: [
+            [0.5, 1, 0.5],
+            [1.5, 1, 0.5],
+            [1.5, 1, 1.5],
+            [0.5, 1, 1.5],
+          ],
+          distance: -1,
+        },
+      },
+    })
+    const throughCutPayload = parsePayload(throughCut)
+    expect(throughCutPayload.success).toBe(true)
+    expect(throughCutPayload.result?.extrusion?.movedFaceId).toBeNull()
+    expect(throughCutPayload.result?.extrusion?.throughCut).toBe(true)
+    expect(throughCutPayload.historySteps).toBe(1)
     expect(bridge.undo()).toBe(1)
     expect(JSON.stringify(bridge.getNode('body_commit'))).toBe(JSON.stringify(before))
 

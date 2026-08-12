@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { createRectangleBody, getBodySemanticHash } from '@pascal-app/core'
+import { createRectangleBody, getBodySemanticHash, inspectBodySolid } from '@pascal-app/core'
 import {
   executeOffsetBodyFace,
   executePushPullBodyFace,
@@ -104,6 +104,160 @@ describe('preflight_modeling_operation', () => {
     expect(bridge.getHistory()).toEqual(beforeHistory)
   })
 
+  test('preflights an open Body face split without mutating scene or history', async () => {
+    const before = JSON.stringify(bridge.exportJSON())
+    const beforeHistory = bridge.getHistory()
+    const result = await client.callTool({
+      name: 'preflight_modeling_operation',
+      arguments: {
+        operationId: MODELING_OPERATION_IDS.splitBodyFace,
+        nodeId: 'body_preflight',
+        input: {
+          faceId: 'face:0',
+          pathPoints: [
+            [0, 0, 0.4],
+            [0.6, 0, 0.4],
+            [1.2, 0, 0.4],
+          ],
+        },
+      },
+    })
+    const payload = parsePayload(result)
+    expect(payload.valid).toBe(true)
+    expect(payload.preview.operation).toBe(MODELING_OPERATION_IDS.splitBodyFace)
+    expect(payload.preview.splitFaceId).toBe('face:0:split:1')
+    expect(JSON.stringify(bridge.exportJSON())).toBe(before)
+    expect(bridge.getHistory()).toEqual(beforeHistory)
+  })
+
+  test('returns a circular Body array preview without mutating scene or history', async () => {
+    const before = JSON.stringify(bridge.exportJSON())
+    const beforeHistory = bridge.getHistory()
+    const result = await client.callTool({
+      name: 'preflight_modeling_operation',
+      arguments: {
+        operationId: MODELING_OPERATION_IDS.arrayBodyCircular,
+        nodeId: 'body_preflight',
+        input: { count: 4, center: [0, 0, 0], axis: [0, 1, 0], fullCircle: true },
+      },
+    })
+    const payload = parsePayload(result)
+
+    expect(payload.valid).toBe(true)
+    expect(payload.operationId).toBe(MODELING_OPERATION_IDS.arrayBodyCircular)
+    expect(payload.affectedNodeIds).toHaveLength(4)
+    expect(payload.preview?.operation).toBe(MODELING_OPERATION_IDS.arrayBodyCircular)
+    expect(payload.preview?.clones).toHaveLength(3)
+    expect(JSON.stringify(bridge.exportJSON())).toBe(before)
+    expect(bridge.getHistory()).toEqual(beforeHistory)
+  })
+
+  test('returns a Body intersection preview without mutating either Body or history', async () => {
+    const target = BodyNode.parse({
+      ...executePushPullBodyFace(
+        BodyNode.parse({
+          ...createRectangleBody({ width: 2, depth: 2 }),
+          id: 'body_preflight_target',
+        }),
+        { faceId: 'face:0', distance: 2 },
+      ).body,
+      id: 'body_preflight_target',
+    })
+    const tool = BodyNode.parse({
+      ...executePushPullBodyFace(
+        BodyNode.parse({
+          ...createRectangleBody({ width: 2, depth: 2, origin: [1, 0, 1] }),
+          id: 'body_preflight_tool',
+        }),
+        { faceId: 'face:0', distance: 2 },
+      ).body,
+      id: 'body_preflight_tool',
+    })
+    bridge.setScene({ [target.id]: target, [tool.id]: tool }, [target.id, tool.id])
+    bridge.clearHistory()
+    const before = JSON.stringify(bridge.exportJSON())
+    const beforeHistory = bridge.getHistory()
+
+    const result = await client.callTool({
+      name: 'preflight_modeling_operation',
+      arguments: {
+        operationId: MODELING_OPERATION_IDS.intersectBodies,
+        nodeId: target.id,
+        input: { toolBodyId: tool.id },
+      },
+    })
+    const payload = parsePayload(result)
+
+    expect(payload.valid).toBe(true)
+    expect(payload.affectedNodeIds).toEqual([target.id, tool.id])
+    expect(payload.preview?.operation).toBe(MODELING_OPERATION_IDS.intersectBodies)
+    expect(inspectBodySolid(BodyNode.parse(payload.preview?.body)).validSolid).toBe(true)
+    expect(JSON.stringify(bridge.exportJSON())).toBe(before)
+    expect(bridge.getHistory()).toEqual(beforeHistory)
+  })
+
+  test('returns union and subtraction previews without mutating either Body or history', async () => {
+    for (const operation of [
+      MODELING_OPERATION_IDS.unionBodies,
+      MODELING_OPERATION_IDS.subtractBodies,
+    ]) {
+      const target = BodyNode.parse({
+        ...executePushPullBodyFace(
+          BodyNode.parse({
+            ...createRectangleBody({ width: 2, depth: 2 }),
+            id: `body_preflight_${operation}_target`,
+          }),
+          { faceId: 'face:0', distance: 2 },
+        ).body,
+        id: `body_preflight_${operation}_target`,
+      })
+      const tool = BodyNode.parse({
+        ...executePushPullBodyFace(
+          BodyNode.parse({
+            ...createRectangleBody({ width: 2, depth: 2, origin: [1, 0, 1] }),
+            id: `body_preflight_${operation}_tool`,
+          }),
+          { faceId: 'face:0', distance: 2 },
+        ).body,
+        id: `body_preflight_${operation}_tool`,
+      })
+      bridge.setScene({ [target.id]: target, [tool.id]: tool }, [target.id, tool.id])
+      operations.setActiveScene({
+        id: `preflight-${operation}`,
+        name: 'Preflight boolean scene',
+        projectId: null,
+        thumbnailUrl: null,
+        version: 7,
+        createdAt: '2026-08-11T00:00:00.000Z',
+        updatedAt: '2026-08-11T00:00:00.000Z',
+        ownerId: null,
+        sizeBytes: 0,
+        nodeCount: 2,
+      })
+      bridge.clearHistory()
+      const before = JSON.stringify(bridge.exportJSON())
+      const beforeHistory = bridge.getHistory()
+
+      const result = await client.callTool({
+        name: 'preflight_modeling_operation',
+        arguments: {
+          operationId: operation,
+          nodeId: target.id,
+          input: { toolBodyId: tool.id },
+        },
+      })
+      const payload = parsePayload(result)
+
+      expect(payload.valid).toBe(true)
+      expect(payload.operationId).toBe(operation)
+      expect(payload.affectedNodeIds).toEqual([target.id, tool.id])
+      expect(payload.preview?.operation).toBe(operation)
+      expect(inspectBodySolid(BodyNode.parse(payload.preview?.body)).validSolid).toBe(true)
+      expect(JSON.stringify(bridge.exportJSON())).toBe(before)
+      expect(bridge.getHistory()).toEqual(beforeHistory)
+    }
+  })
+
   test('returns diagnostics for an unsupported target without mutating scene', async () => {
     const before = JSON.stringify(bridge.exportJSON())
     const result = await client.callTool({
@@ -157,7 +311,14 @@ describe('preflight_modeling_operation', () => {
       }),
       { faceId: 'face:0', distance: 1 },
     ).body
-    bridge.setScene({ [solid.id]: solid }, [solid.id])
+    const featureBody = BodyNode.parse({
+      ...createRectangleBody({ width: 2, depth: 2 }),
+      id: 'body_preflight_feature',
+    })
+    bridge.setScene({ [solid.id]: solid, [featureBody.id]: featureBody }, [
+      solid.id,
+      featureBody.id,
+    ])
     bridge.clearHistory()
     const before = JSON.stringify(bridge.exportJSON())
     const beforeHistory = bridge.getHistory()
@@ -207,6 +368,30 @@ describe('preflight_modeling_operation', () => {
     expect(imprintPayload.preview.insetFaceId).toBe('face:0:imprint:2')
     expect(imprintPayload.preview.extrusion?.movedFaceId).toBe('face:0:imprint:2')
 
+    const throughCut = await client.callTool({
+      name: 'preflight_modeling_operation',
+      arguments: {
+        operationId: MODELING_OPERATION_IDS.imprintBodyFace,
+        nodeId: 'body_preflight',
+        input: {
+          faceId: 'face:0',
+          profilePoints: [
+            [0.5, 1, 0.5],
+            [1.5, 1, 0.5],
+            [1.5, 1, 1.5],
+            [0.5, 1, 1.5],
+          ],
+          distance: -1,
+        },
+      },
+    })
+    const throughCutPayload = parsePayload(throughCut)
+    expect(throughCutPayload.valid).toBe(true)
+    expect(throughCutPayload.preview.extrusion?.movedFaceId).toBeNull()
+    expect(throughCutPayload.preview.extrusion?.throughCut).toBe(true)
+    expect(throughCutPayload.preview.extrusion?.blockingDistance).toBe(1)
+    expect(throughCutPayload.preview.body).toBeDefined()
+
     const transform = await client.callTool({
       name: 'preflight_modeling_operation',
       arguments: {
@@ -224,6 +409,25 @@ describe('preflight_modeling_operation', () => {
     const transformPayload = parsePayload(transform)
     expect(transformPayload.valid).toBe(true)
     expect(transformPayload.preview.operation).toBe(MODELING_OPERATION_IDS.transformBody)
+
+    const featureTransform = await client.callTool({
+      name: 'preflight_modeling_operation',
+      arguments: {
+        operationId: MODELING_OPERATION_IDS.transformBody,
+        nodeId: featureBody.id,
+        input: {
+          translation: [0, 0, 0],
+          rotationAxis: [0, 1, 0],
+          rotationAngle: 0,
+          scale: [2, 1, 1],
+          pivot: [0, 0, 0],
+          feature: { kind: 'edge', featureId: 'edge:0' },
+        },
+      },
+    })
+    const featureTransformPayload = parsePayload(featureTransform)
+    expect(featureTransformPayload.valid).toBe(true)
+    expect(featureTransformPayload.preview.operation).toBe(MODELING_OPERATION_IDS.transformBody)
 
     const paint = await client.callTool({
       name: 'preflight_modeling_operation',
