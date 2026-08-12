@@ -17,6 +17,41 @@ import {
 } from './ai-provider'
 
 describe('AI provider boundary', () => {
+  test('modeling prompt exposes persistent Body sub-entity selection', () => {
+    const prompt = buildAiModelingPrompt(
+      AiChatRequestSchema.parse({
+        messages: [{ role: 'user', content: 'select this body edge' }],
+        scene: {
+          coordinateSystem: { groundPlane: 'XZ', upAxis: 'Y', unit: 'm' },
+          nodeCount: 0,
+          nodes: {},
+          rootNodeIds: [],
+          materials: {},
+          selection: {
+            buildingId: null,
+            levelId: null,
+            zoneId: null,
+            selectedIds: [],
+            selectedNodes: [],
+          },
+        },
+      }),
+    )
+
+    expect(prompt).toContain('selects the persistent vertex or half-edge id')
+    expect(prompt).toContain('Edge midpoints select their owning edge')
+    expect(prompt).toContain('select a persistent Body vertex, half-edge, or face')
+    expect(prompt).toContain('Body Move Autofold is an opt-in 3D preference')
+    expect(prompt).toContain('floor plan does not expose Autofold')
+    expect(prompt).toContain('`arrayBodyLinear`')
+    expect(prompt).toContain('`arrayBodyCircular`')
+    expect(prompt).toContain('`unionBodies`')
+    expect(prompt).toContain('`subtractBodies`')
+    expect(prompt).toContain('`intersectBodies`')
+    expect(prompt).toContain('`toolBodyId`')
+    expect(prompt).toContain('Clone node ids are fresh')
+  })
+
   test('uses the authenticated Codex CLI when no API key is configured', () => {
     expect(
       resolveAiProviderConfig({
@@ -360,6 +395,8 @@ describe('AI provider boundary', () => {
     expect(prompt).toContain('Shift (tap) cycles')
     expect(prompt).toContain('rejected preview')
     expect(prompt).toContain('preserve the live cursor sign')
+    expect(prompt).toContain('reaches or passes the nearest blocking plane')
+    expect(prompt).toContain('2D remains render-only')
     expect(prompt).toContain('never guess it from screenshots or image pixels')
     expect(prompt).toContain('library:preset-glass for glass')
     expect(prompt).toContain('library:flooring-rusticbrick for masonry')
