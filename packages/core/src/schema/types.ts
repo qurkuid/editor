@@ -1,11 +1,13 @@
 import z from 'zod'
 import { BodyNode } from './nodes/body'
+import { BodyGroupNode } from './nodes/body-group'
 import { BoxVentNode } from './nodes/box-vent'
 import { BuildingNode } from './nodes/building'
 import { CabinetModuleNode, CabinetNode } from './nodes/cabinet'
 import { CeilingNode } from './nodes/ceiling'
 import { ChimneyNode } from './nodes/chimney'
 import { ColumnNode } from './nodes/column'
+import { ComponentNode } from './nodes/component'
 import { ConstructionDimensionNode } from './nodes/construction-dimension'
 import { ConstructionGuideNode } from './nodes/construction-guide'
 import { CupolaNode } from './nodes/cupola'
@@ -54,6 +56,8 @@ export const AnyNode = z.discriminatedUnion('type', [
   SiteNode,
   BuildingNode,
   BodyNode,
+  BodyGroupNode,
+  ComponentNode,
   ElevatorNode,
   LevelNode,
   LightingCircuitNode,

@@ -2,6 +2,7 @@ import type { ThreeEvent } from '@react-three/fiber'
 import mitt from 'mitt'
 import type { Object3D } from 'three'
 import type {
+  BodyGroupNode,
   BodyNode,
   BoxVentNode,
   BuildingNode,
@@ -10,6 +11,7 @@ import type {
   CeilingNode,
   ChimneyNode,
   ColumnNode,
+  ComponentNode,
   ConstructionDimensionNode,
   ConstructionGuideNode,
   CupolaNode,
@@ -96,6 +98,8 @@ export interface NodeEvent<T extends AnyNode = AnyNode> {
 
 export type WallEvent = NodeEvent<WallNode>
 export type BodyEvent = NodeEvent<BodyNode>
+export type BodyGroupEvent = NodeEvent<BodyGroupNode>
+export type ComponentEvent = NodeEvent<ComponentNode>
 export type FenceEvent = NodeEvent<FenceNode>
 export type ItemEvent = NodeEvent<ItemNode>
 export type SiteEvent = NodeEvent<SiteNode>
@@ -302,10 +306,15 @@ type SelectionEvents = {
     bodyId: BodyNode['id']
     action: BodySelectionActionKind | null
   }
+  'body:autofold-change': {
+    enabled: boolean
+  }
 }
 
 type EditorEvents = GridEvents &
   NodeEvents<'body', BodyEvent> &
+  NodeEvents<'body-group', BodyGroupEvent> &
+  NodeEvents<'component', ComponentEvent> &
   NodeEvents<'wall', WallEvent> &
   NodeEvents<'fence', FenceEvent> &
   NodeEvents<'cabinet', CabinetEvent> &

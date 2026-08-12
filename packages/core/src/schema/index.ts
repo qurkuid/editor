@@ -45,11 +45,13 @@ export {
   BodyShell,
   BodyVertex,
 } from './nodes/body'
+export { BodyGroupNode } from './nodes/body-group'
 export { BoxVentNode } from './nodes/box-vent'
 export { BuildingNode } from './nodes/building'
 export { CabinetModuleNode, CabinetNode } from './nodes/cabinet'
 export { CeilingFeature, CeilingNode } from './nodes/ceiling'
 export { ChimneyMaterialRole, ChimneyNode } from './nodes/chimney'
+export { ComponentNode } from './nodes/component'
 export {
   COLUMN_PRESETS,
   ColumnBaseStyle,
