@@ -283,6 +283,71 @@ describe('resolveCanvasSelectionNode', () => {
       }),
     ).toBe(proxyGroup)
   })
+
+  test('routes Body descendants to a container outside isolated edit', () => {
+    const container = { id: 'component_1', type: 'component', children: ['body_1'] }
+    const body = { id: 'body_1', type: 'body', parentId: container.id }
+
+    expect(
+      resolveCanvasSelectionNode({
+        node: body as unknown as AnyNode,
+        nodes: {
+          [container.id]: container as unknown as AnyNode,
+          [body.id]: body as unknown as AnyNode,
+        },
+        selectedIds: [],
+      }),
+    ).toBe(container as unknown as AnyNode)
+  })
+
+  test('keeps direct Body children selectable inside the active container', () => {
+    const container = { id: 'body-group_1', type: 'body-group', children: ['body_1'] }
+    const body = { id: 'body_1', type: 'body', parentId: container.id }
+
+    expect(
+      resolveCanvasSelectionNode({
+        node: body as unknown as AnyNode,
+        nodes: {
+          [container.id]: container as unknown as AnyNode,
+          [body.id]: body as unknown as AnyNode,
+        },
+        selectedIds: [],
+        activeBodyContainerId: container.id,
+      }),
+    ).toBe(body as unknown as AnyNode)
+  })
+
+  test('rejects nodes outside the active Body container', () => {
+    const active = { id: 'component_active', type: 'component', children: ['body_active'] }
+    const activeBody = { id: 'body_active', type: 'body', parentId: active.id }
+    const outside = { id: 'wall_outside', type: 'wall' }
+
+    expect(
+      resolveCanvasSelectionNode({
+        node: outside as unknown as AnyNode,
+        nodes: {
+          [active.id]: active as unknown as AnyNode,
+          [activeBody.id]: activeBody as unknown as AnyNode,
+          [outside.id]: outside as unknown as AnyNode,
+        },
+        selectedIds: [],
+        activeBodyContainerId: active.id,
+      }),
+    ).toBeNull()
+  })
+
+  test('keeps the active container itself selectable', () => {
+    const active = { id: 'component_active', type: 'component', children: ['body_active'] }
+
+    expect(
+      resolveCanvasSelectionNode({
+        node: active as unknown as AnyNode,
+        nodes: { [active.id]: active as unknown as AnyNode },
+        selectedIds: [],
+        activeBodyContainerId: active.id,
+      }),
+    ).toBe(active as unknown as AnyNode)
+  })
 })
 
 describe('shouldPreserveSelectedRoofHostTarget', () => {

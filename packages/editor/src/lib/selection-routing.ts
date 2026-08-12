@@ -33,19 +33,30 @@ export function resolveCanvasSelectionNode({
   node,
   nodes,
   selectedIds,
+  activeBodyContainerId = null,
 }: {
   node: AnyNode
   nodes: Readonly<Record<string, AnyNode | undefined>>
   selectedIds: readonly string[]
-}): AnyNode {
+  activeBodyContainerId?: string | null
+}): AnyNode | null {
   const proxiedTarget = nodes[resolveSelectionProxyId(node, nodes)] ?? node
   let target = shouldBypassSelectionProxy(node, proxiedTarget) ? node : proxiedTarget
+  if (activeBodyContainerId) {
+    if (target.id === activeBodyContainerId) return target
+    if (target.type === 'body' && target.parentId === activeBodyContainerId) return target
+    return null
+  }
   const parentFrame = nodeRegistry.get(target.type)?.capabilities?.movable?.parentFrame
   if (parentFrame) {
     const parent = parentFrame.resolveParent(target, nodes as Readonly<Record<string, AnyNode>>)
     if (parent && selectedIds.length === 1 && selectedIds[0] === parent.id) {
       target = parent
     }
+  }
+  if (target.type === 'body' && target.parentId) {
+    const parent = nodes[target.parentId]
+    if (parent?.type === 'body-group' || parent?.type === 'component') target = parent
   }
   return target
 }

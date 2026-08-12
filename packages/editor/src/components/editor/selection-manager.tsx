@@ -35,6 +35,7 @@ import {
 import { useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef } from 'react'
 import { type BufferGeometry, Color, type Material, type Mesh, type Object3D, Vector3 } from 'three'
+import { enterBodyContainerEdit } from '../../lib/body-container-actions'
 import {
   canDirectMoveNode,
   canDirectRotateNode,
@@ -1351,7 +1352,9 @@ export const SelectionManager = () => {
         node: eventNode,
         nodes: useScene.getState().nodes,
         selectedIds: useViewer.getState().selection.selectedIds,
+        activeBodyContainerId: useEditor.getState().activeBodyContainerId,
       })
+      if (!node) return
       if (!canDirectMoveNode(node)) return
       // Sole selection only: per-node direct manipulation stands down for a
       // multi-selection (the group sessions own plain drags there, and Cmd is
@@ -1604,7 +1607,9 @@ export const SelectionManager = () => {
         node: resolveSelectModeNodeTarget(event),
         nodes: useScene.getState().nodes,
         selectedIds: useViewer.getState().selection.selectedIds,
+        activeBodyContainerId: useEditor.getState().activeBodyContainerId,
       })
+      if (!node) return
 
       // A ceiling is selectable only through its corner handles, never via
       // the `ceiling-grid` body mesh. When the grid is revealed (ceiling
@@ -1678,11 +1683,14 @@ export const SelectionManager = () => {
             nodeToSelect = parentNode
           }
         }
-        nodeToSelect = resolveCanvasSelectionNode({
+        const resolvedNodeToSelect = resolveCanvasSelectionNode({
           node: nodeToSelect,
           nodes: useScene.getState().nodes,
           selectedIds: selectedIdsBeforeRouting,
+          activeBodyContainerId: useEditor.getState().activeBodyContainerId,
         })
+        if (!resolvedNodeToSelect) return
+        nodeToSelect = resolvedNodeToSelect
         // Clicking any node (e.g. the slab surface outside a hole) exits slab
         // hole-edit mode. The hole handles + hit mesh stopPropagation, so a
         // click reaching here means the user clicked outside the hole.
@@ -1841,7 +1849,9 @@ export const SelectionManager = () => {
         node: resolveSelectModeNodeTarget(event),
         nodes: useScene.getState().nodes,
         selectedIds: useViewer.getState().selection.selectedIds,
+        activeBodyContainerId: useEditor.getState().activeBodyContainerId,
       })
+      if (!node) return
       const currentPhase = useEditor.getState().phase
 
       // Ignore site/building if we are already inside a building
@@ -1873,6 +1883,7 @@ export const SelectionManager = () => {
         node: resolveSelectModeNodeTarget(event),
         nodes: useScene.getState().nodes,
         selectedIds: useViewer.getState().selection.selectedIds,
+        activeBodyContainerId: useEditor.getState().activeBodyContainerId,
       })?.id
       if (nodeId && useViewer.getState().hoveredId === nodeId) {
         useViewer.setState({ hoveredId: null })
@@ -1880,11 +1891,23 @@ export const SelectionManager = () => {
     }
 
     const onDoubleClick = (event: NodeEvent) => {
-      let node = resolveCanvasSelectionNode({
-        node: resolveSelectModeNodeTarget(event),
+      const rawNode = resolveSelectModeNodeTarget(event)
+      if (
+        (rawNode.type === 'body-group' || rawNode.type === 'component') &&
+        useEditor.getState().activeBodyContainerId !== rawNode.id
+      ) {
+        event.stopPropagation()
+        enterBodyContainerEdit(rawNode.id)
+        return
+      }
+
+      const node = resolveCanvasSelectionNode({
+        node: rawNode,
         nodes: useScene.getState().nodes,
         selectedIds: useViewer.getState().selection.selectedIds,
+        activeBodyContainerId: useEditor.getState().activeBodyContainerId,
       })
+      if (!node) return
 
       const currentPhase = useEditor.getState().phase
 

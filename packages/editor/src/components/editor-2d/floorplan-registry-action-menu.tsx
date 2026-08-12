@@ -22,6 +22,14 @@ import { createPortal } from 'react-dom'
 import { useShallow } from 'zustand/react/shallow'
 import { useReducedMotion } from '../../hooks/use-reduced-motion'
 import { useTLabel } from '../../i18n/use-t-label'
+import { type BodyArrayRequest, commitBodyArray } from '../../lib/body-array'
+import {
+  commitComponentInstance,
+  commitExplodeComponent,
+  commitMakeComponentUnique,
+  enterBodyContainerEdit,
+  exitBodyContainerEdit,
+} from '../../lib/body-container-actions'
 import { resolveMoveActionNode } from '../../lib/direct-manipulation'
 import { getFloorplanNodeExtension } from '../../lib/floorplan/floorplan-extension'
 import {
@@ -40,6 +48,8 @@ import useInteractionScope, {
   useMovingNode,
 } from '../../store/use-interaction-scope'
 import usePivotRotate from '../../store/use-pivot-rotate'
+import { BodyArrayPopover } from '../editor/body-array-popover'
+import { BodySolidInspector } from '../editor/body-solid-inspector'
 import { NodeActionMenu } from '../editor/node-action-menu'
 import { IconRefGlyph } from '../ui/icon-ref'
 
@@ -144,6 +154,7 @@ export function FloorplanRegistryActionMenu() {
   const isPivotRotating = usePivotRotate((s) => s.stage !== 'idle')
   const setMovingNode = useEditor((s) => s.setMovingNode)
   const setMovingNodeOrigin = useEditor((s) => s.setMovingNodeOrigin)
+  const activeBodyContainerId = useEditor((s) => s.activeBodyContainerId)
   // Gate on floorplan hover so this 2D menu never coexists with the 3D
   // FloatingActionMenu in split view — that menu hides while the floorplan
   // is hovered, so this one must only show then. Mirrors the legacy
@@ -153,10 +164,21 @@ export function FloorplanRegistryActionMenu() {
   const isFloorplanHovered = useEditor((s) => s.isFloorplanHovered)
 
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const [arrayOpen, setArrayOpen] = useState(false)
+  const [arrayError, setArrayError] = useState<string | null>(null)
+  const [solidInspectorOpen, setSolidInspectorOpen] = useState(false)
 
   // Only show for registered kinds (skip legacy kinds — they have their
   // own FloorplanActionMenuLayer entries).
   const selectedKind = useScene((s) => (selectedId ? (s.nodes[selectedId]?.type ?? null) : null))
+  const selectedAnchorId = useScene((s) => {
+    if (!selectedId) return null
+    const selected = s.nodes[selectedId]
+    if (selected?.type === 'body-group' || selected?.type === 'component') {
+      return selected.children[0] ?? selected.id
+    }
+    return selectedId
+  })
   const canCurve = useScene((s) => {
     if (!selectedId) return false
     const selectedNode = s.nodes[selectedId]
@@ -226,7 +248,7 @@ export function FloorplanRegistryActionMenu() {
         return
       }
 
-      const el = sceneEl.querySelector(`[data-node-id="${selectedId}"]`) as SVGGElement | null
+      const el = sceneEl.querySelector(`[data-node-id="${selectedAnchorId}"]`) as SVGGElement | null
       if (el) {
         const rect = el.getBoundingClientRect()
         setPosition({ left: rect.left + rect.width / 2, top: rect.top })
@@ -236,7 +258,7 @@ export function FloorplanRegistryActionMenu() {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [isVisible, selectedId, isWall])
+  }, [isVisible, selectedAnchorId, selectedId, isWall])
 
   if (!(isVisible && selectedId && position && def)) return null
 
@@ -264,6 +286,31 @@ export function FloorplanRegistryActionMenu() {
   const canDuplicate = def.capabilities.duplicable !== false
   const canDelete = def.capabilities.deletable !== false
   const canAddHole = node.type === 'slab' || node.type === 'ceiling'
+
+  const handleArray = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    setArrayError(null)
+    setArrayOpen((open) => !open)
+  }
+
+  const handleArraySubmit = (request: BodyArrayRequest) => {
+    if (node.type !== 'body') return
+    try {
+      const cloneIds = runAsSingleSceneHistoryStep(useScene, () => commitBodyArray(node, request))
+      if (cloneIds.length === 0) throw new RangeError('Body array must create at least one clone')
+      useViewer.getState().setSelection({ selectedIds: cloneIds })
+      setArrayError(null)
+      setArrayOpen(false)
+      sfxEmitter.emit('sfx:item-place')
+    } catch (error) {
+      setArrayError(error instanceof Error ? error.message : 'Body array failed')
+    }
+  }
+
+  const handleInspect = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    setSolidInspectorOpen((open) => !open)
+  }
 
   const handleMove = () => {
     sfxEmitter.emit('sfx:item-pick')
@@ -369,6 +416,35 @@ export function FloorplanRegistryActionMenu() {
     useViewer.getState().setSelection({ selectedIds: [] })
   }
 
+  const handleMakeComponentUnique = () => {
+    if (node.type !== 'component') return
+    commitMakeComponentUnique(node.id)
+    useViewer.getState().setSelection({ selectedIds: [node.id] })
+  }
+
+  const handleExplodeComponent = () => {
+    if (node.type !== 'component') return
+    const ids = commitExplodeComponent(node.id)
+    useViewer.getState().setSelection({ selectedIds: [...ids] })
+  }
+
+  const handleDuplicateComponent = () => {
+    if (node.type !== 'component') return
+    const id = commitComponentInstance(node.id)
+    if (id) useViewer.getState().setSelection({ selectedIds: [id] })
+  }
+
+  const handleEnterBodyContainerEdit = () => {
+    if (node.type !== 'body-group' && node.type !== 'component') return
+    enterBodyContainerEdit(node.id)
+  }
+
+  const handleExitBodyContainerEdit = () => {
+    if (node.type !== 'body-group' && node.type !== 'component') return
+    if (useEditor.getState().activeBodyContainerId !== node.id) return
+    exitBodyContainerEdit()
+  }
+
   const handleQuickAction = (action: NodeQuickAction, event: MouseEvent<HTMLButtonElement>) => {
     if (action.disabled) {
       if (action.blockedFeedback) {
@@ -398,13 +474,47 @@ export function FloorplanRegistryActionMenu() {
         onAddHole={canAddHole ? handleAddHole : undefined}
         onCurve={canCurve ? handleCurve : undefined}
         onDelete={canDelete ? handleDelete : undefined}
-        onDuplicate={canDuplicate ? handleDuplicate : undefined}
+        onDuplicate={
+          node.type === 'component'
+            ? handleDuplicateComponent
+            : canDuplicate
+              ? handleDuplicate
+              : undefined
+        }
+        onMakeComponentUnique={node.type === 'component' ? handleMakeComponentUnique : undefined}
+        onExplodeComponent={node.type === 'component' ? handleExplodeComponent : undefined}
+        onEnterComponentEdit={
+          (node.type === 'body-group' || node.type === 'component') &&
+          activeBodyContainerId !== node.id
+            ? handleEnterBodyContainerEdit
+            : undefined
+        }
+        onExitComponentEdit={
+          (node.type === 'body-group' || node.type === 'component') &&
+          activeBodyContainerId === node.id
+            ? handleExitBodyContainerEdit
+            : undefined
+        }
         onMove={canMove ? handleMove : undefined}
+        onArray={node.type === 'body' ? handleArray : undefined}
+        onInspect={node.type === 'body' ? handleInspect : undefined}
         onRotate={node.type === 'body' ? handleBodyAction('rotate') : undefined}
         onScale={undefined}
         onPointerDown={(event) => event.stopPropagation()}
         onPointerUp={(event) => event.stopPropagation()}
       />
+      {node.type === 'body' && arrayOpen ? (
+        <BodyArrayPopover
+          error={arrayError}
+          floorplan
+          onCancel={() => {
+            setArrayError(null)
+            setArrayOpen(false)
+          }}
+          onSubmit={handleArraySubmit}
+        />
+      ) : null}
+      {node.type === 'body' && solidInspectorOpen ? <BodySolidInspector body={node} /> : null}
       {quickActions.length > 0 ? (
         <div
           className="pointer-events-auto mt-1 inline-flex w-max items-center justify-center gap-0.5 rounded-lg border border-border/50 bg-background/90 px-1.5 py-1 shadow-md backdrop-blur-md"

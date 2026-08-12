@@ -95,6 +95,7 @@ import { groundHeightAt } from '../../lib/ground-surface'
 import { guideEmitter } from '../../lib/guide-events'
 import { measurementHint, parseMeasurement } from '../../lib/measurement-parser'
 import { formatLinearMeasurement, linearUnitToMeters } from '../../lib/measurements'
+import { resolveCanvasSelectionNode } from '../../lib/selection-routing'
 import { sfxEmitter } from '../../lib/sfx-bus'
 import { SITE_BOUNDARY_DRAG_LABEL, siteBoundaryHandlesEnabled } from '../../lib/site-boundary'
 import { resolveSlabPlanPointSnap } from '../../lib/slab-plan-snap'
@@ -10032,13 +10033,33 @@ export function FloorplanPanel({
         }
 
         if (backgroundSelection.kind === 'select-elements') {
+          const resolveSelectedIds = (ids: readonly string[]): string[] => {
+            const sceneNodes = useScene.getState().nodes
+            const activeBodyContainerId = useEditor.getState().activeBodyContainerId
+            return Array.from(
+              new Set(
+                ids.flatMap((id) => {
+                  const sourceNode = sceneNodes[id as AnyNodeId]
+                  if (!sourceNode) return []
+                  const resolvedNode = resolveCanvasSelectionNode({
+                    node: sourceNode,
+                    nodes: sceneNodes,
+                    selectedIds: useViewer.getState().selection.selectedIds,
+                    activeBodyContainerId,
+                  })
+                  return resolvedNode ? [resolvedNode.id] : []
+                }),
+              ),
+            )
+          }
+          const resolvedSelectedIds = resolveSelectedIds(backgroundSelection.selectedIds)
           if (!(levelId && levelNode) || levelNode.type !== 'level') {
-            setSelection({ selectedIds: backgroundSelection.selectedIds })
+            setSelection({ selectedIds: resolvedSelectedIds })
           } else {
             const { selection } = useViewer.getState()
             const nodes = useScene.getState().nodes
             const updates: Parameters<typeof setSelection>[0] = {
-              selectedIds: backgroundSelection.selectedIds,
+              selectedIds: resolvedSelectedIds,
             }
 
             if (levelId !== selection.levelId) {
@@ -10165,16 +10186,32 @@ export function FloorplanPanel({
 
   const commitFloorplanSelection = useCallback(
     (nextSelectedIds: string[]) => {
+      const nodes = useScene.getState().nodes
+      const activeBodyContainerId = useEditor.getState().activeBodyContainerId
+      const resolvedSelectedIds = Array.from(
+        new Set(
+          nextSelectedIds.flatMap((id) => {
+            const sourceNode = nodes[id as AnyNodeId]
+            if (!sourceNode) return []
+            const resolvedNode = resolveCanvasSelectionNode({
+              node: sourceNode,
+              nodes,
+              selectedIds: useViewer.getState().selection.selectedIds,
+              activeBodyContainerId,
+            })
+            return resolvedNode ? [resolvedNode.id] : []
+          }),
+        ),
+      )
       if (!(levelId && levelNode) || levelNode.type !== 'level') {
         setSelectedReferenceId(null)
-        setSelection({ selectedIds: nextSelectedIds })
+        setSelection({ selectedIds: resolvedSelectedIds })
         return
       }
 
       const { selection } = useViewer.getState()
-      const nodes = useScene.getState().nodes
       const updates: Parameters<typeof setSelection>[0] = {
-        selectedIds: nextSelectedIds,
+        selectedIds: resolvedSelectedIds,
       }
 
       if (levelId !== selection.levelId) {

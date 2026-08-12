@@ -78,7 +78,7 @@ import {
   isIdle,
   tangentReshapeScope,
 } from '../../../lib/interaction/scope'
-import { emitCanvasNodeSelection } from '../../../lib/selection-routing'
+import { emitCanvasNodeSelection, resolveCanvasSelectionNode } from '../../../lib/selection-routing'
 import { sfxEmitter } from '../../../lib/sfx-bus'
 import { clearSurfacePlanSnapFeedback } from '../../../lib/surface-plan-snap'
 import useDirectManipulationFeedback from '../../../store/use-direct-manipulation-feedback'
@@ -590,15 +590,25 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
   const applyEntrySelection = useCallback(
     (id: AnyNodeId, shouldToggle: boolean) => {
       const currentSelectedIds = useViewer.getState().selection.selectedIds
+      const sceneNodes = useScene.getState().nodes
+      const sourceNode = sceneNodes[id]
+      if (!sourceNode) return
+      const resolvedNode = resolveCanvasSelectionNode({
+        node: sourceNode,
+        nodes: sceneNodes,
+        selectedIds: currentSelectedIds,
+        activeBodyContainerId: useEditor.getState().activeBodyContainerId,
+      })
+      if (!resolvedNode) return
+      const resolvedId = resolvedNode.id
       const nextSelectedIds = shouldToggle
-        ? currentSelectedIds.includes(id)
-          ? currentSelectedIds.filter((selectedId) => selectedId !== id)
-          : [...currentSelectedIds, id]
-        : [id]
+        ? currentSelectedIds.includes(resolvedId)
+          ? currentSelectedIds.filter((selectedId) => selectedId !== resolvedId)
+          : [...currentSelectedIds, resolvedId]
+        : [resolvedId]
       setSelection({ selectedIds: nextSelectedIds })
-      if (nextSelectedIds.length === 1 && nextSelectedIds[0] === id) {
-        const node = useScene.getState().nodes[id]
-        if (node) emitCanvasNodeSelection(node)
+      if (nextSelectedIds.length === 1 && nextSelectedIds[0] === resolvedId) {
+        emitCanvasNodeSelection(resolvedNode)
       }
       // Setting selection re-renders the entry — the overlay pass mounts
       // (endpoint handles, etc.), reshuffling DOM under the cursor between

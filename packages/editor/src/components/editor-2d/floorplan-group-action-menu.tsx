@@ -1,9 +1,13 @@
 'use client'
 
+import { type AnyNodeId, type BodyNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { commitBodyBoolean, commitBodySolidTool } from '../../lib/body-boolean'
+import { commitBodyComponent, commitBodyGroup } from '../../lib/body-container-actions'
 import { isActive } from '../../lib/interaction/scope'
+import { sfxEmitter } from '../../lib/sfx-bus'
 import useEditor from '../../store/use-editor'
 import useInteractionScope, { useMovingNode } from '../../store/use-interaction-scope'
 import {
@@ -30,10 +34,81 @@ export function FloorplanGroupActionMenu() {
   const movingNode = useMovingNode()
   const isFloorplanHovered = useEditor((s) => s.isFloorplanHovered)
   const scopeActive = useInteractionScope((s) => isActive(s.scope))
+  const selectedIds = useViewer((s) => s.selection.selectedIds)
+  const nodes = useScene((s) => s.nodes)
+  const bodyPair = useMemo(() => {
+    if (selectedIds.length !== 2) return null
+    const pair = selectedIds.map((id) => nodes[id as AnyNodeId])
+    return pair[0]?.type === 'body' && pair[1]?.type === 'body'
+      ? ([pair[0], pair[1]] as const)
+      : null
+  }, [nodes, selectedIds])
+  const bodySelection = useMemo(() => {
+    const bodies = selectedIds.map((id) => nodes[id as AnyNodeId])
+    return bodies.length >= 2 && bodies.every((node) => node?.type === 'body')
+      ? bodies.filter((node): node is BodyNode => node?.type === 'body')
+      : null
+  }, [nodes, selectedIds])
 
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
 
   const isVisible = isMultiSelect && !movingNode && isFloorplanHovered && !scopeActive
+
+  const handleIntersect = () => {
+    if (!bodyPair) return
+    try {
+      commitBodyBoolean(bodyPair[0], bodyPair[1], 'intersect')
+      useViewer.getState().setSelection({ selectedIds: [bodyPair[0].id] })
+      sfxEmitter.emit('sfx:item-place')
+    } catch {
+      return
+    }
+  }
+
+  const handleUnion = () => {
+    if (!bodyPair) return
+    try {
+      commitBodyBoolean(bodyPair[0], bodyPair[1], 'union')
+      useViewer.getState().setSelection({ selectedIds: [bodyPair[0].id] })
+      sfxEmitter.emit('sfx:item-place')
+    } catch {
+      return
+    }
+  }
+
+  const handleSubtract = () => {
+    if (!bodyPair) return
+    try {
+      commitBodyBoolean(bodyPair[0], bodyPair[1], 'subtract')
+      useViewer.getState().setSelection({ selectedIds: [bodyPair[0].id] })
+      sfxEmitter.emit('sfx:item-place')
+    } catch {
+      return
+    }
+  }
+
+  const handleSolidTool = (operation: 'outer-shell' | 'trim' | 'split') => {
+    if (!bodyPair) return
+    try {
+      const bodies = commitBodySolidTool(bodyPair[0], bodyPair[1], operation)
+      useViewer.getState().setSelection({ selectedIds: bodies.map((body) => body.id) })
+      sfxEmitter.emit('sfx:item-place')
+    } catch {
+      return
+    }
+  }
+
+  const handleGroupBodies = () => {
+    if (!bodySelection) return
+    const id = commitBodyGroup(bodySelection.map((body) => body.id))
+    if (id) useViewer.getState().setSelection({ selectedIds: [id] })
+  }
+
+  const handleCreateComponent = () => {
+    if (!bodySelection) return
+    const id = commitBodyComponent(bodySelection.map((body) => body.id))
+    if (id) useViewer.getState().setSelection({ selectedIds: [id] })
+  }
 
   useEffect(() => {
     if (!isVisible) {
@@ -78,6 +153,14 @@ export function FloorplanGroupActionMenu() {
         onDelete={() => deleteSelection()}
         onDuplicate={() => duplicateSelectionAndPickUp()}
         onMove={() => startGroupPickUp()}
+        onIntersect={bodyPair ? handleIntersect : undefined}
+        onSubtract={bodyPair ? handleSubtract : undefined}
+        onUnion={bodyPair ? handleUnion : undefined}
+        onOuterShell={bodyPair ? () => handleSolidTool('outer-shell') : undefined}
+        onTrim={bodyPair ? () => handleSolidTool('trim') : undefined}
+        onSplit={bodyPair ? () => handleSolidTool('split') : undefined}
+        onGroupBodies={bodySelection ? handleGroupBodies : undefined}
+        onCreateComponent={bodySelection ? handleCreateComponent : undefined}
         onPointerDown={(event) => event.stopPropagation()}
         onPointerUp={(event) => event.stopPropagation()}
       />
