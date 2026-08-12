@@ -93,6 +93,8 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
     const effectState = createBodyMoveEffectState({
       body: node,
       preview: 'override',
+      autofold: useBodyToolOptions.getState().autofold,
+      feature: useBodyToolOptions.getState().selectedFeature,
     })
     const session = effectState.session
     const placementDragMode = useEditor.getState().placementDragMode
@@ -258,7 +260,8 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
         const translation = hasValidTypedLength
           ? resolveBodyPointMoveTranslation({ basePoint, targetPoint: constrainedTargetPoint })
           : ([Number.NaN, Number.NaN, Number.NaN] as [number, number, number])
-        session.preview(translation)
+        const valid = session.preview(translation)
+        useDraftLengthHud.getState().setPreviewInvalid(!hasValidTypedLength || !valid)
         setCursorLocalPos(constrainedTargetPoint)
         return
       }
@@ -308,7 +311,8 @@ export const MoveBodyTool: React.FC<{ node: BodyNode }> = ({ node }) => {
               surfacePoint: null,
             })
         : ([Number.NaN, Number.NaN, Number.NaN] as [number, number, number])
-      session.preview(translation)
+      const valid = session.preview(translation)
+      useDraftLengthHud.getState().setPreviewInvalid(!hasValidTypedLength || !valid)
       const center = originalCenterRef.current
       setCursorLocalPos([
         center[0] + constrainedTargetPoint[0] - anchor[0],

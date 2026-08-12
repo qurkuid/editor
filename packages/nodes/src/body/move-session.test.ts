@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import {
   type BodyNode,
+  ConstructionDimensionNode,
   createRectangleBody,
   getBodyLoopVertices,
+  MeasurementNode,
   nodeRegistry,
   registerNode,
   useLiveNodeOverrides,
   useLiveTransforms,
   useScene,
 } from '@pascal-app/core'
-import { useInteractionScope } from '@pascal-app/editor'
+import { useEditor, useInteractionScope } from '@pascal-app/editor'
 import { bodyDefinition } from './definition'
 import { createBodyFloorplanMoveTarget } from './floorplan-move'
 import {
@@ -78,6 +80,8 @@ describe('Body move session', () => {
     useLiveTransforms.getState().clearAll()
     useScene.setState({ nodes: {}, rootNodeIds: [], dirtyNodes: new Set() })
     useScene.temporal.getState().clear()
+    useInteractionScope.getState().end()
+    useEditor.getState().setSnappingMode('polygon', 'grid')
   })
 
   test('previews and cancels through live transforms without mutating topology', () => {
@@ -130,6 +134,164 @@ describe('Body move session', () => {
 
     useScene.temporal.getState().undo()
     expect(storedBody(body.id)).toEqual(body)
+  })
+
+  test('previews a selected persistent vertex through a live geometry override', () => {
+    const body = rectangleBody()
+    seedScene(body)
+    const vertex = body.vertices[0]!
+    const session = createBodyMoveSession({
+      body,
+      preview: 'override',
+      feature: { bodyId: body.id, kind: 'vertex', featureId: vertex.id },
+    })
+
+    expect(session.preview([0.1, 0, 0.1])).toBe(true)
+    expect(storedBody(body.id)).toEqual(body)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(0)
+    expect(useLiveTransforms.getState().get(body.id)).toBeUndefined()
+
+    const override = useLiveNodeOverrides.getState().get(body.id)
+    expect(override?.vertices?.find(({ id }) => id === vertex.id)?.position).toEqual([
+      vertex.position[0] + 0.1,
+      vertex.position[1],
+      vertex.position[2] + 0.1,
+    ])
+  })
+
+  test('previews, commits, cancels, and undoes an autofold feature move', () => {
+    const body = rectangleBody()
+    seedScene(body)
+    const feature = { bodyId: body.id, kind: 'vertex' as const, featureId: body.vertices[0]!.id }
+    const previewSession = createBodyMoveSession({
+      body,
+      preview: 'override',
+      autofold: true,
+      feature,
+    })
+
+    expect(previewSession.preview([0, 1, 0])).toBe(true)
+    const preview = useLiveNodeOverrides.getState().get(body.id)
+    expect(preview?.faces).toHaveLength(2)
+    previewSession.cancel()
+    expect(useLiveNodeOverrides.getState().get(body.id)).toBeUndefined()
+
+    const commitSession = createBodyMoveSession({
+      body,
+      preview: 'override',
+      autofold: true,
+      feature,
+    })
+    expect(commitSession.preview([0, 1, 0])).toBe(true)
+    expect(commitSession.commit()).toBe(true)
+    expect(storedBody(body.id).faces).toHaveLength(2)
+    useScene.temporal.getState().undo()
+    expect(storedBody(body.id)).toEqual(body)
+  })
+
+  test('remaps attached feature annotations and undoes the whole feature move atomically', () => {
+    const body = rectangleBody()
+    const vertexId = body.vertices[0]!.id
+    const featureAnchor = (featureId: string) => ({
+      kind: 'feature' as const,
+      reference: { nodeId: body.id, featureId },
+      fallback: [0, 0, 0] as [number, number, number],
+    })
+    const measurement = MeasurementNode.parse({
+      id: 'measurement_move_annotation_test',
+      measurement: {
+        kind: 'distance',
+        points: [featureAnchor(vertexId), featureAnchor(vertexId)],
+      },
+    })
+    const dimension = ConstructionDimensionNode.parse({
+      id: 'construction-dimension_move_annotation_test',
+      anchors: [featureAnchor(vertexId), featureAnchor(vertexId)],
+    })
+    useScene.setState({
+      nodes: {
+        [body.id]: body,
+        [measurement.id]: measurement,
+        [dimension.id]: dimension,
+      },
+      rootNodeIds: [body.id, measurement.id, dimension.id],
+      dirtyNodes: new Set(),
+    })
+    useScene.temporal.getState().clear()
+
+    const session = createBodyMoveSession({
+      body,
+      preview: 'override',
+      autofold: true,
+      feature: { bodyId: body.id, kind: 'vertex', featureId: vertexId },
+    })
+    expect(session.preview([0, 1, 0])).toBe(true)
+    expect(session.commit()).toBe(true)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+    expect(useScene.getState().nodes[measurement.id]).toEqual(measurement)
+    expect(useScene.getState().nodes[dimension.id]).toEqual(dimension)
+
+    useScene.temporal.getState().undo()
+    expect(storedBody(body.id)).toEqual(body)
+    expect(useScene.getState().nodes[measurement.id]).toEqual(measurement)
+    expect(useScene.getState().nodes[dimension.id]).toEqual(dimension)
+  })
+
+  test('rejects an invalid feature preview without mutating scene state', () => {
+    const body = rectangleBody()
+    seedScene(body)
+    const session = createBodyMoveSession({
+      body,
+      preview: 'override',
+      feature: { bodyId: body.id, kind: 'vertex', featureId: 'vertex:missing' },
+    })
+
+    expect(session.preview([0.1, 0.5, 0])).toBe(false)
+    expect(session.canCommit()).toBe(false)
+    expect(storedBody(body.id)).toEqual(body)
+    expect(useLiveNodeOverrides.getState().get(body.id)).toBeUndefined()
+    expect(useScene.temporal.getState().pastStates).toHaveLength(0)
+  })
+
+  test('commits one selected edge update and undo restores the original body', () => {
+    const body = rectangleBody()
+    seedScene(body)
+    const edge = body.halfEdges[0]!
+    const session = createBodyMoveSession({
+      body,
+      preview: 'override',
+      feature: { bodyId: body.id, kind: 'edge', featureId: edge.id },
+    })
+
+    expect(session.preview([0.2, 0, 0.3])).toBe(true)
+    expect(session.commit()).toBe(true)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+    expect(storedBody(body.id).revision).toBe(body.revision + 1)
+    expect(storedBody(body.id).vertices[0]?.position).toEqual([
+      body.vertices[0]!.position[0] + 0.2,
+      body.vertices[0]!.position[1],
+      body.vertices[0]!.position[2] + 0.3,
+    ])
+
+    useScene.temporal.getState().undo()
+    expect(storedBody(body.id)).toEqual(body)
+  })
+
+  test('cancels a selected face preview without changing topology or history', () => {
+    const body = rectangleBody()
+    seedScene(body)
+    const session = createBodyMoveSession({
+      body,
+      preview: 'override',
+      feature: { bodyId: body.id, kind: 'face', featureId: body.faces[0]!.id },
+    })
+
+    expect(session.preview([0, 0.5, 0])).toBe(true)
+    session.cancel()
+
+    expect(useLiveNodeOverrides.getState().get(body.id)).toBeUndefined()
+    expect(storedBody(body.id)).toEqual(body)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(0)
   })
 
   test('resolves 3D surface stacking translation from surface point, body center, and minimum Y', () => {

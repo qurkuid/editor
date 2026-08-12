@@ -1,12 +1,19 @@
 import {
   type AnyNodeId,
+  type BodyFeatureKind,
   type BodyNode,
+  moveBodyFeature,
+  remapBodyFeatureAnnotations,
+  runAsSingleSceneHistoryStep,
   sceneRegistry,
   useLiveNodeOverrides,
   useLiveTransforms,
   useScene,
 } from '@pascal-app/core'
-import { executeTransformBody } from '@pascal-app/core/modeling-operations'
+import {
+  executeTransformBody,
+  type TransformBodyOperationResult,
+} from '@pascal-app/core/modeling-operations'
 import type * as THREE from 'three'
 
 const MIN_TRANSLATION = 0.000001
@@ -16,11 +23,49 @@ type BodyGeometryPatch = Pick<
   'revision' | 'vertices' | 'halfEdges' | 'loops' | 'faces' | 'shells' | 'curves' | 'bodyDefaults'
 >
 
+type BodyTopologyRemap = Parameters<typeof remapBodyFeatureAnnotations>[3]
+
+function bodyTopologyRemap(before: BodyNode, after: BodyNode): BodyTopologyRemap {
+  const beforeIds = new Set(
+    [
+      ...before.vertices,
+      ...before.halfEdges,
+      ...before.loops,
+      ...before.faces,
+      ...before.shells,
+      ...before.curves,
+    ].map(({ id }) => id),
+  )
+  const afterIds = new Set(
+    [
+      ...after.vertices,
+      ...after.halfEdges,
+      ...after.loops,
+      ...after.faces,
+      ...after.shells,
+      ...after.curves,
+    ].map(({ id }) => id),
+  )
+  return {
+    preserved: [...afterIds].filter((id) => beforeIds.has(id)),
+    created: [...afterIds].filter((id) => !beforeIds.has(id)),
+    deleted: [...beforeIds].filter((id) => !afterIds.has(id)),
+    split: {},
+    merged: {},
+  }
+}
+
 export type BodyMovePreviewMode = 'transform' | 'override'
 
 type BodyMoveSessionOptions = {
   readonly body: BodyNode
   readonly preview: BodyMovePreviewMode
+  readonly autofold?: boolean
+  readonly feature?: Readonly<{
+    readonly bodyId: string
+    readonly kind: BodyFeatureKind
+    readonly featureId: string
+  }> | null
 }
 
 export type BodyMoveSession = {
@@ -95,7 +140,12 @@ export function resolveBodyPointMoveTranslation(options: {
 
 export function createBodyMoveEffectState(options: BodyMoveSessionOptions): BodyMoveEffectState {
   return {
-    session: createBodyMoveSession({ body: options.body, preview: options.preview }),
+    session: createBodyMoveSession({
+      body: options.body,
+      preview: options.preview,
+      autofold: options.autofold,
+      feature: options.feature,
+    }),
   }
 }
 
@@ -110,7 +160,11 @@ function setMeshOffset(id: AnyNodeId, translation: readonly [number, number, num
 
 export function createBodyMoveSession(options: BodyMoveSessionOptions): BodyMoveSession {
   const nodeId = options.body.id
+  const feature = options.feature
+  const featureMove = feature !== undefined && feature !== null
   let current: BodyNode | null = null
+  let currentResult: TransformBodyOperationResult | null = null
+  let currentTopologyRemap: BodyTopologyRemap | null = null
   let lastTranslation: [number, number, number] = [0, 0, 0]
   let active = true
 
@@ -128,20 +182,41 @@ export function createBodyMoveSession(options: BodyMoveSessionOptions): BodyMove
       if (!active) return false
       if (!hasTranslation(translation)) {
         current = null
+        currentResult = null
+        currentTopologyRemap = null
         lastTranslation = [0, 0, 0]
         clearPreview()
         return false
       }
       const normalized: [number, number, number] = [translation[0], translation[1], translation[2]]
-      current = executeTransformBody(options.body, {
-        translation: normalized,
-        rotationAxis: [0, 1, 0],
-        rotationAngle: 0,
-        scale: [1, 1, 1],
-        pivot: [0, 0, 0],
-      }).body
+      try {
+        if (featureMove && feature.bodyId !== nodeId) throw new RangeError('Body feature mismatch')
+        if (featureMove) {
+          current = moveBodyFeature(options.body, feature.kind, feature.featureId, normalized, {
+            autofold: options.autofold,
+          })
+          currentResult = null
+          currentTopologyRemap = bodyTopologyRemap(options.body, current)
+        } else {
+          currentResult = executeTransformBody(options.body, {
+            translation: normalized,
+            rotationAxis: [0, 1, 0],
+            rotationAngle: 0,
+            scale: [1, 1, 1],
+            pivot: [0, 0, 0],
+          })
+          current = currentResult.body
+          currentTopologyRemap = currentResult.topologyRemap
+        }
+      } catch {
+        current = null
+        currentTopologyRemap = null
+        lastTranslation = [0, 0, 0]
+        clearPreview()
+        return false
+      }
       lastTranslation = normalized
-      if (options.preview === 'override') {
+      if (options.preview === 'override' || featureMove) {
         useLiveTransforms.getState().clear(nodeId)
         useLiveNodeOverrides.getState().set(nodeId, bodyGeometryPatch(current))
         useScene.getState().markDirty(nodeId)
@@ -159,9 +234,17 @@ export function createBodyMoveSession(options: BodyMoveSessionOptions): BodyMove
     commit: () => {
       if (!(active && current && hasTranslation(lastTranslation))) return false
       const committed = current
+      const committedResult = currentResult
+      const committedTopologyRemap = committedResult?.topologyRemap ?? currentTopologyRemap
       active = false
-      useScene.getState().updateNode(nodeId, bodyGeometryPatch(committed))
       clearPreview()
+      runAsSingleSceneHistoryStep(useScene, () => {
+        const scene = useScene.getState()
+        const updates = committedTopologyRemap
+          ? remapBodyFeatureAnnotations(scene.nodes, nodeId, committed, committedTopologyRemap)
+          : []
+        scene.updateNodes([{ id: nodeId, data: bodyGeometryPatch(committed) }, ...updates])
+      })
       return true
     },
     cancel: () => {
