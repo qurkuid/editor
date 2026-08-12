@@ -62,6 +62,13 @@ type SceneGraphValue = {
   detachedNodes?: SceneGraphNode[]
 }
 
+export function resetEditorAfterSceneImport(): void {
+  clearSceneHistory()
+  useViewer.getState().resetSelection()
+  useEditor.getState().setMode('select')
+  useEditor.getState().setPhase('site')
+}
+
 const isSceneNode = (value: unknown): value is SceneNode => {
   return (
     typeof value === 'object' &&
@@ -319,9 +326,7 @@ export function SettingsPanel({
     )
     // An import is a scene load: it becomes the undo floor. Without this,
     // undo could step back into the pre-import scene state.
-    clearSceneHistory()
-    resetSelection()
-    setPhase('site')
+    resetEditorAfterSceneImport()
     setPendingImport(null)
   }
 
