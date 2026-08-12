@@ -162,7 +162,8 @@ const usePivotRotate = create<PivotRotateState>((set, get) => {
     setAxis: (axis) => {
       const state = get()
       if (state.stage === 'idle' || axis === state.axis) return
-      if (axis !== 'y' && !state.horizontalAxesAllowed) return
+      if (axis !== 'y' && (!state.horizontalAxesAllowed || useEditor.getState().viewMode === '2d'))
+        return
       set({ axis })
       if (state.stage === 'angle') applyPreview(state.delta)
     },
@@ -249,7 +250,9 @@ const usePivotRotate = create<PivotRotateState>((set, get) => {
         ...IDLE,
         stage: 'pivot',
         nodeIds: ids,
-        horizontalAxesAllowed: starts.every((s) => s.kind === 'vec3') && links.length === 0,
+        horizontalAxesAllowed:
+          starts.every((s) => s.kind === 'vec3' || (s.kind === 'polygon' && s.body)) &&
+          links.length === 0,
       })
       return true
     },

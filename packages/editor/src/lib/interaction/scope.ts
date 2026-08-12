@@ -27,6 +27,7 @@ export type ReshapeKind =
   | 'boundary'
   | 'control-point'
   | 'tangent'
+  | 'sweep'
 
 export type InteractionScope =
   | { kind: 'idle' }

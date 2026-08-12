@@ -46,6 +46,7 @@ const BESPOKE_SELECTION_MOVE_KINDS = new Set([
 ])
 
 export function canDirectMoveNode(node: AnyNode): boolean {
+  if (node.type === 'body') return false
   // These MEP kinds own move through bespoke selection rigs (latch cubes,
   // directional arrows, grid-driven previews). Sending body drags/clicks
   // through the generic direct-move handoff conflicts with that path and can

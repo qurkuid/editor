@@ -70,7 +70,7 @@ import {
 } from '../../lib/selection-routing'
 import { emitDeleteSFX, sfxEmitter } from '../../lib/sfx-bus'
 import useDirectManipulationFeedback from '../../store/use-direct-manipulation-feedback'
-import useEditor, { type MaterialTargetRole } from './../../store/use-editor'
+import useEditor, { isAngleSnapActive, type MaterialTargetRole } from './../../store/use-editor'
 import useInteractionScope, {
   getEditingHole,
   getMovingNode,
@@ -1543,7 +1543,7 @@ export const SelectionManager = () => {
           startX,
           moveEvent.clientX,
           DIRECT_ROTATE_RADIANS_PER_PIXEL,
-          moveEvent.shiftKey,
+          moveEvent.altKey || !isAngleSnapActive(),
         )
         if (Math.abs(delta) < DIRECT_ROTATE_EPSILON) {
           lastPatch = null
@@ -1666,6 +1666,21 @@ export const SelectionManager = () => {
       let currentPhase = useEditor.getState().phase
       let currentStructureLayer = useEditor.getState().structureLayer
       const selectedIdsBeforeRouting = useViewer.getState().selection.selectedIds
+      const nativeEvent = event.nativeEvent
+      const hasModifier = nativeEvent.shiftKey || isCommandModifier(nativeEvent)
+      const isAlreadySoleBody =
+        node.type === 'body' &&
+        selectedIdsBeforeRouting.length === 1 &&
+        selectedIdsBeforeRouting[0] === node.id
+
+      if (!hasModifier && isAlreadySoleBody) {
+        event.stopPropagation()
+        clickHandledRef.current = true
+        setTimeout(() => {
+          clickHandledRef.current = false
+        }, 50)
+        return
+      }
 
       // Auto-switch between zones, structure, and furnish when clicking elements on the same level.
       // Also auto-switch from site phase when clicking structural/furnish elements (e.g. 2D floorplan).
@@ -1731,8 +1746,6 @@ export const SelectionManager = () => {
         // registry move tool in click-to-commit mode, exactly like the floating
         // Move button. The first (selecting) click can't hit this because the
         // node isn't yet in `selectedIdsBeforeRouting`.
-        const nativeEvent = event.nativeEvent
-        const hasModifier = nativeEvent.shiftKey || isCommandModifier(nativeEvent)
         const isAlreadySole =
           selectedIdsBeforeRouting.length === 1 && selectedIdsBeforeRouting[0] === nodeToSelect.id
         if (!hasModifier && isAlreadySole && !getMovingNode() && canDirectMoveNode(nodeToSelect)) {

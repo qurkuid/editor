@@ -163,6 +163,26 @@ describe('computeSceneBoundsXZ', () => {
     expect(bounds!.max).toEqual([7, 8])
   })
 
+  test('includes native body vertices', () => {
+    const body = {
+      object: 'node',
+      id: 'body_1',
+      type: 'body',
+      parentId: null,
+      visible: true,
+      metadata: {},
+      vertices: [
+        { id: 'v1', position: [-4, 2, -3] },
+        { id: 'v2', position: [6, 5, 8] },
+      ],
+    } as unknown as AnyNode
+
+    const bounds = computeSceneBoundsXZ([body])
+    expect(bounds).not.toBeNull()
+    expect(bounds!.min).toEqual([-4, -3])
+    expect(bounds!.max).toEqual([6, 8])
+  })
+
   test('handles a single degenerate point with a minimum extent', () => {
     const nodes: AnyNode[] = [makeWall([2, 2], [2, 2])]
     const bounds = computeSceneBoundsXZ(nodes)

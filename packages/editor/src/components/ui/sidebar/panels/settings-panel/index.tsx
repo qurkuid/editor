@@ -1,6 +1,7 @@
 import {
   clearSceneHistory,
   emitter,
+  saveStoredAsset,
   useScene,
   validateBuildJson,
 } from '@pascal-app/core'
@@ -17,6 +18,11 @@ import {
   useState,
 } from 'react'
 import { exportFloorplanPdf } from '../../../../../lib/floorplan/floorplan-export'
+import {
+  attachPascalBundleAsset,
+  parsePascalBundle,
+  PascalBundleError,
+} from '../../../../../lib/pascal-bundle'
 import { SegmentedControl } from '../../../controls/segmented-control'
 import { Button } from './../../../../../components/ui/primitives/button'
 import {
@@ -243,13 +249,18 @@ export function SettingsPanel({
     const file = e.target.files?.[0]
     if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const text = event.target?.result as string
+    const load = async () => {
       let parsed: unknown
       try {
-        parsed = JSON.parse(text)
-      } catch {
+        if (file.name.toLowerCase().endsWith('.pascal')) {
+          const bundle = await parsePascalBundle(await file.arrayBuffer())
+          const assetUrl = await saveStoredAsset(crypto.randomUUID(), bundle.model)
+          parsed = attachPascalBundleAsset(bundle.scene, assetUrl)
+        } else {
+          parsed = JSON.parse(await file.text())
+        }
+      } catch (error) {
+        if (!(error instanceof SyntaxError || error instanceof PascalBundleError)) throw error
         setPendingImport({
           fileName: file.name,
           fileSizeBytes: file.size,
@@ -277,7 +288,7 @@ export function SettingsPanel({
         result: validateBuildJson(parsed),
       })
     }
-    reader.readAsText(file)
+    void load()
 
     // Reset input so the same file can be loaded again
     e.target.value = ''
@@ -541,7 +552,7 @@ export function SettingsPanel({
         </Button>
 
         <input
-          accept="application/json"
+          accept=".json,.pascal,application/json,application/octet-stream"
           className="hidden"
           onChange={handleFileLoad}
           ref={fileInputRef}

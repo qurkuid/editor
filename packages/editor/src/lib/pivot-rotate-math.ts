@@ -1,6 +1,11 @@
 import { DEFAULT_ANGLE_STEP } from '@pascal-app/core'
+import { executeTransformBody } from '@pascal-app/core/modeling-operations'
 import { Euler, Quaternion, Vector3 } from 'three'
-import type { GroupPatch, ParticipantStart } from '../components/editor/group-transform-shared'
+import {
+  bodyTransformPatch,
+  type GroupPatch,
+  type ParticipantStart,
+} from '../components/editor/group-transform-shared'
 
 // Pure math for the pivot-rotate gesture (bottom-menu Rotate): first click
 // sets the pivot, second click sets the zero-angle reference arm, then the
@@ -72,8 +77,8 @@ export function typedAngleToDelta(degrees: number): number {
  * orientations premultiply the same rotation (quaternion compose, so an
  * already-rotated item tilts correctly). The -delta sign matches the y-axis
  * path, where `rotateGroupPatches`' orbit equals R_y(-delta) about the pivot.
- * Non-vec3 kinds (walls, polygons, scalar rotations) cannot represent an
- * out-of-plane rotation and must be excluded before this is reachable.
+ * Body topology is also supported here through the canonical transform kernel;
+ * walls, ordinary polygons, and scalar rotations remain plan-only.
  */
 export function rotateVec3PatchesAboutAxis(
   starts: ParticipantStart[],
@@ -85,6 +90,17 @@ export function rotateVec3PatchesAboutAxis(
   const q = new Quaternion().setFromAxisAngle(axisVec, -delta)
   const patches: GroupPatch[] = []
   for (const s of starts) {
+    if (s.kind === 'polygon' && s.body) {
+      const body = executeTransformBody(s.body, {
+        translation: [0, 0, 0],
+        rotationAxis: axis === 'x' ? [1, 0, 0] : [0, 0, 1],
+        rotationAngle: -delta,
+        scale: [1, 1, 1],
+        pivot: [pivot.x, 0, pivot.z],
+      }).body
+      patches.push([s.id, bodyTransformPatch(body)])
+      continue
+    }
     if (s.kind !== 'vec3') continue
     const position = new Vector3(
       s.position[0] - pivot.x,

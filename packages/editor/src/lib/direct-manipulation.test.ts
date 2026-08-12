@@ -86,6 +86,10 @@ describe('canDirectMoveNode', () => {
     }
   })
 
+  test('keeps Body selection action-first', () => {
+    expect(canDirectMoveNode({ id: 'body_1', type: 'body' } as unknown as AnyNode)).toBe(false)
+  })
+
   test('accepts kinds with a bespoke move tool', () => {
     const kind = 'direct-move-bespoke-tool-test'
     registerTestDefinition(kind, {

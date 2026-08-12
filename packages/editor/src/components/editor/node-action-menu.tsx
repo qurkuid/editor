@@ -1,7 +1,7 @@
 'use client'
 
 import { Icon } from '@iconify/react'
-import { Copy, Move, Search, Spline, Trash2 } from 'lucide-react'
+import { Box, Copy, Expand, Move, RotateCw, Scaling, Search, Spline, Trash2 } from 'lucide-react'
 import type { MouseEventHandler, PointerEventHandler } from 'react'
 import { useT } from '../../i18n/use-t'
 import type { WallConstructionDisplayMode } from '../../store/use-wall-construction-display'
@@ -12,6 +12,11 @@ type NodeActionMenuProps = {
   onDelete?: MouseEventHandler<HTMLButtonElement>
   onDuplicate?: MouseEventHandler<HTMLButtonElement>
   onMove?: MouseEventHandler<HTMLButtonElement>
+  onRotate?: MouseEventHandler<HTMLButtonElement>
+  onScale?: MouseEventHandler<HTMLButtonElement>
+  onPushPull?: MouseEventHandler<HTMLButtonElement>
+  onOffset?: MouseEventHandler<HTMLButtonElement>
+  onSweep?: MouseEventHandler<HTMLButtonElement>
   onCurve?: MouseEventHandler<HTMLButtonElement>
   onPointerDown?: PointerEventHandler<HTMLDivElement>
   onPointerUp?: PointerEventHandler<HTMLDivElement>
@@ -29,6 +34,11 @@ export function NodeActionMenu({
   onDelete,
   onDuplicate,
   onMove,
+  onRotate,
+  onScale,
+  onPushPull,
+  onOffset,
+  onSweep,
   onCurve,
   onPointerDown,
   onPointerUp,
@@ -100,6 +110,61 @@ export function NodeActionMenu({
           type="button"
         >
           <Move className="h-4 w-4" />
+        </button>
+      )}
+      {onRotate && (
+        <button
+          aria-label={t('panel.hintRotate')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onRotate}
+          title={t('panel.hintRotate')}
+          type="button"
+        >
+          <RotateCw className="h-4 w-4" />
+        </button>
+      )}
+      {onScale && (
+        <button
+          aria-label={t('panel.scale')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onScale}
+          title={t('panel.scale')}
+          type="button"
+        >
+          <Scaling className="h-4 w-4" />
+        </button>
+      )}
+      {onPushPull && (
+        <button
+          aria-label={t('bodyModeling.steps.selectFacePushPull')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onPushPull}
+          title={t('bodyModeling.steps.selectFacePushPull')}
+          type="button"
+        >
+          <Box className="h-4 w-4" />
+        </button>
+      )}
+      {onOffset && (
+        <button
+          aria-label={t('bodyModeling.offset')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onOffset}
+          title={t('bodyModeling.offset')}
+          type="button"
+        >
+          <Expand className="h-4 w-4" />
+        </button>
+      )}
+      {onSweep && (
+        <button
+          aria-label={t('bodyModeling.followPath')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onSweep}
+          title={t('bodyModeling.followPath')}
+          type="button"
+        >
+          <Spline className="h-4 w-4" />
         </button>
       )}
       {onCurve && (

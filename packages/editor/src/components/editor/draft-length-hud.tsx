@@ -3,16 +3,23 @@
 import { useViewer } from '@pascal-app/viewer'
 import { Check, MousePointer2, MoveRight, Ruler, TriangleAlert } from 'lucide-react'
 import { useT } from '../../i18n/use-t'
-import { resolveDraftLengthPresentation } from '../../lib/draft-length-input'
+import {
+  resolveDraftLengthPresentation,
+  resolveSignedDraftLengthPresentation,
+} from '../../lib/draft-length-input'
 import { useDraftLengthHud } from '../../store/use-draft-length-hud'
 import { ShortcutToken } from '../ui/primitives/shortcut-token'
 
 export function DraftLengthHud() {
   const t = useT()
   const raw = useDraftLengthHud((state) => state.raw)
+  const signedMode = useDraftLengthHud((state) => state.signedMode)
+  const previewInvalid = useDraftLengthHud((state) => state.previewInvalid)
   const unit = useViewer((state) => state.unit)
   const metricNotation = useViewer((state) => state.metricNotation)
-  const presentation = resolveDraftLengthPresentation(raw, unit, metricNotation)
+  const presentation = signedMode
+    ? resolveSignedDraftLengthPresentation(raw, unit, metricNotation, previewInvalid)
+    : resolveDraftLengthPresentation(raw, unit, metricNotation, previewInvalid)
   if (presentation.kind === 'empty') return null
 
   const isValid = presentation.kind === 'valid'
@@ -47,7 +54,10 @@ export function DraftLengthHud() {
                 {presentation.display}
               </span>
               {isValid ? (
-                <Check aria-label={t('chrome.validLength')} className="h-3.5 w-3.5 text-emerald-400" />
+                <Check
+                  aria-label={t('chrome.validLength')}
+                  className="h-3.5 w-3.5 text-emerald-400"
+                />
               ) : (
                 <TriangleAlert
                   aria-label={t('chrome.invalidLength')}

@@ -17,7 +17,7 @@ import { OrthographicCamera, Plane, Vector2, Vector3 } from 'three'
 import { GROUP_MOVE_DRAG_LABEL, GROUP_ROTATE_DRAG_LABEL } from '../../lib/contextual-help'
 import { isHistoryShortcut } from '../../lib/history'
 import { sfxEmitter } from '../../lib/sfx-bus'
-import useEditor from '../../store/use-editor'
+import useEditor, { isAngleSnapActive } from '../../store/use-editor'
 import useInteractionScope, {
   useActiveHandleDrag,
   useMovingNode,
@@ -238,7 +238,9 @@ function GroupRotateHandleInner({ ids, meshEpoch }: { ids: string[]; meshEpoch: 
       let delta = angleOf(moveHit) - initialAngle
       while (delta > Math.PI) delta -= 2 * Math.PI
       while (delta < -Math.PI) delta += 2 * Math.PI
-      if (!e.shiftKey) delta = Math.round(delta / DEFAULT_ANGLE_STEP) * DEFAULT_ANGLE_STEP
+      if (!e.altKey && isAngleSnapActive()) {
+        delta = Math.round(delta / DEFAULT_ANGLE_STEP) * DEFAULT_ANGLE_STEP
+      }
 
       // Shared rigid-rotation math (also used by the keyboard group R/T);
       // see `rotateGroupPatches` for the orbit/yaw handedness contract.

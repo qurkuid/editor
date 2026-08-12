@@ -1,5 +1,12 @@
 import { beforeAll, describe, expect, test } from 'bun:test'
-import { type AnyNode, type AnyNodeDefinition, nodeRegistry, registerNode } from '@pascal-app/core'
+import {
+  type AnyNode,
+  type AnyNodeDefinition,
+  BodyNode,
+  createRectangleBody,
+  nodeRegistry,
+  registerNode,
+} from '@pascal-app/core'
 import { z } from 'zod'
 import {
   classifyParticipant,
@@ -318,6 +325,42 @@ describe('group transform participants', () => {
       expect(point[0]).toBeCloseTo(expected[i]![0]!)
       expect(point[1]).toBeCloseTo(expected[i]![1]!)
     })
+  })
+
+  test('rotates a Body topology as one participant while preserving semantic fields', () => {
+    const source = createRectangleBody({ width: 2, depth: 1 })
+    const body = BodyNode.parse({
+      ...source,
+      id: 'body_group_rotate_test',
+      parentId: 'level_test',
+      faces: source.faces.map((face) => ({
+        ...face,
+        surface: {
+          ...face.surface,
+          materialRef: 'scene:oak',
+          uvOrigin: [0.25, 0.5, 0.75],
+        },
+      })),
+    })
+    const nodes: Record<string, AnyNode | undefined> = {
+      [body.id]: body,
+    }
+
+    const { starts } = collectParticipants([body.id], nodes, 'level_test')
+    expect(starts).toHaveLength(1)
+    expect(rotateGroupPatches(starts, [], { x: 1, z: 0.5 }, 0)).toHaveLength(1)
+    const patches = rotateGroupPatches(starts, [], { x: 1, z: 0.5 }, Math.PI / 2)
+
+    expect(patches).toHaveLength(1)
+    const patch = patches[0]?.[1]
+    expect(patch).toBeDefined()
+    const rotatedBody = BodyNode.parse({ ...body, ...patch })
+    expect(rotatedBody.vertices.map((vertex) => vertex.id)).toEqual(
+      body.vertices.map((vertex) => vertex.id),
+    )
+    expect(rotatedBody.faces[0]?.surface.materialRef).toBe('scene:oak')
+    expect(rotatedBody.faces[0]?.surface.uvOrigin).toEqual([0.75, 0.5, -0.25])
+    expect(rotatedBody.vertices[0]?.position).toEqual([1.5, 0, -0.5])
   })
 
   test('polygon hosts carry their attached positioned children (ceiling items)', () => {

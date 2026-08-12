@@ -728,7 +728,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
           startX,
           pointerEvent.clientX,
           DIRECT_ROTATE_RADIANS_PER_PIXEL,
-          !isAngleSnapActive(),
+          pointerEvent.altKey || !isAngleSnapActive(),
         )
         if (Math.abs(delta) < DIRECT_ROTATE_EPSILON) {
           lastPatch = null

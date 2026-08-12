@@ -49,4 +49,21 @@ describe('resolveResizeSnapValue', () => {
     ).toBe(0.56)
     expect(magneticSnap).not.toHaveBeenCalled()
   })
+
+  it('keeps the raw value when Alt bypasses the active snap mode', () => {
+    const magneticSnap = mock(() => 0.6)
+
+    expect(
+      resolveResizeSnapValue({
+        rawValue: 0.56,
+        gridSnapEnabled: true,
+        gridSnapActive: true,
+        gridSnapStep: 0.1,
+        magneticSnapActive: true,
+        magneticSnap,
+        bypassSnap: true,
+      }),
+    ).toBe(0.56)
+    expect(magneticSnap).not.toHaveBeenCalled()
+  })
 })

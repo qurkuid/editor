@@ -1,3 +1,4 @@
+import { parseQuantity } from '@pascal-app/lingo'
 import { parseMeasurement } from './measurement-parser'
 
 export type DraftUnitSystem = 'metric' | 'imperial'
@@ -30,6 +31,29 @@ export function parseDraftLength(
   return value !== null && value > 0 ? value : null
 }
 
+export function parseSignedDraftLength(
+  raw: string,
+  unit: DraftUnitSystem,
+  metricNotation: DraftMetricNotation,
+): number | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  const sign = trimmed.startsWith('-') ? -1 : 1
+  const unsigned = trimmed.replace(/^[+-]/, '').trim()
+  if (/^[+-]/.test(unsigned)) return null
+  const bareUnit = unit === 'imperial' ? 'ft' : metricNotation === 'millimeters' ? 'mm' : 'm'
+  const parsed = parseQuantity(unsigned, {
+    kind: 'length',
+    strictness: 'forgiving',
+    system: unit,
+    tolerance: { typos: 'off' },
+    unit: bareUnit,
+  })
+  if (!parsed.ok || parsed.span.start !== 0 || parsed.span.end !== unsigned.length) return null
+  const magnitude = parsed.quantity.to('m').value
+  return Number.isFinite(magnitude) && magnitude > 0 ? sign * magnitude : null
+}
+
 export function formatDraftLengthInput(
   raw: string,
   unit: DraftUnitSystem,
@@ -44,11 +68,26 @@ export function resolveDraftLengthPresentation(
   raw: string,
   unit: DraftUnitSystem,
   metricNotation: DraftMetricNotation,
+  previewInvalid = false,
 ): DraftLengthPresentation {
   if (!raw) return { kind: 'empty' }
   const display = formatDraftLengthInput(raw, unit, metricNotation)
   const lengthMeters = parseDraftLength(raw, unit, metricNotation)
-  return lengthMeters === null
+  return lengthMeters === null || previewInvalid
+    ? { kind: 'invalid', display }
+    : { kind: 'valid', display, lengthMeters }
+}
+
+export function resolveSignedDraftLengthPresentation(
+  raw: string,
+  unit: DraftUnitSystem,
+  metricNotation: DraftMetricNotation,
+  previewInvalid = false,
+): DraftLengthPresentation {
+  if (!raw) return { kind: 'empty' }
+  const display = formatDraftLengthInput(raw, unit, metricNotation)
+  const lengthMeters = parseSignedDraftLength(raw, unit, metricNotation)
+  return lengthMeters === null || previewInvalid
     ? { kind: 'invalid', display }
     : { kind: 'valid', display, lengthMeters }
 }

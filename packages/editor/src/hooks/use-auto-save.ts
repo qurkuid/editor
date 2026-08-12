@@ -8,7 +8,7 @@ const AUTOSAVE_DEBOUNCE_MS = 1000
 const STRUCTURAL_NODE_COUNT = 4
 
 export function isSuspiciousNodeDrop(previousNodeCount: number, currentNodeCount: number) {
-  return previousNodeCount > STRUCTURAL_NODE_COUNT && currentNodeCount <= STRUCTURAL_NODE_COUNT
+  return previousNodeCount > STRUCTURAL_NODE_COUNT && currentNodeCount < STRUCTURAL_NODE_COUNT
 }
 
 export type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'paused' | 'error'

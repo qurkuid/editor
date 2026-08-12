@@ -4,8 +4,10 @@ import {
   constrainSpatialDraftPoint,
   formatDraftLengthInput,
   parseDraftLength,
+  parseSignedDraftLength,
   replayDraftMove,
   resolveDraftLengthPresentation,
+  resolveSignedDraftLengthPresentation,
 } from './draft-length-input'
 
 describe('draft length input', () => {
@@ -30,6 +32,43 @@ describe('draft length input', () => {
     expect(parseDraftLength('-1200', 'metric', 'millimeters')).toBeNull()
   })
 
+  test('parses signed metric and imperial offsets into metres', () => {
+    expect(parseSignedDraftLength('200', 'metric', 'millimeters')).toBeCloseTo(0.2)
+    expect(parseSignedDraftLength('200mm', 'metric', 'meters')).toBeCloseTo(0.2)
+    expect(parseSignedDraftLength('0.2m', 'metric', 'millimeters')).toBeCloseTo(0.2)
+    expect(parseSignedDraftLength('8in', 'imperial', 'meters')).toBeCloseTo(0.2032)
+    expect(parseSignedDraftLength('  -200mm  ', 'metric', 'meters')).toBeCloseTo(-0.2)
+    expect(parseSignedDraftLength('+20cm', 'metric', 'meters')).toBeCloseTo(0.2)
+    expect(parseSignedDraftLength('-0.2m', 'metric', 'millimeters')).toBeCloseTo(-0.2)
+    expect(parseSignedDraftLength('1.5ft', 'imperial', 'meters')).toBeCloseTo(0.4572)
+    expect(parseSignedDraftLength('-8 in', 'imperial', 'meters')).toBeCloseTo(-0.2032)
+    expect(parseSignedDraftLength(`-5' 6"`, 'imperial', 'meters')).toBeCloseTo(-1.6764)
+    expect(parseSignedDraftLength('-.5m', 'metric', 'meters')).toBeCloseTo(-0.5)
+  })
+
+  test('rejects malformed suffixes, repeated signs, spaced mixed signs, and non-finite input', () => {
+    for (const raw of [
+      '',
+      '   ',
+      '0',
+      'hello',
+      '200px',
+      '200mmx',
+      '-200mmx',
+      '--200mm',
+      '++200mm',
+      '+-200mm',
+      '-+200mm',
+      '- +200mm',
+      '+ +200mm',
+      'NaN',
+      'Infinity',
+      '-Infinity',
+    ]) {
+      expect(parseSignedDraftLength(raw, 'metric', 'millimeters')).toBeNull()
+    }
+  })
+
   test('shows the live bare value with the active display unit', () => {
     expect(formatDraftLengthInput('1200', 'metric', 'millimeters')).toBe('1200 mm')
     expect(formatDraftLengthInput('1.2', 'metric', 'meters')).toBe('1.2 m')
@@ -49,6 +88,37 @@ describe('draft length input', () => {
     expect(resolveDraftLengthPresentation('1..2', 'metric', 'meters')).toEqual({
       kind: 'invalid',
       display: '1..2 m',
+    })
+  })
+
+  test('presents a signed negative value only through the signed path', () => {
+    expect(resolveDraftLengthPresentation('-200mm', 'metric', 'meters')).toEqual({
+      kind: 'invalid',
+      display: '-200mm',
+    })
+    expect(resolveSignedDraftLengthPresentation('-200mm', 'metric', 'meters')).toEqual({
+      kind: 'valid',
+      display: '-200mm',
+      lengthMeters: -0.2,
+    })
+    expect(resolveSignedDraftLengthPresentation('-200', 'metric', 'millimeters')).toEqual({
+      kind: 'valid',
+      display: '-200 mm',
+      lengthMeters: -0.2,
+    })
+  })
+
+  test('marks a syntactically valid signed length invalid when the preview rejects it', () => {
+    expect(resolveSignedDraftLengthPresentation('-99999', 'metric', 'millimeters', true)).toEqual({
+      kind: 'invalid',
+      display: '-99999 mm',
+    })
+  })
+
+  test('marks a syntactically valid unsigned length invalid when the preview rejects it', () => {
+    expect(resolveDraftLengthPresentation('1200', 'metric', 'millimeters', true)).toEqual({
+      kind: 'invalid',
+      display: '1200 mm',
     })
   })
 

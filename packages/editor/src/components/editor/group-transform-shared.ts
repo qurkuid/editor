@@ -1,10 +1,12 @@
 import {
   type AnyNode,
   type AnyNodeId,
+  type BodyNode,
   nodeRegistry,
   resolveBuildingForLevel,
   sceneRegistry,
 } from '@pascal-app/core'
+import { executeTransformBody } from '@pascal-app/core/modeling-operations'
 import { Box3, Matrix4 } from 'three'
 
 // Shared plumbing for the group transform gizmos (rotate + move). Both operate
@@ -20,6 +22,19 @@ const JUNCTION_EPS = 1e-4
 
 export type Vec2 = [number, number]
 export type Vec3 = [number, number, number]
+
+function bodyFootprint(body: BodyNode): Vec2[] {
+  return body.vertices.map((vertex) => [vertex.position[0], vertex.position[2]])
+}
+
+export function bodyTransformPatch(body: BodyNode): Record<string, unknown> {
+  return {
+    revision: body.revision,
+    vertices: body.vertices,
+    faces: body.faces,
+    curves: body.curves,
+  }
+}
 
 const isVec3 = (v: unknown): v is Vec3 =>
   Array.isArray(v) && v.length === 3 && v.every((n) => typeof n === 'number')
@@ -95,6 +110,7 @@ export function classifyParticipant(
   sceneNodes: Record<string, AnyNode | undefined>,
 ): ParticipantKind | null {
   if (!node || !isInGroupTransformScope(node, levelId, sceneNodes)) return null
+  if (node.type === 'body') return 'polygon'
   const shape = classifyPlacementShape(node)
   if (shape) return shape
   const start = (node as { start?: unknown }).start
@@ -110,7 +126,13 @@ export type ParticipantStart =
   | { id: AnyNodeId; kind: 'vec3'; position: Vec3; rotation: Vec3 }
   | { id: AnyNodeId; kind: 'scalar'; position: Vec3; rotation: number }
   | { id: AnyNodeId; kind: 'endpoint'; start: Vec2; end: Vec2 }
-  | { id: AnyNodeId; kind: 'polygon'; polygon: Vec2[]; holes: Vec2[][] | null }
+  | {
+      id: AnyNodeId
+      kind: 'polygon'
+      polygon: Vec2[]
+      holes: Vec2[][] | null
+      body?: BodyNode
+    }
 
 // An unselected wall/fence sharing a junction with a transforming endpoint. Only
 // the touching endpoint(s) follow, so the neighbour stays attached while its far
@@ -167,6 +189,17 @@ export function collectParticipants(
         end: [n.end[0], n.end[1]],
       })
     } else {
+      if (node.type === 'body') {
+        const body = node
+        starts.push({
+          id: id as AnyNodeId,
+          kind,
+          polygon: bodyFootprint(body),
+          holes: null,
+          body,
+        })
+        continue
+      }
       const n = node as AnyNode & { polygon: Vec2[]; holes?: Vec2[][] }
       starts.push({
         id: id as AnyNodeId,
@@ -315,6 +348,20 @@ export function rotateGroupPatches(
     if (s.kind === 'endpoint') {
       patches.push([s.id, { start: rot(s.start[0], s.start[1]), end: rot(s.end[0], s.end[1]) }])
     } else if (s.kind === 'polygon') {
+      if (s.body) {
+        const body =
+          delta === 0
+            ? s.body
+            : executeTransformBody(s.body, {
+                translation: [0, 0, 0],
+                rotationAxis: [0, 1, 0],
+                rotationAngle: -delta,
+                scale: [1, 1, 1],
+                pivot: [center.x, 0, center.z],
+              }).body
+        patches.push([s.id, bodyTransformPatch(body)])
+        continue
+      }
       const patch: Record<string, unknown> = { polygon: s.polygon.map(([x, z]) => rot(x, z)) }
       if (s.holes) patch.holes = s.holes.map((hole) => hole.map(([x, z]) => rot(x, z)))
       patches.push([s.id, patch])
@@ -362,6 +409,19 @@ export function rotateGroupSnapshots(
       return { ...s, start: rot(s.start[0], s.start[1]), end: rot(s.end[0], s.end[1]) }
     }
     if (s.kind === 'polygon') {
+      if (s.body) {
+        const body =
+          delta === 0
+            ? s.body
+            : executeTransformBody(s.body, {
+                translation: [0, 0, 0],
+                rotationAxis: [0, 1, 0],
+                rotationAngle: -delta,
+                scale: [1, 1, 1],
+                pivot: [center.x, 0, center.z],
+              }).body
+        return { ...s, body, polygon: bodyFootprint(body) }
+      }
       return {
         ...s,
         polygon: s.polygon.map(([x, z]) => rot(x, z)),
@@ -433,6 +493,20 @@ export function translateGroupPatches(
     if (s.kind === 'endpoint') {
       patches.push([s.id, { start: shift(s.start), end: shift(s.end) }])
     } else if (s.kind === 'polygon') {
+      if (s.body) {
+        const body =
+          dx === 0 && dz === 0
+            ? s.body
+            : executeTransformBody(s.body, {
+                translation: [dx, 0, dz],
+                rotationAxis: [0, 1, 0],
+                rotationAngle: 0,
+                scale: [1, 1, 1],
+                pivot: [0, 0, 0],
+              }).body
+        patches.push([s.id, bodyTransformPatch(body)])
+        continue
+      }
       const patch: Record<string, unknown> = { polygon: s.polygon.map(shift) }
       if (s.holes) patch.holes = s.holes.map((hole) => hole.map(shift))
       patches.push([s.id, patch])

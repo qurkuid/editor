@@ -53,6 +53,7 @@ export type HandleDragMoveContext = {
 type HandleDragSession = {
   move: (context: HandleDragMoveContext) => Partial<AnyNode> | null
   commit?: (patch: Partial<AnyNode>) => void
+  canCommit?: () => boolean
   markDirty?: boolean
   onBegin?: () => void
   onEnd?: () => void
@@ -186,7 +187,12 @@ export function useHandleDrag(args: UseHandleDragArgs) {
 
     const onMove = (moveEvent: PointerEvent) => {
       const patch = session.move({ event: moveEvent, getPointerRay, intersectPlane })
-      if (!patch) return
+      if (!patch) {
+        lastPatch = null
+        useLiveNodeOverrides.getState().clear(overrideId)
+        if (markDirty) useScene.getState().markDirty(overrideId)
+        return
+      }
       lastPatch = patch
       useLiveNodeOverrides.getState().set(overrideId, patch as Record<string, unknown>)
       if (markDirty) {
@@ -220,7 +226,7 @@ export function useHandleDrag(args: UseHandleDragArgs) {
     const onUp = () => {
       swallowNextClick()
       sfxEmitter.emit('sfx:item-place')
-      if (lastPatch) {
+      if (lastPatch && (session.canCommit?.() ?? true)) {
         commitHandleDragPatch({
           patch: lastPatch,
           resumeHistory,

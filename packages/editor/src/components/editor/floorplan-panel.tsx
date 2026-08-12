@@ -5256,7 +5256,7 @@ export function FloorplanPanel({
   const setGuideLocked = useEditor((s) => s.setGuideLocked)
   const setGuideScaleReferenceVisible = useEditor((s) => s.setGuideScaleReferenceVisible)
   const clearGuideUi = useEditor((s) => s.clearGuideUi)
-  const [shiftPressed, setShiftPressed] = useState(false)
+  const [altPressed, setAltPressed] = useState(false)
   const [rotationModifierPressed, setRotationModifierPressed] = useState(false)
   const [movingFloorplanNodeRevision, setMovingFloorplanNodeRevision] = useState(0)
   const movingFloorplanNodeRefreshFrameRef = useRef<number | null>(null)
@@ -8251,8 +8251,8 @@ export function FloorplanPanel({
         setIsSpacePanPressed(true)
       }
 
-      if (event.key === 'Shift') {
-        setShiftPressed(true)
+      if (event.key === 'Alt') {
+        setAltPressed(true)
       }
 
       if (
@@ -8288,8 +8288,8 @@ export function FloorplanPanel({
         setIsSpacePanPressed(false)
       }
 
-      if (event.key === 'Shift') {
-        setShiftPressed(false)
+      if (event.key === 'Alt') {
+        setAltPressed(false)
       }
 
       setRotationModifierPressed(event.metaKey || event.ctrlKey)
@@ -8297,7 +8297,7 @@ export function FloorplanPanel({
     const handleBlur = () => {
       floorplanSpacePanPressedRef.current = false
       setIsSpacePanPressed(false)
-      setShiftPressed(false)
+      setAltPressed(false)
       setRotationModifierPressed(false)
     }
 
@@ -8323,7 +8323,7 @@ export function FloorplanPanel({
           return
         }
 
-        const bypassSnap = shiftPressed || event.shiftKey
+        const bypassSnap = altPressed || event.altKey
         const nextDraft =
           guideInteraction.mode === 'rotate'
             ? buildGuideRotationDraft(guideInteraction, svgPoint, bypassSnap)
@@ -8490,7 +8490,7 @@ export function FloorplanPanel({
       }
 
       const svgPoint = getSvgPointFromClientPoint(event.clientX, event.clientY)
-      const bypassSnap = shiftPressed || event.shiftKey
+      const bypassSnap = altPressed || event.altKey
       const nextDraft = svgPoint
         ? interaction.mode === 'rotate'
           ? buildGuideRotationDraft(interaction, svgPoint, bypassSnap)
@@ -8663,7 +8663,7 @@ export function FloorplanPanel({
     getPlanPointFromClientPoint,
     setMovingNode,
     setSelection,
-    shiftPressed,
+    altPressed,
     updateNode,
     wallById,
     walls,
@@ -10085,6 +10085,7 @@ export function FloorplanPanel({
       structureLayer,
       getFloorplanHitIdAtPoint,
       unit,
+      metricNotation,
       emitFloorplanGridEvent,
       setCursorPoint,
     ],

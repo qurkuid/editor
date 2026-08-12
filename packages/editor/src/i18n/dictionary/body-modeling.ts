@@ -18,4 +18,6 @@ export const bodyModelingDictionary = {
     ko: '면 선택 · Push/Pull',
     en: 'Select face · Push/Pull',
   },
+  'bodyModeling.offset': { ko: 'Offset', en: 'Offset' },
+  'bodyModeling.followPath': { ko: 'Follow Path', en: 'Follow Path' },
 } as const satisfies Dictionary

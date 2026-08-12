@@ -49,6 +49,7 @@ function extendPoint(
  *   - `start`/`end`  → wall and fence endpoints in level coordinates.
  *   - `polygon`      → zone, slab, site-boundary polygons.
  *   - `position`     → building/item/door/window position; uses [x, z] only.
+ *   - `vertices`     → native body geometry positions; uses [x, z] only.
  *
  * Site-node polygons are intentionally excluded when they are the default
  * 30×30 bootstrap polygon — otherwise a brand-new empty scene would frame
@@ -115,6 +116,17 @@ export function computeSceneBoundsXZ(
     const position = anyNode.position as unknown
     if (Array.isArray(position) && position.length >= 3) {
       extendPoint(acc, position[0], position[2])
+    }
+
+    const vertices = anyNode.vertices as unknown
+    if (Array.isArray(vertices)) {
+      for (const vertex of vertices) {
+        if (!vertex || typeof vertex !== 'object') continue
+        const vertexPosition = (vertex as { position?: unknown }).position
+        if (Array.isArray(vertexPosition) && vertexPosition.length >= 3) {
+          extendPoint(acc, vertexPosition[0], vertexPosition[2])
+        }
+      }
     }
   }
 

@@ -7,6 +7,7 @@ export function resolveResizeSnapValue({
   gridSnapStep,
   magneticSnapActive,
   magneticSnap,
+  bypassSnap = false,
 }: {
   rawValue: number
   gridSnapEnabled: boolean
@@ -14,7 +15,9 @@ export function resolveResizeSnapValue({
   gridSnapStep: number
   magneticSnapActive: boolean
   magneticSnap?: (value: number) => number
+  bypassSnap?: boolean
 }): number {
+  if (bypassSnap) return rawValue
   const gridValue =
     gridSnapEnabled && gridSnapActive && gridSnapStep > 0
       ? snapScalar(rawValue, gridSnapStep)

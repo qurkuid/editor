@@ -3,8 +3,10 @@
 import {
   type AnyNode,
   type AnyNodeId,
+  type BodySelectionActionKind,
   type CeilingNode,
   createSceneApi,
+  emitter,
   getWallMidpointHandlePoint,
   type NodeQuickAction,
   nodeRegistry,
@@ -325,6 +327,12 @@ export function FloorplanRegistryActionMenu() {
     useInteractionScope.getState().begin(curveReshapeScope(node.id))
   }
 
+  const handleBodyAction = (action: BodySelectionActionKind) => () => {
+    if (node.type !== 'body') return
+    sfxEmitter.emit('sfx:item-pick')
+    emitter.emit('body:selection-action', { bodyId: node.id, action })
+  }
+
   const handleDuplicate = () => {
     if (!node.parentId) return
     sfxEmitter.emit('sfx:item-pick')
@@ -392,6 +400,8 @@ export function FloorplanRegistryActionMenu() {
         onDelete={canDelete ? handleDelete : undefined}
         onDuplicate={canDuplicate ? handleDuplicate : undefined}
         onMove={canMove ? handleMove : undefined}
+        onRotate={node.type === 'body' ? handleBodyAction('rotate') : undefined}
+        onScale={undefined}
         onPointerDown={(event) => event.stopPropagation()}
         onPointerUp={(event) => event.stopPropagation()}
       />

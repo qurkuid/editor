@@ -271,7 +271,6 @@ export { Slider } from './components/ui/primitives/slider'
 export { SceneLoader } from './components/ui/scene-loader'
 export type { ExtraPanel } from './components/ui/sidebar/icon-rail'
 export { ItemsPanel } from './components/ui/sidebar/panels/items-panel'
-export { ViewsPanel } from './components/ui/sidebar/panels/views-panel'
 export type { FunctionTreeNode } from './components/ui/sidebar/panels/items-panel/function-tree-panel'
 export {
   type ProjectVisibility,
@@ -279,6 +278,7 @@ export {
   type SettingsPanelProps,
 } from './components/ui/sidebar/panels/settings-panel'
 export type { SitePanelProps } from './components/ui/sidebar/panels/site-panel'
+export { ViewsPanel } from './components/ui/sidebar/panels/views-panel'
 export type { SidebarTab } from './components/ui/sidebar/tab-bar'
 export {
   resolveAssetSnapTarget,
@@ -351,6 +351,8 @@ export {
   formatDraftLengthInput,
   type PlanDraftPoint,
   parseDraftLength,
+  parseSignedDraftLength,
+  resolveSignedDraftLengthPresentation,
   type SpatialDraftPoint,
 } from './lib/draft-length-input'
 export {
@@ -567,6 +569,10 @@ export {
 // dependency.
 export { cn } from './lib/utils'
 export {
+  default as useWallAlignPick,
+  type WallAlignSide,
+} from './lib/wall-align-pick'
+export {
   getActiveBuildingPose,
   projectAlignmentGuidesWorldToActiveBuildingLocal,
   resolveAlignmentForActiveBuilding,
@@ -574,10 +580,6 @@ export {
   snapBuildingLocalToWorldGrid,
   snapWorldXZForActiveBuilding,
 } from './lib/world-grid-snap'
-export {
-  default as useWallAlignPick,
-  type WallAlignSide,
-} from './lib/wall-align-pick'
 export { default as useAlignmentGuides } from './store/use-alignment-guides'
 export { default as useAudio } from './store/use-audio'
 export { type CommandAction, useCommandRegistry } from './store/use-command-registry'
@@ -657,6 +659,7 @@ export {
   type PathDraftPoint,
   usePathDraftPreview,
 } from './store/use-path-draft-preview'
+export { default as usePivotRotate } from './store/use-pivot-rotate'
 export { default as usePlacementPreview } from './store/use-placement-preview'
 export {
   activateQuickMeasurementHudSource,

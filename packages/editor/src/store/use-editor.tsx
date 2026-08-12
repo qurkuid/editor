@@ -4,6 +4,7 @@ import type { AssetInput } from '@pascal-app/core'
 import {
   type AnyNode,
   type AnyNodeId,
+  type BodyNode,
   type BrushSettings,
   type BuildingNode,
   type CabinetModuleNode,
@@ -90,6 +91,7 @@ const MAX_FLOORPLAN_PANE_RATIO = 0.85
 
 function resolveMovingNodeTarget(
   node:
+    | BodyNode
     | ItemNode
     | WindowNode
     | DoorNode
@@ -329,6 +331,7 @@ type EditorState = {
   setRoofHostDragArmedId: (nodeId: AnyNodeId | null) => void
   setMovingNode: (
     node:
+      | BodyNode
       | ItemNode
       | WindowNode
       | DoorNode
@@ -1596,12 +1599,14 @@ export function getActiveSnapContext(): SnapContext | null {
     mode: editor.mode,
     tool: editor.tool,
     profileOf: (typeOrTool) => nodeRegistry.get(typeOrTool)?.snapProfile,
-    profileOfNode: (nodeId) => {
-      const node = useScene.getState().nodes[nodeId as AnyNodeId]
-      return node ? nodeRegistry.get(node.type)?.snapProfile : undefined
-    },
+    profileOfNode: getSnapProfileOfNode,
     draftDirectionalOf: (typeOrTool) => nodeRegistry.get(typeOrTool)?.snapDraftDirectional ?? true,
   })
+}
+
+export function getSnapProfileOfNode(nodeId: string) {
+  const node = useScene.getState().nodes[nodeId as AnyNodeId]
+  return node ? nodeRegistry.get(node.type)?.snapProfile : undefined
 }
 
 export function getActiveContinuationContext(): ContinuationContext | null {

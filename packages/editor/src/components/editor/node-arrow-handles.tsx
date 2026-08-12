@@ -7,6 +7,7 @@ import {
   type Cursor,
   createSceneApi,
   DEFAULT_ANGLE_STEP,
+  emitter,
   type HandleDescriptor,
   type HandlePortal,
   type LatchHandle,
@@ -41,12 +42,18 @@ import {
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 import { MeshBasicNodeMaterial } from 'three/webgpu'
+import { useDraftLengthInput } from '../../hooks/use-draft-length-input'
 import { EDITOR_LAYER } from '../../lib/constants'
 import { RESIZE_HANDLE_DRAG_LABEL, ROTATE_HANDLE_DRAG_LABEL } from '../../lib/contextual-help'
 import { createEditorApi } from '../../lib/editor-api'
 import { sfxEmitter } from '../../lib/sfx-bus'
 import useDirectManipulationFeedback from '../../store/use-direct-manipulation-feedback'
-import useEditor, { isGridSnapActive, isMagneticSnapActive } from '../../store/use-editor'
+import { useDraftLengthHud } from '../../store/use-draft-length-hud'
+import useEditor, {
+  isAngleSnapActive,
+  isGridSnapActive,
+  isMagneticSnapActive,
+} from '../../store/use-editor'
 import useInteractionScope, {
   useEndpointReshape,
   useIsCurveReshape,
@@ -197,8 +204,29 @@ export function NodeArrowHandles() {
   // on the legacy wall handles (`WallMoveSideHandles`).
   const endpointReshape = useEndpointReshape()
   const isCurveReshape = useIsCurveReshape()
+  const [armedBodyScaleId, setArmedBodyScaleId] = useState<AnyNodeId | null>(null)
+
+  useEffect(() => {
+    const onBodySelectionAction = ({
+      bodyId,
+      action,
+    }: {
+      bodyId: AnyNodeId
+      action: string | null
+    }) => {
+      setArmedBodyScaleId((current) => {
+        if (bodyId !== current && action !== 'scale') return current
+        return action === 'scale' ? bodyId : null
+      })
+    }
+    emitter.on('body:selection-action', onBodySelectionAction)
+    return () => emitter.off('body:selection-action', onBodySelectionAction)
+  }, [])
 
   const selectedId = selectedIds.length === 1 ? selectedIds[0] : activeRotateNodeId
+  useEffect(() => {
+    if (selectedId !== armedBodyScaleId) setArmedBodyScaleId(null)
+  }, [armedBodyScaleId, selectedId])
   const rawNode = useScene((state) => {
     if (!selectedId) return null
     return state.nodes[selectedId as AnyNodeId] ?? null
@@ -227,13 +255,17 @@ export function NodeArrowHandles() {
     // the selected node body (see selection-manager). Drop both flavours — the
     // `translate` ground cross (column/roof/shelf/spawn) and the `tap-action`
     // `move-cross` (item/door/window/elevator/stair) — keep rotate/resize.
-    return all.filter(
+    const visible = all.filter(
       (d) =>
         d.kind !== 'translate' &&
         !('shape' in d && d.shape === 'move-cross') &&
         (d.kind !== 'linear-resize' || d.visible?.(node as never, descriptorSceneApi) !== false),
     )
-  }, [node, def, descriptorSceneApi])
+    if (node.type === 'body' && armedBodyScaleId !== node.id) {
+      return visible.filter((descriptor) => descriptor.kind !== 'linear-resize')
+    }
+    return visible
+  }, [armedBodyScaleId, node, def, descriptorSceneApi])
 
   const shouldRender =
     Boolean(node && descriptors?.length) &&
@@ -627,6 +659,7 @@ function LinearArrow({
 }) {
   const [isHovered, setIsHovered] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const { clear: clearLength, getLengthMeters } = useDraftLengthInput(() => isDragging)
   const { camera } = useThree()
   const zoom = camera instanceof OrthographicCamera ? 1 / camera.zoom : 1
   const baseScale = zoom * ARROW_SCALE
@@ -727,6 +760,8 @@ function LinearArrow({
             ? (patch) => descriptor.commit?.(initialNode, patch, sceneApi)
             : undefined,
         onBegin: () => {
+          clearLength()
+          useDraftLengthHud.getState().setPreviewInvalid(false)
           // Always claim the handle-drag scope so the HUD knows a resize is the
           // active interaction (keeps the idle select hints off-screen). The
           // dimension-pill handles carry their `measureLabel`; plain resize
@@ -738,6 +773,8 @@ function LinearArrow({
           })
         },
         onEnd: () => {
+          clearLength()
+          useDraftLengthHud.getState().setPreviewInvalid(false)
           useInteractionScope.getState().endIf((sc) => sc.kind === 'handle-drag')
           if (descriptor.kind === 'linear-resize') {
             descriptor.onDragEnd?.(initialNode as never, sceneApi)
@@ -758,6 +795,13 @@ function LinearArrow({
           const delta = currentPointer - initialPointer
           const rawNext = initialValue + delta * factor
           const linearDescriptor = descriptor.kind === 'linear-resize' ? descriptor : null
+          const typedRaw = useDraftLengthHud.getState().raw.trim()
+          const typedLength = typedRaw ? getLengthMeters() : null
+          if (typedRaw && typedLength === null) {
+            useDraftLengthHud.getState().setPreviewInvalid(true)
+            return null
+          }
+          useDraftLengthHud.getState().setPreviewInvalid(false)
           const snappedNext = resolveResizeSnapValue({
             rawValue: rawNext,
             gridSnapEnabled: linearDescriptor?.gridSnap === true,
@@ -767,8 +811,12 @@ function LinearArrow({
             magneticSnap: linearDescriptor?.magneticSnap
               ? (value) => linearDescriptor.magneticSnap?.(initialNode, value, sceneApi) ?? value
               : undefined,
+            bypassSnap: moveEvent.altKey,
           })
-          const next = Math.min(maxBound, Math.max(minBound, snappedNext))
+          const next = Math.min(
+            maxBound,
+            Math.max(minBound, typedLength === null ? snappedNext : typedLength),
+          )
           if (next !== lastTickValue) {
             lastTickValue = next
             sfxEmitter.emit('sfx:resize')
@@ -1298,7 +1346,7 @@ function ArcArrow({
           while (delta > Math.PI) delta -= 2 * Math.PI
           while (delta < -Math.PI) delta += 2 * Math.PI
 
-          if (!moveEvent.shiftKey && descriptor.shape === 'rotate') {
+          if (!moveEvent.altKey && isAngleSnapActive() && descriptor.shape === 'rotate') {
             delta = Math.round(delta / DEFAULT_ANGLE_STEP) * DEFAULT_ANGLE_STEP
           }
 

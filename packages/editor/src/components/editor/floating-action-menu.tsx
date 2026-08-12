@@ -3,6 +3,7 @@
 import {
   type AnyNode,
   type AnyNodeId,
+  type BodySelectionActionKind,
   type CeilingNode,
   ColumnNode,
   createSceneApi,
@@ -84,6 +85,7 @@ const hasAxisCycling = (type: string) =>
   nodeRegistry.get(type)?.keyboardActions?.axisCycling === true
 
 const ALLOWED_TYPES = [
+  'body',
   'item',
   'door',
   'window',
@@ -518,6 +520,15 @@ export function FloatingActionMenu() {
     },
     [node, setMovingNode, setSelection],
   )
+  const handleBodyAction = useCallback(
+    (action: BodySelectionActionKind) => (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (node?.type !== 'body') return
+      sfxEmitter.emit('sfx:item-pick')
+      emitter.emit('body:selection-action', { bodyId: node.id, action })
+    },
+    [node],
+  )
   const handleDuplicate = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
@@ -821,8 +832,17 @@ export function FloatingActionMenu() {
                 // `capabilities.movable`, a `floorplanMoveTarget`, or a
                 // 3D `affordanceTools.move` mover gets the Move button.
                 // Adding a new movable kind never touches this file.
-                node && isRegistryMovable(node.type) ? handleMove : undefined
+                node?.type === 'body'
+                  ? handleBodyAction('move')
+                  : node && isRegistryMovable(node.type)
+                    ? handleMove
+                    : undefined
               }
+              onPushPull={node?.type === 'body' ? handleBodyAction('push-pull') : undefined}
+              onOffset={node?.type === 'body' ? handleBodyAction('offset') : undefined}
+              onSweep={node?.type === 'body' ? handleBodyAction('sweep') : undefined}
+              onRotate={node?.type === 'body' ? handleBodyAction('rotate') : undefined}
+              onScale={node?.type === 'body' ? handleBodyAction('scale') : undefined}
               onDelete={handleDelete}
               onDuplicate={
                 node &&

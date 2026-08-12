@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'bun:test'
-import { DEFAULT_ANGLE_STEP } from '@pascal-app/core'
+import {
+  BodyNode,
+  createRectangleBody,
+  DEFAULT_ANGLE_STEP,
+  pushPullBodyFace,
+} from '@pascal-app/core'
 import type { ParticipantStart } from '../components/editor/group-transform-shared'
 import {
   normalizeAngle,
@@ -104,6 +109,30 @@ describe('rotateVec3PatchesAboutAxis', () => {
     expect(position[0]).toBeCloseTo(1)
     expect(position[1]).toBeCloseTo(-2)
     expect(position[2]).toBeCloseTo(1)
+  })
+
+  it('rotates Body topology through the canonical transform kernel', () => {
+    const body = BodyNode.parse({
+      ...pushPullBodyFace(createRectangleBody({ width: 1, depth: 1 }), 'face:0', 1).body,
+      id: 'body_rotate_test',
+      parentId: 'level_rotate_test',
+    })
+    const start: ParticipantStart = {
+      id: body.id,
+      kind: 'polygon',
+      polygon: body.vertices.map((vertex) => [vertex.position[0], vertex.position[2]]),
+      holes: null,
+      body,
+    }
+
+    const [patch] = rotateVec3PatchesAboutAxis([start], { x: 0, z: 0 }, 'x', -Math.PI / 2)
+    if (!patch) throw new Error('Expected Body rotation patch')
+    const bodyPatch = patch[1] as Pick<BodyNode, 'vertices'>
+
+    expect(bodyPatch.vertices.map((vertex) => vertex.id)).toEqual(
+      body.vertices.map((vertex) => vertex.id),
+    )
+    expect(bodyPatch.vertices).not.toEqual(body.vertices)
   })
 
   it('skips non-vec3 participants', () => {
