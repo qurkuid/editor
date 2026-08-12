@@ -1,11 +1,24 @@
 import {
+  ArrayBodyCircularInputSchema,
+  ArrayBodyLinearInputSchema,
+  CreateComponentInputSchema,
+  ExplodeComponentInputSchema,
+  GroupBodiesInputSchema,
   ImprintBodyFaceInputSchema,
+  IntersectBodiesInputSchema,
+  MakeComponentUniqueInputSchema,
   MODELING_OPERATION_IDS,
   OffsetBodyFaceInputSchema,
+  OuterShellBodiesInputSchema,
   PaintBodyFaceInputSchema,
   PushPullBodyFaceInputSchema,
+  SplitBodiesInputSchema,
+  SplitBodyFaceInputSchema,
+  SubtractBodiesInputSchema,
   SweepBodyFaceInputSchema,
   TransformBodyInputSchema,
+  TrimBodiesInputSchema,
+  UnionBodiesInputSchema,
 } from '@pascal-app/core/modeling-operations'
 import {
   type AnyNodeId,
@@ -75,11 +88,111 @@ const ImprintBodyFacePatchSchema = z
   })
   .strict()
 
+const SplitBodyFacePatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.splitBodyFace),
+    id: AnyNodeIdSchema,
+    ...SplitBodyFaceInputSchema.shape,
+  })
+  .strict()
+
 const TransformBodyPatchSchema = z
   .object({
     op: z.literal(MODELING_OPERATION_IDS.transformBody),
     id: AnyNodeIdSchema,
     ...TransformBodyInputSchema.shape,
+  })
+  .strict()
+
+const ArrayBodyLinearPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.arrayBodyLinear),
+    id: AnyNodeIdSchema,
+    ...ArrayBodyLinearInputSchema.shape,
+  })
+  .strict()
+
+const ArrayBodyCircularPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.arrayBodyCircular),
+    id: AnyNodeIdSchema,
+    ...ArrayBodyCircularInputSchema.shape,
+  })
+  .strict()
+
+const IntersectBodiesPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.intersectBodies),
+    id: AnyNodeIdSchema,
+    ...IntersectBodiesInputSchema.shape,
+  })
+  .strict()
+
+const UnionBodiesPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.unionBodies),
+    id: AnyNodeIdSchema,
+    ...UnionBodiesInputSchema.shape,
+  })
+  .strict()
+
+const SubtractBodiesPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.subtractBodies),
+    id: AnyNodeIdSchema,
+    ...SubtractBodiesInputSchema.shape,
+  })
+  .strict()
+
+const OuterShellBodiesPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.outerShellBodies),
+    id: AnyNodeIdSchema,
+    ...OuterShellBodiesInputSchema.shape,
+  })
+  .strict()
+
+const TrimBodiesPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.trimBodies),
+    id: AnyNodeIdSchema,
+    ...TrimBodiesInputSchema.shape,
+  })
+  .strict()
+
+const SplitBodiesPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.splitBodies),
+    id: AnyNodeIdSchema,
+    ...SplitBodiesInputSchema.shape,
+  })
+  .strict()
+
+const GroupBodiesPatchSchema = z
+  .object({ op: z.literal(MODELING_OPERATION_IDS.groupBodies), ...GroupBodiesInputSchema.shape })
+  .strict()
+
+const CreateComponentPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.createComponent),
+    id: AnyNodeIdSchema,
+    ...CreateComponentInputSchema.shape,
+  })
+  .strict()
+
+const MakeComponentUniquePatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.makeComponentUnique),
+    id: AnyNodeIdSchema,
+    ...MakeComponentUniqueInputSchema.shape,
+  })
+  .strict()
+
+const ExplodeComponentPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.explodeComponent),
+    id: AnyNodeIdSchema,
+    ...ExplodeComponentInputSchema.shape,
   })
   .strict()
 
@@ -186,7 +299,20 @@ export const AiModelingPatchSchema = z.discriminatedUnion('op', [
   OffsetBodyFacePatchSchema,
   SweepBodyFacePatchSchema,
   ImprintBodyFacePatchSchema,
+  SplitBodyFacePatchSchema,
   TransformBodyPatchSchema,
+  ArrayBodyLinearPatchSchema,
+  ArrayBodyCircularPatchSchema,
+  UnionBodiesPatchSchema,
+  SubtractBodiesPatchSchema,
+  OuterShellBodiesPatchSchema,
+  TrimBodiesPatchSchema,
+  SplitBodiesPatchSchema,
+  GroupBodiesPatchSchema,
+  CreateComponentPatchSchema,
+  MakeComponentUniquePatchSchema,
+  ExplodeComponentPatchSchema,
+  IntersectBodiesPatchSchema,
   PaintBodyFacePatchSchema,
   MakeMaterialSeamlessPatchSchema,
   UpdateSceneMaterialPatchSchema,

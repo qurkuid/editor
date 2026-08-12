@@ -1,11 +1,24 @@
 import {
+  ArrayBodyCircularInputSchema,
+  ArrayBodyLinearInputSchema,
+  CreateComponentInputSchema,
+  ExplodeComponentInputSchema,
+  GroupBodiesInputSchema,
   ImprintBodyFaceInputSchema,
+  IntersectBodiesInputSchema,
+  MakeComponentUniqueInputSchema,
   MODELING_OPERATION_ID_VALUES,
   OffsetBodyFaceInputSchema,
+  OuterShellBodiesInputSchema,
   PaintBodyFaceInputSchema,
   PushPullBodyFaceInputSchema,
+  SplitBodiesInputSchema,
+  SplitBodyFaceInputSchema,
+  SubtractBodiesInputSchema,
   SweepBodyFaceInputSchema,
   TransformBodyInputSchema,
+  TrimBodiesInputSchema,
+  UnionBodiesInputSchema,
 } from '@pascal-app/core/modeling-operations'
 import { MaterialSchema, SceneMaterial } from '@pascal-app/core/schema'
 import { z } from 'zod'
@@ -63,6 +76,30 @@ export const CodexCliPatchSchema = z
       .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
       .nullable()
       .default(null),
+    feature: z
+      .object({
+        kind: z.enum(['vertex', 'edge', 'face']),
+        featureId: z.string().trim().min(1),
+        autofold: z.boolean().optional(),
+      })
+      .nullable()
+      .default(null),
+    count: z.number().int().min(2).max(100).nullable().default(null),
+    offset: z
+      .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+      .nullable()
+      .default(null),
+    center: z
+      .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+      .nullable()
+      .default(null),
+    axis: z
+      .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+      .nullable()
+      .default(null),
+    angle: z.number().finite().nullable().default(null),
+    fullCircle: z.boolean().nullable().default(null),
+    toolBodyId: z.string().nullable().default(null),
   })
   .strict()
   .superRefine((patch, context) => {
@@ -159,6 +196,15 @@ export function parseCodexCliPlan(input: unknown): AiModelingPlan {
             ...(patch.distance === null ? {} : { distance: patch.distance }),
           }),
         }
+      case 'splitBodyFace':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...SplitBodyFaceInputSchema.parse({
+            faceId: patch.faceId,
+            pathPoints: patch.pathPoints,
+          }),
+        }
       case 'transformBody':
         return {
           op: patch.op,
@@ -169,7 +215,82 @@ export function parseCodexCliPlan(input: unknown): AiModelingPlan {
             rotationAngle: patch.rotationAngle,
             scale: patch.scale,
             pivot: patch.pivot,
+            ...(patch.feature === null ? {} : { feature: patch.feature }),
           }),
+        }
+      case 'arrayBodyLinear':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...ArrayBodyLinearInputSchema.parse({ count: patch.count, offset: patch.offset }),
+        }
+      case 'arrayBodyCircular':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...ArrayBodyCircularInputSchema.parse({
+            count: patch.count,
+            center: patch.center,
+            axis: patch.axis,
+            ...(patch.angle === null ? {} : { angle: patch.angle }),
+            ...(patch.fullCircle === null ? {} : { fullCircle: patch.fullCircle }),
+          }),
+        }
+      case 'unionBodies':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...UnionBodiesInputSchema.parse({ toolBodyId: patch.toolBodyId }),
+        }
+      case 'subtractBodies':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...SubtractBodiesInputSchema.parse({ toolBodyId: patch.toolBodyId }),
+        }
+      case 'intersectBodies':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...IntersectBodiesInputSchema.parse({ toolBodyId: patch.toolBodyId }),
+        }
+      case 'outerShellBodies':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...OuterShellBodiesInputSchema.parse({ toolBodyId: patch.toolBodyId }),
+        }
+      case 'trimBodies':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...TrimBodiesInputSchema.parse({ toolBodyId: patch.toolBodyId }),
+        }
+      case 'splitBodies':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...SplitBodiesInputSchema.parse({ toolBodyId: patch.toolBodyId }),
+        }
+      case 'groupBodies':
+        return { op: patch.op, ...GroupBodiesInputSchema.parse(parseJsonRecord(patch.dataJson)) }
+      case 'createComponent':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...CreateComponentInputSchema.parse(parseJsonRecord(patch.dataJson)),
+        }
+      case 'makeComponentUnique':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...MakeComponentUniqueInputSchema.parse({}),
+        }
+      case 'explodeComponent':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...ExplodeComponentInputSchema.parse({}),
         }
       case 'paintBodyFace': {
         const materialRecord = parseJsonRecord(patch.dataJson)
