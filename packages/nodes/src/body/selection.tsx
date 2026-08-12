@@ -10,6 +10,7 @@ import {
   useScene,
 } from '@pascal-app/core'
 import {
+  EDITOR_LAYER,
   markToolCancelConsumed,
   type Tool,
   useEditor,
@@ -19,8 +20,11 @@ import {
 import { useViewer } from '@pascal-app/viewer'
 import { createPortal, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Object3D } from 'three'
+import { type Object3D, Vector3 } from 'three'
+import { worldPointScreenDistance } from '../measurement/surface-query'
 import { resolveBodyFaceId } from './face-target'
+import { isBodyFeatureSelectionValid, resolveBodyFeatureSelection } from './feature-selection'
+import { bodyMeasurementFeatures, matchBodyMeasurementFeature } from './measurement'
 import { OffsetHandle } from './offset-handle'
 import { bodyActionToolChanged, useBodyToolOptions } from './options'
 import { PushPullHandle } from './push-pull-handle'
@@ -29,7 +33,8 @@ import { SweepHandle } from './sweep-handle'
 
 const BodySelectionAffordance = () => {
   const selectedIds = useViewer((state) => state.selection.selectedIds)
-  const glDomElement = useThree((state) => state.gl.domElement)
+  const { camera, gl } = useThree()
+  const glDomElement = gl.domElement
   const viewMode = useEditor((state) => state.viewMode)
   const tool = useEditor((state) => state.tool)
   const body = useScene((state) => {
@@ -38,8 +43,8 @@ const BodySelectionAffordance = () => {
     return node?.type === 'body' ? (node as BodyNode) : null
   })
   const [target, setTarget] = useState<Object3D | null>(null)
-  const selectedFace = useBodyToolOptions((state) => state.selectedFace)
-  const setSelectedFace = useBodyToolOptions((state) => state.setSelectedFace)
+  const selectedFeature = useBodyToolOptions((state) => state.selectedFeature)
+  const setSelectedFeature = useBodyToolOptions((state) => state.setSelectedFeature)
   const selectionAction = useBodyToolOptions((state) => state.selectionAction)
   const setSelectionAction = useBodyToolOptions((state) => state.setSelectionAction)
   const rotateStage = usePivotRotate((state) => state.stage)
@@ -156,7 +161,18 @@ const BodySelectionAffordance = () => {
         return
       }
       if (event.action === 'rotate') {
-        if (!usePivotRotate.getState().start([body.id])) return
+        const options = useBodyToolOptions.getState()
+        const selected = options.selectedFeature
+        const feature = selected ? { ...selected, autofold: options.autofold } : null
+        if (
+          !usePivotRotate
+            .getState()
+            .start(
+              [body.id],
+              feature && feature.bodyId === body.id ? { [body.id]: feature } : undefined,
+            )
+        )
+          return
         setSelectionAction({ bodyId: body.id, kind: 'rotate' })
         return
       }
@@ -165,11 +181,11 @@ const BodySelectionAffordance = () => {
         return
       }
       if (event.action === 'sweep') {
-        setSelectedFace(null)
+        setSelectedFeature(null)
         setSelectionAction({ bodyId: body.id, kind: 'sweep', faceId: null, hitPoint: null })
         return
       }
-      setSelectedFace(null)
+      setSelectedFeature(null)
       setSelectionAction(
         event.action === 'offset'
           ? { bodyId: body.id, kind: 'offset', faceId: null, hitPoint: null }
@@ -178,7 +194,7 @@ const BodySelectionAffordance = () => {
     }
     emitter.on('body:selection-action', onSelectionAction)
     return () => emitter.off('body:selection-action', onSelectionAction)
-  }, [body, setSelectedFace, setSelectionAction])
+  }, [body, setSelectedFeature, setSelectionAction])
 
   useEffect(() => {
     if (!bodyId) return
@@ -186,8 +202,26 @@ const BodySelectionAffordance = () => {
       if (event.node.id !== bodyId) return
       const faceId = resolveBodyFaceId(event.object, event.faceIndex)
       if (!faceId) return
-      setSelectedFace({ bodyId, faceId })
       if (!body) return
+      const feature = selectionAction
+        ? null
+        : resolveBodyFeatureSelection(
+            body,
+            matchBodyMeasurementFeature(
+              body,
+              event.localPosition,
+              Number.POSITIVE_INFINITY,
+              (point) =>
+                worldPointScreenDistance(
+                  target?.localToWorld(new Vector3(...point)) ?? new Vector3(...event.position),
+                  event.nativeEvent.nativeEvent,
+                  camera,
+                  glDomElement,
+                ),
+              faceId,
+            )?.featureId ?? faceId,
+          )
+      setSelectedFeature(feature ?? { bodyId, kind: 'face', featureId: faceId })
       const action = retargetBodySelectionAction({
         action: selectionAction,
         body,
@@ -198,54 +232,81 @@ const BodySelectionAffordance = () => {
     }
     emitter.on('body:click', onBodyClick)
     return () => emitter.off('body:click', onBodyClick)
-  }, [body, bodyId, selectionAction, setSelectedFace, setSelectionAction])
+  }, [
+    body,
+    bodyId,
+    camera,
+    glDomElement,
+    selectionAction,
+    setSelectedFeature,
+    setSelectionAction,
+    target,
+  ])
 
   useEffect(() => {
     if (!body) return
-    if (
-      selectedFace?.bodyId !== body.id ||
-      !body.faces.some((face) => face.id === selectedFace.faceId)
-    ) {
-      const faceId = body.faces[0]?.id
-      setSelectedFace(faceId ? { bodyId: body.id, faceId } : null)
+    if (!isBodyFeatureSelectionValid(body, selectedFeature)) {
+      setSelectedFeature(null)
     }
-  }, [body, selectedFace, setSelectedFace])
+  }, [body, selectedFeature, setSelectedFeature])
 
   const pushPullFaceId = selectionAction?.kind === 'push-pull' ? selectionAction.faceId : null
   const offsetFaceId = selectionAction?.kind === 'offset' ? selectionAction.faceId : null
   const offsetHitPoint = selectionAction?.kind === 'offset' ? selectionAction.hitPoint : null
   const sweepFaceId = selectionAction?.kind === 'sweep' ? selectionAction.faceId : null
   const sweepHitPoint = selectionAction?.kind === 'sweep' ? selectionAction.hitPoint : null
-  if (
-    !body ||
-    !target ||
-    viewMode === '2d' ||
-    (!pushPullFaceId && !(offsetFaceId && offsetHitPoint) && !(sweepFaceId && sweepHitPoint))
-  )
-    return null
-  const mount = target.parent ?? target
-  return createPortal(
-    pushPullFaceId ? (
-      <PushPullHandle autoStart body={body} faceId={pushPullFaceId} target={target} />
-    ) : offsetFaceId && offsetHitPoint ? (
-      <OffsetHandle
-        autoStart
-        body={body}
-        faceId={offsetFaceId}
-        hitPoint={offsetHitPoint}
-        target={target}
-      />
-    ) : (
-      <SweepHandle
-        autoStart
-        body={body}
-        faceId={sweepFaceId}
-        hitPoint={sweepHitPoint}
-        target={target}
-      />
-    ),
-    mount,
-    undefined,
+  if (!body || !target || viewMode === '2d') return null
+  const selectedGeometry = selectedFeature
+    ? bodyMeasurementFeatures(body).find(({ id }) => id === selectedFeature.featureId)?.geometry
+    : null
+  const highlight =
+    selectedFeature?.kind === 'vertex' && selectedGeometry?.kind === 'point' ? (
+      <mesh position={selectedGeometry.point} layers={EDITOR_LAYER} renderOrder={1003}>
+        <sphereGeometry args={[0.025, 12, 8]} />
+        <meshBasicMaterial color="#22d3ee" depthTest={false} depthWrite={false} />
+      </mesh>
+    ) : selectedFeature?.kind === 'edge' && selectedGeometry?.kind === 'segment' ? (
+      <lineSegments layers={EDITOR_LAYER} renderOrder={1003}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            args={[new Float32Array([...selectedGeometry.start, ...selectedGeometry.end]), 3]}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color="#22d3ee" depthTest={false} depthWrite={false} />
+      </lineSegments>
+    ) : null
+  const action =
+    pushPullFaceId || (offsetFaceId && offsetHitPoint) || (sweepFaceId && sweepHitPoint)
+      ? createPortal(
+          pushPullFaceId ? (
+            <PushPullHandle autoStart body={body} faceId={pushPullFaceId} target={target} />
+          ) : offsetFaceId && offsetHitPoint ? (
+            <OffsetHandle
+              autoStart
+              body={body}
+              faceId={offsetFaceId}
+              hitPoint={offsetHitPoint}
+              target={target}
+            />
+          ) : (
+            <SweepHandle
+              autoStart
+              body={body}
+              faceId={sweepFaceId}
+              hitPoint={sweepHitPoint}
+              target={target}
+            />
+          ),
+          target.parent ?? target,
+          undefined,
+        )
+      : null
+  return (
+    <>
+      {highlight ? createPortal(highlight, target, undefined) : null}
+      {action}
+    </>
   )
 }
 
