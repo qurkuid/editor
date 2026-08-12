@@ -3,10 +3,19 @@ import './node-shims'
 
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
 import type { AnyNode } from '@pascal-app/core/schema'
-import { type AnyNodeId, AnyNode as AnyNodeSchema, type AnyNodeType } from '@pascal-app/core/schema'
+import {
+  type AnyNodeId,
+  AnyNode as AnyNodeSchema,
+  type AnyNodeType,
+  SceneMaterial,
+  type SceneMaterialId,
+} from '@pascal-app/core/schema'
 // Per PLAN §0.6: `useScene` is the DEFAULT export from `@pascal-app/core/store`.
 import useScene from '@pascal-app/core/store'
+import { z } from 'zod'
 import type { SceneMeta } from '../storage/types'
+
+const SceneMaterialsSchema = z.record(z.string(), SceneMaterial)
 
 export type ValidationError = { nodeId: string; path: string; message: string }
 export type ValidationResult = { valid: boolean; errors: ValidationError[] }
@@ -72,6 +81,7 @@ export class SceneBridge {
         nodes: state.nodes,
         rootNodeIds: state.rootNodeIds,
         collections: state.collections ?? {},
+        materials: state.materials,
         ...(state.hasExplicitPluginInstallState || state.installedPlugins.length > 0
           ? { installedPlugins: state.installedPlugins }
           : {}),
@@ -111,6 +121,40 @@ export class SceneBridge {
       throw new Error('invalid scene: `rootNodeIds` must be an array')
     }
 
+    let materials: Record<SceneMaterialId, z.infer<typeof SceneMaterial>> | undefined
+    if (obj.materials !== undefined) {
+      const result = SceneMaterialsSchema.safeParse(obj.materials)
+      if (!result.success) {
+        throw new Error(
+          `invalid scene: \`materials\` contains an invalid SceneMaterial: ${result.error}`,
+        )
+      }
+      materials = result.data
+    }
+
+    let collections: SceneGraph['collections']
+    if (obj.collections !== undefined) {
+      if (
+        !obj.collections ||
+        typeof obj.collections !== 'object' ||
+        Array.isArray(obj.collections)
+      ) {
+        throw new Error('invalid scene: `collections` must be an object')
+      }
+      collections = obj.collections as NonNullable<SceneGraph['collections']>
+    }
+
+    let installedPlugins: string[] | undefined
+    if (obj.installedPlugins !== undefined) {
+      if (
+        !Array.isArray(obj.installedPlugins) ||
+        !obj.installedPlugins.every((id) => typeof id === 'string')
+      ) {
+        throw new Error('invalid scene: `installedPlugins` must be an array of strings')
+      }
+      installedPlugins = obj.installedPlugins
+    }
+
     // Reject prototype-polluting keys as top-level `nodes` keys.
     const BANNED = new Set(['__proto__', 'constructor', 'prototype'])
     for (const key of Object.keys(nodes)) {
@@ -119,13 +163,13 @@ export class SceneBridge {
       }
     }
 
-    this.setScene(nodes as Record<AnyNodeId, AnyNode>, rootNodeIds as AnyNodeId[])
-    if (Array.isArray(obj.installedPlugins)) {
-      useScene.getState().setInstalledPlugins(
-        obj.installedPlugins.filter((id): id is string => typeof id === 'string'),
-        { explicit: true },
-      )
-    }
+    useScene.getState().setScene(nodes as Record<AnyNodeId, AnyNode>, rootNodeIds as AnyNodeId[], {
+      ...(collections === undefined ? {} : { collections }),
+      ...(materials === undefined ? {} : { materials }),
+      ...(installedPlugins === undefined
+        ? {}
+        : { installedPlugins, hasExplicitPluginInstallState: true }),
+    })
   }
 
   /** Read a single node, or `null` if not present. */

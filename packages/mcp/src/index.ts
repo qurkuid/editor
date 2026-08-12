@@ -1,5 +1,6 @@
 export { SceneBridge } from './bridge/scene-bridge'
 export { MODELING_AGENT_MANUAL } from './modeling-agent-manual'
+export * from './ontology'
 export {
   createSceneOperations,
   NoActiveProjectError,

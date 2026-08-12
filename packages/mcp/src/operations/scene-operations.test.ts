@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
-import { LevelNode, WallNode } from '@pascal-app/core/schema'
+import { LevelNode, SceneMaterial, WallNode } from '@pascal-app/core/schema'
 import { SceneBridge } from '../bridge/scene-bridge'
 import { SqliteSceneStore } from '../storage/sqlite-scene-store'
 import { createSceneOperations, NoActiveProjectError } from './scene-operations'
@@ -81,6 +81,20 @@ describe('SceneOperationsFacade scene events', () => {
 })
 
 describe('SceneOperationsFacade project binding', () => {
+  test('exports scene materials with the complete scene graph', () => {
+    const bridge = new SceneBridge()
+    const material = SceneMaterial.parse({
+      id: 'mat_operations_red',
+      name: 'Operations red',
+      material: { preset: 'custom', properties: { color: '#b91c1c' } },
+    })
+    bridge.loadJSON({ nodes: {}, rootNodeIds: [], materials: { [material.id]: material } })
+
+    const operations = createSceneOperations({ bridge })
+
+    expect(operations.exportSceneGraph().materials).toEqual({ [material.id]: material })
+  })
+
   test('rejects store-backed mutations until a project is active', () => {
     const bridge = new SceneBridge()
     bridge.loadDefault()

@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { SceneOperations } from '../operations'
 import { registerApplyPatch } from './apply-patch'
 import { registerCheckCollisions } from './check-collisions'
+import { registerCommitModelingOperation } from './commit-modeling-operation'
 import { registerConstructionTools } from './construction-tools'
 import { registerCreateLevel } from './create-level'
 import { registerCreateWall } from './create-wall'
@@ -9,6 +10,7 @@ import { registerCutOpening } from './cut-opening'
 import { registerDeleteNode } from './delete-node'
 import { registerDescribeNode } from './describe-node'
 import { registerDuplicateLevel } from './duplicate-level'
+import { registerExplainDesignRule } from './explain-design-rule'
 import { registerExportGlb } from './export-glb'
 import { registerExportJson } from './export-json'
 import { registerFindNodes } from './find-nodes'
@@ -17,6 +19,8 @@ import { registerGetScene } from './get-scene'
 import { registerMeasure } from './measure'
 import { registerPhotoToSceneTool } from './photo-to-scene'
 import { registerPlaceItem } from './place-item'
+import { registerPreflightModelingOperation } from './preflight-modeling-operation'
+import { registerQueryDesignOntology } from './query-design-ontology'
 import { registerRedo } from './redo'
 import { registerRoomTools } from './room-tools'
 import { registerSceneLifecycleTools } from './scene-lifecycle'
@@ -55,8 +59,12 @@ export function registerTools(server: McpServer, operations: SceneOperations): v
   registerUndo(server, operations)
   registerRedo(server, operations)
   registerExportJson(server, operations)
+  registerQueryDesignOntology(server, operations)
+  registerExplainDesignRule(server, operations)
   registerExportGlb(server, operations)
   registerValidateScene(server, operations)
+  registerPreflightModelingOperation(server, operations)
+  registerCommitModelingOperation(server, operations)
   registerCheckCollisions(server, operations)
   registerTemplateTools(server, operations)
   if (operations.hasStore) {

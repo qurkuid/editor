@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+import { createRectangleBody } from '@pascal-app/core'
 import {
   BuildingNode,
   DoorNode,
   ItemNode,
   LevelNode,
+  SceneMaterial,
   SiteNode,
   WallNode,
   ZoneNode,
 } from '@pascal-app/core/schema'
+import useScene from '@pascal-app/core/store'
 import { SceneBridge } from './scene-bridge'
 
 function tick() {
@@ -430,6 +433,36 @@ describe('SceneBridge', () => {
       bridge.setScene({}, [])
       bridge.loadJSON(str)
       expect(Object.keys(bridge.getNodes()).length).toBe(Object.keys(snap.nodes).length)
+    })
+
+    test('exportJSON and loadJSON preserve scene materials for painted faces', () => {
+      const body = createRectangleBody({ width: 1.2, depth: 0.8 })
+      const material = SceneMaterial.parse({
+        id: 'mat_bridge_red',
+        name: 'Bridge red',
+        material: { preset: 'custom', properties: { color: '#b91c1c' } },
+      })
+      const paintedBody = {
+        ...body,
+        faces: body.faces.map((face) =>
+          face.id === 'face:0'
+            ? { ...face, surface: { ...face.surface, materialRef: 'scene:mat_bridge_red' } }
+            : face,
+        ),
+      }
+      bridge.setScene({ [body.id]: paintedBody }, [body.id])
+      useScene.getState().addSceneMaterial(material)
+
+      const snapshot = bridge.exportJSON()
+      expect(snapshot.materials).toEqual({ [material.id]: material })
+
+      bridge.setScene({}, [])
+      bridge.loadJSON(snapshot)
+
+      expect(bridge.exportJSON().materials).toEqual({ [material.id]: material })
+      expect(bridge.getNode(body.id)).toMatchObject({
+        faces: [{ surface: { materialRef: 'scene:mat_bridge_red' } }],
+      })
     })
 
     test('loadJSON preserves explicit plugin installs', () => {

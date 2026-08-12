@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, test } from 'bun:test'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { MODELING_OPERATION_ID_VALUES } from '@pascal-app/core/modeling-operations'
 import { WallNode, ZoneNode } from '@pascal-app/core/schema'
 import useScene from '@pascal-app/core/store'
 import { SceneBridge } from '../bridge/scene-bridge'
@@ -207,7 +208,7 @@ describe('pascal://catalog/items', () => {
 describe('pascal://agent-guide', () => {
   beforeEach(() => resetScene())
 
-  test('returns MCP-first project guidance', async () => {
+  test('agent guide returns MCP-first project guidance', async () => {
     const pair = await spinUp(registerAgentGuide)
     try {
       const res = await pair.client.readResource({ uri: 'pascal://agent-guide' })
@@ -223,6 +224,61 @@ describe('pascal://agent-guide', () => {
       expect(text).toContain('editorUrl')
       expect(text).toContain('0 to 1 along the wall')
       expect(text).toContain('two-click point-to-point workflow')
+      expect(text).toContain('unit face normal')
+      expect(text).toContain("other elements' faces, edges, and points")
+      expect(text).toContain('Shift (tap) cycles')
+      expect(text).toContain('rejected preview')
+      expect(text).toContain('preserve the live cursor sign')
+      expect(text).toContain('The canonical Body operation ids are `pushPullBodyFace`')
+      expect(text).toContain('preflight_modeling_operation')
+      expect(text).toContain('commit_modeling_operation')
+      for (const operationId of MODELING_OPERATION_ID_VALUES) {
+        expect(text).toContain(`\`${operationId}\``)
+      }
+      const offsetConcepts = [
+        'offsetBodyFace',
+        'signed distance in metres',
+        'distance > 0',
+        'distance < 0',
+        'deterministic miter',
+        'preserves the source ring',
+        'preserves the host outer region',
+        'annular face',
+        'source-region materials and UV frames',
+        'stable existing ids',
+        'topology remap',
+        'closed planar line-edged Body face',
+        'zero or non-finite distance',
+        'missing face',
+        'invalid Body topology',
+        'open topology',
+        'non-closed solid',
+        'invalid outer loop',
+        'non-planarity',
+        'source inner loops',
+        'referenced non-line curves',
+        'reciprocal coplanar enclosing host',
+        'missing or ambiguous hosts',
+        'host boundary',
+        'sibling hole',
+        'exterior outward offsets',
+        'parallel or collinear degenerate joins',
+        'collapse',
+        'reversed winding',
+        'self-intersection',
+        'explicit 3D face operation',
+        'intentionally omitted from the floor-plan action menu',
+        'select the Body, click Offset',
+        'move perpendicular',
+        'click or press Enter to commit',
+        'ephemeral preview equals the committed result',
+        'one topology update and one undo step',
+        'Escape or cancel',
+        'do not simulate pointer gestures',
+      ]
+      for (const concept of offsetConcepts) {
+        expect(text).toContain(concept)
+      }
     } finally {
       await pair.close()
     }

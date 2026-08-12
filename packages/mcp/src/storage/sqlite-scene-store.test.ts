@@ -3,7 +3,24 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import { createRectangleBody, getBodySemanticHash } from '@pascal-app/core'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
+import {
+  executeImprintBodyFace,
+  executePaintBodyFace,
+  executePushPullBodyFace,
+  executeSweepBodyFace,
+  executeTransformBody,
+  MODELING_OPERATION_IDS,
+} from '@pascal-app/core/modeling-operations'
+import { BodyNode, SceneMaterial } from '@pascal-app/core/schema'
+import { SceneBridge } from '../bridge/scene-bridge'
+import { createSceneOperations } from '../operations'
+import {
+  commitModelingResult,
+  evaluateModelingOperation,
+  parseModelingOperationInput,
+} from '../tools/modeling-operation-shared'
 import {
   resolveDefaultDatabasePath,
   SqliteSceneStore,
@@ -116,6 +133,138 @@ describe('SqliteSceneStore', () => {
     expect(loaded).not.toBeNull()
     expect(loaded!.graph).toEqual(graph)
     expect(loaded!.name).toBe('Kitchen')
+  })
+
+  test('preserves a painted SceneMaterial through save and reopen', async () => {
+    const base = makeGraph()
+    const body = createRectangleBody({ width: 1.2, depth: 0.8 })
+    const material = SceneMaterial.parse({
+      id: 'mat_painted_red',
+      name: 'Painted red',
+      material: {
+        preset: 'custom',
+        properties: { color: '#b91c1c' },
+      },
+    })
+    const graph = {
+      ...base,
+      nodes: {
+        ...base.nodes,
+        [body.id]: {
+          ...body,
+          faces: body.faces.map((face) =>
+            face.id === 'face:0'
+              ? { ...face, surface: { ...face.surface, materialRef: 'scene:mat_painted_red' } }
+              : face,
+          ),
+        },
+      },
+      materials: { [material.id]: material },
+    }
+
+    await store.save({ id: 'painted', name: 'Painted', graph })
+    store.close()
+    store = createStore(rootDir)
+
+    const loaded = await store.load('painted')
+    expect(loaded?.graph).toEqual(graph)
+  })
+
+  test('proves operation commit, SQLite save, close/reopen, and semantic hash parity', async () => {
+    const material = SceneMaterial.parse({
+      id: 'mat_sqlite_operation',
+      name: 'SQLite operation paint',
+      material: { preset: 'custom', properties: { color: '#b91c1c' } },
+    })
+    const cases = [
+      {
+        id: 'sqlite-push-pull',
+        operationId: MODELING_OPERATION_IDS.pushPullBodyFace,
+        source: createRectangleBody({ width: 2, depth: 2 }),
+        input: { faceId: 'face:0', distance: 1 },
+        build: executePushPullBodyFace,
+      },
+      {
+        id: 'sqlite-sweep',
+        operationId: MODELING_OPERATION_IDS.sweepBodyFace,
+        source: createRectangleBody({ width: 2, depth: 2 }),
+        input: {
+          faceId: 'face:0',
+          pathPoints: [
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 1, 1],
+          ],
+        },
+        build: executeSweepBodyFace,
+      },
+      {
+        id: 'sqlite-imprint',
+        operationId: MODELING_OPERATION_IDS.imprintBodyFace,
+        source: executePushPullBodyFace(createRectangleBody({ width: 2, depth: 2 }), {
+          faceId: 'face:0',
+          distance: 1,
+        }).body,
+        input: {
+          faceId: 'face:0',
+          profilePoints: [
+            [0.5, 1, 0.5],
+            [1.5, 1, 0.5],
+            [1.5, 1, 1.5],
+            [0.5, 1, 1.5],
+          ],
+          distance: 0.25,
+        },
+        build: executeImprintBodyFace,
+      },
+      {
+        id: 'sqlite-transform',
+        operationId: MODELING_OPERATION_IDS.transformBody,
+        source: createRectangleBody({ width: 2, depth: 2 }),
+        input: {
+          translation: [0.2, 0.3, -0.1],
+          rotationAxis: [0, 1, 0],
+          rotationAngle: 0,
+          scale: [1, 1, 1],
+          pivot: [0, 0, 0],
+        },
+        build: executeTransformBody,
+      },
+      {
+        id: 'sqlite-paint',
+        operationId: MODELING_OPERATION_IDS.paintBodyFace,
+        source: createRectangleBody({ width: 2, depth: 2 }),
+        input: { faceId: 'face:0', material },
+        build: executePaintBodyFace,
+      },
+    ] as const
+
+    for (const item of cases) {
+      const source = BodyNode.parse({ ...item.source, id: `body_${item.id}` })
+      const expected = item.build(source, item.input)
+      const bridge = new SceneBridge()
+      bridge.setScene({ [source.id]: source }, [source.id])
+      bridge.clearHistory()
+      const operations = createSceneOperations({ bridge })
+      const parsed = parseModelingOperationInput(item.operationId, item.input)
+      if (!parsed.success) throw new Error(parsed.message)
+      commitModelingResult(operations, source.id, evaluateModelingOperation(source, parsed.data))
+      expect(getBodySemanticHash(BodyNode.parse(bridge.getNode(source.id)))).toBe(
+        getBodySemanticHash(expected.body),
+      )
+
+      const graph = operations.exportJSON()
+      await store.save({ id: item.id, name: item.id, graph })
+      store.close()
+      store = createStore(rootDir)
+      const reopened = await store.load(item.id)
+      expect(reopened).not.toBeNull()
+      const reopenedBody = BodyNode.parse(reopened!.graph.nodes[source.id])
+      expect(getBodySemanticHash(reopenedBody)).toBe(getBodySemanticHash(expected.body))
+      if (item.operationId === MODELING_OPERATION_IDS.paintBodyFace) {
+        expect(reopened!.graph.materials).toMatchObject({ [material.id]: material })
+      }
+    }
   })
 
   test('stores optional metadata verbatim', async () => {
@@ -371,8 +520,7 @@ describe('wipe guard and rotating backups', () => {
     }
   }
 
-  const emptyGraph = (): SceneGraph =>
-    ({ nodes: {}, rootNodeIds: [] }) as unknown as SceneGraph
+  const emptyGraph = (): SceneGraph => ({ nodes: {}, rootNodeIds: [] }) as unknown as SceneGraph
 
   test('blocks a save that collapses a populated scene to empty', async () => {
     await store.save({ id: 's', name: 'S', graph: populatedGraph(30) })

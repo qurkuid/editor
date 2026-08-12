@@ -31,6 +31,16 @@
       "import": "./dist/operations/index.js",
       "default": "./dist/operations/index.js"
     },
+    "./modeling-agent-manual": {
+      "types": "./dist/modeling-agent-manual.d.ts",
+      "import": "./dist/modeling-agent-manual.js",
+      "default": "./dist/modeling-agent-manual.js"
+    },
+    "./ontology": {
+      "types": "./dist/ontology/index.d.ts",
+      "import": "./dist/ontology/index.js",
+      "default": "./dist/ontology/index.js"
+    },
     "./bridge": {
       "types": "./dist/bridge/index.d.ts",
       "import": "./dist/bridge/index.js",
@@ -47,7 +57,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && bun scripts/copy-ontology-pack.ts",
     "dev": "tsgo --build --watch",
     "start": "bun dist/bin/pascal-mcp.js",
     "test": "bun test",

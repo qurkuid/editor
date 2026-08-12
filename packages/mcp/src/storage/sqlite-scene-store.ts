@@ -3,6 +3,7 @@ import { mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
+import { SceneMaterial } from '@pascal-app/core/schema'
 import { z } from 'zod'
 import { generateSlug, isValidSlug, sanitizeSlug } from './slug'
 import { openSqliteDatabase, type SqliteDatabase } from './sqlite-driver'
@@ -89,6 +90,7 @@ const GraphSchema = z.object({
   nodes: z.record(z.string(), z.unknown()),
   rootNodeIds: z.array(z.string()),
   collections: z.record(z.string(), z.unknown()).optional(),
+  materials: z.record(z.string(), SceneMaterial).optional(),
 })
 
 /**
