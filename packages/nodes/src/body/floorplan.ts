@@ -1,8 +1,10 @@
-import { type BodyNode, type FloorplanGeometry, getBodyLoopVertices } from '@pascal-app/core'
+import { type BodyNode, type FloorplanGeometry, getBodyLoopBoundaryPoints } from '@pascal-app/core'
 
 export function buildBodyFloorplan(body: BodyNode): FloorplanGeometry | null {
   const polygons = body.faces.flatMap((face) => {
-    const points = getBodyLoopVertices(body, face.outerLoopId).map(([x, , z]) => [x, z] as const)
+    const points = getBodyLoopBoundaryPoints(body, face.outerLoopId).map(
+      ([x, , z]) => [x, z] as const,
+    )
     let area = 0
     for (let index = 0; index < points.length; index += 1) {
       const current = points[index]!

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createRectangleBody, sweepBodyFace } from '@pascal-app/core'
+import { createCircularArcFaceBody, createRectangleBody, sweepBodyFace } from '@pascal-app/core'
 import { buildBodyFloorplan } from './floorplan'
 
 describe('buildBodyFloorplan', () => {
@@ -38,5 +38,13 @@ describe('buildBodyFloorplan', () => {
         ? geometry.children.every((child) => child.kind === 'polygon')
         : false,
     ).toBe(true)
+  })
+
+  test('samples each persisted circular arc edge for the floorplan boundary', () => {
+    const body = createCircularArcFaceBody([1, 0, 0], [0, 0, 1], [-1, 0, 0])
+    const geometry = buildBodyFloorplan(body)
+
+    expect(geometry?.kind).toBe('polygon')
+    expect(geometry?.kind === 'polygon' ? geometry.points.length : 0).toBeGreaterThan(3)
   })
 })

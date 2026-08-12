@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  createCircularArcFaceBody,
   createRectangleBody,
   createRoundedRectangularFrameBody,
   type GeometryContext,
@@ -44,6 +45,15 @@ describe('buildBodyGeometry', () => {
     })
     expect((face as Mesh).geometry.getAttribute('position').count).toBe(4)
     expect((face as Mesh).geometry.getIndex()?.count).toBe(6)
+  })
+
+  test('samples each persisted circular arc edge for the 3D boundary', () => {
+    const body = createCircularArcFaceBody([1, 0, 0], [0, 0, 1], [-1, 0, 0])
+    const face = buildBodyGeometry(body).getObjectByName('face:face:0') as Mesh
+
+    expect(face).toBeInstanceOf(Mesh)
+    expect(face.geometry.getAttribute('position').count).toBeGreaterThan(3)
+    expect(face.geometry.getIndex()?.count).toBeGreaterThan(0)
   })
 
   test('merges imported SketchUp faces into one selectable mesh', () => {

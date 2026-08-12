@@ -1,6 +1,11 @@
 'use client'
 
-import { type AnyNodeId, BodyNode, createPlanarFaceBody } from '@pascal-app/core'
+import {
+  type AnyNodeId,
+  BodyNode,
+  createCircularArcFaceBody,
+  createPlanarFaceBody,
+} from '@pascal-app/core'
 import {
   constrainPlanDraftPoint,
   type FloorplanToolContext,
@@ -13,9 +18,11 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useBodyToolOptions } from './options'
 import {
+  resolveArcDraft,
   resolveBodyDraftFeedback,
   resolveCircleDraft,
   resolveLineFaceDraft,
+  resolveRegularPolygonDraft,
   shouldCloseLineDraft,
   snapLineDraftPoint,
 } from './primitive-draft'
@@ -43,6 +50,8 @@ export function FloorplanBodyToolLayer({
   selectNode,
 }: FloorplanToolContext) {
   const primitive = useBodyToolOptions((state) => state.primitive)
+  const arcSegments = useBodyToolOptions((state) => state.arcSegments)
+  const polygonSides = useBodyToolOptions((state) => state.polygonSides)
   const groupRef = useRef<SVGGElement>(null)
   const pointsRef = useRef<BodyDraftPoint[]>([])
   const [points, setPoints] = useState<BodyDraftPoint[]>([])
@@ -65,8 +74,14 @@ export function FloorplanBodyToolLayer({
     if (primitive === 'circle' && first && !second) {
       return resolveCircleDraft(first, hover, getLengthMeters())
     }
+    if (primitive === 'arc' && first && second) {
+      return resolveArcDraft(first, second, hover, arcSegments)
+    }
+    if (primitive === 'polygon' && first && !second) {
+      return resolveRegularPolygonDraft(first, hover, getLengthMeters(), polygonSides)
+    }
     return null
-  }, [getLengthMeters, hover, points, primitive])
+  }, [arcSegments, getLengthMeters, hover, points, polygonSides, primitive])
 
   useEffect(() => {
     useInteractionScope.getState().begin({ kind: 'drafting', tool: 'body' })
@@ -104,15 +119,31 @@ export function FloorplanBodyToolLayer({
         ? snapLineDraftPoint(pointsRef.current, constrained, CLOSE_TOLERANCE)
         : constrained
     }
-    const finish = (draft: readonly BodyDraftPoint[], name: string) => {
-      const body = BodyNode.parse({
-        ...createPlanarFaceBody(draft.map(([x, z]) => [x, 0, z])),
-        name,
-      })
+    const finishBody = (body: BodyNode) => {
       sceneApi.upsert(body, activeLevelId as AnyNodeId)
       selectNode(body.id)
       triggerSFX('sfx:structure-build')
       finishTool()
+    }
+    const finish = (draft: readonly BodyDraftPoint[], name: string) => {
+      finishBody(
+        BodyNode.parse({
+          ...createPlanarFaceBody(draft.map(([x, z]) => [x, 0, z])),
+          name,
+        }),
+      )
+    }
+    const finishArc = (start: BodyDraftPoint, through: BodyDraftPoint, end: BodyDraftPoint) => {
+      finishBody(
+        BodyNode.parse({
+          ...createCircularArcFaceBody(
+            [start[0], 0, start[1]],
+            [through[0], 0, through[1]],
+            [end[0], 0, end[1]],
+          ),
+          name: 'Arc Face',
+        }),
+      )
     }
     const onPointerMove = (event: PointerEvent) => {
       consume(event)
@@ -138,6 +169,28 @@ export function FloorplanBodyToolLayer({
         else if (first) {
           const circle = resolveCircleDraft(first, point, getLengthMeters())
           if (circle) finish(circle, 'Circle Face')
+        }
+      } else if (primitive === 'arc') {
+        if (current.length < 2) updatePoints([...current, point])
+        else if (first && second) {
+          const arc = resolveArcDraft(
+            first,
+            second,
+            point,
+            useBodyToolOptions.getState().arcSegments,
+          )
+          if (arc) finishArc(first, second, point)
+        }
+      } else if (primitive === 'polygon') {
+        if (current.length === 0) updatePoints([point])
+        else if (first) {
+          const polygon = resolveRegularPolygonDraft(
+            first,
+            point,
+            getLengthMeters(),
+            useBodyToolOptions.getState().polygonSides,
+          )
+          if (polygon) finish(polygon, 'Polygon Face')
         }
       } else if (current.length < 2) updatePoints([...current, point])
       else if (first && second) {

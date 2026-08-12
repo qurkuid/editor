@@ -1,7 +1,7 @@
 import {
   type BodyNode,
   type GeometryContext,
-  getBodyLoopVertices,
+  getBodyLoopBoundaryPoints,
   validateBodyTopology,
 } from '@pascal-app/core'
 import { resolveMaterialRef } from '@pascal-app/viewer'
@@ -94,27 +94,8 @@ export function buildBodyGeometry(body: BodyNode, ctx?: GeometryContext): Group 
   if (!validateBodyTopology(body).valid) return group
   const halfEdgesById = new Map(body.halfEdges.map((edge) => [edge.id, edge]))
   const verticesById = new Map(body.vertices.map((vertex) => [vertex.id, vertex]))
-  const halfEdgesByLoop = new Map<string, typeof body.halfEdges>()
-  for (const edge of body.halfEdges) {
-    halfEdgesByLoop.set(edge.loopId, [...(halfEdgesByLoop.get(edge.loopId) ?? []), edge])
-  }
-  const loopVertices = (loopId: string): Point3[] => {
-    const edges = halfEdgesByLoop.get(loopId) ?? []
-    const start = edges[0]
-    if (!start) return []
-    const points: Point3[] = []
-    const visited = new Set<string>()
-    let current = start
-    while (!visited.has(current.id)) {
-      visited.add(current.id)
-      const vertex = verticesById.get(current.vertexId)
-      const next = halfEdgesById.get(current.nextId)
-      if (!vertex || !next || next.loopId !== loopId) return []
-      points.push(vertex.position)
-      current = next
-    }
-    return current.id === start.id && visited.size === edges.length ? points : []
-  }
+  const loopVertices = (loopId: string): Point3[] =>
+    getBodyLoopBoundaryPoints(body, loopId).map((point) => [...point] as Point3)
   const importedFromSketchUp =
     typeof body.metadata === 'object' &&
     body.metadata !== null &&
