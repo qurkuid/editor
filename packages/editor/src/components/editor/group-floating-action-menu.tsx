@@ -1,12 +1,15 @@
 'use client'
 
-import { type AnyNodeId, useScene } from '@pascal-app/core'
+import { type AnyNodeId, type BodyNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useCallback, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { commitBodyBoolean, commitBodySolidTool } from '../../lib/body-boolean'
+import { commitBodyComponent, commitBodyGroup } from '../../lib/body-container-actions'
 import { resolveOverlayPolicy } from '../../lib/interaction/overlay-policy'
+import { sfxEmitter } from '../../lib/sfx-bus'
 import useEditor from '../../store/use-editor'
 import useInteractionScope, { useMovingNode } from '../../store/use-interaction-scope'
 import { deleteSelection, duplicateSelectionAndPickUp, startGroupPickUp } from './group-actions'
@@ -54,6 +57,19 @@ export function GroupFloatingActionMenu() {
         : [],
     [selectedIds, levelId, nodes],
   )
+  const bodyPair = useMemo(() => {
+    if (selectedIds.length !== 2) return null
+    const pair = selectedIds.map((id) => nodes[id as AnyNodeId])
+    return pair[0]?.type === 'body' && pair[1]?.type === 'body'
+      ? ([pair[0], pair[1]] as const)
+      : null
+  }, [nodes, selectedIds])
+  const bodySelection = useMemo(() => {
+    const bodies = selectedIds.map((id) => nodes[id as AnyNodeId])
+    return bodies.length >= 2 && bodies.every((node) => node?.type === 'body')
+      ? bodies.filter((node): node is BodyNode => node?.type === 'body')
+      : null
+  }, [nodes, selectedIds])
 
   // World anchor above the group bbox. Depends on the scene (post-commit
   // positions), not the camera, and the menu hides during drags — so a
@@ -100,6 +116,80 @@ export function GroupFloatingActionMenu() {
     event.stopPropagation()
     deleteSelection()
   }, [])
+  const handleIntersect = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation()
+      if (!bodyPair) return
+      try {
+        commitBodyBoolean(bodyPair[0], bodyPair[1], 'intersect')
+        useViewer.getState().setSelection({ selectedIds: [bodyPair[0].id] })
+        sfxEmitter.emit('sfx:item-place')
+      } catch {
+        return
+      }
+    },
+    [bodyPair],
+  )
+  const handleUnion = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation()
+      if (!bodyPair) return
+      try {
+        commitBodyBoolean(bodyPair[0], bodyPair[1], 'union')
+        useViewer.getState().setSelection({ selectedIds: [bodyPair[0].id] })
+        sfxEmitter.emit('sfx:item-place')
+      } catch {
+        return
+      }
+    },
+    [bodyPair],
+  )
+  const handleSubtract = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation()
+      if (!bodyPair) return
+      try {
+        commitBodyBoolean(bodyPair[0], bodyPair[1], 'subtract')
+        useViewer.getState().setSelection({ selectedIds: [bodyPair[0].id] })
+        sfxEmitter.emit('sfx:item-place')
+      } catch {
+        return
+      }
+    },
+    [bodyPair],
+  )
+  const handleSolidTool = useCallback(
+    (operation: 'outer-shell' | 'trim' | 'split') => (event: React.MouseEvent) => {
+      event.stopPropagation()
+      if (!bodyPair) return
+      try {
+        const bodies = commitBodySolidTool(bodyPair[0], bodyPair[1], operation)
+        useViewer.getState().setSelection({ selectedIds: bodies.map((body) => body.id) })
+        sfxEmitter.emit('sfx:item-place')
+      } catch {
+        return
+      }
+    },
+    [bodyPair],
+  )
+  const handleGroupBodies = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation()
+      if (!bodySelection) return
+      const id = commitBodyGroup(bodySelection.map((body) => body.id))
+      if (id) useViewer.getState().setSelection({ selectedIds: [id] })
+    },
+    [bodySelection],
+  )
+  const handleCreateComponent = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation()
+      if (!bodySelection) return
+      const id = commitBodyComponent(bodySelection.map((body) => body.id))
+      if (id) useViewer.getState().setSelection({ selectedIds: [id] })
+    },
+    [bodySelection],
+  )
 
   if (!anchor || mode === 'delete' || isFloorplanHovered || movingNode || menuStepBack) {
     return null
@@ -120,6 +210,14 @@ export function GroupFloatingActionMenu() {
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
             onMove={handleMove}
+            onIntersect={bodyPair ? handleIntersect : undefined}
+            onSubtract={bodyPair ? handleSubtract : undefined}
+            onUnion={bodyPair ? handleUnion : undefined}
+            onOuterShell={bodyPair ? handleSolidTool('outer-shell') : undefined}
+            onTrim={bodyPair ? handleSolidTool('trim') : undefined}
+            onSplit={bodyPair ? handleSolidTool('split') : undefined}
+            onGroupBodies={bodySelection ? handleGroupBodies : undefined}
+            onCreateComponent={bodySelection ? handleCreateComponent : undefined}
             onPointerDown={stopPointer}
             onPointerUp={stopPointer}
           />
