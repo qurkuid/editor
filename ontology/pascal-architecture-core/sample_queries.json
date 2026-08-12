@@ -10,7 +10,7 @@
       "question": "현재 선택에 허용되는 모델링 연산은 무엇이며 왜 그런가?",
       "query": { "classId": "pascal:architecture/body" },
       "expectedIds": ["pascal:architecture/body"],
-      "expectedEvidenceIds": ["evidence:body-push-pull", "evidence:operation-units"]
+      "expectedEvidenceIds": ["evidence:body-push-pull", "evidence:body-circular-arc", "evidence:operation-units"]
     },
     {
       "id": "CQ-02",
@@ -45,7 +45,7 @@
       "question": "이 요소의 길이·면적·체적은 어떤 단위와 공차로 계산되었는가?",
       "query": { "classId": "pascal:architecture/body" },
       "expectedIds": ["pascal:architecture/body"],
-      "expectedEvidenceIds": ["evidence:body-push-pull", "evidence:operation-units"]
+      "expectedEvidenceIds": ["evidence:body-push-pull", "evidence:body-circular-arc", "evidence:operation-units"]
     },
     {
       "id": "CQ-07",

@@ -1,4 +1,5 @@
 {"id":"evidence:body-push-pull","sourceId":"pascal:architecture/body","kind":"implementation","title":"Canonical Body modeling operation manifest","uri":"pascal://modeling/operations#pushPullBodyFace","locator":"operationId=pushPullBodyFace"}
+{"id":"evidence:body-circular-arc","sourceId":"pascal:architecture/body","kind":"implementation","title":"Persistent circular-arc Body authoring","uri":"pascal://agent-guide#body-circular-arc","locator":"two circular-arc curves plus closing chord"}
 {"id":"evidence:wall-hosting","sourceId":"pascal:architecture/wall","kind":"implementation","title":"Scene host relationship contract","uri":"pascal://agent-guide#hosting","locator":"Doors and windows belong to a Wall"}
 {"id":"evidence:window-rule","sourceId":"pascal:rule/window-hosted-by-wall","kind":"implementation","title":"Opening host validation contract","uri":"pascal://agent-guide#ontology","locator":"Window hosted by Wall"}
 {"id":"evidence:operation-units","sourceId":"pascal:architecture/body","kind":"implementation","title":"Canonical operation units","uri":"pascal://modeling/operations","locator":"canonicalUnit=m and canonicalUnit=rad"}
