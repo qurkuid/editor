@@ -211,7 +211,7 @@ beforeEach(async () => {
   useScene.temporal.getState().clear()
   useLiveNodeOverrides.getState().clearAll()
   useInteractionScope.getState().end()
-  useBodyToolOptions.setState({ selectedFace: null, selectionAction: null })
+  useBodyToolOptions.setState({ selectedFeature: null, selectionAction: null })
   useDraftLengthHud.getState().clear()
   useViewer.setState({ inputDragging: false })
   useViewer.getState().setSelection({ selectedIds: [body.id] })

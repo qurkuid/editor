@@ -1,6 +1,8 @@
 import {
   type BodyNode,
   getBodyLoopVertices,
+  remapBodyFeatureAnnotations,
+  runAsSingleSceneHistoryStep,
   useLiveNodeOverrides,
   useScene,
 } from '@pascal-app/core'
@@ -67,6 +69,7 @@ function endHandleDrag(nodeId: BodyNode['id'], handle: string): void {
 
 export function createBodyOffsetSession(options: BodyOffsetSessionOptions): BodyOffsetSession {
   let current: BodyNode | null = null
+  let currentResult: OffsetBodyFaceOperationResult | null = null
   let currentCreatedFaceId: string | null = null
   let distance = 0
   let rejected = false
@@ -121,6 +124,7 @@ export function createBodyOffsetSession(options: BodyOffsetSessionOptions): Body
         return false
       }
       current = result.body
+      currentResult = result
       currentCreatedFaceId = result.createdFaceId
       distance = nextDistance
       rejected = false
@@ -135,13 +139,25 @@ export function createBodyOffsetSession(options: BodyOffsetSessionOptions): Body
     commit: () => {
       if (!active) return false
       const committed = current
+      const committedResult = currentResult
       if (!committed || Math.abs(distance) < MIN_DISTANCE) {
         if (rejected) return false
         clear()
         return false
       }
       clear()
-      useScene.getState().updateNode(nodeId, bodyGeometryPatch(committed))
+      runAsSingleSceneHistoryStep(useScene, () => {
+        const scene = useScene.getState()
+        const updates = committedResult
+          ? remapBodyFeatureAnnotations(
+              scene.nodes,
+              nodeId,
+              committed,
+              committedResult.topologyRemap,
+            )
+          : []
+        scene.updateNodes([{ id: nodeId, data: bodyGeometryPatch(committed) }, ...updates])
+      })
       return true
     },
     cancel: () => {

@@ -1,4 +1,10 @@
-import { type BodyNode, useLiveNodeOverrides, useScene } from '@pascal-app/core'
+import {
+  type BodyNode,
+  remapBodyFeatureAnnotations,
+  runAsSingleSceneHistoryStep,
+  useLiveNodeOverrides,
+  useScene,
+} from '@pascal-app/core'
 import {
   executePushPullBodyFace,
   type PushPullBodyFaceOperationResult,
@@ -50,6 +56,7 @@ export function createBodyPushPullSession(
   options: BodyPushPullSessionOptions,
 ): BodyPushPullSession {
   let current: BodyNode | null = null
+  let currentResult: PushPullBodyFaceOperationResult | null = null
   let distance = 0
   let rejected = false
   let active = true
@@ -97,6 +104,7 @@ export function createBodyPushPullSession(
         return false
       }
       current = result.body
+      currentResult = result
       distance = nextDistance
       rejected = false
       useLiveNodeOverrides.getState().set(nodeId, bodyGeometryPatch(result.body))
@@ -107,13 +115,25 @@ export function createBodyPushPullSession(
     commit: () => {
       if (!active) return false
       const committed = current
+      const committedResult = currentResult
       if (!committed || Math.abs(distance) < MIN_DISTANCE) {
         if (rejected) return false
         clear()
         return false
       }
       clear()
-      useScene.getState().updateNode(nodeId, bodyGeometryPatch(committed))
+      runAsSingleSceneHistoryStep(useScene, () => {
+        const scene = useScene.getState()
+        const updates = committedResult
+          ? remapBodyFeatureAnnotations(
+              scene.nodes,
+              nodeId,
+              committed,
+              committedResult.topologyRemap,
+            )
+          : []
+        scene.updateNodes([{ id: nodeId, data: bodyGeometryPatch(committed) }, ...updates])
+      })
       return true
     },
     cancel: () => {

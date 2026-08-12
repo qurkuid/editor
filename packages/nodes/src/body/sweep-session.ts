@@ -1,4 +1,10 @@
-import { type BodyNode, useLiveNodeOverrides, useScene } from '@pascal-app/core'
+import {
+  type BodyNode,
+  remapBodyFeatureAnnotations,
+  runAsSingleSceneHistoryStep,
+  useLiveNodeOverrides,
+  useScene,
+} from '@pascal-app/core'
 import {
   executeSweepBodyFace,
   type SweepBodyFaceOperationResult,
@@ -93,8 +99,18 @@ export function createBodySweepSession(options: BodySweepSessionOptions): BodySw
     commit: () => {
       if (!active || !current) return false
       const committed = current.body
+      const committedResult = current
       clear()
-      useScene.getState().updateNode(nodeId, bodyGeometryPatch(committed))
+      runAsSingleSceneHistoryStep(useScene, () => {
+        const scene = useScene.getState()
+        const updates = remapBodyFeatureAnnotations(
+          scene.nodes,
+          nodeId,
+          committed,
+          committedResult.topologyRemap,
+        )
+        scene.updateNodes([{ id: nodeId, data: bodyGeometryPatch(committed) }, ...updates])
+      })
       return true
     },
     cancel: () => {

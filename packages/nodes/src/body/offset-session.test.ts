@@ -9,6 +9,7 @@ import {
   useScene,
 } from '@pascal-app/core'
 import { executeOffsetBodyFace } from '@pascal-app/core/modeling-operations'
+import { ConstructionDimensionNode, MeasurementNode } from '@pascal-app/core/schema'
 import { useInteractionScope } from '@pascal-app/editor'
 import { createBodyOffsetSession } from './offset-session'
 import { bodyActionToolChanged } from './options'
@@ -105,6 +106,59 @@ describe('Body Offset session transaction', () => {
 
     useScene.temporal.getState().undo()
     expect(storedBody(body.id)).toEqual(body)
+  })
+
+  test('keeps MeasurementNode and ConstructionDimension anchors associative through offset', () => {
+    const body = pushPullBodyFace(
+      createRectangleBody({ width: 1.2, depth: 0.8 }),
+      'face:0',
+      1.2,
+    ).body
+    const anchor = {
+      kind: 'feature' as const,
+      reference: { nodeId: body.id, featureId: 'face:0:center' },
+      fallback: [0, 0, 0] as [number, number, number],
+    }
+    const measurement = MeasurementNode.parse({
+      id: 'measurement_offset_session',
+      measurement: { kind: 'distance', points: [anchor, [1, 0, 0]] },
+    })
+    const dimension = ConstructionDimensionNode.parse({
+      id: 'construction-dimension_offset_session',
+      anchors: [anchor, [1, 0, 0]],
+    })
+    seedScene(body)
+    useScene.setState((state) => ({
+      nodes: {
+        ...state.nodes,
+        [measurement.id]: measurement,
+        [dimension.id]: dimension,
+      },
+    }))
+    useScene.temporal.getState().clear()
+    const session = createBodyOffsetSession({ body, faceId: 'face:0', handle: 'body:offset' })
+
+    expect(session.preview(-0.12)).toBe(true)
+    expect(session.commit()).toBe(true)
+    const updatedMeasurement = useScene.getState().nodes[measurement.id]
+    const updatedDimension = useScene.getState().nodes[dimension.id]
+    if (updatedMeasurement?.type !== 'measurement') throw new Error('Expected measurement update')
+    if (updatedDimension?.type !== 'construction-dimension') {
+      throw new Error('Expected construction dimension update')
+    }
+    const measurementAnchor = updatedMeasurement.measurement.points[0]
+    const dimensionAnchor = updatedDimension.anchors[0]
+    expect(Array.isArray(measurementAnchor) ? null : measurementAnchor.reference.featureId).toBe(
+      'face:0:center',
+    )
+    expect(Array.isArray(dimensionAnchor) ? null : dimensionAnchor.reference.featureId).toBe(
+      'face:0:center',
+    )
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+
+    useScene.temporal.getState().undo()
+    expect(useScene.getState().nodes[measurement.id]).toEqual(measurement)
+    expect(useScene.getState().nodes[dimension.id]).toEqual(dimension)
   })
 
   test('rejects an invalid preview, keeps the session armed, and recovers with a later valid preview', () => {
