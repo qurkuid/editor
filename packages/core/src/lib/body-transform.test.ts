@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { BodyNode } from '../schema/nodes/body'
+import { createCircularArcFaceBody, getBodyLoopBoundaryPoints } from './body-curves'
 import { pushPullBodyFace } from './body-push-pull'
 import { createRectangleBody, getBodySemanticHash, validateBodyTopology } from './body-topology'
 import { transformBody } from './body-transform'
@@ -11,6 +12,49 @@ const transform = {
   scale: [0.5, 0.5, 0.5],
   pivot: [0.6, 0.6, 0.4],
 } as const
+
+function transformPoint(
+  point: readonly [number, number, number],
+  translation: readonly [number, number, number],
+  rotationAxis: readonly [number, number, number],
+  rotationAngle: number,
+  scale: readonly [number, number, number],
+  pivot: readonly [number, number, number],
+): [number, number, number] {
+  const axisLength = Math.hypot(...rotationAxis)
+  const axis = rotationAxis.map((value) => value / axisLength) as [number, number, number]
+  const relative: [number, number, number] = [
+    (point[0] - pivot[0]) * scale[0],
+    (point[1] - pivot[1]) * scale[1],
+    (point[2] - pivot[2]) * scale[2],
+  ]
+  const cosine = Math.cos(rotationAngle)
+  const sine = Math.sin(rotationAngle)
+  const cross: [number, number, number] = [
+    axis[1] * relative[2] - axis[2] * relative[1],
+    axis[2] * relative[0] - axis[0] * relative[2],
+    axis[0] * relative[1] - axis[1] * relative[0],
+  ]
+  const dot = axis[0] * relative[0] + axis[1] * relative[1] + axis[2] * relative[2]
+  const oneMinusCosine = 1 - cosine
+  return [
+    relative[0] * cosine +
+      cross[0] * sine +
+      axis[0] * dot * oneMinusCosine +
+      pivot[0] +
+      translation[0],
+    relative[1] * cosine +
+      cross[1] * sine +
+      axis[1] * dot * oneMinusCosine +
+      pivot[1] +
+      translation[1],
+    relative[2] * cosine +
+      cross[2] * sine +
+      axis[2] * dot * oneMinusCosine +
+      pivot[2] +
+      translation[2],
+  ]
+}
 
 describe('Body transform kernel', () => {
   test('moves rotates and scales geometry while preserving semantic topology', () => {
@@ -185,6 +229,37 @@ describe('Body transform kernel', () => {
         pivot: [0, 0, 0],
       }),
     ).toThrow('circular arcs')
+  })
+
+  test('rebases circular-arc angles after arbitrary-axis rotation and uniform scale', () => {
+    const source = createCircularArcFaceBody([1, 0, 0], [0, 0, 1], [-1, 0, 0])
+    const transform = {
+      translation: [0.4, 1.2, -0.6],
+      rotationAxis: [0.4, 1.2, -0.8],
+      rotationAngle: 0.7,
+      scale: [1.75, 1.75, 1.75],
+      pivot: [-0.3, 0.2, 0.5],
+    } as const
+    const expected = getBodyLoopBoundaryPoints(source, 'loop:0', 8).map((point) =>
+      transformPoint(
+        point,
+        transform.translation,
+        transform.rotationAxis,
+        transform.rotationAngle,
+        transform.scale,
+        transform.pivot,
+      ),
+    )
+    const result = transformBody(source, transform)
+    const actual = getBodyLoopBoundaryPoints(result, 'loop:0', 8)
+
+    expect(actual).toHaveLength(expected.length)
+    for (const [index, point] of actual.entries()) {
+      expect(point[0]).toBeCloseTo(expected[index]![0], 8)
+      expect(point[1]).toBeCloseTo(expected[index]![1], 8)
+      expect(point[2]).toBeCloseTo(expected[index]![2], 8)
+    }
+    expect(validateBodyTopology(result)).toEqual({ valid: true, diagnostics: [] })
   })
 
   test('transforms only a persistent feature and its fully moved UV frame', () => {

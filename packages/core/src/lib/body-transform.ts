@@ -1,4 +1,5 @@
 import { BodyNode, type BodyNode as BodyNodeType } from '../schema/nodes/body'
+import { rebaseCircularArcCurve } from './body-curves'
 import {
   assertBodyFeatureGeometry,
   autofoldBodyFaces,
@@ -9,7 +10,6 @@ import {
   resolveBodyFeatureVertexIds,
 } from './body-feature-move'
 import { validateBodyTopology } from './body-topology'
-import { rebaseCircularArcCurve } from './body-curves'
 
 export type BodyFeatureTransform = {
   readonly kind: BodyFeatureKind
@@ -149,7 +149,7 @@ export function transformBody(source: BodyNodeType, transform: BodyTransform): B
           switch (curve.kind) {
             case 'line':
               return curve
-            case 'circular-arc':
+            case 'circular-arc': {
               const transformedCenter = transformPoint(curve.center)
               const transformedNormal = transformDirection(curve.normal)
               const transformedRadius = curve.radius * transform.scale[0]
@@ -179,6 +179,7 @@ export function transformBody(source: BodyNodeType, transform: BodyTransform): B
                 normal: transformedNormal,
                 radius: transformedRadius,
               }
+            }
             default: {
               const unreachable: never = curve
               throw new RangeError(`Unsupported Body curve: ${String(unreachable)}`)
