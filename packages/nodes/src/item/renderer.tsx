@@ -27,9 +27,9 @@ import {
   glassMaterial,
   NodeRenderer,
   type RenderShading,
-  resolveCdnUrl,
   resolveMaterialRef,
   stampPascalTextureRef,
+  useAssetUrlState,
   useItemLightPool,
   useNodeEvents,
   useViewer,
@@ -46,6 +46,7 @@ import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { positionLocal, smoothstep, time } from 'three/tsl'
 import { RoofFaceHostFrame } from '../shared/roof-face-host'
 import { cancelItemModelLoad, getUnavailableItemAsset, ItemGLTFLoader } from './model-loader'
+import { resolveItemModelSource } from './model-source'
 
 type MutableMaterial = Material & {
   depthTest?: boolean
@@ -390,7 +391,9 @@ const ModelWithRetry = ({
   setSettled: (value: boolean) => void
 }) => {
   const [renderFailed, setRenderFailed] = useState(false)
-  const url = resolveCdnUrl(node.asset.src) || ''
+  const source = resolveItemModelSource(node.asset.src)
+  const assetUrl = useAssetUrlState(source)
+  const url = assetUrl.status === 'resolved' ? assetUrl.url : source
   const markSettled = useCallback(() => setSettled(true), [setSettled])
 
   // Clear before child passive completion effects; a parent passive clear would run after them.
@@ -405,7 +408,10 @@ const ModelWithRetry = ({
     return () => useViewer.getState().clearItemLoadFailure(node.id)
   }, [markSettled, node.id, renderFailed, url])
 
-  if (!url) return <UnavailableItemModel markSettled={markSettled} node={node} url={url} />
+  if (assetUrl.status === 'loading') return <PreviewModel node={node} />
+  if (assetUrl.status === 'missing' || !url) {
+    return <UnavailableItemModel markSettled={markSettled} node={node} url={source} />
+  }
 
   return (
     <ErrorBoundary
@@ -414,7 +420,7 @@ const ModelWithRetry = ({
       scope="item-model"
     >
       <Suspense fallback={<PreviewModel node={node} />}>
-        <ModelRenderer markSettled={markSettled} node={node} />
+        <ModelRenderer markSettled={markSettled} node={node} url={url} />
       </Suspense>
     </ErrorBoundary>
   )
@@ -504,8 +510,8 @@ const PreviewModel = ({ node }: { node: ItemNode }) => {
   )
 }
 
-const LoadedItemPreview = ({ node }: { node: ItemNode }) => {
-  const gltf = useItemGltf(resolveCdnUrl(node.asset.src) || '')
+const LoadedItemPreview = ({ node, url }: { node: ItemNode; url: string }) => {
+  const gltf = useItemGltf(url)
   if (getUnavailableItemAsset(gltf)) return <PreviewModel node={node} />
   return (
     <group rotation={node.rotation} scale={node.scale}>
@@ -521,12 +527,13 @@ const LoadedItemPreview = ({ node }: { node: ItemNode }) => {
 }
 
 export const ItemPreview = ({ node }: { node: ItemNode }) => {
-  const url = resolveCdnUrl(node.asset.src) || ''
-  if (!url) return <PreviewModel node={node} />
+  const source = resolveItemModelSource(node.asset.src)
+  const assetUrl = useAssetUrlState(source)
+  if (assetUrl.status !== 'resolved') return <PreviewModel node={node} />
   return (
     <Suspense fallback={<PreviewModel node={node} />}>
       <ErrorBoundary fallback={<PreviewModel node={node} />} scope="item-preview-model">
-        <LoadedItemPreview node={node} />
+        <LoadedItemPreview node={node} url={assetUrl.url} />
       </ErrorBoundary>
     </Suspense>
   )
@@ -552,8 +559,16 @@ const ClearPreviewModel = ({ node }: { node: ItemNode }) => {
   )
 }
 
-const ModelRenderer = ({ node, markSettled }: { node: ItemNode; markSettled: () => void }) => {
-  const gltf = useItemGltf(resolveCdnUrl(node.asset.src) || '')
+const ModelRenderer = ({
+  node,
+  markSettled,
+  url,
+}: {
+  node: ItemNode
+  markSettled: () => void
+  url: string
+}) => {
+  const gltf = useItemGltf(url)
   const unavailable = getUnavailableItemAsset(gltf)
   if (unavailable) {
     return <UnavailableItemModel markSettled={markSettled} node={node} url={unavailable.url} />

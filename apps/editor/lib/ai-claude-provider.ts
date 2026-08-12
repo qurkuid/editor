@@ -40,7 +40,7 @@ export class ClaudeCliExecutionError extends Error {
   }
 }
 
-function runClaudeCli(
+export function runClaudeCli(
   config: AiProviderConfig,
   args: readonly string[],
   input: string,
@@ -110,7 +110,7 @@ const IMAGE_FILE_EXTENSIONS: Record<AiChatImage['mimeType'], string> = {
   'image/webp': 'webp',
 }
 
-async function materializeAiChatImages(
+export async function materializeClaudeImages(
   directory: string,
   images: readonly AiChatImage[],
 ): Promise<string[]> {
@@ -203,7 +203,7 @@ export async function requestAiModelingPlanViaClaude(
   const directory = await mkdtemp(join(tmpdir(), 'pascal-claude-'))
 
   try {
-    const imagePaths = await materializeAiChatImages(directory, input.images ?? [])
+    const imagePaths = await materializeClaudeImages(directory, input.images ?? [])
     const prompt = appendClaudeImagePaths(buildAiModelingPrompt(input), imagePaths)
     const hasImages = imagePaths.length > 0
     const args = [

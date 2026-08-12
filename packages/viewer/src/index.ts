@@ -53,7 +53,7 @@ export {
   SSGI_PARAMS,
 } from './components/viewer/post-processing'
 export { SceneEnvironment } from './components/viewer/scene-environment'
-export { useAssetUrl } from './hooks/use-asset-url'
+export { type AssetUrlState, useAssetUrl, useAssetUrlState } from './hooks/use-asset-url'
 export { useGLTFKTX2 } from './hooks/use-gltf-ktx2'
 export { useNodeEvents } from './hooks/use-node-events'
 export { ASSETS_CDN_URL, resolveAssetUrl, resolveCdnUrl } from './lib/asset-url'

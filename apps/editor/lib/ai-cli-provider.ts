@@ -59,7 +59,7 @@ export function codexFailureSummary(stderr: string): string {
   return lines.slice(-3).join('\n') || 'Codex CLI failed'
 }
 
-function runCodexCli(
+export function runCodexCli(
   config: AiProviderConfig,
   args: readonly string[],
   input: string,
@@ -128,7 +128,7 @@ const IMAGE_FILE_EXTENSIONS: Record<AiChatImage['mimeType'], string> = {
   'image/webp': 'webp',
 }
 
-async function materializeAiChatImages(
+export async function materializeAiChatImages(
   directory: string,
   images: readonly AiChatImage[],
 ): Promise<string[]> {

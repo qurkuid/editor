@@ -4,6 +4,7 @@ import type { AssetInput } from '@pascal-app/core'
 import { CATALOG_ITEMS, ItemsPanel, useEditor } from '@pascal-app/editor'
 import { Pencil } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Img3dPreparation } from './img3d-preparation'
 
 /**
  * SketchUp 컴포넌트 라이브러리를 얹은 아이템 패널.
@@ -107,6 +108,7 @@ export function SkpItemsPanel() {
         <ItemsPanel
           functionTree={functionTree}
           items={items}
+          leadingTile={<Img3dPreparation />}
           onSearchChange={setSearch}
           searchResults={searchResults}
         />
