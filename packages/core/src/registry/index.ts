@@ -21,6 +21,7 @@ export {
   extendPluginDiscovery,
   getHostRefFields,
   getNodePluginId,
+  getNodeSemanticRef,
   getSelectableKinds,
   hasRegistry3DMoveTool,
   isDrawnViaTool,

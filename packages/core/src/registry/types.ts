@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import type { AnimationClip, BufferGeometry, Object3D, Ray } from 'three'
 import type { ZodObject, z } from 'zod'
+import type { SemanticRef } from '../ontology/semantic-ref'
 import type { MaterialSchema, MaterialTarget } from '../schema/material'
 import type { MeasurementFeatureReference, MeasurementPoint } from '../schema/nodes/measurement'
 import type { SceneMaterial, SceneMaterialId } from '../schema/scene-material'
@@ -913,6 +914,7 @@ export type NodeDefinition<S extends ZodObject<any>> = {
   schemaVersion: number
   schema: S
   category: NodeCategory
+  semanticRef?: SemanticRef
   /** Opaque host/plugin contributions. Core stores but never interprets them. */
   extensions?: Readonly<Record<string, unknown>>
   surfaceRole?: SurfaceRole

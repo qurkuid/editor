@@ -1,4 +1,5 @@
 import type { ZodObject } from 'zod'
+import { PASCAL_ARCHITECTURE_NODE_SEMANTIC_REFS, type SemanticRef } from '../ontology/semantic-ref'
 import type { AnyNodeDefinition, BakePolicy, NodeRegistry, Plugin } from './types'
 
 const HOST_API_VERSION = 1 as const
@@ -85,6 +86,10 @@ export const nodeRegistry: NodeRegistry & {
   _register: (def: AnyNodeDefinition) => void
   _reset: () => void
 } = new NodeRegistryImpl()
+
+export function getNodeSemanticRef(kind: string): SemanticRef | undefined {
+  return nodeRegistry.get(kind)?.semanticRef ?? PASCAL_ARCHITECTURE_NODE_SEMANTIC_REFS[kind]
+}
 
 export function registerNode(def: AnyNodeDefinition): void {
   nodeRegistry._register(def)

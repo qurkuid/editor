@@ -146,6 +146,8 @@ export type LightingCircuitEvent = NodeEvent<LightingCircuitNode>
 export type LightingFixtureEvent = NodeEvent<LightingFixtureNode>
 export type LightingSwitchEvent = NodeEvent<LightingSwitchNode>
 
+export type BodySelectionActionKind = 'move' | 'rotate' | 'scale' | 'push-pull' | 'offset' | 'sweep'
+
 // Event suffixes - exported for use in hooks
 export const eventSuffixes = [
   'click',
@@ -296,6 +298,10 @@ type SelectionEvents = {
    * plugin's presets panel) listens and reveals it.
    */
   'selection:find-node': AnyNode
+  'body:selection-action': {
+    bodyId: BodyNode['id']
+    action: BodySelectionActionKind | null
+  }
 }
 
 type EditorEvents = GridEvents &

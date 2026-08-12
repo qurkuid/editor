@@ -6,8 +6,9 @@ import { transformBody } from './body-transform'
 
 const transform = {
   translation: [2, 0, 0],
-  rotationY: Math.PI / 2,
-  uniformScale: 0.5,
+  rotationAxis: [0, 1, 0],
+  rotationAngle: Math.PI / 2,
+  scale: [0.5, 0.5, 0.5],
   pivot: [0.6, 0.6, 0.4],
 } as const
 
@@ -86,11 +87,103 @@ describe('Body transform kernel', () => {
     expect(() =>
       transformBody(source, {
         translation: [0, 0, 0],
-        rotationY: 0,
-        uniformScale: 1,
+        rotationAxis: [0, 1, 0],
+        rotationAngle: 0,
+        scale: [1, 1, 1],
         pivot: [0, 0, 0],
       }),
     ).toThrow('requires a change')
     expect(getBodySemanticHash(source)).toBe(before)
+  })
+
+  test('normalizes arbitrary rotation axes and applies non-uniform scale around the pivot', () => {
+    const source = BodyNode.parse({
+      id: 'body_transform_arbitrary_axis',
+      shells: [],
+      vertices: [{ id: 'vertex:0', position: [2, 3, 4] }],
+      halfEdges: [],
+      loops: [],
+      faces: [],
+    })
+
+    const result = transformBody(source, {
+      translation: [1, -1, 2],
+      rotationAxis: [0, 0, 4],
+      rotationAngle: Math.PI / 2,
+      scale: [2, 3, 4],
+      pivot: [1, 1, 1],
+    })
+
+    expect(result.vertices[0]?.position[0]).toBeCloseTo(-4)
+    expect(result.vertices[0]?.position[1]).toBeCloseTo(2)
+    expect(result.vertices[0]?.position[2]).toBeCloseTo(15)
+  })
+
+  test('preserves circular arcs for uniform scale and rotates center and normal', () => {
+    const source = BodyNode.parse({
+      id: 'body_transform_arc',
+      shells: [],
+      vertices: [],
+      halfEdges: [],
+      loops: [],
+      faces: [],
+      curves: [
+        {
+          id: 'curve:0',
+          kind: 'circular-arc',
+          center: [1, 0, 0],
+          normal: [0, 1, 0],
+          radius: 0.5,
+          startAngle: 0,
+          endAngle: Math.PI,
+        },
+      ],
+    })
+
+    const result = transformBody(source, {
+      translation: [0, 0, 2],
+      rotationAxis: [0, 1, 0],
+      rotationAngle: Math.PI / 2,
+      scale: [2, 2, 2],
+      pivot: [0, 0, 0],
+    })
+
+    expect(result.curves[0]).toMatchObject({
+      center: [0, 0, 0],
+      normal: [0, 1, 0],
+      radius: 1,
+    })
+  })
+
+  test('rejects non-uniform scale when circular arcs are present', () => {
+    const source = BodyNode.parse({
+      id: 'body_transform_arc_non_uniform',
+      shells: [],
+      vertices: [],
+      halfEdges: [],
+      loops: [],
+      faces: [],
+      curves: [
+        {
+          id: 'curve:0',
+          kind: 'circular-arc',
+          center: [0, 0, 0],
+          normal: [0, 1, 0],
+          radius: 1,
+          startAngle: 0,
+          endAngle: 1,
+        },
+      ],
+    })
+
+    expect(() =>
+      transformBody(source, {
+        translation: [0, 0, 0],
+        rotationAxis: [1, 0, 0],
+        rotationAngle: 0.25,
+        scale: [1, 2, 1],
+        pivot: [0, 0, 0],
+      }),
+    ).toThrow('circular arcs')
   })
 })

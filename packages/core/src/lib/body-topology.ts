@@ -350,6 +350,10 @@ export function validateBodyTopology(body: BodyNodeType): BodyTopologyValidation
   const loops = byId(body.loops)
   const faces = byId(body.faces)
   const curves = byId(body.curves)
+  const halfEdgesByLoop = new Map<string, typeof body.halfEdges>()
+  for (const edge of body.halfEdges) {
+    halfEdgesByLoop.set(edge.loopId, [...(halfEdgesByLoop.get(edge.loopId) ?? []), edge])
+  }
   const featureIds = [
     ...body.vertices,
     ...body.halfEdges,
@@ -407,7 +411,7 @@ export function validateBodyTopology(body: BodyNodeType): BodyTopologyValidation
     if (!faces.has(loop.faceId)) {
       diagnostics.push({ code: 'loop.face.missing', featureIds: [loop.id, loop.faceId] })
     }
-    const loopEdges = body.halfEdges.filter((edge) => edge.loopId === loop.id)
+    const loopEdges = halfEdgesByLoop.get(loop.id) ?? []
     if (loopEdges.length < 3) {
       diagnostics.push({ code: 'loop.edges.too-few', featureIds: [loop.id] })
       continue
@@ -484,6 +488,12 @@ export function getBodySemanticHash(body: BodyNodeType): string {
     faces: sortedById(body.faces).map((face) => ({
       ...face,
       innerLoopIds: [...face.innerLoopIds].sort(),
+      surface: {
+        materialRef: face.surface.materialRef,
+        uvOrigin: face.surface.uvOrigin,
+        uvU: face.surface.uvU,
+        uvV: face.surface.uvV,
+      },
     })),
     curves: sortedById(body.curves),
     bodyDefaults: body.bodyDefaults,

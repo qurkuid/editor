@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { CollectionId } from '../schema/collections'
+import { SceneMaterial } from '../schema/scene-material'
 import type { AnyNode, AnyNodeId } from '../schema/types'
 import {
   cloneLevelSubtree,
@@ -74,6 +75,25 @@ describe('forkSceneGraph', () => {
       Object.values(forked.collections ?? {}).flatMap((collection) => collection.nodeIds),
     ).toHaveLength(2)
     expect(forked.installedPlugins).toEqual(['pascal:trees'])
+  })
+
+  test('preserves scene materials in whole-scene clones and forks', () => {
+    const material = SceneMaterial.parse({
+      id: 'mat_reference',
+      name: 'Reference red',
+      material: { preset: 'custom', properties: { color: '#b91c1c' } },
+    })
+    const source = {
+      ...makeSceneGraph(),
+      materials: { [material.id]: material },
+    }
+
+    const cloned = cloneSceneGraph(source)
+    const forked = forkSceneGraph(source)
+
+    expect(cloned.materials).toEqual(source.materials)
+    expect(cloned.materials).not.toBe(source.materials)
+    expect(forked.materials).toEqual(source.materials)
   })
 })
 

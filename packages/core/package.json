@@ -21,6 +21,16 @@
       "import": "./dist/lib/body-transform.js",
       "default": "./dist/lib/body-transform.js"
     },
+    "./modeling-operations": {
+      "types": "./dist/modeling/operations.d.ts",
+      "import": "./dist/modeling/operations.js",
+      "default": "./dist/modeling/operations.js"
+    },
+    "./ontology": {
+      "types": "./dist/ontology/semantic-ref.d.ts",
+      "import": "./dist/ontology/semantic-ref.js",
+      "default": "./dist/ontology/semantic-ref.js"
+    },
     "./registry": {
       "types": "./dist/registry/index.d.ts",
       "import": "./dist/registry/index.js",

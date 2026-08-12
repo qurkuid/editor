@@ -3,14 +3,73 @@ const EPSILON = 1e-8
 type Point3 = readonly [number, number, number]
 type Point2 = readonly [number, number]
 
-function projectPoint(point: Point3, normal: Point3): Point2 {
-  const axis = normal.reduce(
-    (best, value, index) => (Math.abs(value) > Math.abs(normal[best] ?? 0) ? index : best),
-    0,
-  )
-  if (axis === 0) return [point[1], point[2]]
-  if (axis === 1) return [point[0], point[2]]
-  return [point[0], point[1]]
+type Axis = readonly [number, number, number]
+
+export type PlanarPointProjection = {
+  readonly toPlane: (point: Point3) => Point2
+  readonly fromPlane: (point: Point2) => [number, number, number]
+}
+
+const dot3 = (first: Point3, second: Point3) =>
+  first[0] * second[0] + first[1] * second[1] + first[2] * second[2]
+
+const cross3 = (first: Point3, second: Point3): [number, number, number] => [
+  first[1] * second[2] - first[2] * second[1],
+  first[2] * second[0] - first[0] * second[2],
+  first[0] * second[1] - first[1] * second[0],
+]
+
+const length3 = (point: Point3) => Math.hypot(point[0], point[1], point[2])
+
+function normalize3(point: Point3): [number, number, number] {
+  const length = length3(point)
+  if (length <= EPSILON) throw new RangeError('Planar projection requires a valid normal')
+  return [point[0] / length, point[1] / length, point[2] / length]
+}
+
+function subtractProjection(axis: Axis, normal: Point3): [number, number, number] {
+  const projection = dot3(axis, normal)
+  return normalize3([
+    axis[0] - normal[0] * projection,
+    axis[1] - normal[1] * projection,
+    axis[2] - normal[2] * projection,
+  ])
+}
+
+function dominantAxis(normal: Point3): 0 | 1 | 2 {
+  let axis: 0 | 1 | 2 = 0
+  for (const candidate of [0, 1, 2] as const) {
+    if (Math.abs(normal[candidate]) > Math.abs(normal[axis])) axis = candidate
+  }
+  return axis
+}
+
+export function createPlanarPointProjection(origin: Point3, normal: Point3): PlanarPointProjection {
+  const unitNormal = normalize3(normal)
+  const droppedAxis = dominantAxis(unitNormal)
+  const firstAxis = droppedAxis === 0 ? 1 : 0
+  const secondAxis = droppedAxis === 2 ? 1 : 2
+  const firstVector: Axis = firstAxis === 0 ? [1, 0, 0] : [0, 1, 0]
+  const secondVector: Axis = secondAxis === 1 ? [0, 1, 0] : [0, 0, 1]
+  const u = subtractProjection(firstVector, unitNormal)
+  const crossNormal = cross3(unitNormal, u)
+  const sign = dot3(crossNormal, secondVector) < 0 ? -1 : 1
+  const v: [number, number, number] = [
+    crossNormal[0] * sign,
+    crossNormal[1] * sign,
+    crossNormal[2] * sign,
+  ]
+
+  const toPlane = (point: Point3): Point2 => {
+    const delta: Point3 = [point[0] - origin[0], point[1] - origin[1], point[2] - origin[2]]
+    return [dot3(delta, u), dot3(delta, v)]
+  }
+  const fromPlane = (point: Point2): [number, number, number] => [
+    origin[0] + u[0] * point[0] + v[0] * point[1],
+    origin[1] + u[1] * point[0] + v[1] * point[1],
+    origin[2] + u[2] * point[0] + v[2] * point[1],
+  ]
+  return { toPlane, fromPlane }
 }
 
 function cross(a: Point2, b: Point2, c: Point2): number {
@@ -27,7 +86,7 @@ function pointOnSegment(point: Point2, start: Point2, end: Point2): boolean {
   )
 }
 
-function segmentsIntersect(
+export function segmentsIntersect(
   firstStart: Point2,
   firstEnd: Point2,
   secondStart: Point2,
@@ -49,7 +108,7 @@ function segmentsIntersect(
   )
 }
 
-function pointInPolygon(point: Point2, polygon: readonly Point2[]): boolean {
+export function pointInPolygon(point: Point2, polygon: readonly Point2[]): boolean {
   let inside = false
   for (let index = 0; index < polygon.length; index += 1) {
     const current = polygon[index]
@@ -65,7 +124,7 @@ function pointInPolygon(point: Point2, polygon: readonly Point2[]): boolean {
   return inside
 }
 
-function polygonArea(polygon: readonly Point2[]): number {
+export function polygonArea(polygon: readonly Point2[]): number {
   return (
     polygon.reduce((sum, point, index) => {
       const next = polygon[(index + 1) % polygon.length]
@@ -109,8 +168,9 @@ export function validateImprintProfile(
   ) {
     throw new RangeError('Imprint profile must be coplanar with the host face')
   }
-  const host2d = host.map((point) => projectPoint(point, normal))
-  const profile2d = profile.map((point) => projectPoint(point, normal))
+  const projection = createPlanarPointProjection(hostOrigin, normal)
+  const host2d = host.map(projection.toPlane)
+  const profile2d = profile.map(projection.toPlane)
   if (Math.abs(polygonArea(profile2d)) <= EPSILON) {
     throw new RangeError('Imprint profile must enclose a non-zero area')
   }

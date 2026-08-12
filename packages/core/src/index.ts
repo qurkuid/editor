@@ -1,5 +1,6 @@
 export type {
   BodyEvent,
+  BodySelectionActionKind,
   BoxVentEvent,
   BuildingEvent,
   CabinetEvent,
@@ -103,7 +104,15 @@ export {
   updateRoundedRectangularFrameRadius,
 } from './lib/body-frame-edit'
 export { type ImprintBodyFaceResult, imprintBodyFace } from './lib/body-imprint'
+export { createPlanarPointProjection } from './lib/body-imprint-validation'
+export { type OffsetBodyFaceResult, offsetBodyFace } from './lib/body-offset'
 export { pushPullBodyFace } from './lib/body-push-pull'
+export {
+  SweepBodyFaceError,
+  type SweepBodyFaceErrorCode,
+  type SweepBodyFaceResult,
+  sweepBodyFace,
+} from './lib/body-sweep'
 export {
   type BodyTopologyDiagnostic,
   type BodyTopologyDiagnosticCode,
@@ -360,6 +369,70 @@ export {
   unregisterLibraryMaterials,
 } from './material-library'
 export { resizeMaterialPhysicalSize } from './material-size'
+export {
+  MANIPULATION_SNAP_TIERS,
+  type ManipulationSnapCandidate,
+  type ManipulationSnapMarkerToken,
+  type ManipulationSnapTier,
+  manipulationSnapCandidateFromFeature,
+  manipulationSnapMarkerToken,
+  manipulationSnapTier,
+} from './modeling/manipulation'
+export {
+  executeImprintBodyFace,
+  executeModelingOperation,
+  executeOffsetBodyFace,
+  executePaintBodyFace,
+  executePushPullBodyFace,
+  executeSweepBodyFace,
+  executeTransformBody,
+  getModelingOperationManifestEntry,
+  type ImprintBodyFaceInput,
+  ImprintBodyFaceInputSchema,
+  type ImprintBodyFaceOperationResult,
+  MODELING_OPERATION_ID_VALUES,
+  MODELING_OPERATION_IDS,
+  MODELING_OPERATION_INPUT_SCHEMAS,
+  MODELING_OPERATION_MANIFEST,
+  type ModelingOperationField,
+  type ModelingOperationId,
+  ModelingOperationIdSchema,
+  type ModelingOperationInput,
+  type ModelingOperationInputById,
+  type ModelingOperationManifest,
+  type ModelingOperationManifestEntry,
+  type ModelingOperationRequest,
+  type ModelingOperationResult,
+  type ModelingOperationSurface,
+  type OffsetBodyFaceInput,
+  OffsetBodyFaceInputSchema,
+  type OffsetBodyFaceOperationResult,
+  type PaintBodyFaceInput,
+  PaintBodyFaceInputSchema,
+  type PaintBodyFaceOperationResult,
+  type PushPullBodyFaceInput,
+  PushPullBodyFaceInputSchema,
+  type PushPullBodyFaceOperationResult,
+  parseModelingOperationRequest,
+  type SweepBodyFaceInput,
+  SweepBodyFaceInputSchema,
+  type SweepBodyFaceOperationResult,
+  type TransformBodyInput,
+  TransformBodyInputSchema,
+  type TransformBodyOperationResult,
+} from './modeling/operations'
+export {
+  PASCAL_ARCHITECTURE_BODY_REF,
+  PASCAL_ARCHITECTURE_CORE_PACK_ID,
+  PASCAL_ARCHITECTURE_CORE_VERSION,
+  PASCAL_ARCHITECTURE_NODE_SEMANTIC_REFS,
+  PASCAL_ARCHITECTURE_WALL_REF,
+  PASCAL_ARCHITECTURE_WINDOW_REF,
+  SemanticIdSchema,
+  type SemanticRef,
+  SemanticRefSchema,
+  SemanticVersionSchema,
+} from './ontology/semantic-ref'
 export type {
   FloorPlacedFootprint,
   FloorPlacedFootprintContext,

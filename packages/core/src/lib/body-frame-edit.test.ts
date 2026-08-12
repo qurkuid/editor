@@ -86,8 +86,9 @@ describe('rounded rectangular frame editing', () => {
       }),
       {
         translation: [3, 0.5, 1],
-        rotationY: Math.PI / 2,
-        uniformScale: 0.5,
+        rotationAxis: [0, 1, 0],
+        rotationAngle: Math.PI / 2,
+        scale: [0.5, 0.5, 0.5],
         pivot: [0, 0, 0],
       },
     )
