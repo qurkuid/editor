@@ -1,7 +1,13 @@
 'use client'
 
-import { type AnyNodeId, sceneRegistry, useScene } from '@pascal-app/core'
-import { executeImprintBodyFace } from '@pascal-app/core/modeling-operations'
+import {
+  type AnyNodeId,
+  remapBodyFeatureAnnotations,
+  runAsSingleSceneHistoryStep,
+  sceneRegistry,
+  useScene,
+} from '@pascal-app/core'
+import { executeImprintBodyFace, executeSplitBodyFace } from '@pascal-app/core/modeling-operations'
 import {
   constrainPlanDraftPoint,
   isGridSnapActive,
@@ -19,6 +25,7 @@ import {
   bodyGeometryPatch,
   createFaceProjection,
   isBodyFaceImprintEligible,
+  isBodyFaceSplitEligible,
   resolveFaceDraftPolygon,
 } from './face-imprint-geometry'
 import { useBodyFaceDraftLifecycle } from './face-imprint-lifecycle'
@@ -26,6 +33,7 @@ import { BodyFaceImprintPreview } from './face-imprint-preview'
 import { resolveBodyFaceId } from './face-target'
 import { type BodyFaceDraft, useBodyToolOptions } from './options'
 import {
+  resolveArcDraft,
   resolveBodyDraftFeedback,
   resolveCircleDraft,
   resolveLineFaceDraft,
@@ -41,6 +49,8 @@ export function BodyFaceDraftTool({ bodyId, faceId }: BodyFaceDraft) {
     return node?.type === 'body' ? node : null
   })
   const primitive = useBodyToolOptions((state) => state.primitive)
+  const arcSegments = useBodyToolOptions((state) => state.arcSegments)
+  const polygonSides = useBodyToolOptions((state) => state.polygonSides)
   const outerRef = useRef<Group>(null)
   const targetRef = useRef<Object3D | null>(null)
   const pointsRef = useRef<BodyDraftPoint[]>([])
@@ -51,18 +61,21 @@ export function BodyFaceDraftTool({ bodyId, faceId }: BodyFaceDraft) {
     () => pointsRef.current.length > 0,
   )
   const face = body?.faces.find((candidate) => candidate.id === faceId) ?? null
+  const splitEligible =
+    (primitive === 'line' || primitive === 'arc') &&
+    Boolean(body && face && isBodyFaceSplitEligible(body, face.id))
+  const faceDraftEligible = Boolean(
+    body && face && (isBodyFaceImprintEligible(body, face.id) || splitEligible),
+  )
   const projection = useMemo(
-    () =>
-      body && face && isBodyFaceImprintEligible(body, face.id)
-        ? createFaceProjection(body, face.id)
-        : null,
-    [body, face],
+    () => (body && face && faceDraftEligible ? createFaceProjection(body, face.id) : null),
+    [body, face, faceDraftEligible],
   )
 
   useBodyFaceDraftLifecycle(
     bodyId,
     faceId,
-    Boolean(body && face && projection && isBodyFaceImprintEligible(body, face.id)),
+    Boolean(body && face && projection && faceDraftEligible),
   )
 
   useFrame(() => {
@@ -89,12 +102,19 @@ export function BodyFaceDraftTool({ bodyId, faceId }: BodyFaceDraft) {
 
   const feedback = useMemo(() => resolveBodyDraftFeedback(points, hover), [hover, points])
   const draftPolygon = useMemo(
-    () => resolveFaceDraftPolygon(primitive, points, hover, getLengthMeters()),
-    [getLengthMeters, hover, points, primitive],
+    () =>
+      resolveFaceDraftPolygon(
+        primitive,
+        points,
+        hover,
+        getLengthMeters(),
+        arcSegments,
+        polygonSides,
+      ),
+    [arcSegments, getLengthMeters, hover, points, polygonSides, primitive],
   )
   useEffect(() => {
-    if (!target || !body || !face || !projection || !isBodyFaceImprintEligible(body, face.id))
-      return
+    if (!target || !body || !face || !projection || !faceDraftEligible) return
     const previousCursor = gl.domElement.style.cursor
     gl.domElement.style.cursor = 'crosshair'
     pointsRef.current = []
@@ -139,17 +159,28 @@ export function BodyFaceDraftTool({ bodyId, faceId }: BodyFaceDraft) {
         ? snapLineDraftPoint(pointsRef.current, constrained, 0.12)
         : constrained
     }
-    const finish = (polygon: readonly BodyDraftPoint[]): boolean => {
-      const profile = polygon.map(projection.fromPlane)
+    const commitResult = (
+      result: {
+        body: NonNullable<typeof body>
+        topologyRemap: Parameters<typeof remapBodyFeatureAnnotations>[3]
+      },
+      selectedFaceId: string,
+    ): boolean => {
       try {
-        const result = executeImprintBodyFace(body, {
-          faceId: face.id,
-          profilePoints: profile,
+        runAsSingleSceneHistoryStep(useScene, () => {
+          const scene = useScene.getState()
+          const updates = remapBodyFeatureAnnotations(
+            scene.nodes,
+            body.id,
+            result.body,
+            result.topologyRemap,
+          )
+          scene.updateNodes([{ id: body.id, data: bodyGeometryPatch(result.body) }, ...updates])
         })
-        useScene.getState().updateNode(body.id, bodyGeometryPatch(result.body))
-        useBodyToolOptions.getState().setSelectedFace({
+        useBodyToolOptions.getState().setSelectedFeature({
           bodyId: body.id,
-          faceId: result.insetFaceId,
+          kind: 'face',
+          featureId: selectedFaceId,
         })
         useBodyToolOptions.getState().setFaceDraft(null)
         triggerSFX('sfx:structure-build')
@@ -160,6 +191,35 @@ export function BodyFaceDraftTool({ bodyId, faceId }: BodyFaceDraft) {
       } catch {
         return false
       }
+    }
+    const finish = (polygon: readonly BodyDraftPoint[]): boolean => {
+      const profile = polygon.map(projection.fromPlane)
+      try {
+        const result = executeImprintBodyFace(body, { faceId: face.id, profilePoints: profile })
+        return commitResult(result, result.insetFaceId)
+      } catch {
+        return false
+      }
+    }
+    const finishOpen = (path: readonly BodyDraftPoint[]): boolean => {
+      if (path.length < 2 || !splitEligible) return false
+      try {
+        const result = executeSplitBodyFace(body, {
+          faceId: face.id,
+          pathPoints: path.map(projection.fromPlane),
+        })
+        return commitResult(result, result.splitFaceId)
+      } catch {
+        return false
+      }
+    }
+    const resolveArc = (draft: readonly BodyDraftPoint[]) => {
+      const first = draft[0]
+      const second = draft[1]
+      const third = draft[2]
+      return first && second && third
+        ? resolveArcDraft(first, second, third, useBodyToolOptions.getState().arcSegments)
+        : null
     }
     const onMove = (event: PointerEvent) => {
       const point = resolvePoint(event)
@@ -188,6 +248,21 @@ export function BodyFaceDraftTool({ bodyId, faceId }: BodyFaceDraft) {
           const circle = resolveCircleDraft(first, point, getLengthMeters())
           if (circle) finish(circle)
         }
+      } else if (primitive === 'arc') {
+        if (current.length < 3) updatePoints([...current, point])
+      } else if (primitive === 'polygon') {
+        if (current.length === 0) updatePoints([point])
+        else if (first) {
+          const polygon = resolveFaceDraftPolygon(
+            primitive,
+            [first],
+            point,
+            getLengthMeters(),
+            arcSegments,
+            useBodyToolOptions.getState().polygonSides,
+          )
+          if (polygon) finish(polygon)
+        }
       } else if (current.length < 2) updatePoints([...current, point])
       else if (first && second) {
         const rectangle = resolveRectangleDraft(first, second, point, getLengthMeters())
@@ -197,14 +272,39 @@ export function BodyFaceDraftTool({ bodyId, faceId }: BodyFaceDraft) {
       if (current.length === 0) triggerSFX('sfx:structure-build-start')
     }
     const onKeyDown = (event: KeyboardEvent) => {
+      const isClose = event.key === 'c' || event.key === 'C'
+      const isEnter = event.key === 'Enter'
+      if (
+        primitive === 'arc' &&
+        (isEnter || (isClose && !(event.metaKey || event.ctrlKey || event.altKey)))
+      ) {
+        const arc = resolveArc(pointsRef.current)
+        if (isClose && arc) {
+          if (finish(arc)) {
+            event.preventDefault()
+            consume(event)
+          }
+          return
+        }
+        if (isEnter && arc && finishOpen(arc)) {
+          event.preventDefault()
+          consume(event)
+        }
+        return
+      }
       if (
         primitive === 'line' &&
-        (event.key === 'Enter' ||
-          ((event.key === 'c' || event.key === 'C') &&
-            !(event.metaKey || event.ctrlKey || event.altKey)))
+        (isEnter || (isClose && !(event.metaKey || event.ctrlKey || event.altKey)))
       ) {
         const lineFace = resolveLineFaceDraft(pointsRef.current)
-        if (lineFace && finish(lineFace)) {
+        if (lineFace) {
+          if (finish(lineFace)) {
+            event.preventDefault()
+            consume(event)
+          }
+          return
+        }
+        if (finishOpen(pointsRef.current)) {
           event.preventDefault()
           consume(event)
         }
@@ -236,17 +336,20 @@ export function BodyFaceDraftTool({ bodyId, faceId }: BodyFaceDraft) {
     }
   }, [
     body,
+    arcSegments,
     camera,
     clearLength,
     face,
+    faceDraftEligible,
     getLengthMeters,
     gl.domElement,
     primitive,
     projection,
+    splitEligible,
     target,
   ])
 
-  if (!target || !body || !face || !projection || !isBodyFaceImprintEligible(body, face.id)) {
+  if (!target || !body || !face || !projection || !faceDraftEligible) {
     return null
   }
   const content = (

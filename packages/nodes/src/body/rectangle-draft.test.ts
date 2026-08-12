@@ -6,8 +6,13 @@ import {
   pushPullBodyFace,
 } from '@pascal-app/core'
 import { bodyDefinition } from './definition'
-import { isBodyFaceImprintEligible } from './face-imprint-geometry'
+import {
+  isBodyFaceImprintEligible,
+  isBodyFaceSplitEligible,
+  resolveFaceDraftPolygon,
+} from './face-imprint-geometry'
 import { useBodyToolOptions } from './options'
+import { resolveRegularPolygonDraft } from './primitive-draft'
 import { resolveRectangleDraft } from './rectangle-draft'
 import { bodyToolUses3DInteraction } from './tool'
 
@@ -32,6 +37,29 @@ describe('resolveRectangleDraft', () => {
   test('returns null for a zero-length first edge', () => {
     expect(resolveRectangleDraft([1, 1], [1, 1], [2, 2], 1)).toBeNull()
   })
+})
+
+test('resolves a three-click Arc face from committed points without hover state', () => {
+  const draft = resolveFaceDraftPolygon(
+    'arc',
+    [
+      [0, 0],
+      [1, 1],
+      [2, 0],
+    ],
+    null,
+    null,
+  )
+  expect(draft).not.toBeNull()
+  expect(draft).toHaveLength(33)
+  expect(draft?.[0]).toEqual([0, 0])
+  expect(draft?.at(-1)).toEqual([2, 0])
+})
+
+test('resolves a two-click Polygon face draft with the typed radius', () => {
+  const draft = resolveFaceDraftPolygon('polygon', [[0, 0]], [2, 0], 1, undefined, 5)
+  expect(draft).toHaveLength(5)
+  expect(draft?.[0]).toEqual([1, 0])
 })
 
 describe('body tool view ownership', () => {
@@ -85,6 +113,13 @@ test('limits face imprint to line-edged faces on closed Bodies', () => {
   expect(isBodyFaceImprintEligible(closed, 'face:0')).toBe(true)
 })
 
+test('arms open line splits for planar faces while keeping imprint eligibility closed-only', () => {
+  const open = createRectangleBody({ width: 2, depth: 2 })
+  const closed = pushPullBodyFace(open, 'face:0', 1).body
+  expect(isBodyFaceSplitEligible(open, 'face:0')).toBe(true)
+  expect(isBodyFaceSplitEligible(closed, 'face:0')).toBe(true)
+})
+
 test('hands a face rectangle draft to existing Push/Pull for boss and recess', () => {
   const source = pushPullBodyFace(createRectangleBody({ width: 2, depth: 2 }), 'face:0', 1).body
   const draft = resolveRectangleDraft([0.5, 0.5], [1.5, 0.5], [1.5, 1.5], null)
@@ -103,6 +138,22 @@ test('hands a face rectangle draft to existing Push/Pull for boss and recess', (
   expect(
     getBodyLoopVertices(recess.body, `${inset.insetFaceId}:outer:2`).every(
       (point) => Math.abs(point[1] - 0.75) < 1e-9,
+    ),
+  ).toBe(true)
+})
+
+test('hands a regular Polygon profile to existing imprint and Push/Pull', () => {
+  const source = pushPullBodyFace(createRectangleBody({ width: 2, depth: 2 }), 'face:0', 1).body
+  const draft = resolveRegularPolygonDraft([0.5, 0.5], [0.75, 0.5], null, 5)
+  if (!draft) throw new Error('Expected Polygon draft')
+  const profile = draft.map(([x, z]): [number, number, number] => [x, 1, z])
+  const inset = imprintBodyFace(source, 'face:0', profile)
+  expect(inset.body.faces.some((face) => face.id === inset.insetFaceId)).toBe(true)
+
+  const boss = pushPullBodyFace(inset.body, inset.insetFaceId, 0.25)
+  expect(
+    getBodyLoopVertices(boss.body, `${inset.insetFaceId}:outer:2`).every(
+      (point) => Math.abs(point[1] - 1.25) < 1e-9,
     ),
   ).toBe(true)
 })

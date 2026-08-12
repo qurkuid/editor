@@ -20,7 +20,11 @@ import {
   associateSurfaceHit,
   createMeasurementSurfaceQuerySession,
 } from '../measurement/surface-query'
-import { isBodyFaceImprintEligible, isBodyFacePushPullEligible } from './face-imprint-geometry'
+import {
+  isBodyFaceImprintEligible,
+  isBodyFacePushPullEligible,
+  isBodyFaceSplitEligible,
+} from './face-imprint-geometry'
 import { useBodyToolOptions } from './options'
 import { resolvePushPullDistance } from './push-pull'
 import { PushPullFaceActions } from './push-pull-face-actions'
@@ -78,7 +82,9 @@ export function PushPullHandle({ autoStart = false, body, faceId, target }: Push
 
   const face = body.faces.find((candidate) => candidate.id === faceId) ?? null
   const eligible = faceId !== null && isBodyFacePushPullEligible(body, faceId)
-  const imprintEligible = face !== null && isBodyFaceImprintEligible(body, face.id)
+  const imprintEligible =
+    face !== null &&
+    (isBodyFaceImprintEligible(body, face.id) || isBodyFaceSplitEligible(body, face.id))
   const frame = useMemo(() => {
     if (!faceId) return null
     try {

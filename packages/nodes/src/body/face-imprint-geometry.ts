@@ -6,7 +6,7 @@ import {
   validateBodyTopology,
 } from '@pascal-app/core'
 import type { BodyPrimitive } from './options'
-import { resolveCircleDraft } from './primitive-draft'
+import { resolveArcDraft, resolveCircleDraft, resolveRegularPolygonDraft } from './primitive-draft'
 import type { BodyDraftPoint } from './rectangle-draft'
 import { resolveRectangleDraft } from './rectangle-draft'
 
@@ -22,10 +22,19 @@ export function resolveFaceDraftPolygon(
   points: readonly BodyDraftPoint[],
   hover: BodyDraftPoint | null,
   exactLength: number | null,
+  arcSegments?: number,
+  polygonSides?: number,
 ): BodyDraftPoint[] | null {
-  if (!hover) return null
   const first = points[0]
   const second = points[1]
+  if (primitive === 'arc' && first && second) {
+    const third = points[2] ?? hover
+    return third ? resolveArcDraft(first, second, third, arcSegments) : null
+  }
+  if (primitive === 'polygon' && first && !second && hover) {
+    return resolveRegularPolygonDraft(first, hover, exactLength, polygonSides)
+  }
+  if (!hover) return null
   if (primitive === 'rectangle' && first && second) {
     return resolveRectangleDraft(first, second, hover, exactLength)
   }
@@ -63,6 +72,17 @@ export function isBodyFaceImprintEligible(body: BodyNode, faceId: string): boole
   const edges = body.halfEdges.filter((edge) => edge.loopId === face.outerLoopId)
   return (
     edges.length >= 3 && edges.every((edge) => edge.twinId !== null && edge.curveId === undefined)
+  )
+}
+
+export function isBodyFaceSplitEligible(body: BodyNode, faceId: string): boolean {
+  const face = body.faces.find((candidate) => candidate.id === faceId)
+  if (!face || face.innerLoopIds.length > 0 || !validateBodyTopology(body).valid) return false
+  const edges = body.halfEdges.filter((edge) => edge.loopId === face.outerLoopId)
+  return (
+    edges.length >= 3 &&
+    edges.every((edge) => edge.curveId === undefined) &&
+    createFaceProjection(body, faceId) !== null
   )
 }
 
