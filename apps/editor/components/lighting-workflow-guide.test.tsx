@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { LightingWorkflowGuide, resolveLightingItems } from './lighting-tab'
+import { filterLightingItems, LightingWorkflowGuide, resolveLightingItems } from './lighting-tab'
 
 test('shows the complete circuit to switch workflow and current progress', () => {
   const markup = renderToStaticMarkup(
@@ -44,4 +44,26 @@ test('keeps SketchUp lighting items alongside built-in lights', () => {
   // Then: both sources stay selectable.
   expect(items.some((item) => item.id === 'sketchup-pendant')).toBe(true)
   expect(items.some((item) => item.id === 'recessed-light')).toBe(true)
+})
+
+test('filters lighting items by name and recent selection', () => {
+  const items = resolveLightingItems([
+    {
+      id: 'sketchup-pendant',
+      category: '조명',
+      name: 'SketchUp Pendant',
+      src: '/pendant.glb',
+      dimensions: [1, 1, 1],
+      offset: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
+    },
+  ])
+
+  expect(filterLightingItems(items, 'pendant', [], false).map((item) => item.id)).toEqual([
+    'sketchup-pendant',
+  ])
+  expect(filterLightingItems(items, '', ['recessed-light'], true).map((item) => item.id)).toEqual([
+    'recessed-light',
+  ])
 })

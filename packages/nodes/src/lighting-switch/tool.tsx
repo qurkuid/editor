@@ -13,6 +13,7 @@ export default function LightingSwitchTool() {
   const circuitId = useLightingToolOptions((state) => state.circuitId)
   const switchHeight = useLightingToolOptions((state) => state.switchHeight)
   const gangCount = useLightingToolOptions((state) => state.switchGangCount)
+  const circuitIds = useLightingToolOptions((state) => state.switchCircuitIds)
   const switchShape = useLightingToolOptions((state) => state.switchShape)
   const ref = useRef<Group>(null)
   const [visible, setVisible] = useState(false)
@@ -20,11 +21,12 @@ export default function LightingSwitchTool() {
     () =>
       LightingSwitchNode.parse({
         circuitId,
+        circuitIds,
         position: [0, switchHeight, 0],
         gangCount,
         switchShape,
       }),
-    [circuitId, gangCount, switchHeight, switchShape],
+    [circuitId, circuitIds, gangCount, switchHeight, switchShape],
   )
   useEffect(() => {
     if (!levelId) return
@@ -47,6 +49,7 @@ export default function LightingSwitchTool() {
         parentId: levelId,
         position: [snap(event.localPosition[0]), switchHeight, snap(event.localPosition[2])],
         circuitId,
+        circuitIds,
         gangCount,
         switchShape,
       })
@@ -62,7 +65,7 @@ export default function LightingSwitchTool() {
       emitter.off('grid:move', onMove)
       emitter.off('grid:click', onClick)
     }
-  }, [circuitId, gangCount, levelId, switchHeight, switchShape])
+  }, [circuitId, circuitIds, gangCount, levelId, switchHeight, switchShape])
   if (!levelId) return null
   return (
     <group layers={EDITOR_LAYER} ref={ref} visible={visible}>

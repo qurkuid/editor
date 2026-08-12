@@ -24,6 +24,11 @@ export const lightingDictionary = {
 
   'lighting.circuits.heading': { ko: '회로', en: 'Circuits' },
   'lighting.circuits.add': { ko: '추가', en: 'Add' },
+  'lighting.circuits.addToSwitch': { ko: '이 스위치에 회로 추가', en: 'Add circuit to switch' },
+  'lighting.circuits.removeFromSwitch': {
+    ko: '이 스위치에서 회로 제거',
+    en: 'Remove circuit from switch',
+  },
   'lighting.circuits.empty': {
     ko: '아직 회로가 없습니다. 여러 조명을 함께 제어하려면 회로를 추가하세요.',
     en: 'No circuits yet. Add one to control several lights together.',
@@ -32,10 +37,21 @@ export const lightingDictionary = {
   'lighting.circuits.defaultName': { ko: '회로 {n}', en: 'Circuit {n}' },
   'lighting.circuits.turnOff': { ko: '끄기', en: 'Turn off' },
   'lighting.circuits.turnOn': { ko: '켜기', en: 'Turn on' },
+  'lighting.circuits.noFixtures': { ko: '배치된 조명 없음', en: 'No placed lights' },
+  'lighting.circuits.dropFixture': {
+    ko: '여기에 놓아 회로 이동',
+    en: 'Drop here to move circuit',
+  },
   'lighting.circuits.summary': {
     ko: '조명 {lights}개 · 스위치 {switches}개 · {state}',
     en: '{lights} lights · {switches} switches · {state}',
   },
+  'lighting.switches.heading': { ko: '스위치와 회로', en: 'Switches and circuits' },
+  'lighting.switches.empty': {
+    ko: '아직 스위치가 없습니다. 아래에서 스위치를 배치하면 전용 회로가 함께 생성됩니다.',
+    en: 'No switches yet. Placing one below creates its dedicated circuits.',
+  },
+  'lighting.switches.defaultName': { ko: '스위치 {n}', en: 'Switch {n}' },
 
   'lighting.placeLights.heading': { ko: '조명 배치', en: 'Place lights' },
   'lighting.lightType.point.label': { ko: '포인트', en: 'Point' },
@@ -58,14 +74,24 @@ export const lightingDictionary = {
 
   'lighting.item.heading': { ko: '조명 아이템 (선택)', en: 'Fixture model (optional)' },
   'lighting.item.none': { ko: '없음', en: 'None' },
+  'lighting.item.search': { ko: '조명 검색', en: 'Search lights' },
+  'lighting.item.recent': { ko: '최근', en: 'Recent' },
+  'lighting.item.emptySearch': { ko: '일치하는 조명이 없습니다.', en: 'No matching lights.' },
+  'lighting.fixture.defaultName': { ko: '조명 {n}', en: 'Light {n}' },
+  'lighting.fixture.select': { ko: '{name} 선택', en: 'Select {name}' },
 
   'lighting.placeSwitch.heading': { ko: '스위치 배치', en: 'Place switch' },
   'lighting.placeSwitch.wallSwitch': { ko: '벽 스위치', en: 'Wall switch' },
   'lighting.placeSwitch.desc': {
-    ko: '선택된 회로를 클릭으로 ON/OFF',
-    en: 'Click to turn the selected circuit ON/OFF',
+    ko: '스위치마다 독립된 구별 회로를 생성',
+    en: 'Creates independent gang circuits for each switch',
+  },
+  'lighting.placeSwitch.autoCircuit': {
+    ko: '배치할 때 이 스위치에 속한 구별 전용 회로가 함께 생성됩니다.',
+    en: 'Placement creates one dedicated circuit per gang owned by this switch.',
   },
   'lighting.placeSwitch.count': { ko: '스위치 수', en: 'Switch count' },
+  'lighting.placeSwitch.settings': { ko: '스위치 설정', en: 'Switch settings' },
   'lighting.placeSwitch.shape': { ko: '모양', en: 'Shape' },
   'lighting.placeSwitch.rectangle': { ko: '사각', en: 'Rectangle' },
   'lighting.placeSwitch.round': { ko: '원형', en: 'Round' },

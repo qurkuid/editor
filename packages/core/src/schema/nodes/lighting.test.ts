@@ -19,9 +19,19 @@ describe('lighting node schemas', () => {
   })
 
   test('accepts multi-gang round wall switches', () => {
-    const lightingSwitch = LightingSwitchNode.parse({ gangCount: 4, switchShape: 'round' })
+    const lightingSwitch = LightingSwitchNode.parse({
+      circuitIds: ['lighting-circuit_1', 'lighting-circuit_2', 'lighting-circuit_3', null],
+      gangCount: 4,
+      switchShape: 'round',
+    })
 
     expect(lightingSwitch.gangCount).toBe(4)
+    expect(lightingSwitch.circuitIds).toEqual([
+      'lighting-circuit_1',
+      'lighting-circuit_2',
+      'lighting-circuit_3',
+      null,
+    ])
     expect(lightingSwitch.switchShape).toBe('round')
   })
 

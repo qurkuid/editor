@@ -10,6 +10,7 @@ import {
 import { useNodeEvents } from '@pascal-app/viewer'
 import { useRef } from 'react'
 import type { Group } from 'three'
+import { lightingSwitchGangObjectName, resolveLightingSwitchCircuitIds } from './circuits'
 
 export function LightingSwitchVisual({
   node,
@@ -18,12 +19,13 @@ export function LightingSwitchVisual({
   node: LightingSwitchNode
   preview?: boolean
 }) {
-  const circuit = useScene((state) =>
-    node.circuitId
-      ? (state.nodes[node.circuitId as AnyNodeId] as LightingCircuitNode | undefined)
-      : undefined,
-  )
-  const on = preview || circuit?.enabled === true
+  const circuitIds = resolveLightingSwitchCircuitIds(node)
+  const nodes = useScene((state) => state.nodes)
+  const circuitStates = circuitIds.map((circuitId) => {
+    if (!circuitId) return false
+    const circuit = nodes[circuitId as AnyNodeId] as LightingCircuitNode | undefined
+    return circuit?.enabled === true
+  })
   const width = Math.max(0.16, node.gangCount * 0.075 + 0.085)
   return (
     <group rotation={[0, node.rotation, 0]}>
@@ -33,9 +35,11 @@ export function LightingSwitchVisual({
       </mesh>
       {Array.from({ length: node.gangCount }, (_, index) => {
         const x = (index - (node.gangCount - 1) / 2) * 0.075
+        const on = preview || circuitStates[index] === true
         return (
           <mesh
             key={x}
+            name={lightingSwitchGangObjectName(index)}
             position={[x, on ? 0.015 : -0.015, 0.025]}
             rotation={
               node.switchShape === 'round' ? [Math.PI / 2, 0, 0] : [on ? -0.12 : 0.12, 0, 0]

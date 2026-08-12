@@ -15,6 +15,7 @@ export default function FloorplanLightingSwitchTool({
   const circuitId = useLightingToolOptions((state) => state.circuitId)
   const switchHeight = useLightingToolOptions((state) => state.switchHeight)
   const gangCount = useLightingToolOptions((state) => state.switchGangCount)
+  const circuitIds = useLightingToolOptions((state) => state.switchCircuitIds)
   const switchShape = useLightingToolOptions((state) => state.switchShape)
   const ref = useRef<SVGGElement>(null)
   const [point, setPoint] = useState<[number, number] | null>(null)
@@ -49,6 +50,7 @@ export default function FloorplanLightingSwitchTool({
         parentId: activeLevelId,
         position: [next[0], switchHeight, next[1]],
         circuitId,
+        circuitIds,
         gangCount,
         switchShape,
       })
@@ -66,6 +68,7 @@ export default function FloorplanLightingSwitchTool({
   }, [
     activeLevelId,
     circuitId,
+    circuitIds,
     finishTool,
     gangCount,
     gridSnapStep,

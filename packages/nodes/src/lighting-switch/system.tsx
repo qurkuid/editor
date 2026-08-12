@@ -2,11 +2,13 @@
 
 import { type AnyNodeId, emitter, type LightingSwitchEvent, useScene } from '@pascal-app/core'
 import { useEffect } from 'react'
+import { resolveLightingSwitchCircuitIds, resolveLightingSwitchGangIndex } from './circuits'
 
 export default function LightingSwitchSystem() {
   useEffect(() => {
     const toggle = (event: LightingSwitchEvent) => {
-      const circuitId = event.node.circuitId
+      const gangIndex = resolveLightingSwitchGangIndex(event.object.name, event.node.gangCount)
+      const circuitId = resolveLightingSwitchCircuitIds(event.node)[gangIndex]
       if (!circuitId) return
       const circuit = useScene.getState().nodes[circuitId as AnyNodeId]
       if (circuit?.type !== 'lighting-circuit') return

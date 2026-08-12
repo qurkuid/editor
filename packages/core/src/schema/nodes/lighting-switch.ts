@@ -7,6 +7,7 @@ export const LightingSwitchNode = BaseNode.extend({
   position: z.tuple([z.number(), z.number(), z.number()]).default([0, 1.2, 0]),
   rotation: z.number().default(0),
   circuitId: z.string().nullable().default(null),
+  circuitIds: z.array(z.string().nullable()).max(4).default([]),
   gangCount: z.number().int().min(1).max(4).default(1),
   switchShape: z.enum(['rectangle', 'round']).default('rectangle'),
 })
