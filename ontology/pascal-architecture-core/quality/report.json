@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "packId": "pascal-architecture-core",
+  "version": "1.0.0",
+  "checks": [
+    { "id": "stable-ids", "status": "pass", "detail": "Pascal ids are local stable identifiers." },
+    { "id": "referential-integrity", "status": "pass", "detail": "Every edge and evidence reference resolves." },
+    { "id": "external-mappings", "status": "pass", "detail": "BOT, IFC, and bSDD values are mappings only." },
+    { "id": "evidence-coverage", "status": "pass", "detail": "Every queryable class and rule has evidence." }
+  ]
+}

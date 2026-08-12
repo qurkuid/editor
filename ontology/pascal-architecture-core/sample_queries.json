@@ -1,0 +1,93 @@
+{
+  "queries": [
+    { "query": "wall", "maxResults": 5, "maxNodes": 10 },
+    { "nodeId": "window_1", "maxResults": 5, "maxNodes": 10 },
+    { "classId": "pascal:rule/window-hosted-by-wall", "maxNodes": 5 }
+  ],
+  "competencyQuestions": [
+    {
+      "id": "CQ-01",
+      "question": "현재 선택에 허용되는 모델링 연산은 무엇이며 왜 그런가?",
+      "query": { "classId": "pascal:architecture/body" },
+      "expectedIds": ["pascal:architecture/body"],
+      "expectedEvidenceIds": ["evidence:body-push-pull", "evidence:operation-units"]
+    },
+    {
+      "id": "CQ-02",
+      "question": "이 face를 Push/Pull하면 어떤 face/material/annotation이 유지·분할·삭제되는가?",
+      "query": { "classId": "pascal:affordance/pushPullBodyFace" },
+      "expectedIds": ["pascal:affordance/pushPullBodyFace"],
+      "expectedEvidenceIds": ["evidence:body-push-pull"]
+    },
+    {
+      "id": "CQ-03",
+      "question": "이 opening을 host하는 element는 무엇인가?",
+      "query": { "classId": "pascal:architecture/window" },
+      "expectedIds": ["pascal:architecture/window"],
+      "expectedEvidenceIds": ["evidence:window-rule"]
+    },
+    {
+      "id": "CQ-04",
+      "question": "이 두 space는 어떤 경계와 opening을 통해 연결되는가?",
+      "query": { "classId": "pascal:architecture/space" },
+      "expectedIds": ["pascal:architecture/space"],
+      "expectedEvidenceIds": ["evidence:space-boundary"]
+    },
+    {
+      "id": "CQ-05",
+      "question": "이 node는 BOT/IFC/bSDD에서 무엇에 대응하며 mapping 근거는 무엇인가?",
+      "query": { "classId": "pascal:architecture/wall" },
+      "expectedIds": ["pascal:architecture/wall"],
+      "expectedEvidenceIds": ["evidence:wall-hosting"]
+    },
+    {
+      "id": "CQ-06",
+      "question": "이 요소의 길이·면적·체적은 어떤 단위와 공차로 계산되었는가?",
+      "query": { "classId": "pascal:architecture/body" },
+      "expectedIds": ["pascal:architecture/body"],
+      "expectedEvidenceIds": ["evidence:body-push-pull", "evidence:operation-units"]
+    },
+    {
+      "id": "CQ-07",
+      "question": "이 MEP terminal은 어느 run/equipment에 연결되는가?",
+      "query": { "classId": "pascal:architecture/mep-terminal" },
+      "expectedIds": ["pascal:architecture/mep-terminal"],
+      "expectedEvidenceIds": ["evidence:mep-terminal"]
+    },
+    {
+      "id": "CQ-08",
+      "question": "이 설계 규칙은 invariant, guidance, jurisdictional 중 무엇인가?",
+      "query": { "classId": "pascal:rule/window-hosted-by-wall" },
+      "expectedIds": ["pascal:rule/window-hosted-by-wall"],
+      "expectedEvidenceIds": ["evidence:window-rule"]
+    },
+    {
+      "id": "CQ-09",
+      "question": "적용된 규칙의 출처, 관할, 버전, confidence는 무엇인가?",
+      "query": { "classId": "pascal:rule/ontology-version-pinned" },
+      "expectedIds": ["pascal:rule/ontology-version-pinned"],
+      "expectedEvidenceIds": ["evidence:pack-version"]
+    },
+    {
+      "id": "CQ-10",
+      "question": "규칙 위반을 수정할 수 있는 deterministic operation은 무엇인가?",
+      "query": { "classId": "pascal:affordance/pushPullBodyFace" },
+      "expectedIds": ["pascal:affordance/pushPullBodyFace"],
+      "expectedEvidenceIds": ["evidence:body-push-pull"]
+    },
+    {
+      "id": "CQ-11",
+      "question": "제안 수정의 affected node/feature와 Undo 범위는 무엇인가?",
+      "query": { "classId": "pascal:rule/modeling-operation-contract" },
+      "expectedIds": ["pascal:rule/modeling-operation-contract"],
+      "expectedEvidenceIds": ["evidence:operation-contract"]
+    },
+    {
+      "id": "CQ-12",
+      "question": "pack version을 바꾸면 어떤 classification 또는 validation 결과가 달라지는가?",
+      "query": { "classId": "pascal:rule/ontology-version-pinned" },
+      "expectedIds": ["pascal:rule/ontology-version-pinned"],
+      "expectedEvidenceIds": ["evidence:pack-version"]
+    }
+  ]
+}

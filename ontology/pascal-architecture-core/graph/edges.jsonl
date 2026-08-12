@@ -1,0 +1,3 @@
+{"id":"edge:body-push-pull","sourceId":"pascal:affordance/pushPullBodyFace","targetId":"pascal:architecture/body","predicate":"affords","evidenceIds":["evidence:body-push-pull"]}
+{"id":"edge:window-hosted-by-wall","sourceId":"pascal:architecture/window","targetId":"pascal:architecture/wall","predicate":"hostedBy","evidenceIds":["evidence:wall-hosting","evidence:window-rule"]}
+{"id":"edge:window-hosting-rule","sourceId":"pascal:rule/window-hosted-by-wall","targetId":"pascal:architecture/window","predicate":"constrains","evidenceIds":["evidence:window-rule"]}
