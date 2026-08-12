@@ -13,3 +13,8 @@ test('renders an accessible Offset only when the 3D caller provides the action',
   expect(floorplanMenu).not.toContain('aria-label="Offset"')
   expect(floorplanMenu).not.toContain('title="Offset"')
 })
+
+test('renders the Pascal item replacement action when provided', () => {
+  const markup = renderToStaticMarkup(<NodeActionMenu onReplace={() => {}} />)
+  expect(markup).toContain('aria-label="Pascal 아이템으로 교체"')
+})

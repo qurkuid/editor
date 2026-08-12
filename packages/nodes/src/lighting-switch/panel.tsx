@@ -69,6 +69,37 @@ export default function LightingSwitchPanel() {
           onClick={() => circuit && updateNode(circuit.id, { enabled: !circuit.enabled })}
         />
       </PanelSection>
+      <PanelSection title={t('lighting.placeSwitch.shape')}>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-xs text-muted-foreground">
+            {t('lighting.placeSwitch.count')}
+            <select
+              className="mt-1 w-full rounded-md border border-border bg-background px-2 py-2 text-sm text-foreground"
+              onChange={(event) => update({ gangCount: Number(event.target.value) })}
+              value={node.gangCount}
+            >
+              {[1, 2, 3, 4].map((count) => (
+                <option key={count} value={count}>
+                  {count}구
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-muted-foreground">
+            {t('lighting.placeSwitch.shape')}
+            <select
+              className="mt-1 w-full rounded-md border border-border bg-background px-2 py-2 text-sm text-foreground"
+              onChange={(event) =>
+                update({ switchShape: event.target.value === 'round' ? 'round' : 'rectangle' })
+              }
+              value={node.switchShape}
+            >
+              <option value="rectangle">{t('lighting.placeSwitch.rectangle')}</option>
+              <option value="round">{t('lighting.placeSwitch.round')}</option>
+            </select>
+          </label>
+        </div>
+      </PanelSection>
       <PanelSection title={t('common.position')}>
         {(['X', 'Y', 'Z'] as const).map((label, index) => (
           <SliderControl

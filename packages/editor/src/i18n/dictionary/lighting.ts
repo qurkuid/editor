@@ -65,4 +65,8 @@ export const lightingDictionary = {
     ko: '선택된 회로를 클릭으로 ON/OFF',
     en: 'Click to turn the selected circuit ON/OFF',
   },
+  'lighting.placeSwitch.count': { ko: '스위치 수', en: 'Switch count' },
+  'lighting.placeSwitch.shape': { ko: '모양', en: 'Shape' },
+  'lighting.placeSwitch.rectangle': { ko: '사각', en: 'Rectangle' },
+  'lighting.placeSwitch.round': { ko: '원형', en: 'Round' },
 } as const satisfies Dictionary

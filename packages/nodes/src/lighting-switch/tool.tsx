@@ -12,11 +12,19 @@ export default function LightingSwitchTool() {
   const levelId = useViewer((state) => state.selection.levelId)
   const circuitId = useLightingToolOptions((state) => state.circuitId)
   const switchHeight = useLightingToolOptions((state) => state.switchHeight)
+  const gangCount = useLightingToolOptions((state) => state.switchGangCount)
+  const switchShape = useLightingToolOptions((state) => state.switchShape)
   const ref = useRef<Group>(null)
   const [visible, setVisible] = useState(false)
   const preview = useMemo(
-    () => LightingSwitchNode.parse({ circuitId, position: [0, switchHeight, 0] }),
-    [circuitId, switchHeight],
+    () =>
+      LightingSwitchNode.parse({
+        circuitId,
+        position: [0, switchHeight, 0],
+        gangCount,
+        switchShape,
+      }),
+    [circuitId, gangCount, switchHeight, switchShape],
   )
   useEffect(() => {
     if (!levelId) return
@@ -39,6 +47,8 @@ export default function LightingSwitchTool() {
         parentId: levelId,
         position: [snap(event.localPosition[0]), switchHeight, snap(event.localPosition[2])],
         circuitId,
+        gangCount,
+        switchShape,
       })
       useScene.getState().createNode(node, levelId)
       useViewer.getState().setSelection({ selectedIds: [node.id] })
@@ -52,7 +62,7 @@ export default function LightingSwitchTool() {
       emitter.off('grid:move', onMove)
       emitter.off('grid:click', onClick)
     }
-  }, [circuitId, levelId, switchHeight])
+  }, [circuitId, gangCount, levelId, switchHeight, switchShape])
   if (!levelId) return null
   return (
     <group layers={EDITOR_LAYER} ref={ref} visible={visible}>

@@ -14,6 +14,15 @@ describe('lighting node schemas', () => {
     expect(fixture.circuitId).toBe(circuit.id)
     expect(lightingSwitch.position).toEqual([0, 1.2, 0])
     expect(lightingSwitch.circuitId).toBe(circuit.id)
+    expect(lightingSwitch.gangCount).toBe(1)
+    expect(lightingSwitch.switchShape).toBe('rectangle')
+  })
+
+  test('accepts multi-gang round wall switches', () => {
+    const lightingSwitch = LightingSwitchNode.parse({ gangCount: 4, switchShape: 'round' })
+
+    expect(lightingSwitch.gangCount).toBe(4)
+    expect(lightingSwitch.switchShape).toBe('round')
   })
 
   test('rejects invalid photometric values', () => {

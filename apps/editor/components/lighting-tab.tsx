@@ -8,9 +8,10 @@ import {
   type LightingFixtureNode,
   type LightingSwitchNode,
   resolveLightingFixtureCount,
+  runAsSingleSceneHistoryStep,
   useScene,
 } from '@pascal-app/core'
-import { useEditor, useT } from '@pascal-app/editor'
+import { CATALOG_ITEMS, lightingReplacementNode, useEditor, useT } from '@pascal-app/editor'
 import { useLightingToolOptions } from '@pascal-app/nodes'
 import { useViewer } from '@pascal-app/viewer'
 import {
@@ -34,6 +35,15 @@ function activateLightingTool(tool: 'lighting-fixture' | 'lighting-switch') {
   editor.setCatalogCategory(null)
   editor.setMode('build')
   editor.setTool(tool)
+}
+
+export function resolveLightingItems(remoteItems: readonly AssetInput[]): readonly AssetInput[] {
+  const remoteLights = remoteItems.filter((item) => item.category === '조명')
+  const items = new Map(
+    CATALOG_ITEMS.filter((item) => item.tags?.includes('lighting')).map((item) => [item.id, item]),
+  )
+  for (const item of remoteLights) items.set(item.id, item)
+  return [...items.values()]
 }
 
 type LightingWorkflowGuideProps = {
@@ -106,7 +116,10 @@ export function LightingWorkflowGuide({
 function LightingItemPicker() {
   const t = useT()
   const itemAsset = useLightingToolOptions((state) => state.itemAsset)
-  const [items, setItems] = useState<AssetInput[]>([])
+  const replacementTargetId = useEditor((state) => state.replacementTargetId)
+  const setReplacementTargetId = useEditor((state) => state.setReplacementTargetId)
+  const setMode = useEditor((state) => state.setMode)
+  const [items, setItems] = useState<readonly AssetInput[]>(() => resolveLightingItems([]))
 
   useEffect(() => {
     let cancelled = false
@@ -116,7 +129,7 @@ function LightingItemPicker() {
         if (!res.ok) return
         const data = (await res.json()) as { items?: AssetInput[] }
         if (!cancelled) {
-          setItems((data.items ?? []).filter((item) => item.category === '조명'))
+          setItems(resolveLightingItems(data.items ?? []))
         }
       } catch {
         // No catalog — bare light placement keeps working without it.
@@ -131,14 +144,17 @@ function LightingItemPicker() {
   return (
     <div className="mt-2">
       <p className="mb-1 text-[10px] text-muted-foreground">{t('lighting.item.heading')}</p>
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
+      <div className="grid max-h-[286px] grid-cols-4 gap-1.5 overflow-y-auto pr-1">
         <button
           aria-pressed={itemAsset === null}
           className={cn(
-            'flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md border border-border text-[9px] text-muted-foreground hover:bg-muted',
+            'flex aspect-square min-w-0 flex-col items-center justify-center rounded-md border border-border text-[9px] text-muted-foreground hover:bg-muted',
             itemAsset === null && 'border-amber-400 bg-amber-500/10 text-amber-200',
           )}
-          onClick={() => useLightingToolOptions.getState().setItemAsset(null)}
+          onClick={() => {
+            if (replacementTargetId) setReplacementTargetId(null)
+            useLightingToolOptions.getState().setItemAsset(null)
+          }}
           type="button"
         >
           {t('lighting.item.none')}
@@ -149,11 +165,27 @@ function LightingItemPicker() {
             <button
               aria-pressed={selected}
               className={cn(
-                'h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border hover:bg-muted',
+                'aspect-square min-w-0 overflow-hidden rounded-md border border-border hover:bg-muted',
                 selected && 'border-amber-400 bg-amber-500/10',
               )}
               key={item.id}
-              onClick={() => useLightingToolOptions.getState().setItemAsset(selected ? null : item)}
+              onClick={() => {
+                const replacementTarget = replacementTargetId
+                  ? useScene.getState().nodes[replacementTargetId]
+                  : null
+                if (replacementTarget?.type === 'body') {
+                  const replacement = lightingReplacementNode(replacementTarget, item)
+                  runAsSingleSceneHistoryStep(useScene, () => {
+                    useScene.getState().createNode(replacement)
+                    useScene.getState().deleteNode(replacementTarget.id)
+                  })
+                  setReplacementTargetId(null)
+                  setMode('select')
+                  useViewer.getState().setSelection({ selectedIds: [replacement.id], zoneId: null })
+                  return
+                }
+                useLightingToolOptions.getState().setItemAsset(selected ? null : item)
+              }}
               title={item.name}
               type="button"
             >
@@ -179,6 +211,8 @@ export function LightingTab() {
   const circuitId = useLightingToolOptions((state) => state.circuitId)
   const fixtureHeight = useLightingToolOptions((state) => state.fixtureHeight)
   const switchHeight = useLightingToolOptions((state) => state.switchHeight)
+  const switchGangCount = useLightingToolOptions((state) => state.switchGangCount)
+  const switchShape = useLightingToolOptions((state) => state.switchShape)
   const placement = useLightingToolOptions((state) => state.placement)
   const arrayCount = useLightingToolOptions((state) => state.arrayCount)
   const nodes = useScene((state) => state.nodes)
@@ -355,7 +389,6 @@ export function LightingTab() {
           })}
         </div>
       </section>
-
       <section className="mb-5">
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t('lighting.placeLights.heading')}
@@ -401,6 +434,83 @@ export function LightingTab() {
             </button>
           ))}
         </div>
+        <section className="mt-3">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t('lighting.placeSwitch.heading')}
+          </h3>
+          <button
+            className={cn(
+              'flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-muted',
+              mode === 'build' &&
+                activeTool === 'lighting-switch' &&
+                'border-teal-400 bg-teal-500/10',
+            )}
+            disabled={!levelId || !circuitId}
+            onClick={() => activateLightingTool('lighting-switch')}
+            type="button"
+          >
+            <ToggleLeft className="h-5 w-5 text-teal-400" />
+            <span>
+              <span className="block font-medium">{t('lighting.placeSwitch.wallSwitch')}</span>
+              <span className="block text-xs text-muted-foreground">
+                {t('lighting.placeSwitch.desc')}
+              </span>
+            </span>
+          </button>
+          <div className="mt-2 grid grid-cols-2 gap-2 rounded-md border border-border bg-background/40 p-2">
+            <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              {t('lighting.placeSwitch.count')}
+              <select
+                aria-label={t('lighting.placeSwitch.count')}
+                className="rounded-md border border-border bg-background px-2 py-1 text-foreground"
+                onChange={(event) =>
+                  useLightingToolOptions.getState().setSwitchGangCount(Number(event.target.value))
+                }
+                value={switchGangCount}
+              >
+                {[1, 2, 3, 4].map((count) => (
+                  <option key={count} value={count}>
+                    {count}구
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex items-center gap-1">
+              {(['rectangle', 'round'] as const).map((shape) => (
+                <button
+                  aria-pressed={switchShape === shape}
+                  className={cn(
+                    'flex-1 rounded border border-border px-2 py-1 text-[11px] hover:bg-muted',
+                    switchShape === shape && 'border-teal-400 bg-teal-500/10 text-teal-200',
+                  )}
+                  key={shape}
+                  onClick={() => useLightingToolOptions.getState().setSwitchShape(shape)}
+                  type="button"
+                >
+                  {t(
+                    shape === 'rectangle'
+                      ? 'lighting.placeSwitch.rectangle'
+                      : 'lighting.placeSwitch.round',
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            {t('lighting.mountHeight')}
+            <input
+              className="w-20 rounded-md border border-border bg-background px-2 py-1 text-right text-foreground"
+              min={0.1}
+              onChange={(event) =>
+                useLightingToolOptions.getState().setSwitchHeight(Number(event.target.value))
+              }
+              step={0.1}
+              type="number"
+              value={switchHeight}
+            />
+            <span>m</span>
+          </label>
+        </section>
         {(lightType === 'point' || lightType === 'spot') && (
           <div className="mt-2 rounded-md border border-border bg-background/40 p-2">
             <div className="flex items-center gap-1.5">
@@ -453,45 +563,6 @@ export function LightingTab() {
             step={0.1}
             type="number"
             value={fixtureHeight}
-          />
-          <span>m</span>
-        </label>
-      </section>
-
-      <section>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t('lighting.placeSwitch.heading')}
-        </h3>
-        <button
-          className={cn(
-            'flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-muted',
-            mode === 'build' &&
-              activeTool === 'lighting-switch' &&
-              'border-teal-400 bg-teal-500/10',
-          )}
-          disabled={!levelId || !circuitId}
-          onClick={() => activateLightingTool('lighting-switch')}
-          type="button"
-        >
-          <ToggleLeft className="h-5 w-5 text-teal-400" />
-          <span>
-            <span className="block font-medium">{t('lighting.placeSwitch.wallSwitch')}</span>
-            <span className="block text-xs text-muted-foreground">
-              {t('lighting.placeSwitch.desc')}
-            </span>
-          </span>
-        </button>
-        <label className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-          {t('lighting.mountHeight')}
-          <input
-            className="w-20 rounded-md border border-border bg-background px-2 py-1 text-right text-foreground"
-            min={0.1}
-            onChange={(event) =>
-              useLightingToolOptions.getState().setSwitchHeight(Number(event.target.value))
-            }
-            step={0.1}
-            type="number"
-            value={switchHeight}
           />
           <span>m</span>
         </label>

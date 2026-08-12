@@ -11,4 +11,13 @@ describe('lighting switch floorplan', () => {
     if (geometry.kind !== 'group') throw new Error('expected group')
     expect(geometry.children[0]).toMatchObject({ kind: 'rect', x: 1.38, y: 2.42 })
   })
+
+  test('renders one control per gang with the selected shape', () => {
+    const lightingSwitch = LightingSwitchNode.parse({ gangCount: 3, switchShape: 'round' })
+    const geometry = buildLightingSwitchFloorplan(lightingSwitch)
+
+    expect(geometry.kind).toBe('group')
+    if (geometry.kind !== 'group') throw new Error('expected group')
+    expect(geometry.children.filter((child) => child.kind === 'circle')).toHaveLength(3)
+  })
 })

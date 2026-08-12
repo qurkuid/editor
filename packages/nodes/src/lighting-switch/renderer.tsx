@@ -24,20 +24,36 @@ export function LightingSwitchVisual({
       : undefined,
   )
   const on = preview || circuit?.enabled === true
+  const width = Math.max(0.16, node.gangCount * 0.075 + 0.085)
   return (
     <group rotation={[0, node.rotation, 0]}>
       <mesh castShadow>
-        <boxGeometry args={[0.16, 0.24, 0.035]} />
+        <boxGeometry args={[width, 0.24, 0.035]} />
         <meshStandardMaterial color="#e7e5e4" opacity={preview ? 0.55 : 1} transparent={preview} />
       </mesh>
-      <mesh position={[0, on ? 0.015 : -0.015, 0.025]} rotation={[on ? -0.12 : 0.12, 0, 0]}>
-        <boxGeometry args={[0.07, 0.12, 0.025]} />
-        <meshStandardMaterial
-          color={on ? '#14b8a6' : '#78716c'}
-          emissive={on ? '#0f766e' : '#000000'}
-          emissiveIntensity={on ? 0.4 : 0}
-        />
-      </mesh>
+      {Array.from({ length: node.gangCount }, (_, index) => {
+        const x = (index - (node.gangCount - 1) / 2) * 0.075
+        return (
+          <mesh
+            key={x}
+            position={[x, on ? 0.015 : -0.015, 0.025]}
+            rotation={
+              node.switchShape === 'round' ? [Math.PI / 2, 0, 0] : [on ? -0.12 : 0.12, 0, 0]
+            }
+          >
+            {node.switchShape === 'round' ? (
+              <cylinderGeometry args={[0.027, 0.027, 0.025, 24]} />
+            ) : (
+              <boxGeometry args={[0.055, 0.12, 0.025]} />
+            )}
+            <meshStandardMaterial
+              color={on ? '#14b8a6' : '#78716c'}
+              emissive={on ? '#0f766e' : '#000000'}
+              emissiveIntensity={on ? 0.4 : 0}
+            />
+          </mesh>
+        )
+      })}
     </group>
   )
 }

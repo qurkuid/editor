@@ -68,6 +68,7 @@ import { useWallConstructionDisplay } from '../../store/use-wall-construction-di
 import { IconRefGlyph } from '../ui/icon-ref'
 import { formatMeasurement, MeasurementPill } from './measurement-pill'
 import { NodeActionMenu } from './node-action-menu'
+import { wallReplacementNode } from '../ui/item-catalog/item-catalog'
 
 /**
  * A kind shows the system pill when it exposes typed ports — `def.ports`
@@ -297,6 +298,10 @@ export function FloatingActionMenu() {
   const endpointReshape = useEndpointReshape()
   const isCurveReshape = useIsCurveReshape()
   const setMovingNode = useEditor((s) => s.setMovingNode)
+  const setReplacementTargetId = useEditor((s) => s.setReplacementTargetId)
+  const setPhase = useEditor((s) => s.setPhase)
+  const setMode = useEditor((s) => s.setMode)
+  const setActiveSidebarPanel = useEditor((s) => s.setActiveSidebarPanel)
   const setSelection = useViewer((s) => s.setSelection)
   const unit = useViewer((s) => s.unit)
   // Drives the height-drag dimension pill below the menu. `activeHandleDrag`
@@ -772,6 +777,44 @@ export function FloatingActionMenu() {
     [node],
   )
 
+  const handleReplace = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (node?.type !== 'body') return
+      setReplacementTargetId(node.id)
+      setPhase('furnish')
+      setMode('select')
+      setActiveSidebarPanel('items')
+    },
+    [node, setActiveSidebarPanel, setMode, setPhase, setReplacementTargetId],
+  )
+
+  const handleWallReplacement = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (node?.type !== 'body') return
+      const replacement = wallReplacementNode(node)
+      runAsSingleSceneHistoryStep(useScene, () => {
+        useScene.getState().createNode(replacement)
+        useScene.getState().deleteNode(node.id)
+      })
+      setSelection({ selectedIds: [replacement.id], zoneId: null })
+    },
+    [node, setSelection],
+  )
+
+  const handleLightingReplacement = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (node?.type !== 'body') return
+      setReplacementTargetId(node.id)
+      setPhase('furnish')
+      setMode('select')
+      setActiveSidebarPanel('lighting')
+    },
+    [node, setActiveSidebarPanel, setMode, setPhase, setReplacementTargetId],
+  )
+
   const handleQuickAction = useCallback(
     (action: NodeQuickAction) => (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation()
@@ -820,6 +863,9 @@ export function FloatingActionMenu() {
           >
             <NodeActionMenu
               onFind={node && canFindNode ? handleFind : undefined}
+              onReplace={node?.type === 'body' ? handleReplace : undefined}
+              onReplaceWall={node?.type === 'body' ? handleWallReplacement : undefined}
+              onReplaceLight={node?.type === 'body' ? handleLightingReplacement : undefined}
               onAddHole={node && HOLE_TYPES.includes(node.type) ? handleAddHole : undefined}
               onCurve={
                 (node?.type === 'fence' && !isSplineFence(node) && !isCurvedWall(node)) ||

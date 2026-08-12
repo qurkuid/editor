@@ -1,13 +1,16 @@
 'use client'
 
 import { Icon } from '@iconify/react'
-import { Box, Copy, Expand, Move, RotateCw, Scaling, Search, Spline, Trash2 } from 'lucide-react'
+import { Box, BrickWall, Copy, Expand, Lightbulb, Move, Replace, RotateCw, Scaling, Search, Spline, Trash2 } from 'lucide-react'
 import type { MouseEventHandler, PointerEventHandler } from 'react'
 import { useT } from '../../i18n/use-t'
 import type { WallConstructionDisplayMode } from '../../store/use-wall-construction-display'
 
 type NodeActionMenuProps = {
   onFind?: MouseEventHandler<HTMLButtonElement>
+  onReplace?: MouseEventHandler<HTMLButtonElement>
+  onReplaceWall?: MouseEventHandler<HTMLButtonElement>
+  onReplaceLight?: MouseEventHandler<HTMLButtonElement>
   onAddHole?: MouseEventHandler<HTMLButtonElement>
   onDelete?: MouseEventHandler<HTMLButtonElement>
   onDuplicate?: MouseEventHandler<HTMLButtonElement>
@@ -30,6 +33,9 @@ type NodeActionMenuProps = {
 
 export function NodeActionMenu({
   onFind,
+  onReplace,
+  onReplaceWall,
+  onReplaceLight,
   onAddHole,
   onDelete,
   onDuplicate,
@@ -99,6 +105,39 @@ export function NodeActionMenu({
           type="button"
         >
           <Search className="h-4 w-4" />
+        </button>
+      )}
+      {onReplace && (
+        <button
+          aria-label={t('actionMenu.replaceWithCatalogItem')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onReplace}
+          title={t('actionMenu.replaceWithCatalogItem')}
+          type="button"
+        >
+          <Replace className="h-4 w-4" />
+        </button>
+      )}
+      {onReplaceWall && (
+        <button
+          aria-label={t('actionMenu.replaceWithWall')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onReplaceWall}
+          title={t('actionMenu.replaceWithWall')}
+          type="button"
+        >
+          <BrickWall className="h-4 w-4" />
+        </button>
+      )}
+      {onReplaceLight && (
+        <button
+          aria-label={t('actionMenu.replaceWithLight')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onReplaceLight}
+          title={t('actionMenu.replaceWithLight')}
+          type="button"
+        >
+          <Lightbulb className="h-4 w-4" />
         </button>
       )}
       {onMove && (

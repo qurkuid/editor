@@ -248,6 +248,7 @@ export { TerrainSculptPanel } from './components/ui/controls/terrain-sculpt-pane
 export { ToggleControl } from './components/ui/controls/toggle-control'
 export { FloatingLevelSelector } from './components/ui/floating-level-selector'
 export { CATALOG_ITEMS } from './components/ui/item-catalog/catalog-items'
+export { lightingReplacementNode } from './components/ui/item-catalog/item-catalog'
 // Item collections UI — used by the kind-owned ItemPanel in nodes/.
 export { CollectionsPopover } from './components/ui/panels/collections/collections-popover'
 // Phase 5 Stage E — kinds with bespoke editors (slab holes list,

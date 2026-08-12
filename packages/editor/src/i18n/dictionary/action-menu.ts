@@ -9,6 +9,12 @@ export const actionMenuDictionary = {
   'actionMenu.wallDisplayFrame': { ko: '골조', en: 'Frame' },
   'actionMenu.wallDisplayLayers': { ko: '레이어', en: 'Layers' },
   'actionMenu.findInCatalog': { ko: '카탈로그에서 찾기', en: 'Find in catalog' },
+  'actionMenu.replaceWithCatalogItem': {
+    ko: 'Pascal 아이템으로 교체',
+    en: 'Replace with Pascal item',
+  },
+  'actionMenu.replaceWithWall': { ko: 'Pascal 벽으로 교체', en: 'Replace with Pascal wall' },
+  'actionMenu.replaceWithLight': { ko: 'Pascal 조명으로 교체', en: 'Replace with Pascal light' },
   'actionMenu.cutOut': { ko: '개구부 내기', en: 'Cut Out' },
   'actionMenu.measurementOptions': { ko: '측정 옵션', en: 'Measurement options' },
   'actionMenu.measurementType': { ko: '측정 방식', en: 'Measurement type' },

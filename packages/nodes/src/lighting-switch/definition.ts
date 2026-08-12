@@ -23,6 +23,8 @@ export const lightingSwitchDefinition: NodeDefinition<typeof LightingSwitchNode>
     position: [0, 1.2, 0],
     rotation: 0,
     circuitId: null,
+    gangCount: 1,
+    switchShape: 'rectangle',
   }),
   capabilities: {
     movable: { axes: ['x', 'y', 'z'], gridSnap: true },
