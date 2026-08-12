@@ -39,6 +39,10 @@ export class Img3dGenerationError extends Error {
   readonly name = 'Img3dGenerationError'
 }
 
+export function detachImg3dRequest(request: typeof fetch): typeof fetch {
+  return (...args) => request(...args)
+}
+
 export function parseImg3dDimensions(draft: Img3dDimensionDraft): Img3dDimensions | null {
   const parsed = Img3dDimensionsSchema.safeParse({
     width: Number(draft.width),
@@ -104,7 +108,7 @@ export async function generateImg3dAsset(
 }
 
 export const img3dWorkflowDependencies: GenerateDependencies = {
-  request: fetch,
+  request: detachImg3dRequest(fetch),
   compile: compileImg3dSculpt,
   save: saveStoredAsset,
   createId: () => crypto.randomUUID(),

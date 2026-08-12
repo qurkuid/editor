@@ -2,7 +2,12 @@ import { describe, expect, test } from 'bun:test'
 import type { AssetInput } from '@pascal-app/core'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Img3dPreparation, validateImg3dReference } from './img3d-preparation'
-import { generateImg3dAsset, parseImg3dDimensions, readImg3dReference } from './img3d-workflow'
+import {
+  detachImg3dRequest,
+  generateImg3dAsset,
+  parseImg3dDimensions,
+  readImg3dReference,
+} from './img3d-workflow'
 
 const sculpt = {
   version: 1 as const,
@@ -128,6 +133,19 @@ describe('Img3dPreparation', () => {
       'place:generated-chair',
     ])
     expect(placedAsset?.src).toBe('asset://generated-chair')
+  })
+
+  test('invokes browser fetch without the dependency object as its receiver', async () => {
+    let receiver: unknown = null
+    const browserFetch: typeof fetch = function (this: unknown) {
+      receiver = this
+      return Promise.resolve(new Response('{}'))
+    }
+    const dependencies = { request: detachImg3dRequest(browserFetch) }
+
+    await dependencies.request('/api/ai/img3d')
+
+    expect(receiver).toBeUndefined()
   })
 
   test('surfaces a server failure without arming placement', async () => {

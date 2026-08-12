@@ -34,6 +34,7 @@ describe('img3d external boundaries', () => {
     const serializedSchema = JSON.stringify(img3dCodexSculptJsonSchema)
 
     expect(serializedSchema).not.toContain('"oneOf"')
+    expect(serializedSchema).not.toContain('"prefixItems"')
     expect(serializedSchema).toContain('"anyOf"')
   })
 

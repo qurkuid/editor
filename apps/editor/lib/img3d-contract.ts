@@ -188,8 +188,27 @@ function withCodexSchemaKeywords(value: unknown): JsonValue {
   }
   if (Array.isArray(value)) return value.map(withCodexSchemaKeywords)
   if (typeof value === 'object') {
+    const entries = Object.entries(value)
+    const prefixItems = entries.find(([key]) => key === 'prefixItems')?.[1]
+    if (Array.isArray(prefixItems)) {
+      const [item, ...remainingItems] = prefixItems
+      if (
+        item === undefined ||
+        remainingItems.some((candidate) => JSON.stringify(candidate) !== JSON.stringify(item))
+      ) {
+        throw new TypeError('Codex output schemas require homogeneous tuples')
+      }
+      return Object.fromEntries([
+        ...entries
+          .filter(([key]) => key !== 'prefixItems')
+          .map(([key, child]) => [key, withCodexSchemaKeywords(child)]),
+        ['items', withCodexSchemaKeywords(item)],
+        ['minItems', prefixItems.length],
+        ['maxItems', prefixItems.length],
+      ])
+    }
     return Object.fromEntries(
-      Object.entries(value).map(([key, child]) => [
+      entries.map(([key, child]) => [
         key === 'oneOf' ? 'anyOf' : key,
         withCodexSchemaKeywords(child),
       ]),
