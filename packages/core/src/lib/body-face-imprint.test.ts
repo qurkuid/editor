@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { BodyNode, createRectangleBody, imprintBodyFace, pushPullBodyFace } from '../index'
+import { executeImprintBodyFace } from '../modeling/executors'
+import { inspectBodySolid } from './body-solid'
 import { getBodyLoopVertices, getBodySemanticHash, validateBodyTopology } from './body-topology'
 
 const closedRectangle = () =>
@@ -67,7 +69,7 @@ describe('Body face imprint kernel', () => {
     expect(validateBodyTopology(result.body)).toEqual({ valid: true, diagnostics: [] })
   })
 
-  test('moves an inset face inward for a recess and rejects a through-cut', () => {
+  test('moves an inset face inward for a recess and reaches a through-cut through the shared push/pull path', () => {
     const source = imprintBodyFace(closedRectangle(), 'face:0', rectangleProfile()).body
 
     const recess = pushPullBodyFace(source, 'face:0:imprint:2', -0.25)
@@ -78,7 +80,101 @@ describe('Body face imprint kernel', () => {
       ),
     ).toBe(true)
     expect(validateBodyTopology(recess.body)).toEqual({ valid: true, diagnostics: [] })
-    expect(() => pushPullBodyFace(source, 'face:0:imprint:2', -1)).toThrow('collapse')
+    const through = pushPullBodyFace(source, 'face:0:imprint:2', -1)
+    expect(through.throughCut).toBe(true)
+    expect(through.blockingDistance).toBe(1)
+    expect(inspectBodySolid(through.body).validSolid).toBe(true)
+    expect(inspectBodySolid(through.body).volume).toBeCloseTo(3, 8)
+    expect(through.body.faces.some((face) => face.id === 'face:0:imprint:2')).toBe(false)
+    const repeated = pushPullBodyFace(source, 'face:0:imprint:2', -1)
+    expect(getBodySemanticHash(repeated.body)).toBe(getBodySemanticHash(through.body))
+    expect(repeated.remap).toEqual(through.remap)
+    const overshot = pushPullBodyFace(source, 'face:0:imprint:2', -1.05)
+    expect(overshot.throughCut).toBe(true)
+    expect(overshot.blockingDistance).toBe(1)
+    expect(inspectBodySolid(overshot.body).volume).toBeCloseTo(3, 8)
+  })
+
+  test('turns an exact or modestly overshot recessed imprint into a deterministic through-cut', () => {
+    const source = BodyNode.parse({
+      ...closedRectangle(),
+      faces: closedRectangle().faces.map((face) =>
+        face.id === 'face:0'
+          ? {
+              ...face,
+              surface: {
+                ...face.surface,
+                materialRef: 'material:oak',
+                uvOrigin: [0.1, 1, 0.2],
+                uvU: [0.5, 0, 0],
+                uvV: [0, 0, 0.5],
+              },
+            }
+          : face,
+      ),
+    })
+    const input = {
+      faceId: 'face:0',
+      profilePoints: rectangleProfile(),
+      distance: -1,
+    } as const
+    const beforeHash = getBodySemanticHash(source)
+    const exact = executeImprintBodyFace(source, input)
+    const overshot = executeImprintBodyFace(source, { ...input, distance: -1.05 })
+
+    expect(getBodySemanticHash(source)).toBe(beforeHash)
+    for (const result of [exact, overshot]) {
+      expect(result.extrusion).toMatchObject({
+        movedFaceId: null,
+        throughCut: true,
+        blockingDistance: 1,
+      })
+      const inspection = inspectBodySolid(result.body)
+      expect(inspection.validSolid).toBe(true)
+      expect(inspection.volume).toBeCloseTo(3, 8)
+      expect(validateBodyTopology(result.body)).toEqual({ valid: true, diagnostics: [] })
+      expect(result.topologyRemap.preserved).toEqual(['shell:0'])
+      expect(result.topologyRemap.split['face:0']).toBeDefined()
+      expect(result.topologyRemap.created.every((id) => !id.includes(':imprint:'))).toBe(true)
+    }
+    expect(exact.body).not.toEqual(source)
+    expect(overshot.body).not.toEqual(source)
+    expect(exact.body.faces.some((face) => face.id === exact.insetFaceId)).toBe(false)
+    expect(
+      exact.body.faces.some(
+        (face) =>
+          face.surface.materialRef === 'material:oak' &&
+          JSON.stringify(face.surface.uvOrigin) === JSON.stringify([0.1, 1, 0.2]),
+      ),
+    ).toBe(true)
+  })
+
+  test('keeps an insufficient recess as a pocket and an outward extrusion as a boss', () => {
+    const source = closedRectangle()
+    const pocket = executeImprintBodyFace(source, {
+      faceId: 'face:0',
+      profilePoints: rectangleProfile(),
+      distance: -0.25,
+    })
+    const boss = executeImprintBodyFace(source, {
+      faceId: 'face:0',
+      profilePoints: rectangleProfile(),
+      distance: 0.25,
+    })
+
+    expect(pocket.extrusion?.throughCut).toBeUndefined()
+    expect(
+      getBodyLoopVertices(pocket.body, 'face:0:imprint:2:outer:2').every(
+        (point) => Math.abs(point[1] - 0.75) < 1e-9,
+      ),
+    ).toBe(true)
+    expect(boss.extrusion?.throughCut).toBeUndefined()
+    expect(
+      getBodyLoopVertices(boss.body, 'face:0:imprint:2:outer:2').every(
+        (point) => Math.abs(point[1] - 1.25) < 1e-9,
+      ),
+    ).toBe(true)
+    expect(boss.body.faces.some((face) => face.id === boss.insetFaceId)).toBe(true)
   })
 
   test('rejects profiles outside, touching, curved, or self-intersecting', () => {

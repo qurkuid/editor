@@ -43,6 +43,8 @@ export type PushPullBodyResult = {
   movedFaceId: string
   createdFaceIds: string[]
   remap: TopologyRemap
+  throughCut?: true
+  blockingDistance?: number
 }
 
 type CreateRectangleBodyOptions = {
