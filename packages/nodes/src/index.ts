@@ -1,11 +1,13 @@
 import type { AnyNodeDefinition, Plugin } from '@pascal-app/core'
 import { bodyDefinition } from './body'
+import { bodyGroupDefinition } from './body-group/definition'
 import { boxVentDefinition } from './box-vent'
 import { buildingDefinition } from './building'
 import { cabinetDefinition, cabinetModuleDefinition } from './cabinet'
 import { ceilingDefinition } from './ceiling'
 import { chimneyDefinition } from './chimney'
 import { columnDefinition } from './column'
+import { componentDefinition } from './component/definition'
 import { constructionDimensionDefinition } from './construction-dimension'
 import { constructionGuideDefinition } from './construction-guide'
 import { cupolaDefinition } from './cupola'
@@ -73,6 +75,8 @@ export const builtinPlugin: Plugin = {
     // Stage E-complete (full registry path)
     shelfDefinition as unknown as AnyNodeDefinition,
     bodyDefinition as unknown as AnyNodeDefinition,
+    bodyGroupDefinition as unknown as AnyNodeDefinition,
+    componentDefinition as unknown as AnyNodeDefinition,
     spawnDefinition as unknown as AnyNodeDefinition,
     wallDefinition as unknown as AnyNodeDefinition,
     fenceDefinition as unknown as AnyNodeDefinition,
@@ -130,7 +134,18 @@ export const builtinPlugin: Plugin = {
   ],
 }
 
-export { type BodyPrimitive, bodyDefinition, useBodyToolOptions } from './body'
+export {
+  type BodyPrimitive,
+  bodyDefinition,
+  DEFAULT_ARC_SEGMENTS,
+  DEFAULT_POLYGON_SIDES,
+  MAX_ARC_SEGMENTS,
+  MAX_POLYGON_SIDES,
+  MIN_ARC_SEGMENTS,
+  MIN_POLYGON_SIDES,
+  useBodyToolOptions,
+} from './body'
+export { bodyGroupDefinition } from './body-group/definition'
 export { boxVentDefinition } from './box-vent'
 export { buildingDefinition } from './building'
 export {
@@ -147,6 +162,7 @@ export {
 export { ceilingDefinition } from './ceiling'
 export { chimneyDefinition } from './chimney'
 export { columnDefinition } from './column'
+export { componentDefinition } from './component/definition'
 export { constructionDimensionDefinition } from './construction-dimension'
 export { constructionGuideDefinition } from './construction-guide'
 export { cupolaDefinition } from './cupola'
