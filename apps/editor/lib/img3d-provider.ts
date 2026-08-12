@@ -9,6 +9,7 @@ import {
   type Img3dRequest,
   type Img3dSculpt,
   Img3dSculptSchema,
+  img3dCodexSculptJsonSchema,
   img3dSculptJsonSchema,
 } from './img3d-contract'
 
@@ -43,7 +44,7 @@ export async function requestImg3dSculptViaCodex(
   const schemaPath = join(directory, 'img3d.schema.json')
   const outputPath = join(directory, 'img3d.json')
   try {
-    await writeFile(schemaPath, JSON.stringify(img3dSculptJsonSchema))
+    await writeFile(schemaPath, JSON.stringify(img3dCodexSculptJsonSchema))
     const [imagePath] = await materializeAiChatImages(directory, [input.image])
     if (!imagePath) throw new RangeError('img3d reference image was not materialized')
     const args = [

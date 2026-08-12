@@ -176,3 +176,26 @@ export type Img3dPart = z.infer<typeof Img3dPartSchema>
 export const img3dSculptJsonSchema = z.toJSONSchema(Img3dSculptSchema, {
   unrepresentable: 'throw',
 })
+
+type JsonValue = string | number | boolean | null | readonly JsonValue[] | JsonObject
+type JsonObject = { readonly [key: string]: JsonValue }
+
+function withCodexSchemaKeywords(value: unknown): JsonValue {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value
+  if (typeof value === 'number') {
+    if (Number.isFinite(value)) return value
+    throw new TypeError('JSON Schema numbers must be finite')
+  }
+  if (Array.isArray(value)) return value.map(withCodexSchemaKeywords)
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [
+        key === 'oneOf' ? 'anyOf' : key,
+        withCodexSchemaKeywords(child),
+      ]),
+    )
+  }
+  throw new TypeError(`Unsupported JSON Schema value: ${typeof value}`)
+}
+
+export const img3dCodexSculptJsonSchema = withCodexSchemaKeywords(img3dSculptJsonSchema)

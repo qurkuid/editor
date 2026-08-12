@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { IMG3D_MAX_PARTS, Img3dRequestSchema, Img3dSculptSchema } from './img3d-contract'
+import {
+  IMG3D_MAX_PARTS,
+  Img3dRequestSchema,
+  Img3dSculptSchema,
+  img3dCodexSculptJsonSchema,
+} from './img3d-contract'
 
 const image = {
   name: 'chair.png',
@@ -25,6 +30,13 @@ const boxPart = {
 }
 
 describe('img3d external boundaries', () => {
+  test('emits a Codex-compatible structured output schema', () => {
+    const serializedSchema = JSON.stringify(img3dCodexSculptJsonSchema)
+
+    expect(serializedSchema).not.toContain('"oneOf"')
+    expect(serializedSchema).toContain('"anyOf"')
+  })
+
   test('parses one 5 MB-bounded image and metre dimensions', () => {
     const request = Img3dRequestSchema.parse({
       image,
