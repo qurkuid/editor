@@ -91,7 +91,6 @@ import useInteractionScope, {
   useEndpointReshape,
   useMovingNode,
 } from '../../../store/use-interaction-scope'
-import { startGroupPickUp } from '../../editor/group-actions'
 import { classifyParticipant } from '../../editor/group-transform-shared'
 import { suppressBoxSelectForPointer } from '../../tools/select/box-select-state'
 import {
@@ -807,9 +806,6 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
   // of a multi-selection slides the whole selection rigidly; a plain click
   // (no drag) enters the group pick-up instead — parity with the single-item
   // click-to-move (clicking outside still deselects). Modified clicks
-  // (selection toggle) and Cmd-drag / direct-rotate keep their existing
-  // paths. `immediate` engages without the drag threshold — the move-handle
-  // dot's pick-up semantics.
   const startGroupMoveDrag = useCallback(
     (id: AnyNodeId, event: ReactPointerEvent<SVGGElement>, immediate = false): boolean => {
       if (event.button !== 0) return false
@@ -818,7 +814,6 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
       if (useEditor.getState().mode === 'delete') return false
       const started = startFloorplanGroupMove(id, event, {
         immediate,
-        onClickFallthrough: immediate ? undefined : () => startGroupPickUp(),
       })
       if (!started) return false
       event.preventDefault()
@@ -836,9 +831,6 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
     [startGroupMoveDrag],
   )
 
-  // The dashed selection box is itself the group's drag handle: a press
-  // anywhere inside it slides the group (or picks it up on a plain click),
-  // anchored on the first transformable member.
   const handleGroupBoxPointerDown = useCallback(
     (event: ReactPointerEvent<SVGGElement>) => {
       const { selectedIds: currentIds, levelId: currentLevelId } = useViewer.getState().selection

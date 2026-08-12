@@ -25,6 +25,17 @@ function registerTestDefinition(kind: string, overrides: Record<string, unknown>
 }
 
 describe('resolveSelectedIdsForNodeClick', () => {
+  test('keeps a sole selected node selected when it is clicked again without modifiers', () => {
+    expect(
+      resolveSelectedIdsForNodeClick({
+        baseSelectedIds: ['lighting-fixture_1'],
+        currentSelectedIds: ['lighting-fixture_1'],
+        modifierKeys: { meta: false, ctrl: false, shift: false },
+        nodeId: 'lighting-fixture_1',
+      }),
+    ).toEqual(['lighting-fixture_1'])
+  })
+
   test('preserves the pre-routing selection when a phase switch clears current ids', () => {
     expect(
       resolveSelectedIdsForNodeClick({

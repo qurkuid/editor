@@ -12,6 +12,8 @@ describe('Phase 2 ontology manual contract', () => {
   })
 
   test('documents the canonical Body transform and direct scale interactions', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('Selecting or re-clicking any scene element is inert')
+    expect(MODELING_AGENT_MANUAL).toContain('explicitly choosing Move')
     expect(MODELING_AGENT_MANUAL).toContain(
       'arbitrary-axis rotation, positive XYZ scale, and pivot',
     )
@@ -23,9 +25,9 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('`offsetBodyFace`')
     expect(MODELING_AGENT_MANUAL).toContain('canonical metres/radians')
     expect(MODELING_AGENT_MANUAL).toContain('deterministic miter rule')
-    expect(MODELING_AGENT_MANUAL).toContain('negative distance creates the source inset ring')
-    expect(MODELING_AGENT_MANUAL).toContain('positive distance requires exactly one reciprocal')
-    expect(MODELING_AGENT_MANUAL).toContain('exterior positive and interior negative')
+    expect(MODELING_AGENT_MANUAL).toContain('Inward offset preserves the source ring')
+    expect(MODELING_AGENT_MANUAL).toContain('nested outward offset requires exactly one reciprocal')
+    expect(MODELING_AGENT_MANUAL).toContain('exterior is positive and interior is negative')
     expect(MODELING_AGENT_MANUAL).toContain('floor-plan action menu')
     expect(MODELING_AGENT_MANUAL).toContain('explicitly typed sign authoritative')
   })

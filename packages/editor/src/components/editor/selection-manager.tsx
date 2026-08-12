@@ -79,7 +79,6 @@ import useInteractionScope, {
 } from '../../store/use-interaction-scope'
 import { boxSelectHandled, suppressBoxSelectForPointer } from '../tools/select/box-select-state'
 import { armGroupMove3d } from './group-move-3d'
-import { classifyParticipant } from './group-transform-shared'
 import { swallowNextClick } from './node-arrow-handles'
 import { setEditorThreeContext } from './three-context-bridge'
 
@@ -1458,53 +1457,6 @@ export const SelectionManager = () => {
     }
   }, [isCurveReshape, mode, movingNode, camera, raycaster, glDomElement])
 
-  // Move cursor over the selected movable node: the visual cue that clicking it
-  // picks it up (replaces the removed move-cross gizmo). Reacts only when the
-  // hovered/selected node changes (not on every camera move) so it doesn't fight
-  // the rotate/resize gizmos' own hover cursors. Clears only the cursor it owns.
-  useEffect(() => {
-    if (mode !== 'select') return
-    let owns = false
-    let prevKey = '\0'
-    const applyCursor = () => {
-      const { selection, hoveredId } = useViewer.getState()
-      const selectedIds = selection.selectedIds
-      const sole = selectedIds.length === 1 ? selectedIds[0] : null
-      const key = `${hoveredId ?? ''}|${sole ?? ''}|${selectedIds.length}`
-      if (key === prevKey) return
-      prevKey = key
-      let wantsMove = false
-      if (hoveredId && !getMovingNode()) {
-        if (sole === hoveredId) {
-          const node = useScene.getState().nodes[sole as AnyNodeId]
-          wantsMove = !!node && canDirectMoveNode(node)
-        } else if (selectedIds.length > 1 && selectedIds.includes(hoveredId)) {
-          // Group member: dragging it slides the whole selection.
-          const nodes = useScene.getState().nodes
-          wantsMove =
-            classifyParticipant(nodes[hoveredId as AnyNodeId], selection.levelId, nodes) !== null
-        }
-      }
-      if (wantsMove) {
-        glDomElement.style.cursor = 'move'
-        owns = true
-      } else if (owns) {
-        glDomElement.style.cursor = ''
-        owns = false
-      }
-    }
-    applyCursor()
-    const unsub = useViewer.subscribe(applyCursor)
-    return () => {
-      unsub()
-      if (owns) glDomElement.style.cursor = ''
-    }
-  }, [mode, glDomElement])
-
-  // While a node is actively being moved (click-to-move / Move button, or a
-  // fresh preset placement), show a grabbing hand. Mode-independent: presets
-  // move in build mode. Overrides the hover 'move' cursor (which bails while a
-  // movingNode exists), and clears back to the canvas's custom cursor on drop.
   useEffect(() => {
     if (!movingNode) return
     glDomElement.style.cursor = 'grabbing'
@@ -1738,21 +1690,6 @@ export const SelectionManager = () => {
           useInteractionScope
             .getState()
             .endIf((sc) => sc.kind === 'reshaping' && sc.reshape === 'hole')
-        }
-
-        // Click-to-move: clicking the already-selected sole movable node with
-        // no modifiers picks it up instead of re-selecting — the move-cross
-        // gizmo's old job, now on the node body. `setMovingNode` arms the
-        // registry move tool in click-to-commit mode, exactly like the floating
-        // Move button. The first (selecting) click can't hit this because the
-        // node isn't yet in `selectedIdsBeforeRouting`.
-        const isAlreadySole =
-          selectedIdsBeforeRouting.length === 1 && selectedIdsBeforeRouting[0] === nodeToSelect.id
-        if (!hasModifier && isAlreadySole && !getMovingNode() && canDirectMoveNode(nodeToSelect)) {
-          sfxEmitter.emit('sfx:item-pick')
-          useEditor.getState().setMovingNode(nodeToSelect as never)
-          useViewer.getState().setSelection({ selectedIds: [] })
-          return
         }
 
         activeStrategy.handleSelect(
