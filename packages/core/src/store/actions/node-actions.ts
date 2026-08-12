@@ -1,3 +1,4 @@
+import { linkedBodyUpdates } from '../../lib/body-containers'
 import { nodeRegistry } from '../../registry/registry'
 import {
   type AnyNode,
@@ -532,6 +533,28 @@ function shouldRefreshDefaultRidgeVents(data: Partial<AnyNode>) {
   return Object.keys(data).some((key) => DEFAULT_RIDGE_VENT_REFRESH_FIELDS.has(key))
 }
 
+function expandLinkedBodyUpdates(
+  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
+  updates: readonly NodeUpdateOp[],
+): NodeUpdateOp[] {
+  const expanded = new Map<string, Record<string, unknown>>()
+  for (const update of updates) {
+    const existing = expanded.get(update.id)
+    expanded.set(update.id, existing ? { ...existing, ...update.data } : (update.data as Record<string, unknown>))
+    const node = nodes[update.id]
+    if (node?.type !== 'body') continue
+    for (const peer of linkedBodyUpdates(nodes, update.id, update.data as Partial<typeof node>)) {
+      if (peer.id === update.id) continue
+      const peerExisting = expanded.get(peer.id)
+      expanded.set(
+        peer.id,
+        peerExisting ? { ...peerExisting, ...peer.data } : (peer.data as Record<string, unknown>),
+      )
+    }
+  }
+  return [...expanded].map(([id, data]) => ({ id: id as AnyNodeId, data: data as Partial<AnyNode> }))
+}
+
 function refreshDefaultRidgeVentsForSegment(
   nextNodes: Record<AnyNodeId, AnyNode>,
   segment: RoofSegmentNode,
@@ -842,7 +865,7 @@ export const applyNodeChangesAction = (
   if (get().readOnly) return
 
   const createOps = changes.create ?? []
-  const updateOps = changes.update ?? []
+  const updateOps = expandLinkedBodyUpdates(get().nodes, changes.update ?? [])
   const deleteOps = changes.delete ?? []
   const nodesToMarkDirty = new Set<AnyNodeId>()
   const parentsToMarkDirty = new Set<AnyNodeId>()
@@ -982,6 +1005,7 @@ export const updateNodesAction = (
   updates: { id: AnyNodeId; data: Partial<AnyNode> }[],
 ) => {
   if (get().readOnly) return
+  updates = expandLinkedBodyUpdates(get().nodes, updates)
   const parentsToUpdate = new Set<AnyNodeId>()
   const extraNodesToUpdate = new Set<AnyNodeId>()
 
