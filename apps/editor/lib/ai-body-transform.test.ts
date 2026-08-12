@@ -137,4 +137,30 @@ describe('AI Body transform', () => {
     useScene.temporal.getState().undo()
     expect(getBodySemanticHash(BodyNode.parse(useScene.getState().nodes[source.id]))).toBe(before)
   })
+
+  test('applies a persistent feature transform through the AI executor', () => {
+    const source = BodyNode.parse({
+      ...createRectangleBody({ width: 2, depth: 2 }),
+      id: transformPatch.id,
+      parentId: levelId,
+    })
+    useScene.setState((state) => ({ nodes: { ...state.nodes, [source.id]: source } }))
+    const patch = {
+      ...transformPatch,
+      translation: [0, 0, 0],
+      rotationAngle: 0,
+      scale: [2, 1, 1],
+      pivot: [0, 0, 0],
+      feature: { kind: 'edge', featureId: 'edge:0' },
+    } as const
+
+    expect(
+      applyAiModelingPlan({ message: 'Scale selected Body edge.', patches: [patch] }),
+    ).toMatchObject({
+      appliedOps: 1,
+    })
+    const updated = BodyNode.parse(useScene.getState().nodes[source.id])
+    expect(updated.vertices.find(({ id }) => id === 'vertex:1')?.position).toEqual([4, 0, 0])
+    expect(updated.vertices.find(({ id }) => id === 'vertex:2')?.position).toEqual([2, 0, 2])
+  })
 })

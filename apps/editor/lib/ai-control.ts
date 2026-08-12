@@ -1,26 +1,42 @@
 import {
+  cloneComponentInstance,
+  createBodyGroupFromBodies,
+  createComponentFromBodies,
   createDefaultFurnitureAssembly,
   createDefaultWallFaceBands,
   createRoundedRectangularFrameBody,
   deleteFurnitureBay,
   deleteFurnitureTier,
+  explodeComponent,
   type FurnitureAssembly,
   getNodeSemanticRef,
   insertFurnitureBay,
   insertFurnitureTier,
+  makeComponentUnique,
+  remapBodyFeatureAnnotations,
   resizeFurnitureBay,
   resizeFurnitureTier,
   runAsSingleSceneHistoryStep,
   setFurnitureTierInterior,
+  type TopologyRemap,
   withDefaultConstructionMaterials,
 } from '@pascal-app/core'
 import {
+  executeArrayBodyCircular,
+  executeArrayBodyLinear,
   executeImprintBodyFace,
+  executeIntersectBodies,
   executeOffsetBodyFace,
+  executeOuterShellBodies,
   executePaintBodyFace,
   executePushPullBodyFace,
+  executeSplitBodies,
+  executeSplitBodyFace,
+  executeSubtractBodies,
   executeSweepBodyFace,
   executeTransformBody,
+  executeTrimBodies,
+  executeUnionBodies,
 } from '@pascal-app/core/modeling-operations'
 import {
   AnyNode,
@@ -50,6 +66,43 @@ const SceneMaterialIdSchema = z.custom<SceneMaterialId>(
 
 function parseSceneMaterialId(value: string): SceneMaterialId {
   return SceneMaterialIdSchema.parse(value)
+}
+
+type BodyAnnotationRemapSpec = {
+  bodyId: AnyNodeId
+  body: Extract<AnyNode, { type: 'body' }> | null
+  topologyRemap: TopologyRemap
+}
+
+const EMPTY_TOPOLOGY_REMAP: TopologyRemap = {
+  preserved: [],
+  created: [],
+  deleted: [],
+  split: {},
+  merged: {},
+}
+
+function remapBodyAnnotationPatches(
+  simulatedNodes: Map<string, AnyNode>,
+  specs: readonly BodyAnnotationRemapSpec[],
+): Patch[] {
+  const updates: Patch[] = []
+  for (const spec of specs) {
+    const next = remapBodyFeatureAnnotations(
+      Object.fromEntries(simulatedNodes),
+      spec.bodyId,
+      spec.body,
+      spec.topologyRemap,
+    )
+    for (const update of next) {
+      updates.push({ op: 'update', id: update.id, data: update.data })
+      const current = simulatedNodes.get(update.id)
+      if (current) {
+        simulatedNodes.set(update.id, AnyNode.parse({ ...current, ...update.data }))
+      }
+    }
+  }
+  return updates
 }
 
 export type AiSceneContext = {
@@ -200,8 +253,11 @@ function normalizePatches(plan: AiModelingPlan): {
           faceId: patch.faceId,
           distance: patch.distance,
         })
+        const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+          { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+        ])
         simulatedNodes.set(result.body.id, result.body)
-        return [{ op: 'update', id: result.body.id, data: result.body }]
+        return [{ op: 'update', id: result.body.id, data: result.body }, ...annotationPatches]
       }
       case 'offsetBodyFace': {
         const current = simulatedNodes.get(patch.id)
@@ -215,8 +271,11 @@ function normalizePatches(plan: AiModelingPlan): {
           faceId: patch.faceId,
           distance: patch.distance,
         })
+        const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+          { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+        ])
         simulatedNodes.set(result.body.id, result.body)
-        return [{ op: 'update', id: result.body.id, data: result.body }]
+        return [{ op: 'update', id: result.body.id, data: result.body }, ...annotationPatches]
       }
       case 'sweepBodyFace': {
         const current = simulatedNodes.get(patch.id)
@@ -230,8 +289,11 @@ function normalizePatches(plan: AiModelingPlan): {
           faceId: patch.faceId,
           pathPoints: patch.pathPoints,
         })
+        const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+          { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+        ])
         simulatedNodes.set(result.body.id, result.body)
-        return [{ op: 'update', id: result.body.id, data: result.body }]
+        return [{ op: 'update', id: result.body.id, data: result.body }, ...annotationPatches]
       }
       case 'imprintBodyFace': {
         const current = simulatedNodes.get(patch.id)
@@ -246,8 +308,29 @@ function normalizePatches(plan: AiModelingPlan): {
           profilePoints: patch.profilePoints,
           ...(patch.distance === undefined ? {} : { distance: patch.distance }),
         })
+        const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+          { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+        ])
         simulatedNodes.set(result.body.id, result.body)
-        return [{ op: 'update', id: result.body.id, data: result.body }]
+        return [{ op: 'update', id: result.body.id, data: result.body }, ...annotationPatches]
+      }
+      case 'splitBodyFace': {
+        const current = simulatedNodes.get(patch.id)
+        if (!current) {
+          throw new Error(`invalid AI patch: patches[${index}] body id "${patch.id}" not found`)
+        }
+        if (current.type !== 'body') {
+          throw new RangeError(`AI split target is not a body: ${patch.id}`)
+        }
+        const result = executeSplitBodyFace(current, {
+          faceId: patch.faceId,
+          pathPoints: patch.pathPoints,
+        })
+        const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+          { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+        ])
+        simulatedNodes.set(result.body.id, result.body)
+        return [{ op: 'update', id: result.body.id, data: result.body }, ...annotationPatches]
       }
       case 'transformBody': {
         const current = simulatedNodes.get(patch.id)
@@ -258,8 +341,146 @@ function normalizePatches(plan: AiModelingPlan): {
           throw new RangeError(`AI Body transform target is not a body: ${patch.id}`)
         }
         const result = executeTransformBody(current, patch)
+        const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+          { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+        ])
         simulatedNodes.set(result.body.id, result.body)
-        return [{ op: 'update', id: result.body.id, data: result.body }]
+        return [{ op: 'update', id: result.body.id, data: result.body }, ...annotationPatches]
+      }
+      case 'arrayBodyLinear': {
+        const current = simulatedNodes.get(patch.id)
+        if (!current) {
+          throw new Error(`invalid AI patch: patches[${index}] body id "${patch.id}" not found`)
+        }
+        if (current.type !== 'body') {
+          throw new RangeError(`AI Body linear array target is not a body: ${patch.id}`)
+        }
+        const result = executeArrayBodyLinear(current, patch)
+        for (const clone of result.clones) simulatedNodes.set(clone.id, clone)
+        return result.clones.map((node) => ({
+          op: 'create' as const,
+          node,
+          ...(node.parentId ? { parentId: node.parentId as AnyNodeId } : {}),
+        }))
+      }
+      case 'arrayBodyCircular': {
+        const current = simulatedNodes.get(patch.id)
+        if (!current) {
+          throw new Error(`invalid AI patch: patches[${index}] body id "${patch.id}" not found`)
+        }
+        if (current.type !== 'body') {
+          throw new RangeError(`AI Body circular array target is not a body: ${patch.id}`)
+        }
+        const result = executeArrayBodyCircular(current, patch)
+        for (const clone of result.clones) simulatedNodes.set(clone.id, clone)
+        return result.clones.map((node) => ({
+          op: 'create' as const,
+          node,
+          ...(node.parentId ? { parentId: node.parentId as AnyNodeId } : {}),
+        }))
+      }
+      case 'unionBodies':
+      case 'subtractBodies':
+      case 'intersectBodies': {
+        const current = simulatedNodes.get(patch.id)
+        if (!current) {
+          throw new Error(`invalid AI patch: patches[${index}] body id "${patch.id}" not found`)
+        }
+        if (current.type !== 'body') {
+          throw new RangeError(`AI Body boolean target is not a body: ${patch.id}`)
+        }
+        const tool = simulatedNodes.get(patch.toolBodyId)
+        if (!tool) {
+          throw new Error(
+            `invalid AI patch: patches[${index}] tool body id "${patch.toolBodyId}" not found`,
+          )
+        }
+        if (tool.type !== 'body') {
+          throw new RangeError(`AI Body boolean tool is not a body: ${patch.toolBodyId}`)
+        }
+        const result =
+          patch.op === 'unionBodies'
+            ? executeUnionBodies(current, tool, { toolBodyId: patch.toolBodyId })
+            : patch.op === 'subtractBodies'
+              ? executeSubtractBodies(current, tool, { toolBodyId: patch.toolBodyId })
+              : executeIntersectBodies(current, tool, {
+                  toolBodyId: patch.toolBodyId,
+                })
+        const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+          { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+          { bodyId: tool.id, body: null, topologyRemap: EMPTY_TOPOLOGY_REMAP },
+        ])
+        simulatedNodes.set(result.body.id, result.body)
+        simulatedNodes.delete(tool.id)
+        return [
+          { op: 'update' as const, id: result.body.id, data: result.body },
+          ...annotationPatches,
+          { op: 'delete' as const, id: tool.id, cascade: false },
+        ]
+      }
+      case 'outerShellBodies':
+      case 'trimBodies':
+      case 'splitBodies': {
+        const current = simulatedNodes.get(patch.id)
+        const tool = simulatedNodes.get(patch.toolBodyId)
+        if (current?.type !== 'body') {
+          throw new RangeError(`AI Solid Tools target is not a body: ${patch.id}`)
+        }
+        if (tool?.type !== 'body') {
+          throw new RangeError(`AI Solid Tools tool is not a body: ${patch.toolBodyId}`)
+        }
+        if (patch.op === 'outerShellBodies') {
+          const result = executeOuterShellBodies(current, tool, patch)
+          const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+            { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+            { bodyId: tool.id, body: null, topologyRemap: EMPTY_TOPOLOGY_REMAP },
+          ])
+          simulatedNodes.set(result.body.id, result.body)
+          simulatedNodes.delete(tool.id)
+          return [
+            { op: 'update' as const, id: result.body.id, data: result.body },
+            ...annotationPatches,
+            { op: 'delete' as const, id: tool.id, cascade: false },
+          ]
+        }
+        if (patch.op === 'trimBodies') {
+          const result = executeTrimBodies(current, tool, patch)
+          const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+            { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+          ])
+          simulatedNodes.set(result.body.id, result.body)
+          return [
+            { op: 'update' as const, id: result.body.id, data: result.body },
+            ...annotationPatches,
+          ]
+        }
+        const result = executeSplitBodies(current, tool, patch)
+        const targetPiece = result.pieces.find(({ body }) => body.id === current.id)
+        const toolPiece = result.pieces.find(({ body }) => body.id === tool.id)
+        const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+          {
+            bodyId: current.id,
+            body: targetPiece?.body ?? null,
+            topologyRemap: result.topologyRemap,
+          },
+          {
+            bodyId: tool.id,
+            body: toolPiece?.body ?? null,
+            topologyRemap: toolPiece?.topologyRemap ?? EMPTY_TOPOLOGY_REMAP,
+          },
+        ])
+        const bodyPatches = result.pieces.map(({ body }) => {
+          const exists = simulatedNodes.has(body.id)
+          simulatedNodes.set(body.id, body)
+          return exists
+            ? { op: 'update' as const, id: body.id, data: body }
+            : {
+                op: 'create' as const,
+                node: body,
+                ...(body.parentId ? { parentId: body.parentId as AnyNodeId } : {}),
+              }
+        })
+        return [...bodyPatches, ...annotationPatches]
       }
       case 'paintBodyFace': {
         const current = simulatedNodes.get(patch.id)
@@ -286,8 +507,11 @@ function normalizePatches(plan: AiModelingPlan): {
           throw new RangeError(`AI Body paint material id already exists: ${result.material.id}`)
         }
         if (!existingMaterial) materials.push(result.material)
+        const annotationPatches = remapBodyAnnotationPatches(simulatedNodes, [
+          { bodyId: current.id, body: result.body, topologyRemap: result.topologyRemap },
+        ])
         simulatedNodes.set(result.body.id, result.body)
-        return [{ op: 'update', id: result.body.id, data: result.body }]
+        return [{ op: 'update', id: result.body.id, data: result.body }, ...annotationPatches]
       }
       case 'updateSceneMaterial': {
         const existing = useScene.getState().materials[patch.material.id]
@@ -396,6 +620,90 @@ function normalizePatches(plan: AiModelingPlan): {
             node,
             ...(hierarchy.parentId === undefined ? {} : { parentId: hierarchy.parentId }),
           },
+        ]
+      }
+      case 'groupBodies': {
+        const write = createBodyGroupFromBodies(
+          Object.fromEntries(simulatedNodes),
+          patch.bodyIds as AnyNodeId[],
+        )
+        simulatedNodes.set(write.container.id, write.container)
+        for (const update of write.bodyUpdates) {
+          const body = simulatedNodes.get(update.id)
+          if (body) simulatedNodes.set(update.id, { ...body, ...update.data } as AnyNode)
+        }
+        return [
+          {
+            op: 'create' as const,
+            node: write.container,
+            ...(write.container.parentId
+              ? { parentId: write.container.parentId as AnyNodeId }
+              : {}),
+          },
+          ...write.bodyUpdates.map((update) => ({
+            op: 'update' as const,
+            id: update.id,
+            data: update.data,
+          })),
+        ]
+      }
+      case 'createComponent': {
+        if (patch.sourceComponentId) {
+          const cloned = cloneComponentInstance(
+            Object.fromEntries(simulatedNodes),
+            patch.sourceComponentId as AnyNodeId,
+          )
+          for (const node of cloned.nodes) simulatedNodes.set(node.id, node)
+          return cloned.nodes.map((node) => ({
+            op: 'create' as const,
+            node,
+            ...(node.parentId ? { parentId: node.parentId as AnyNodeId } : {}),
+          }))
+        }
+        const write = createComponentFromBodies(
+          Object.fromEntries(simulatedNodes),
+          (patch.bodyIds ?? []) as AnyNodeId[],
+        )
+        simulatedNodes.set(write.container.id, write.container)
+        for (const update of write.bodyUpdates) {
+          const body = simulatedNodes.get(update.id)
+          if (body) simulatedNodes.set(update.id, { ...body, ...update.data } as AnyNode)
+        }
+        return [
+          {
+            op: 'create' as const,
+            node: write.container,
+            ...(write.container.parentId
+              ? { parentId: write.container.parentId as AnyNodeId }
+              : {}),
+          },
+          ...write.bodyUpdates.map((update) => ({
+            op: 'update' as const,
+            id: update.id,
+            data: update.data,
+          })),
+        ]
+      }
+      case 'makeComponentUnique': {
+        const update = makeComponentUnique(Object.fromEntries(simulatedNodes), patch.id)
+        const component = simulatedNodes.get(update.id)
+        if (component) simulatedNodes.set(update.id, { ...component, ...update.data } as AnyNode)
+        return [{ op: 'update' as const, id: update.id, data: update.data }]
+      }
+      case 'explodeComponent': {
+        const write = explodeComponent(Object.fromEntries(simulatedNodes), patch.id)
+        simulatedNodes.delete(write.componentId)
+        for (const update of write.bodyUpdates) {
+          const body = simulatedNodes.get(update.id)
+          if (body) simulatedNodes.set(update.id, { ...body, ...update.data } as AnyNode)
+        }
+        return [
+          ...write.bodyUpdates.map((update) => ({
+            op: 'update' as const,
+            id: update.id,
+            data: update.data,
+          })),
+          { op: 'delete' as const, id: write.componentId, cascade: false },
         ]
       }
       default: {

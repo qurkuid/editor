@@ -5,6 +5,7 @@ import {
   getBodyLoopVertices,
   insertFurnitureBay,
   insertFurnitureTier,
+  inspectBodySolid,
   offsetBodyFace,
   pushPullBodyFace,
   setFurnitureTierInterior,
@@ -12,11 +13,17 @@ import {
 import {
   executeOffsetBodyFace,
   executePushPullBodyFace,
+  executeSplitBodyFace,
 } from '@pascal-app/core/modeling-operations'
 import { type AnyNodeId, BodyNode, CabinetNode, LevelNode, WallNode } from '@pascal-app/core/schema'
 import useScene from '@pascal-app/core/store'
 import { useViewer } from '@pascal-app/viewer'
-import { AiModelingPlanSchema, applyAiModelingPlan, buildAiSceneContext } from './ai-control'
+import {
+  AiModelingPatchSchema,
+  AiModelingPlanSchema,
+  applyAiModelingPlan,
+  buildAiSceneContext,
+} from './ai-control'
 import { applyAiModelingPlanWithAssets } from './ai-control-assets'
 
 const levelId = 'level_ai_test' as AnyNodeId
@@ -200,6 +207,156 @@ describe('AI modeling control plane', () => {
     expect(BodyNode.parse(useScene.getState().nodes[body.id]).revision).toBe(0)
   })
 
+  test('arrays a whole Body through the AI operation as one undo step', () => {
+    const body = BodyNode.parse({
+      ...createRectangleBody({ width: 1.2, depth: 0.8 }),
+      id: 'body_ai_array',
+      parentId: levelId,
+    })
+    useScene.setState((state) => ({ nodes: { ...state.nodes, [body.id]: body } }))
+    useScene.temporal.getState().clear()
+
+    const result = applyAiModelingPlan({
+      message: 'Create two linear Body copies.',
+      patches: [{ op: 'arrayBodyLinear', id: body.id, count: 3, offset: [1, 0, 0] }],
+    })
+
+    expect(result.createdIds).toHaveLength(2)
+    expect(result.appliedOps).toBe(2)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+    for (const id of result.createdIds) {
+      const clone = BodyNode.parse(useScene.getState().nodes[id as AnyNodeId])
+      expect(clone.parentId).toBe(levelId)
+      expect(clone.vertices.map((vertex) => vertex.id)).toEqual(
+        body.vertices.map((vertex) => vertex.id),
+      )
+    }
+
+    useScene.temporal.getState().undo()
+    expect(
+      result.createdIds.every((id) => useScene.getState().nodes[id as AnyNodeId] === undefined),
+    ).toBe(true)
+    expect(useScene.getState().nodes[body.id]).toEqual(body)
+  })
+
+  test('intersects two Bodies through AI and restores both on one undo', () => {
+    const target = BodyNode.parse({
+      ...pushPullBodyFace(createRectangleBody({ width: 2, depth: 2 }), 'face:0', 2).body,
+      id: 'body_ai_intersection_target',
+      parentId: levelId,
+    })
+    const tool = BodyNode.parse({
+      ...pushPullBodyFace(
+        createRectangleBody({ width: 2, depth: 2, origin: [1, 0, 1] }),
+        'face:0',
+        2,
+      ).body,
+      id: 'body_ai_intersection_tool',
+      parentId: levelId,
+    })
+    useScene.setState((state) => ({
+      nodes: { ...state.nodes, [target.id]: target, [tool.id]: tool },
+    }))
+    useScene.temporal.getState().clear()
+
+    const result = applyAiModelingPlan({
+      message: 'Intersect two solid boxes.',
+      patches: [{ op: 'intersectBodies', id: target.id, toolBodyId: tool.id }],
+    })
+
+    const updated = BodyNode.parse(useScene.getState().nodes[target.id])
+    expect(result.appliedOps).toBe(2)
+    expect(result.deletedIds).toEqual([tool.id])
+    expect(useScene.getState().nodes[tool.id]).toBeUndefined()
+    expect(inspectBodySolid(updated).validSolid).toBe(true)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+
+    useScene.temporal.getState().undo()
+    expect(useScene.getState().nodes[target.id]).toEqual(target)
+    expect(useScene.getState().nodes[tool.id]).toEqual(tool)
+  })
+
+  test('applies union and subtraction Body booleans through AI with one undo each', () => {
+    for (const operation of ['unionBodies', 'subtractBodies'] as const) {
+      resetScene()
+      const target = BodyNode.parse({
+        ...pushPullBodyFace(createRectangleBody({ width: 2, depth: 2 }), 'face:0', 2).body,
+        id: `body_ai_${operation}_target`,
+        parentId: levelId,
+      })
+      const tool = BodyNode.parse({
+        ...pushPullBodyFace(
+          createRectangleBody({ width: 2, depth: 2, origin: [1, 0, 1] }),
+          'face:0',
+          2,
+        ).body,
+        id: `body_ai_${operation}_tool`,
+        parentId: levelId,
+      })
+      useScene.setState((state) => ({
+        nodes: { ...state.nodes, [target.id]: target, [tool.id]: tool },
+      }))
+      useScene.temporal.getState().clear()
+
+      const patch = AiModelingPatchSchema.parse({
+        op: operation,
+        id: target.id,
+        toolBodyId: tool.id,
+      })
+      const result = applyAiModelingPlan({
+        message: `${operation} two solid boxes.`,
+        patches: [patch],
+      })
+
+      const updated = BodyNode.parse(useScene.getState().nodes[target.id])
+      expect(result.appliedOps).toBe(2)
+      expect(result.deletedIds).toEqual([tool.id])
+      expect(useScene.getState().nodes[tool.id]).toBeUndefined()
+      expect(inspectBodySolid(updated).validSolid).toBe(true)
+      expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+
+      useScene.temporal.getState().undo()
+      expect(useScene.getState().nodes[target.id]).toEqual(target)
+      expect(useScene.getState().nodes[tool.id]).toEqual(tool)
+    }
+  })
+
+  test('applies Solid Tools through AI with exact tool lifetime and one undo', () => {
+    for (const operation of ['outerShellBodies', 'trimBodies', 'splitBodies'] as const) {
+      resetScene()
+      const target = BodyNode.parse({
+        ...pushPullBodyFace(createRectangleBody({ width: 2, depth: 2 }), 'face:0', 2).body,
+        id: `body_ai_${operation}_target`,
+        parentId: levelId,
+      })
+      const tool = BodyNode.parse({
+        ...pushPullBodyFace(
+          createRectangleBody({ width: 2, depth: 2, origin: [1, 0, 1] }),
+          'face:0',
+          2,
+        ).body,
+        id: `body_ai_${operation}_tool`,
+        parentId: levelId,
+      })
+      useScene.setState((state) => ({
+        nodes: { ...state.nodes, [target.id]: target, [tool.id]: tool },
+      }))
+      useScene.temporal.getState().clear()
+
+      const result = applyAiModelingPlan({
+        message: operation,
+        patches: [{ op: operation, id: target.id, toolBodyId: tool.id }],
+      })
+
+      expect(result.deletedIds.includes(tool.id)).toBe(operation === 'outerShellBodies')
+      expect(result.createdIds).toHaveLength(operation === 'splitBodies' ? 1 : 0)
+      expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+      useScene.temporal.getState().undo()
+      expect(useScene.getState().nodes[target.id]).toEqual(target)
+      expect(useScene.getState().nodes[tool.id]).toEqual(tool)
+    }
+  })
+
   test('offsets a body face through the canonical executor as one undo step', () => {
     const body = BodyNode.parse({
       ...pushPullBodyFace(createRectangleBody({ width: 1.2, depth: 0.8 }), 'face:0', 1.2).body,
@@ -270,6 +427,70 @@ describe('AI modeling control plane', () => {
         (face) => face.id === 'face:0:imprint:2',
       ),
     ).toBe(false)
+  })
+
+  test('splits an open body face through the canonical AI operation with one undo', () => {
+    const body = BodyNode.parse({
+      ...createRectangleBody({ width: 1.2, depth: 0.8 }),
+      id: 'body_ai_split',
+      parentId: levelId,
+    })
+    useScene.setState((state) => ({ nodes: { ...state.nodes, [body.id]: body } }))
+    useScene.temporal.getState().clear()
+    const pathPoints = [
+      [0, 0, 0.4],
+      [0.6, 0, 0.4],
+      [1.2, 0, 0.4],
+    ] as const
+    const expected = executeSplitBodyFace(body, { faceId: 'face:0', pathPoints })
+    const result = applyAiModelingPlan({
+      message: 'Split the selected planar face.',
+      patches: [{ op: 'splitBodyFace', id: body.id, faceId: 'face:0', pathPoints }],
+    })
+    const updated = BodyNode.parse(useScene.getState().nodes[body.id])
+    expect(result.appliedOps).toBe(1)
+    expect(updated).toEqual(expected.body)
+    expect(updated.faces.some((face) => face.id === expected.splitFaceId)).toBe(true)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+    useScene.temporal.getState().undo()
+    expect(BodyNode.parse(useScene.getState().nodes[body.id])).toEqual(body)
+  })
+
+  test('turns an exact recessed imprint into a through-cut through the AI operation', () => {
+    const body = BodyNode.parse({
+      ...pushPullBodyFace(createRectangleBody({ width: 1.2, depth: 0.8 }), 'face:0', 1.2).body,
+      id: 'body_ai_through_cut',
+      parentId: levelId,
+    })
+    useScene.setState((state) => ({ nodes: { ...state.nodes, [body.id]: body } }))
+    useScene.temporal.getState().clear()
+
+    const result = applyAiModelingPlan({
+      message: 'Cut the selected face through the body.',
+      patches: [
+        {
+          op: 'imprintBodyFace',
+          id: body.id,
+          faceId: 'face:0',
+          profilePoints: [
+            [0.2, 1.2, 0.1],
+            [1, 1.2, 0.1],
+            [1, 1.2, 0.7],
+            [0.2, 1.2, 0.7],
+          ],
+          distance: -1.2,
+        },
+      ],
+    })
+
+    const updated = BodyNode.parse(useScene.getState().nodes[body.id])
+    expect(result.appliedOps).toBe(1)
+    expect(inspectBodySolid(updated).validSolid).toBe(true)
+    expect(updated.faces.some((face) => face.id === 'face:0:imprint:2')).toBe(false)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+
+    useScene.temporal.getState().undo()
+    expect(BodyNode.parse(useScene.getState().nodes[body.id])).toEqual(body)
   })
 
   test('creates a rounded hollow frame as one structured operation and one undo step', () => {
