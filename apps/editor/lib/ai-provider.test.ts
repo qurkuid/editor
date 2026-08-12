@@ -29,6 +29,82 @@ describe('AI provider boundary', () => {
     })
   })
 
+  test('modeling prompt exposes the deterministic offsetBodyFace contract', () => {
+    const prompt = buildAiModelingPrompt(
+      AiChatRequestSchema.parse({
+        messages: [{ role: 'user', content: 'offset the selected face' }],
+        scene: {
+          coordinateSystem: { groundPlane: 'XZ', upAxis: 'Y', unit: 'm' },
+          nodeCount: 0,
+          nodes: {},
+          rootNodeIds: [],
+          materials: {},
+          selection: {
+            buildingId: null,
+            levelId: null,
+            zoneId: null,
+            selectedIds: [],
+            selectedNodes: [],
+          },
+        },
+      }),
+    )
+
+    const operationConcepts = [
+      'op offsetBodyFace',
+      'signed distance in metres',
+      'distance > 0',
+      'distance < 0',
+      'deterministic miter',
+      'preserves the source ring',
+      'preserves the host outer region',
+      'annular face',
+      'source-region materials and UV frames',
+      'stable existing ids',
+      'topology remap',
+    ]
+    const scopeAndRejectionConcepts = [
+      'closed planar line-edged Body face',
+      'zero or non-finite distance',
+      'missing face',
+      'invalid Body topology',
+      'open topology',
+      'non-closed solid',
+      'invalid outer loop',
+      'non-planarity',
+      'source inner loops',
+      'referenced non-line curves',
+      'reciprocal coplanar enclosing host',
+      'missing or ambiguous hosts',
+      'host boundary',
+      'sibling hole',
+      'exterior outward offsets',
+      'parallel or collinear degenerate joins',
+      'collapse',
+      'reversed winding',
+      'self-intersection',
+    ]
+    const interactionConcepts = [
+      'explicit 3D face operation',
+      'intentionally omitted from the floor-plan action menu',
+      'select the Body, click Offset',
+      'move perpendicular',
+      'click or press Enter to commit',
+      'ephemeral preview equals the committed result',
+      'one topology update and one undo step',
+      'Escape or cancel',
+      'do not simulate pointer gestures',
+    ]
+
+    for (const concept of [
+      ...operationConcepts,
+      ...scopeAndRejectionConcepts,
+      ...interactionConcepts,
+    ]) {
+      expect(prompt).toContain(concept)
+    }
+  })
+
   // This repo ships `@openai/codex` and `@anthropic-ai/claude-code` as app
   // dependencies, so without an explicit env override the bundled bin under
   // `node_modules/.bin` wins over PATH and runtime-sibling candidates.
@@ -279,6 +355,11 @@ describe('AI provider boundary', () => {
     expect(prompt).toContain('Read this manual before every modeling task')
     expect(prompt).toContain('two-click point-to-point workflow')
     expect(prompt).toContain('Hold Alt while choosing the destination')
+    expect(prompt).toContain('unit face normal')
+    expect(prompt).toContain("other elements' faces, edges, and points")
+    expect(prompt).toContain('Shift (tap) cycles')
+    expect(prompt).toContain('rejected preview')
+    expect(prompt).toContain('preserve the live cursor sign')
     expect(prompt).toContain('never guess it from screenshots or image pixels')
     expect(prompt).toContain('library:preset-glass for glass')
     expect(prompt).toContain('library:flooring-rusticbrick for masonry')

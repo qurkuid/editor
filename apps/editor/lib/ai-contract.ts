@@ -1,4 +1,13 @@
 import {
+  ImprintBodyFaceInputSchema,
+  MODELING_OPERATION_IDS,
+  OffsetBodyFaceInputSchema,
+  PaintBodyFaceInputSchema,
+  PushPullBodyFaceInputSchema,
+  SweepBodyFaceInputSchema,
+  TransformBodyInputSchema,
+} from '@pascal-app/core/modeling-operations'
+import {
   type AnyNodeId,
   FurnitureKindSchema,
   SceneMaterial,
@@ -34,43 +43,58 @@ const DeletePatchSchema = z.object({
   cascade: z.boolean().optional(),
 })
 
-const PushPullBodyFacePatchSchema = z.object({
-  op: z.literal('pushPullBodyFace'),
-  id: AnyNodeIdSchema,
-  faceId: z.string().trim().min(1),
-  distance: z
-    .number()
-    .finite()
-    .refine((value) => value !== 0, 'Expected a non-zero distance'),
-})
+const PushPullBodyFacePatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.pushPullBodyFace),
+    id: AnyNodeIdSchema,
+    ...PushPullBodyFaceInputSchema.shape,
+  })
+  .strict()
 
-const ImprintBodyFacePatchSchema = z.object({
-  op: z.literal('imprintBodyFace'),
-  id: AnyNodeIdSchema,
-  faceId: z.string().trim().min(1),
-  profilePoints: z.array(Point3Schema).min(3).max(512),
-  distance: z
-    .number()
-    .finite()
-    .refine((value) => value !== 0, 'Expected a non-zero distance')
-    .optional(),
-})
+const OffsetBodyFacePatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.offsetBodyFace),
+    id: AnyNodeIdSchema,
+    ...OffsetBodyFaceInputSchema.shape,
+  })
+  .strict()
 
-const TransformBodyPatchSchema = z.object({
-  op: z.literal('transformBody'),
-  id: AnyNodeIdSchema,
-  translation: Point3Schema,
-  rotationY: z.number().finite(),
-  uniformScale: z.number().finite().positive(),
-  pivot: Point3Schema,
-})
+const SweepBodyFacePatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.sweepBodyFace),
+    id: AnyNodeIdSchema,
+    ...SweepBodyFaceInputSchema.shape,
+  })
+  .strict()
 
-const PaintBodyFacePatchSchema = z.object({
-  op: z.literal('paintBodyFace'),
-  id: AnyNodeIdSchema,
-  faceId: z.string().trim().min(1),
-  material: SceneMaterial.extend({ id: SceneMaterialIdSchema }),
-})
+const ImprintBodyFacePatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.imprintBodyFace),
+    id: AnyNodeIdSchema,
+    ...ImprintBodyFaceInputSchema.shape,
+  })
+  .strict()
+
+const TransformBodyPatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.transformBody),
+    id: AnyNodeIdSchema,
+    ...TransformBodyInputSchema.shape,
+  })
+  .strict()
+
+const PaintBodyFacePatchSchema = z
+  .object({
+    op: z.literal(MODELING_OPERATION_IDS.paintBodyFace),
+    id: AnyNodeIdSchema,
+    ...PaintBodyFaceInputSchema.shape,
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!SceneMaterialIdSchema.safeParse(value.material.id).success) {
+      ctx.addIssue({ code: 'custom', path: ['material', 'id'], message: 'Expected a mat_ id' })
+    }
+  })
 
 const MakeMaterialSeamlessPatchSchema = z.object({
   op: z.literal('makeMaterialSeamless'),
@@ -159,6 +183,8 @@ export const AiModelingPatchSchema = z.discriminatedUnion('op', [
   UpdatePatchSchema,
   DeletePatchSchema,
   PushPullBodyFacePatchSchema,
+  OffsetBodyFacePatchSchema,
+  SweepBodyFacePatchSchema,
   ImprintBodyFacePatchSchema,
   TransformBodyPatchSchema,
   PaintBodyFacePatchSchema,

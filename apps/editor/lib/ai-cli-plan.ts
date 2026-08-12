@@ -1,51 +1,81 @@
+import {
+  ImprintBodyFaceInputSchema,
+  MODELING_OPERATION_ID_VALUES,
+  OffsetBodyFaceInputSchema,
+  PaintBodyFaceInputSchema,
+  PushPullBodyFaceInputSchema,
+  SweepBodyFaceInputSchema,
+  TransformBodyInputSchema,
+} from '@pascal-app/core/modeling-operations'
 import { MaterialSchema, SceneMaterial } from '@pascal-app/core/schema'
 import { z } from 'zod'
 import { type AiModelingPlan, AiModelingPlanSchema } from './ai-contract'
 
-export const CodexCliPatchSchema = z.object({
-  op: z.enum([
-    'create',
-    'update',
-    'delete',
-    'pushPullBodyFace',
-    'imprintBodyFace',
-    'transformBody',
-    'paintBodyFace',
-    'makeMaterialSeamless',
-    'createRoundedRectangularFrameBody',
-    'createFurniture',
-    'setFurnitureTierInterior',
-    'insertFurnitureBay',
-    'deleteFurnitureBay',
-    'resizeFurnitureBay',
-    'insertFurnitureTier',
-    'deleteFurnitureTier',
-    'resizeFurnitureTier',
-  ]),
-  // `.default(null)` accepts patches that omit inapplicable fields entirely —
-  // Claude's lean output schema only requires `op`.
-  id: z.string().nullable().default(null),
-  nodeJson: z.string().nullable().default(null),
-  dataJson: z.string().nullable().default(null),
-  parentId: z.string().nullable().default(null),
-  cascade: z.boolean().nullable().default(null),
-  faceId: z.string().nullable().default(null),
-  profilePoints: z
-    .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
-    .nullable()
-    .default(null),
-  distance: z.number().finite().nullable().default(null),
-  translation: z
-    .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
-    .nullable()
-    .default(null),
-  rotationY: z.number().finite().nullable().default(null),
-  uniformScale: z.number().finite().positive().nullable().default(null),
-  pivot: z
-    .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
-    .nullable()
-    .default(null),
-})
+export const CodexCliPatchSchema = z
+  .object({
+    op: z.enum([
+      'create',
+      'update',
+      'delete',
+      ...MODELING_OPERATION_ID_VALUES,
+      'makeMaterialSeamless',
+      'createRoundedRectangularFrameBody',
+      'createFurniture',
+      'setFurnitureTierInterior',
+      'insertFurnitureBay',
+      'deleteFurnitureBay',
+      'resizeFurnitureBay',
+      'insertFurnitureTier',
+      'deleteFurnitureTier',
+      'resizeFurnitureTier',
+    ]),
+    // `.default(null)` accepts patches that omit inapplicable fields entirely —
+    // Claude's lean output schema only requires `op`.
+    id: z.string().nullable().default(null),
+    nodeJson: z.string().nullable().default(null),
+    dataJson: z.string().nullable().default(null),
+    parentId: z.string().nullable().default(null),
+    cascade: z.boolean().nullable().default(null),
+    faceId: z.string().nullable().default(null),
+    profilePoints: z
+      .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
+      .nullable()
+      .default(null),
+    pathPoints: z
+      .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
+      .nullable()
+      .default(null),
+    distance: z.number().finite().nullable().default(null),
+    translation: z
+      .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+      .nullable()
+      .default(null),
+    rotationAxis: z
+      .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+      .nullable()
+      .default(null),
+    rotationAngle: z.number().finite().nullable().default(null),
+    scale: z
+      .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+      .nullable()
+      .default(null),
+    pivot: z
+      .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
+      .nullable()
+      .default(null),
+  })
+  .strict()
+  .superRefine((patch, context) => {
+    if (patch.op !== 'offsetBodyFace') return
+    for (const [field, value] of Object.entries(patch)) {
+      if (['op', 'id', 'faceId', 'distance'].includes(field) || value === null) continue
+      context.addIssue({
+        code: 'custom',
+        path: [field],
+        message: `Expected ${field} to be null for offsetBodyFace`,
+      })
+    }
+  })
 
 export const CodexCliPlanSchema = z.object({
   message: z.string().min(1),
@@ -96,41 +126,50 @@ export function parseCodexCliPlan(input: unknown): AiModelingPlan {
         return {
           op: patch.op,
           id: z.string().min(1).parse(patch.id),
-          faceId: z.string().min(1).parse(patch.faceId),
-          distance: z.number().finite().parse(patch.distance),
+          ...PushPullBodyFaceInputSchema.parse({
+            faceId: patch.faceId,
+            distance: patch.distance,
+          }),
+        }
+      case 'offsetBodyFace':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...OffsetBodyFaceInputSchema.parse({
+            faceId: patch.faceId,
+            distance: patch.distance,
+          }),
+        }
+      case 'sweepBodyFace':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          ...SweepBodyFaceInputSchema.parse({
+            faceId: patch.faceId,
+            pathPoints: patch.pathPoints,
+          }),
         }
       case 'imprintBodyFace':
         return {
           op: patch.op,
           id: z.string().min(1).parse(patch.id),
-          faceId: z.string().min(1).parse(patch.faceId),
-          profilePoints: z
-            .array(z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]))
-            .min(3)
-            .max(512)
-            .parse(patch.profilePoints),
-          ...(patch.distance === null
-            ? {}
-            : {
-                distance: z
-                  .number()
-                  .finite()
-                  .refine((value) => value !== 0)
-                  .parse(patch.distance),
-              }),
+          ...ImprintBodyFaceInputSchema.parse({
+            faceId: patch.faceId,
+            profilePoints: patch.profilePoints,
+            ...(patch.distance === null ? {} : { distance: patch.distance }),
+          }),
         }
       case 'transformBody':
         return {
           op: patch.op,
           id: z.string().min(1).parse(patch.id),
-          translation: z
-            .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
-            .parse(patch.translation),
-          rotationY: z.number().finite().parse(patch.rotationY),
-          uniformScale: z.number().finite().positive().parse(patch.uniformScale),
-          pivot: z
-            .tuple([z.number().finite(), z.number().finite(), z.number().finite()])
-            .parse(patch.pivot),
+          ...TransformBodyInputSchema.parse({
+            translation: patch.translation,
+            rotationAxis: patch.rotationAxis,
+            rotationAngle: patch.rotationAngle,
+            scale: patch.scale,
+            pivot: patch.pivot,
+          }),
         }
       case 'paintBodyFace': {
         const materialRecord = parseJsonRecord(patch.dataJson)
@@ -145,8 +184,7 @@ export function parseCodexCliPlan(input: unknown): AiModelingPlan {
         return {
           op: patch.op,
           id: z.string().min(1).parse(patch.id),
-          faceId: z.string().min(1).parse(patch.faceId),
-          material,
+          ...PaintBodyFaceInputSchema.parse({ faceId: patch.faceId, material }),
         }
       }
       case 'makeMaterialSeamless': {

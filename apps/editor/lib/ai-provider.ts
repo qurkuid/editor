@@ -1,7 +1,12 @@
 import { existsSync } from 'node:fs'
 import { delimiter, dirname, join } from 'node:path'
+import {
+  MODELING_OPERATION_ID_VALUES,
+  MODELING_OPERATION_MANIFEST,
+} from '@pascal-app/core/modeling-operations'
+import { SemanticIdSchema, SemanticVersionSchema } from '@pascal-app/core/ontology'
 import { AnyNode } from '@pascal-app/core/schema'
-import { MODELING_AGENT_MANUAL } from '@pascal-app/mcp'
+import { MODELING_AGENT_MANUAL } from '@pascal-app/mcp/modeling-agent-manual'
 import { z } from 'zod'
 import { AI_EFFORT_LEVELS, AI_MODEL_IDS } from './ai-model-options'
 
@@ -105,6 +110,20 @@ export const AiChatRequestSchema = z.object({
       zoneId: z.string().nullable(),
       selectedIds: z.array(z.string()),
       selectedNodes: z.array(z.unknown()),
+      semanticRefs: z
+        .array(
+          z
+            .object({
+              nodeId: z.string().min(1),
+              packId: SemanticIdSchema,
+              classId: SemanticIdSchema,
+              version: SemanticVersionSchema,
+            })
+            .strict()
+            .readonly(),
+        )
+        .max(100)
+        .default([]),
     }),
   }),
 })
@@ -157,10 +176,12 @@ export const modelingPlanJsonSchema = {
           'cascade',
           'faceId',
           'profilePoints',
+          'pathPoints',
           'distance',
           'translation',
-          'rotationY',
-          'uniformScale',
+          'rotationAxis',
+          'rotationAngle',
+          'scale',
           'pivot',
         ],
         properties: {
@@ -170,10 +191,7 @@ export const modelingPlanJsonSchema = {
               'create',
               'update',
               'delete',
-              'pushPullBodyFace',
-              'imprintBodyFace',
-              'transformBody',
-              'paintBodyFace',
+              ...MODELING_OPERATION_ID_VALUES,
               'makeMaterialSeamless',
               'createRoundedRectangularFrameBody',
               'createFurniture',
@@ -203,6 +221,17 @@ export const modelingPlanJsonSchema = {
             minItems: 3,
             maxItems: 512,
           },
+          pathPoints: {
+            type: ['array', 'null'],
+            items: {
+              type: 'array',
+              items: { type: 'number' },
+              minItems: 3,
+              maxItems: 3,
+            },
+            minItems: 2,
+            maxItems: 256,
+          },
           distance: { type: ['number', 'null'] },
           translation: {
             type: ['array', 'null'],
@@ -210,8 +239,19 @@ export const modelingPlanJsonSchema = {
             minItems: 3,
             maxItems: 3,
           },
-          rotationY: { type: ['number', 'null'] },
-          uniformScale: { type: ['number', 'null'] },
+          rotationAxis: {
+            type: ['array', 'null'],
+            items: { type: 'number' },
+            minItems: 3,
+            maxItems: 3,
+          },
+          rotationAngle: { type: ['number', 'null'] },
+          scale: {
+            type: ['array', 'null'],
+            items: { type: 'number' },
+            minItems: 3,
+            maxItems: 3,
+          },
           pivot: {
             type: ['array', 'null'],
             items: { type: 'number' },
@@ -468,10 +508,7 @@ export function buildAiModelingPrompt(input: AiChatRequest): string {
     'For create, nodeJson is the complete node JSON string. For update, dataJson is a JSON string holding only the changed fields — never echo the whole node and never use nodeJson for an update. For delete, use id plus optional cascade.',
     'Room finish metadata such as floorFinish, wallFinish, and ceilingFinish lives on the zone node. Set it with an update patch on the zone, for example dataJson {"wallFinish":"도배지 - 회벽 화이트"}.',
     'A wall\'s kind (유리벽, 조적벽, 유리벽돌 벽) is not a stored property — it is derived from the materials the wall is composed of. For an unbanded wall, set both face slots to the kind\'s library material with an update patch, for example dataJson {"slots":{"interior":"library:preset-glass","exterior":"library:preset-glass"}}. For a wall with face bands enabled, set both sides of the band that is built from that material instead — for example a glass-block lower band is dataJson {"slots":{"lowerInterior":"library:preset-glass-block","lowerExterior":"library:preset-glass-block"}} — and leave the other bands as authored. Use library:preset-glass for glass, library:flooring-rusticbrick for masonry, and library:preset-glass-block for glass block. This applies when creating the wall too — include the slots field in nodeJson. To return the wall to a standard finish, remove the refs you set from slots.',
-    'For exact Body face extrusion, return op pushPullBodyFace with the body id, faceId, and signed distance in metres. Prefer this deterministic command over rewriting Body topology arrays.',
-    'For a closed line-edged Body face imprint, return op imprintBodyFace with the body id, faceId, and profilePoints as at least three coplanar [x,y,z] points strictly inside that face. Add an optional signed distance in metres to the same operation when the user wants a raised boss or recessed pocket; omit distance for a flat split. Never guess the generated inset face id. Prefer this deterministic command over rewriting Body topology arrays.',
-    'For Body move, Y-axis rotation, or uniform scale, return op transformBody with translation in metres, rotationY in radians, a positive uniformScale, and an explicit pivot. Prefer this deterministic command over rewriting Body vertices.',
-    'For Body face finishes, return op paintBodyFace with the body id, faceId, and dataJson containing a complete SceneMaterial JSON string such as {"id":"mat_red","name":"Matte red paint","material":{"preset":"custom","properties":{"color":"#b91c1c","roughness":0.85,"metalness":0}}}. Its id must begin with mat_. Prefer this deterministic command over rewriting Body faces or topology.',
+    `For Body semantic operations, use only this canonical manifest for operation ids and fields. The manual above supplies behavior and safety semantics; this manifest supplies the authoritative input shape and units: ${JSON.stringify(MODELING_OPERATION_MANIFEST.operations.map(({ id, input, surfaces, preview, commit }) => ({ id, input, surfaces, preview, commit })))}`,
     'For a textured scene material that should tile without visible image borders, return op makeMaterialSeamless and dataJson as {"materialId":"mat_existing"}. Use an existing material id from scene.materials. The editor hashes the original image, reuses a local cached result, and updates the material texture when the user applies the plan.',
     'For a hollow rectangular frame wall with rounded outer upper corners, return op createRoundedRectangularFrameBody. Put the optional body id in id, the target level id in parentId, and dataJson as {"name":"Rounded frame wall","origin":[0,0,0],"width":2,"height":2.4,"depth":0.1,"openingWidth":1,"openingHeight":0.8,"topCornerRadius":0.2}. Dimensions are metres. The rectangular opening is centered in the outer frame and topCornerRadius applies only to the two outer upper corners.',
     'For a deterministic parametric furniture carcass, return op createFurniture. Put the optional cabinet id in id, the target level id in parentId, and dataJson as {"name":"Wardrobe","position":[0,0,0],"rotationY":0,"furnitureKind":"wardrobe","dimensions":{"width":2.4,"height":2.4,"depth":0.6},"bayCount":2}. Dimensions are metres. This operation creates the same normalized FurnitureAssembly used by the direct cabinet panel.',

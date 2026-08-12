@@ -10,8 +10,9 @@ const transformPatch = {
   op: 'transformBody',
   id: 'body_ai_transform',
   translation: [2, 0, 0],
-  rotationY: Math.PI / 2,
-  uniformScale: 0.5,
+  rotationAxis: [0, 1, 0],
+  rotationAngle: Math.PI / 2,
+  scale: [0.5, 0.5, 0.5],
   pivot: [0.6, 0.6, 0.4],
 } as const
 
@@ -62,6 +63,47 @@ describe('AI Body transform', () => {
 
     // Then
     expect(plan.patches).toEqual([transformPatch])
+  })
+
+  test('rejects the retired transform aliases at both AI boundaries', () => {
+    expect(() =>
+      AiModelingPlanSchema.parse({
+        message: 'Transform Body.',
+        patches: [
+          {
+            op: 'transformBody',
+            id: transformPatch.id,
+            translation: transformPatch.translation,
+            rotationY: 0,
+            uniformScale: 1,
+            pivot: transformPatch.pivot,
+          },
+        ],
+      }),
+    ).toThrow()
+
+    expect(() =>
+      parseCodexCliPlan({
+        message: 'Transform Body.',
+        patches: [
+          {
+            op: 'transformBody',
+            id: transformPatch.id,
+            nodeJson: null,
+            dataJson: null,
+            parentId: null,
+            cascade: null,
+            faceId: null,
+            profilePoints: null,
+            distance: null,
+            translation: transformPatch.translation,
+            rotationY: 0,
+            uniformScale: 1,
+            pivot: transformPatch.pivot,
+          },
+        ],
+      }),
+    ).toThrow()
   })
 
   test('moves rotates and scales a Body as one undo step', () => {

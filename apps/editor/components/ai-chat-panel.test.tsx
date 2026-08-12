@@ -80,3 +80,15 @@ test('uses human-readable preview labels for structural furniture operations', (
     }),
   ).toBe('가구 Bay 추가 1 · 가구 Tier 치수 1')
 })
+
+test('uses a human-readable preview label for canonical face offset', () => {
+  expect(
+    operationLabel(
+      {
+        message: 'Offset ready.',
+        patches: [{ op: 'offsetBodyFace', id: 'body_1', faceId: 'face:0', distance: -0.2 }],
+      },
+      'en',
+    ),
+  ).toBe('Face offset 1')
+})

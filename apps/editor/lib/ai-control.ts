@@ -5,18 +5,23 @@ import {
   deleteFurnitureBay,
   deleteFurnitureTier,
   type FurnitureAssembly,
-  imprintBodyFace,
+  getNodeSemanticRef,
   insertFurnitureBay,
   insertFurnitureTier,
-  pushPullBodyFace,
   resizeFurnitureBay,
   resizeFurnitureTier,
   runAsSingleSceneHistoryStep,
   setFurnitureTierInterior,
-  toSceneMaterialRef,
   withDefaultConstructionMaterials,
 } from '@pascal-app/core'
-import { transformBody } from '@pascal-app/core/body-transform'
+import {
+  executeImprintBodyFace,
+  executeOffsetBodyFace,
+  executePaintBodyFace,
+  executePushPullBodyFace,
+  executeSweepBodyFace,
+  executeTransformBody,
+} from '@pascal-app/core/modeling-operations'
 import {
   AnyNode,
   type AnyNodeId,
@@ -29,6 +34,7 @@ import {
 import useScene from '@pascal-app/core/store'
 import { type Patch, SceneBridge } from '@pascal-app/mcp/bridge'
 import { useViewer } from '@pascal-app/viewer'
+import { z } from 'zod'
 import { type AiModelingPlan, AiModelingPlanSchema } from './ai-contract'
 
 export {
@@ -36,6 +42,15 @@ export {
   type AiModelingPlan,
   AiModelingPlanSchema,
 } from './ai-contract'
+
+const SceneMaterialIdSchema = z.custom<SceneMaterialId>(
+  (value) => typeof value === 'string' && value.startsWith('mat_'),
+  'Expected a scene material id beginning with mat_',
+)
+
+function parseSceneMaterialId(value: string): SceneMaterialId {
+  return SceneMaterialIdSchema.parse(value)
+}
 
 export type AiSceneContext = {
   coordinateSystem: {
@@ -53,6 +68,12 @@ export type AiSceneContext = {
     zoneId: string | null
     selectedIds: string[]
     selectedNodes: ReturnType<typeof useScene.getState>['nodes'][AnyNodeId][]
+    semanticRefs: {
+      readonly nodeId: string
+      readonly packId: string
+      readonly classId: string
+      readonly version: string
+    }[]
   }
 }
 
@@ -175,7 +196,40 @@ function normalizePatches(plan: AiModelingPlan): {
         if (current.type !== 'body') {
           throw new RangeError(`AI Push/Pull target is not a body: ${patch.id}`)
         }
-        const result = pushPullBodyFace(current, patch.faceId, patch.distance)
+        const result = executePushPullBodyFace(current, {
+          faceId: patch.faceId,
+          distance: patch.distance,
+        })
+        simulatedNodes.set(result.body.id, result.body)
+        return [{ op: 'update', id: result.body.id, data: result.body }]
+      }
+      case 'offsetBodyFace': {
+        const current = simulatedNodes.get(patch.id)
+        if (!current) {
+          throw new Error(`invalid AI patch: patches[${index}] body id "${patch.id}" not found`)
+        }
+        if (current.type !== 'body') {
+          throw new RangeError(`AI Body offset target is not a body: ${patch.id}`)
+        }
+        const result = executeOffsetBodyFace(current, {
+          faceId: patch.faceId,
+          distance: patch.distance,
+        })
+        simulatedNodes.set(result.body.id, result.body)
+        return [{ op: 'update', id: result.body.id, data: result.body }]
+      }
+      case 'sweepBodyFace': {
+        const current = simulatedNodes.get(patch.id)
+        if (!current) {
+          throw new Error(`invalid AI patch: patches[${index}] body id "${patch.id}" not found`)
+        }
+        if (current.type !== 'body') {
+          throw new RangeError(`AI Body sweep target is not a body: ${patch.id}`)
+        }
+        const result = executeSweepBodyFace(current, {
+          faceId: patch.faceId,
+          pathPoints: patch.pathPoints,
+        })
         simulatedNodes.set(result.body.id, result.body)
         return [{ op: 'update', id: result.body.id, data: result.body }]
       }
@@ -187,13 +241,13 @@ function normalizePatches(plan: AiModelingPlan): {
         if (current.type !== 'body') {
           throw new RangeError(`AI imprint target is not a body: ${patch.id}`)
         }
-        const result = imprintBodyFace(current, patch.faceId, patch.profilePoints)
-        const body =
-          patch.distance === undefined
-            ? result.body
-            : pushPullBodyFace(result.body, result.insetFaceId, patch.distance).body
-        simulatedNodes.set(body.id, body)
-        return [{ op: 'update', id: body.id, data: body }]
+        const result = executeImprintBodyFace(current, {
+          faceId: patch.faceId,
+          profilePoints: patch.profilePoints,
+          ...(patch.distance === undefined ? {} : { distance: patch.distance }),
+        })
+        simulatedNodes.set(result.body.id, result.body)
+        return [{ op: 'update', id: result.body.id, data: result.body }]
       }
       case 'transformBody': {
         const current = simulatedNodes.get(patch.id)
@@ -203,9 +257,9 @@ function normalizePatches(plan: AiModelingPlan): {
         if (current.type !== 'body') {
           throw new RangeError(`AI Body transform target is not a body: ${patch.id}`)
         }
-        const body = transformBody(current, patch)
-        simulatedNodes.set(body.id, body)
-        return [{ op: 'update', id: body.id, data: body }]
+        const result = executeTransformBody(current, patch)
+        simulatedNodes.set(result.body.id, result.body)
+        return [{ op: 'update', id: result.body.id, data: result.body }]
       }
       case 'paintBodyFace': {
         const current = simulatedNodes.get(patch.id)
@@ -215,30 +269,25 @@ function normalizePatches(plan: AiModelingPlan): {
         if (current.type !== 'body') {
           throw new RangeError(`AI Body paint target is not a body: ${patch.id}`)
         }
-        if (!current.faces.some((face) => face.id === patch.faceId)) {
-          throw new RangeError(`AI Body paint face not found: ${patch.id}/${patch.faceId}`)
+        const result = executePaintBodyFace(current, {
+          faceId: patch.faceId,
+          material: patch.material,
+        })
+        if (!result.material) {
+          throw new RangeError(`AI Body paint material is missing: ${patch.id}/${patch.faceId}`)
         }
         const existingMaterial =
-          materials.find((material) => material.id === patch.material.id) ??
-          useScene.getState().materials[patch.material.id]
+          materials.find((material) => material.id === result.material?.id) ??
+          useScene.getState().materials[parseSceneMaterialId(result.material.id)]
         if (
           existingMaterial &&
-          JSON.stringify(existingMaterial) !== JSON.stringify(patch.material)
+          JSON.stringify(existingMaterial) !== JSON.stringify(result.material)
         ) {
-          throw new RangeError(`AI Body paint material id already exists: ${patch.material.id}`)
+          throw new RangeError(`AI Body paint material id already exists: ${result.material.id}`)
         }
-        if (!existingMaterial) materials.push(patch.material)
-        const materialRef = toSceneMaterialRef(patch.material.id)
-        const body = {
-          ...current,
-          faces: current.faces.map((face) =>
-            face.id === patch.faceId
-              ? { ...face, surface: { ...face.surface, materialRef } }
-              : face,
-          ),
-        }
-        simulatedNodes.set(body.id, body)
-        return [{ op: 'update', id: body.id, data: body }]
+        if (!existingMaterial) materials.push(result.material)
+        simulatedNodes.set(result.body.id, result.body)
+        return [{ op: 'update', id: result.body.id, data: result.body }]
       }
       case 'updateSceneMaterial': {
         const existing = useScene.getState().materials[patch.material.id]
@@ -380,9 +429,13 @@ export function applyAiModelingPlan(input: unknown): {
 export function buildAiSceneContext(): AiSceneContext {
   const state = useScene.getState()
   const selection = useViewer.getState().selection
-  const selectedNodes = selection.selectedIds
-    .map((id) => state.nodes[id as AnyNodeId])
-    .filter((node) => node !== undefined)
+  const selectedNodes = selection.selectedIds.flatMap((id) =>
+    Object.values(state.nodes).filter((node) => node.id === id),
+  )
+  const semanticRefs = selectedNodes.flatMap((node) => {
+    const semanticRef = getNodeSemanticRef(node.type)
+    return semanticRef ? [{ nodeId: node.id, ...semanticRef }] : []
+  })
   return {
     coordinateSystem: { groundPlane: 'XZ', upAxis: 'Y', unit: 'm' },
     nodeCount: Object.keys(state.nodes).length,
@@ -395,6 +448,7 @@ export function buildAiSceneContext(): AiSceneContext {
       zoneId: selection.zoneId,
       selectedIds: selection.selectedIds,
       selectedNodes,
+      semanticRefs,
     },
   }
 }

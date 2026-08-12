@@ -19,12 +19,35 @@ const emptyFieldPatch = {
   cascade: null,
   faceId: null,
   profilePoints: null,
+  pathPoints: null,
   distance: null,
   translation: null,
-  rotationY: null,
-  uniformScale: null,
+  rotationAxis: null,
+  rotationAngle: null,
+  scale: null,
   pivot: null,
 }
+
+const inapplicableOffsetFields = {
+  nodeJson: '{}',
+  dataJson: '{"vertices":[]}',
+  parentId: 'level_1',
+  cascade: true,
+  profilePoints: [
+    [0, 0, 0],
+    [1, 0, 0],
+    [1, 0, 1],
+  ],
+  pathPoints: [
+    [0, 0, 0],
+    [0, 1, 0],
+  ],
+  translation: [1, 0, 0],
+  rotationAxis: [0, 1, 0],
+  rotationAngle: Math.PI / 2,
+  scale: [1, 1, 1],
+  pivot: [0, 0, 0],
+} as const
 
 describe('Codex CLI provider boundary', () => {
   test('falls back to another installed CLI when the first binary is broken', async () => {
@@ -168,6 +191,93 @@ describe('Codex CLI provider boundary', () => {
       ],
     })
   })
+
+  test('converts a signed body face offset command from the CLI contract', () => {
+    const plan = parseCodexCliPlan({
+      message: 'Body face offset ready.',
+      patches: [
+        {
+          ...emptyFieldPatch,
+          op: 'offsetBodyFace',
+          id: 'body_selected',
+          faceId: 'face:0',
+          distance: -0.12,
+        },
+      ],
+    })
+
+    expect(plan).toEqual({
+      message: 'Body face offset ready.',
+      patches: [{ op: 'offsetBodyFace', id: 'body_selected', faceId: 'face:0', distance: -0.12 }],
+    })
+    expect(() =>
+      parseCodexCliPlan({
+        message: 'Invalid body face offset.',
+        patches: [
+          {
+            ...emptyFieldPatch,
+            op: 'offsetBodyFace',
+            id: 'body_selected',
+            faceId: 'face:0',
+            distance: 0,
+          },
+        ],
+      }),
+    ).toThrow()
+  })
+
+  test('rejects offset aliases and raw topology at the flat CLI boundary', () => {
+    expect(() =>
+      parseCodexCliPlan({
+        message: 'Aliased body face offset.',
+        patches: [
+          {
+            ...emptyFieldPatch,
+            op: 'offsetBodyFace',
+            id: 'body_selected',
+            faceId: 'face:0',
+            distance: 0.12,
+            direction: 'outward',
+          },
+        ],
+      }),
+    ).toThrow()
+    expect(() =>
+      parseCodexCliPlan({
+        message: 'Raw topology body face offset.',
+        patches: [
+          {
+            ...emptyFieldPatch,
+            op: 'offsetBodyFace',
+            id: 'body_selected',
+            faceId: 'face:0',
+            distance: -0.12,
+            vertices: [],
+          },
+        ],
+      }),
+    ).toThrow()
+  })
+
+  for (const [field, value] of Object.entries(inapplicableOffsetFields)) {
+    test(`rejects inapplicable non-null ${field} for a flat CLI offset`, () => {
+      expect(() =>
+        parseCodexCliPlan({
+          message: 'Offset must use only its canonical fields.',
+          patches: [
+            {
+              ...emptyFieldPatch,
+              op: 'offsetBodyFace',
+              id: 'body_selected',
+              faceId: 'face:0',
+              distance: -0.12,
+              [field]: value,
+            },
+          ],
+        }),
+      ).toThrow()
+    })
+  }
 
   test('converts a rounded hollow frame command without raw topology', () => {
     const plan = parseCodexCliPlan({
@@ -414,7 +524,7 @@ count=$((count + 1))
 printf '%s' "$count" > ${JSON.stringify(counterPath)}
 cat > ${JSON.stringify(directory)}/prompt-$count
 if [ "$count" = "1" ]; then
-  printf '%s' '{"message":"first try","patches":[{"op":"update","id":"zone_1","nodeJson":null,"dataJson":null,"parentId":null,"cascade":null,"faceId":null,"distance":null,"translation":null,"rotationY":null,"uniformScale":null,"pivot":null}]}' > "$output"
+  printf '%s' '{"message":"first try","patches":[{"op":"update","id":"zone_1","nodeJson":null,"dataJson":null,"parentId":null,"cascade":null,"faceId":null,"distance":null,"translation":null,"rotationAxis":null,"rotationAngle":null,"scale":null,"pivot":null}]}' > "$output"
 else
   printf '%s' '{"message":"second try ready.","patches":[]}' > "$output"
 fi

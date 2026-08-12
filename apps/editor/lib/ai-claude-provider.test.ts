@@ -137,7 +137,7 @@ count=$((count + 1))
 printf '%s' "$count" > ${JSON.stringify(counterPath)}
 cat > ${JSON.stringify(directory)}/prompt-$count
 if [ "$count" = "1" ]; then
-  printf '%s' '{"is_error":false,"structured_output":{"message":"first try","patches":[{"op":"pushPullBodyFace","id":null,"nodeJson":null,"dataJson":null,"parentId":null,"cascade":null,"faceId":"face:0","distance":1,"translation":null,"rotationY":null,"uniformScale":null,"pivot":null}]}}'
+  printf '%s' '{"is_error":false,"structured_output":{"message":"first try","patches":[{"op":"pushPullBodyFace","id":null,"nodeJson":null,"dataJson":null,"parentId":null,"cascade":null,"faceId":"face:0","distance":1,"translation":null,"rotationAxis":null,"rotationAngle":null,"scale":null,"pivot":null}]}}'
 else
   printf '%s' '{"is_error":false,"structured_output":{"message":"second try ready.","patches":[]}}'
 fi
