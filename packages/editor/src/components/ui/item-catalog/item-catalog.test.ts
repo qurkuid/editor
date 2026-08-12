@@ -67,7 +67,7 @@ test('converts an imported body to an editable Pascal light', () => {
     thumbnail: '/pendant.png',
     src: '/pendant.glb',
     dimensions: [1, 1, 1],
-  } as const
+  } satisfies Parameters<typeof lightingReplacementNode>[1]
   const light = lightingReplacementNode(body, asset)
 
   expect(light.type).toBe('lighting-fixture')
