@@ -168,7 +168,9 @@ export function OffsetHandle({
       if (cancelled || !committed) session.cancel()
       if (committed) triggerSFX('sfx:structure-build')
       if (committed && createdFaceId) {
-        useBodyToolOptions.getState().setSelectedFace({ bodyId: body.id, faceId: createdFaceId })
+        useBodyToolOptions
+          .getState()
+          .setSelectedFeature({ bodyId: body.id, kind: 'face', featureId: createdFaceId })
       }
       clearLength()
       useViewer.getState().setInputDragging(false)

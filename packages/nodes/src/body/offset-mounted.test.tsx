@@ -3,6 +3,7 @@ import {
   BodyNode,
   createRectangleBody,
   emitter,
+  getBodyLoopVertices,
   getBodySemanticHash,
   nodeRegistry,
   pushPullBodyFace,
@@ -242,7 +243,7 @@ beforeEach(async () => {
   useScene.setState({ nodes: { [body.id]: body }, rootNodeIds: [body.id] })
   useScene.temporal.getState().clear()
   useInteractionScope.getState().end()
-  useBodyToolOptions.setState({ selectedFace: null, selectionAction: null })
+  useBodyToolOptions.setState({ selectedFeature: null, selectionAction: null })
   useDraftLengthHud.getState().clear()
   useViewer.setState({ inputDragging: false })
   useViewer.getState().setSelection({ selectedIds: [body.id] })
@@ -386,12 +387,87 @@ describe('mounted Body Offset lifecycle', () => {
 
     await press('Enter')
 
-    expect(useBodyToolOptions.getState().selectedFace).toEqual({
+    expect(useBodyToolOptions.getState().selectedFeature).toEqual({
       bodyId: body.id,
-      faceId: 'face:0:offset:2',
+      kind: 'face',
+      featureId: 'face:0:offset:2',
     })
     expect(useScene.temporal.getState().pastStates).toHaveLength(1)
     expect(offsetOutline()).toBeNull()
+  })
+
+  test('selects a persistent Body vertex through the shared screen-space inference', async () => {
+    const body = bodyFixture()
+    await mountAffordance()
+    const faceObject = sceneRegistry.nodes.get(body.id)?.getObjectByName('face:face:0')
+    const point = getBodyLoopVertices(body, body.faces[0]!.outerLoopId)[0]!
+    const projected = new Vector3(...point).project(camera)
+    if (!faceObject) throw new Error('Expected the real Body face mesh to be registered')
+
+    await act(async () =>
+      emitter.emit('body:click', {
+        node: body,
+        object: faceObject,
+        position: point,
+        localPosition: point,
+        stopPropagation: () => {},
+        nativeEvent: {
+          nativeEvent: new FakePointerEvent('pointerdown', {
+            clientX: (projected.x + 1) * 400,
+            clientY: (1 - projected.y) * 300,
+          }),
+        } as never,
+      }),
+    )
+
+    expect(useBodyToolOptions.getState().selectedFeature).toEqual({
+      bodyId: body.id,
+      kind: 'vertex',
+      featureId:
+        body.vertices.find(({ position }) => position === point)?.id ?? body.vertices[0]!.id,
+    })
+    expect(renderScene?.getObjectByProperty('renderOrder', 1003)).toBeDefined()
+  })
+
+  test('selects a persistent Body edge from its screen-space midpoint', async () => {
+    const body = bodyFixture()
+    await mountAffordance()
+    const face = body.faces[0]!
+    const edge = body.halfEdges.find(({ loopId }) => loopId === face.outerLoopId)!
+    const next = body.halfEdges.find(({ id }) => id === edge.nextId)!
+    const start = body.vertices.find(({ id }) => id === edge.vertexId)!.position
+    const end = body.vertices.find(({ id }) => id === next.vertexId)!.position
+    const point: [number, number, number] = [
+      (start[0] + end[0]) / 2,
+      (start[1] + end[1]) / 2,
+      (start[2] + end[2]) / 2,
+    ]
+    const projected = new Vector3(...point).project(camera)
+    const faceObject = sceneRegistry.nodes.get(body.id)?.getObjectByName(`face:${face.id}`)
+    if (!faceObject) throw new Error('Expected the real Body face mesh to be registered')
+
+    await act(async () =>
+      emitter.emit('body:click', {
+        node: body,
+        object: faceObject,
+        position: point,
+        localPosition: point,
+        stopPropagation: () => {},
+        nativeEvent: {
+          nativeEvent: new FakePointerEvent('pointerdown', {
+            clientX: (projected.x + 1) * 400,
+            clientY: (1 - projected.y) * 300,
+          }),
+        } as never,
+      }),
+    )
+
+    expect(useBodyToolOptions.getState().selectedFeature).toEqual({
+      bodyId: body.id,
+      kind: 'edge',
+      featureId: edge.id,
+    })
+    expect(renderScene?.getObjectByProperty('renderOrder', 1003)).toBeDefined()
   })
 
   test('Follow Path stays idle while armed and starts reshaping only after a valid face click', async () => {
