@@ -24,6 +24,7 @@ import {
   rotateGroupPatches,
 } from '../components/editor/group-transform-shared'
 import { steppedRotation } from '../components/tools/item/placement-math'
+import { exitBodyContainerEdit } from '../lib/body-container-actions'
 import { resolveDirectManipulationNode } from '../lib/direct-manipulation'
 import { toggleDoorOpenState } from '../lib/door-interaction'
 import { guideEmitter } from '../lib/guide-events'
@@ -341,6 +342,11 @@ export const useKeyboard = ({
 
       if (e.key === 'Escape') {
         e.preventDefault()
+
+        if (useEditor.getState().activeBodyContainerId) {
+          exitBodyContainerEdit()
+          return
+        }
 
         // An in-flight reference-scale measurement swallows Escape whole:
         // cancel the flow but keep the reference selected and its panel open.

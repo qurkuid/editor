@@ -292,6 +292,9 @@ type EditorState = {
   setPhase: (phase: Phase) => void
   mode: Mode
   setMode: (mode: Mode) => void
+  activeBodyContainerId: AnyNodeId | null
+  enterBodyContainerEdit: (containerId: AnyNodeId) => void
+  exitBodyContainerEdit: () => void
   tool: Tool | null
   setTool: (tool: Tool | null) => void
   /**
@@ -1069,6 +1072,9 @@ const useEditor = create<EditorState>()(
 
         syncBrushModeScope(mode)
       },
+      activeBodyContainerId: null,
+      enterBodyContainerEdit: (containerId) => set({ activeBodyContainerId: containerId }),
+      exitBodyContainerEdit: () => set({ activeBodyContainerId: null }),
       tool: DEFAULT_PERSISTED_EDITOR_UI_STATE.tool,
       setTool: (tool) => set({ tool }),
       toolDefaults: {},
