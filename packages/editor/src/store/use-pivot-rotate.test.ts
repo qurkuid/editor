@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import {
+  BodyNode,
   BuildingNode,
+  createRectangleBody,
   LevelNode,
   SiteNode,
   useLiveNodeOverrides,
@@ -108,6 +110,40 @@ describe('pivot rotate gesture', () => {
     expect(useViewer.getState().selection.selectedIds).toEqual([wall.id])
     expect(useLiveNodeOverrides.getState().get(wall.id)).toBeUndefined()
     expect(useScene.temporal.getState().pastStates.length).toBe(0)
+  })
+
+  test('rotates only the selected Body feature and commits one undo step', () => {
+    const body = BodyNode.parse({
+      ...createRectangleBody({ width: 2, depth: 1 }),
+      id: 'body_pivot_feature',
+      parentId: level.id,
+    })
+    useScene.setState(
+      (state) =>
+        ({
+          nodes: {
+            ...state.nodes,
+            [body.id]: body,
+            [level.id]: LevelNode.parse({ ...level, children: [...level.children, body.id] }),
+          },
+        }) as never,
+    )
+    useScene.temporal.getState().clear()
+    const store = usePivotRotate.getState()
+    expect(
+      store.start([body.id], {
+        [body.id]: { kind: 'edge', featureId: 'edge:0', autofold: false },
+      }),
+    ).toBe(true)
+    store.placePoint({ x: 0, z: 0 })
+    store.placePoint({ x: 1, z: 0 })
+    store.updateCursor({ x: 0, z: 1 }, true)
+    store.commit()
+
+    const rotated = BodyNode.parse(useScene.getState().nodes[body.id])
+    expect(rotated.vertices.find(({ id }) => id === 'vertex:1')?.position).toEqual([0, 0, 2])
+    expect(rotated.vertices.find(({ id }) => id === 'vertex:2')?.position).toEqual([2, 0, 1])
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
   })
 
   test('rejects a reference point on top of the pivot', () => {

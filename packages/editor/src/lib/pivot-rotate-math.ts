@@ -2,6 +2,7 @@ import { DEFAULT_ANGLE_STEP } from '@pascal-app/core'
 import { executeTransformBody } from '@pascal-app/core/modeling-operations'
 import { Euler, Quaternion, Vector3 } from 'three'
 import {
+  type BodyTransformFeature,
   bodyTransformPatch,
   type GroupPatch,
   type ParticipantStart,
@@ -97,6 +98,7 @@ export function rotateVec3PatchesAboutAxis(
         rotationAngle: -delta,
         scale: [1, 1, 1],
         pivot: [pivot.x, 0, pivot.z],
+        feature: s.feature as BodyTransformFeature | null | undefined,
       }).body
       patches.push([s.id, bodyTransformPatch(body)])
       continue

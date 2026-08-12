@@ -5,7 +5,10 @@ import {
   DEFAULT_ANGLE_STEP,
   pushPullBodyFace,
 } from '@pascal-app/core'
-import type { ParticipantStart } from '../components/editor/group-transform-shared'
+import {
+  type ParticipantStart,
+  rotateGroupPatches,
+} from '../components/editor/group-transform-shared'
 import {
   normalizeAngle,
   parseTypedAngle,
@@ -133,6 +136,28 @@ describe('rotateVec3PatchesAboutAxis', () => {
       body.vertices.map((vertex) => vertex.id),
     )
     expect(bodyPatch.vertices).not.toEqual(body.vertices)
+  })
+
+  it('rotates only the snapshotted Body feature', () => {
+    const body = BodyNode.parse({
+      ...createRectangleBody({ width: 2, depth: 1 }),
+      id: 'body_feature_rotate_test',
+      parentId: 'level_rotate_test',
+    })
+    const start: ParticipantStart = {
+      id: body.id,
+      kind: 'polygon',
+      polygon: body.vertices.map((vertex) => [vertex.position[0], vertex.position[2]]),
+      holes: null,
+      body,
+      feature: { kind: 'edge', featureId: 'edge:0' },
+    }
+    const [patch] = rotateGroupPatches([start], [], { x: 0, z: 0 }, Math.PI / 2)
+    if (!patch) throw new Error('Expected feature rotation patch')
+    const vertices = (patch[1] as Pick<BodyNode, 'vertices'>).vertices
+    expect(vertices.find(({ id }) => id === 'vertex:0')?.position).toEqual([0, 0, 0])
+    expect(vertices.find(({ id }) => id === 'vertex:1')?.position).toEqual([0, 0, 2])
+    expect(vertices.find(({ id }) => id === 'vertex:2')?.position).toEqual([2, 0, 1])
   })
 
   it('skips non-vec3 participants', () => {

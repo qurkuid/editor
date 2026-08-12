@@ -3,7 +3,9 @@
 import {
   type AnyNode,
   type AnyNodeId,
+  BodyNode,
   pauseSpaceDetection,
+  remapBodyFeatureAnnotations,
   resumeSpaceDetection,
   useLiveNodeOverrides,
   useLiveTransforms,
@@ -12,6 +14,7 @@ import {
 import { useViewer } from '@pascal-app/viewer'
 import { create } from 'zustand'
 import {
+  type BodyTransformFeature,
   collectParticipants,
   type LinkedNeighbor,
   type ParticipantStart,
@@ -66,7 +69,10 @@ type PivotRotateState = {
   horizontalAxesAllowed: boolean
   setAxis: (axis: PivotRotateAxis) => void
   /** Begin the gesture on the given selection. False when nothing rotates. */
-  start: (ids: string[]) => boolean
+  start: (
+    ids: string[],
+    featureByNodeId?: Readonly<Record<string, BodyTransformFeature | null | undefined>>,
+  ) => boolean
   /** Advance the click sequence: pivot → reference → commit. */
   placePoint: (point: PivotPlanPoint) => void
   updateCursor: (point: PivotPlanPoint, free: boolean) => void
@@ -82,6 +88,36 @@ let ctx: {
   onKeyDown: (event: KeyboardEvent) => void
   unsubscribeEditor: () => void
 } | null = null
+
+function bodyTopologyRemap(before: BodyNode, after: BodyNode) {
+  const beforeIds = new Set(
+    [
+      ...before.vertices,
+      ...before.halfEdges,
+      ...before.loops,
+      ...before.faces,
+      ...before.shells,
+      ...before.curves,
+    ].map(({ id }) => id),
+  )
+  const afterIds = new Set(
+    [
+      ...after.vertices,
+      ...after.halfEdges,
+      ...after.loops,
+      ...after.faces,
+      ...after.shells,
+      ...after.curves,
+    ].map(({ id }) => id),
+  )
+  return {
+    preserved: [...afterIds].filter((id) => beforeIds.has(id)),
+    created: [...afterIds].filter((id) => !beforeIds.has(id)),
+    deleted: [...beforeIds].filter((id) => !afterIds.has(id)),
+    split: {},
+    merged: {},
+  }
+}
 
 const IDLE = {
   stage: 'idle' as const,
@@ -168,11 +204,16 @@ const usePivotRotate = create<PivotRotateState>((set, get) => {
       if (state.stage === 'angle') applyPreview(state.delta)
     },
 
-    start: (ids) => {
+    start: (ids, featureByNodeId) => {
       if (get().stage !== 'idle' || ids.length === 0) return false
       const levelId = useViewer.getState().selection.levelId
       if (!levelId) return false
-      const { starts, links } = collectParticipants(ids, useScene.getState().nodes, levelId)
+      const { starts, links } = collectParticipants(
+        ids,
+        useScene.getState().nodes,
+        levelId,
+        featureByNodeId,
+      )
       if (starts.length === 0) return false
 
       const onKeyDown = (event: KeyboardEvent) => {
@@ -293,9 +334,30 @@ const usePivotRotate = create<PivotRotateState>((set, get) => {
       }
       const overrides = useLiveNodeOverrides.getState()
       const updates: { id: AnyNodeId; data: Partial<AnyNode> }[] = []
+      const simulatedNodes = { ...useScene.getState().nodes }
       for (const id of ctx.affectedIds) {
         const patch = overrides.get(id)
-        if (patch) updates.push({ id, data: patch as Partial<AnyNode> })
+        if (!patch) continue
+        updates.push({ id, data: patch as Partial<AnyNode> })
+        const start = ctx.starts.find((candidate) => candidate.id === id)
+        if (!(start?.kind === 'polygon' && start.body)) continue
+        const nextBody = BodyNode.parse({ ...start.body, ...patch })
+        const annotationUpdates = remapBodyFeatureAnnotations(
+          simulatedNodes,
+          id,
+          nextBody,
+          bodyTopologyRemap(start.body, nextBody),
+        )
+        updates.push(...annotationUpdates)
+        for (const annotationUpdate of annotationUpdates) {
+          const current = simulatedNodes[annotationUpdate.id]
+          if (current) {
+            simulatedNodes[annotationUpdate.id] = {
+              ...current,
+              ...annotationUpdate.data,
+            } as AnyNode
+          }
+        }
       }
       sfxEmitter.emit('sfx:item-place')
       // Resume before the commit so the single batched `updateNodes` is the

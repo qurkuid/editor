@@ -23,6 +23,12 @@ const JUNCTION_EPS = 1e-4
 export type Vec2 = [number, number]
 export type Vec3 = [number, number, number]
 
+export type BodyTransformFeature = {
+  readonly kind: 'vertex' | 'edge' | 'face'
+  readonly featureId: string
+  readonly autofold?: boolean
+}
+
 function bodyFootprint(body: BodyNode): Vec2[] {
   return body.vertices.map((vertex) => [vertex.position[0], vertex.position[2]])
 }
@@ -31,8 +37,12 @@ export function bodyTransformPatch(body: BodyNode): Record<string, unknown> {
   return {
     revision: body.revision,
     vertices: body.vertices,
+    halfEdges: body.halfEdges,
+    loops: body.loops,
     faces: body.faces,
+    shells: body.shells,
     curves: body.curves,
+    bodyDefaults: body.bodyDefaults,
   }
 }
 
@@ -132,6 +142,7 @@ export type ParticipantStart =
       polygon: Vec2[]
       holes: Vec2[][] | null
       body?: BodyNode
+      feature?: BodyTransformFeature | null
     }
 
 // An unselected wall/fence sharing a junction with a transforming endpoint. Only
@@ -154,6 +165,7 @@ export function collectParticipants(
   ids: string[],
   sceneNodes: Record<string, AnyNode | undefined>,
   levelId: string | null,
+  featureByNodeId?: Readonly<Record<string, BodyTransformFeature | null | undefined>>,
 ): { starts: ParticipantStart[]; links: LinkedNeighbor[] } {
   const starts: ParticipantStart[] = []
   for (const id of ids) {
@@ -197,6 +209,7 @@ export function collectParticipants(
           polygon: bodyFootprint(body),
           holes: null,
           body,
+          feature: featureByNodeId?.[id] ?? null,
         })
         continue
       }
@@ -358,6 +371,7 @@ export function rotateGroupPatches(
                 rotationAngle: -delta,
                 scale: [1, 1, 1],
                 pivot: [center.x, 0, center.z],
+                feature: s.feature,
               }).body
         patches.push([s.id, bodyTransformPatch(body)])
         continue
@@ -419,6 +433,7 @@ export function rotateGroupSnapshots(
                 rotationAngle: -delta,
                 scale: [1, 1, 1],
                 pivot: [center.x, 0, center.z],
+                feature: s.feature,
               }).body
         return { ...s, body, polygon: bodyFootprint(body) }
       }
