@@ -1,7 +1,22 @@
 'use client'
 
 import { Icon } from '@iconify/react'
-import { Box, BrickWall, Copy, Expand, Lightbulb, Move, Replace, RotateCw, Scaling, Search, Spline, Trash2 } from 'lucide-react'
+import {
+  Box,
+  BrickWall,
+  Copy,
+  Expand,
+  GitBranch,
+  Grid3X3,
+  Lightbulb,
+  Move,
+  Replace,
+  RotateCw,
+  Scaling,
+  Search,
+  Spline,
+  Trash2,
+} from 'lucide-react'
 import type { MouseEventHandler, PointerEventHandler } from 'react'
 import { useT } from '../../i18n/use-t'
 import type { WallConstructionDisplayMode } from '../../store/use-wall-construction-display'
@@ -20,6 +35,22 @@ type NodeActionMenuProps = {
   onPushPull?: MouseEventHandler<HTMLButtonElement>
   onOffset?: MouseEventHandler<HTMLButtonElement>
   onSweep?: MouseEventHandler<HTMLButtonElement>
+  onArray?: MouseEventHandler<HTMLButtonElement>
+  onUnion?: MouseEventHandler<HTMLButtonElement>
+  onSubtract?: MouseEventHandler<HTMLButtonElement>
+  onIntersect?: MouseEventHandler<HTMLButtonElement>
+  onOuterShell?: MouseEventHandler<HTMLButtonElement>
+  onTrim?: MouseEventHandler<HTMLButtonElement>
+  onSplit?: MouseEventHandler<HTMLButtonElement>
+  onGroupBodies?: MouseEventHandler<HTMLButtonElement>
+  onCreateComponent?: MouseEventHandler<HTMLButtonElement>
+  onMakeComponentUnique?: MouseEventHandler<HTMLButtonElement>
+  onExplodeComponent?: MouseEventHandler<HTMLButtonElement>
+  onEnterComponentEdit?: MouseEventHandler<HTMLButtonElement>
+  onExitComponentEdit?: MouseEventHandler<HTMLButtonElement>
+  onInspect?: MouseEventHandler<HTMLButtonElement>
+  autofold?: boolean
+  onAutofoldChange?: (enabled: boolean) => void
   onCurve?: MouseEventHandler<HTMLButtonElement>
   onPointerDown?: PointerEventHandler<HTMLDivElement>
   onPointerUp?: PointerEventHandler<HTMLDivElement>
@@ -45,6 +76,22 @@ export function NodeActionMenu({
   onPushPull,
   onOffset,
   onSweep,
+  onArray,
+  onUnion,
+  onSubtract,
+  onIntersect,
+  onOuterShell,
+  onTrim,
+  onSplit,
+  onGroupBodies,
+  onCreateComponent,
+  onMakeComponentUnique,
+  onExplodeComponent,
+  onEnterComponentEdit,
+  onExitComponentEdit,
+  onInspect,
+  autofold = false,
+  onAutofoldChange,
   onCurve,
   onPointerDown,
   onPointerUp,
@@ -204,6 +251,174 @@ export function NodeActionMenu({
           type="button"
         >
           <Spline className="h-4 w-4" />
+        </button>
+      )}
+      {onAutofoldChange && (
+        <button
+          aria-label={t('bodyModeling.autofold')}
+          aria-pressed={autofold}
+          className={`tooltip-trigger rounded-md p-1.5 transition-colors hover:bg-accent hover:text-foreground ${
+            autofold ? 'bg-accent text-foreground' : 'text-muted-foreground'
+          }`}
+          onClick={() => onAutofoldChange(!autofold)}
+          title={t('bodyModeling.autofold')}
+          type="button"
+        >
+          <GitBranch className="h-4 w-4" />
+        </button>
+      )}
+      {onArray && (
+        <button
+          aria-label={t('bodyModeling.array')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onArray}
+          title={t('bodyModeling.array')}
+          type="button"
+        >
+          <Grid3X3 className="h-4 w-4" />
+        </button>
+      )}
+      {onIntersect && (
+        <button
+          aria-label={t('bodyModeling.intersection')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onIntersect}
+          title={t('bodyModeling.intersection')}
+          type="button"
+        >
+          <GitBranch className="h-4 w-4" />
+        </button>
+      )}
+      {onUnion && (
+        <button
+          aria-label={t('bodyModeling.union')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onUnion}
+          title={t('bodyModeling.union')}
+          type="button"
+        >
+          <GitBranch className="h-4 w-4" />
+        </button>
+      )}
+      {onSubtract && (
+        <button
+          aria-label={t('bodyModeling.subtract')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onSubtract}
+          title={t('bodyModeling.subtract')}
+          type="button"
+        >
+          <Box className="h-4 w-4" />
+        </button>
+      )}
+      {onOuterShell && (
+        <button
+          aria-label={t('bodyModeling.outerShell')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onOuterShell}
+          title={t('bodyModeling.outerShell')}
+          type="button"
+        >
+          <Box className="h-4 w-4" />
+        </button>
+      )}
+      {onTrim && (
+        <button
+          aria-label={t('bodyModeling.trim')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onTrim}
+          title={t('bodyModeling.trim')}
+          type="button"
+        >
+          <Expand className="h-4 w-4" />
+        </button>
+      )}
+      {onSplit && (
+        <button
+          aria-label={t('bodyModeling.split')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onSplit}
+          title={t('bodyModeling.split')}
+          type="button"
+        >
+          <GitBranch className="h-4 w-4" />
+        </button>
+      )}
+      {onInspect && (
+        <button
+          aria-label={t('bodyModeling.inspectSolid')}
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onInspect}
+          title={t('bodyModeling.inspectSolid')}
+          type="button"
+        >
+          <Search className="h-4 w-4" />
+        </button>
+      )}
+      {onGroupBodies && (
+        <button
+          aria-label="Group bodies"
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onGroupBodies}
+          title="Group bodies"
+          type="button"
+        >
+          <span className="text-[10px] font-medium">Group</span>
+        </button>
+      )}
+      {onCreateComponent && (
+        <button
+          aria-label="Create component"
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onCreateComponent}
+          title="Create component"
+          type="button"
+        >
+          <span className="text-[10px] font-medium">Component</span>
+        </button>
+      )}
+      {onMakeComponentUnique && (
+        <button
+          aria-label="Make component unique"
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onMakeComponentUnique}
+          title="Make component unique"
+          type="button"
+        >
+          <span className="text-[10px] font-medium">Unique</span>
+        </button>
+      )}
+      {onExplodeComponent && (
+        <button
+          aria-label="Explode component"
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onExplodeComponent}
+          title="Explode component"
+          type="button"
+        >
+          <span className="text-[10px] font-medium">Explode</span>
+        </button>
+      )}
+      {onEnterComponentEdit && (
+        <button
+          aria-label="Edit component"
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onEnterComponentEdit}
+          title="Edit component"
+          type="button"
+        >
+          <span className="text-[10px] font-medium">Edit</span>
+        </button>
+      )}
+      {onExitComponentEdit && (
+        <button
+          aria-label="Exit component edit"
+          className="tooltip-trigger rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onClick={onExitComponentEdit}
+          title="Exit component edit"
+          type="button"
+        >
+          <span className="text-[10px] font-medium">Exit</span>
         </button>
       )}
       {onCurve && (

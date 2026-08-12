@@ -39,12 +39,20 @@ import {
 import { useViewer } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useShallow } from 'zustand/react/shallow'
 import { useReducedMotion } from '../../hooks/use-reduced-motion'
 import { useT } from '../../i18n/use-t'
 import { useTLabel } from '../../i18n/use-t-label'
+import { type BodyArrayRequest, commitBodyArray } from '../../lib/body-array'
+import {
+  commitComponentInstance,
+  commitExplodeComponent,
+  commitMakeComponentUnique,
+  enterBodyContainerEdit,
+  exitBodyContainerEdit,
+} from '../../lib/body-container-actions'
 import { resolveMoveActionNode } from '../../lib/direct-manipulation'
 import {
   createFreshPlacementSubtree,
@@ -66,9 +74,11 @@ import useInteractionScope, {
 } from '../../store/use-interaction-scope'
 import { useWallConstructionDisplay } from '../../store/use-wall-construction-display'
 import { IconRefGlyph } from '../ui/icon-ref'
+import { wallReplacementNode } from '../ui/item-catalog/item-catalog'
+import { BodyArrayPopover } from './body-array-popover'
+import { BodySolidInspector } from './body-solid-inspector'
 import { formatMeasurement, MeasurementPill } from './measurement-pill'
 import { NodeActionMenu } from './node-action-menu'
-import { wallReplacementNode } from '../ui/item-catalog/item-catalog'
 
 /**
  * A kind shows the system pill when it exposes typed ports — `def.ports`
@@ -304,6 +314,19 @@ export function FloatingActionMenu() {
   const setActiveSidebarPanel = useEditor((s) => s.setActiveSidebarPanel)
   const setSelection = useViewer((s) => s.setSelection)
   const unit = useViewer((s) => s.unit)
+  const viewMode = useEditor((s) => s.viewMode)
+  const activeBodyContainerId = useEditor((s) => s.activeBodyContainerId)
+  const [autofold, setAutofold] = useState(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return window.localStorage.getItem('pascal.body.autofold') === 'true'
+    } catch {
+      return false
+    }
+  })
+  const [arrayOpen, setArrayOpen] = useState(false)
+  const [arrayError, setArrayError] = useState<string | null>(null)
+  const [solidInspectorOpen, setSolidInspectorOpen] = useState(false)
   // Drives the height-drag dimension pill below the menu. `activeHandleDrag`
   // flips only at drag start / end, so subscribing here is cheap — the live
   // height value is written imperatively in the useFrame below.
@@ -318,6 +341,46 @@ export function FloatingActionMenu() {
   const t = useT()
   const tLabel = useTLabel()
   const menuStepBack = resolveOverlayPolicy(scope).conflictingControls === 'hidden'
+  const selectedId = selectedIds.length === 1 ? (selectedIds[0] ?? null) : null
+
+  const handleAutofoldChange = useCallback((enabled: boolean) => {
+    setAutofold(enabled)
+    try {
+      window.localStorage.setItem('pascal.body.autofold', String(enabled))
+    } catch {}
+    emitter.emit('body:autofold-change', { enabled })
+  }, [])
+
+  const handleArray = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    setArrayError(null)
+    setArrayOpen((open) => !open)
+  }, [])
+
+  const handleArraySubmit = useCallback(
+    (request: BodyArrayRequest) => {
+      const selectedNode = selectedId ? useScene.getState().nodes[selectedId as AnyNodeId] : null
+      if (selectedNode?.type !== 'body') return
+      try {
+        const cloneIds = runAsSingleSceneHistoryStep(useScene, () =>
+          commitBodyArray(selectedNode, request),
+        )
+        if (cloneIds.length === 0) throw new RangeError('Body array must create at least one clone')
+        setSelection({ selectedIds: cloneIds })
+        setArrayError(null)
+        setArrayOpen(false)
+        sfxEmitter.emit('sfx:item-place')
+      } catch (error) {
+        setArrayError(error instanceof Error ? error.message : 'Body array failed')
+      }
+    },
+    [selectedId, setSelection],
+  )
+
+  const handleInspect = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    setSolidInspectorOpen((open) => !open)
+  }, [])
 
   const groupRef = useRef<THREE.Group>(null)
   const menuScaleRef = useRef<HTMLDivElement>(null)
@@ -343,9 +406,6 @@ export function FloatingActionMenu() {
     node: null,
     geometryKey: null,
   })
-
-  // Only show for single selection of specific types
-  const selectedId = selectedIds.length === 1 ? (selectedIds[0] ?? null) : null
 
   // Subscribe just to the selected node so unrelated scene updates do not
   // re-render this menu.
@@ -767,6 +827,55 @@ export function FloatingActionMenu() {
     [node?.type, selectedId, setSelection],
   )
 
+  const handleMakeComponentUnique = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (node?.type !== 'component') return
+      commitMakeComponentUnique(node.id)
+      setSelection({ selectedIds: [node.id] })
+    },
+    [node, setSelection],
+  )
+
+  const handleExplodeComponent = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (node?.type !== 'component') return
+      const ids = commitExplodeComponent(node.id)
+      setSelection({ selectedIds: [...ids] })
+    },
+    [node, setSelection],
+  )
+
+  const handleDuplicateComponent = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (node?.type !== 'component') return
+      const id = commitComponentInstance(node.id)
+      if (id) setSelection({ selectedIds: [id] })
+    },
+    [node, setSelection],
+  )
+
+  const handleEnterBodyContainerEdit = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (node?.type !== 'body-group' && node?.type !== 'component') return
+      enterBodyContainerEdit(node.id)
+    },
+    [node],
+  )
+
+  const handleExitBodyContainerEdit = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      if (node?.type !== 'body-group' && node?.type !== 'component') return
+      if (activeBodyContainerId !== node.id) return
+      exitBodyContainerEdit()
+    },
+    [activeBodyContainerId, node],
+  )
+
   // "Find in catalog": the editor only signals intent — the host (community)
   // listens for `selection:find-node` and reveals the node in its browser.
   const handleFind = useCallback(
@@ -887,15 +996,38 @@ export function FloatingActionMenu() {
               onPushPull={node?.type === 'body' ? handleBodyAction('push-pull') : undefined}
               onOffset={node?.type === 'body' ? handleBodyAction('offset') : undefined}
               onSweep={node?.type === 'body' ? handleBodyAction('sweep') : undefined}
+              onArray={node?.type === 'body' && viewMode !== '2d' ? handleArray : undefined}
+              onInspect={node?.type === 'body' ? handleInspect : undefined}
+              autofold={autofold}
+              onAutofoldChange={
+                node?.type === 'body' && viewMode !== '2d' ? handleAutofoldChange : undefined
+              }
               onRotate={node?.type === 'body' ? handleBodyAction('rotate') : undefined}
               onScale={node?.type === 'body' ? handleBodyAction('scale') : undefined}
               onDelete={handleDelete}
               onDuplicate={
-                node &&
-                node.type !== 'spawn' &&
-                !DELETE_ONLY_TYPES.includes(node.type) &&
-                !HOLE_TYPES.includes(node.type)
-                  ? handleDuplicate
+                node?.type === 'component'
+                  ? handleDuplicateComponent
+                  : node &&
+                      node.type !== 'spawn' &&
+                      !DELETE_ONLY_TYPES.includes(node.type) &&
+                      !HOLE_TYPES.includes(node.type)
+                    ? handleDuplicate
+                    : undefined
+              }
+              onMakeComponentUnique={
+                node?.type === 'component' ? handleMakeComponentUnique : undefined
+              }
+              onExplodeComponent={node?.type === 'component' ? handleExplodeComponent : undefined}
+              onEnterComponentEdit={
+                node?.type === 'body-group' || node?.type === 'component'
+                  ? handleEnterBodyContainerEdit
+                  : undefined
+              }
+              onExitComponentEdit={
+                (node?.type === 'body-group' || node?.type === 'component') &&
+                activeBodyContainerId === node.id
+                  ? handleExitBodyContainerEdit
                   : undefined
               }
               onPointerDown={(e) => e.stopPropagation()}
@@ -906,6 +1038,19 @@ export function FloatingActionMenu() {
                   : undefined
               }
             />
+            {node?.type === 'body' && arrayOpen && viewMode !== '2d' ? (
+              <BodyArrayPopover
+                error={arrayError}
+                onCancel={() => {
+                  setArrayError(null)
+                  setArrayOpen(false)
+                }}
+                onSubmit={handleArraySubmit}
+              />
+            ) : null}
+            {node?.type === 'body' && solidInspectorOpen ? (
+              <BodySolidInspector body={node} />
+            ) : null}
             {quickActions.length > 0 ? (
               <div
                 className="pointer-events-auto mt-1 inline-flex w-max items-center justify-center gap-0.5 rounded-lg border border-border/50 bg-background/90 px-1.5 py-1 shadow-md backdrop-blur-md"
