@@ -752,12 +752,20 @@ function LinearArrow({
       // tracks real size steps instead of every sub-pixel pointer jitter.
       let lastTickValue = initialValue
       let previewOverrideIds = new Set<AnyNodeId>()
+      let latestPatch: Partial<AnyNode> | null = null
 
       return {
         overrideId,
         commit:
           descriptor.kind === 'linear-resize' && descriptor.commit
             ? (patch) => descriptor.commit?.(initialNode, patch, sceneApi)
+            : undefined,
+        canCommit:
+          descriptor.kind === 'linear-resize' && descriptor.canCommit
+            ? () =>
+                latestPatch !== null &&
+                (descriptor.canCommit?.(initialNode as never, latestPatch as never, sceneApi) ??
+                  true)
             : undefined,
         onBegin: () => {
           clearLength()
@@ -822,6 +830,7 @@ function LinearArrow({
             sfxEmitter.emit('sfx:resize')
           }
           const patch = descriptor.apply(initialNode as never, next, sceneApi) as Partial<AnyNode>
+          latestPatch = patch
           if (descriptor.kind === 'linear-resize' && descriptor.previewOverrides) {
             const previewEntries = descriptor.previewOverrides(initialNode as never, next, sceneApi)
             const nextPreviewOverrideIds = replacePreviewOverrideIds(
