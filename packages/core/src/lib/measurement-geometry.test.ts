@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import type { MeasurementFeature } from '../registry/types'
+import { BodyNode } from '../schema/nodes/body'
+import { ConstructionDimensionNode } from '../schema/nodes/construction-dimension'
 import type { MeasurementAnchor, MeasurementPoint } from '../schema/nodes/measurement'
+import { MeasurementNode } from '../schema/nodes/measurement'
+import type { AnyNode, AnyNodeId } from '../schema/types'
 import {
   areMeasurementPointsCoplanar,
   closestMeasurementFeatureBinding,
@@ -13,6 +17,7 @@ import {
   measurementNormal,
   measurementPerimeter,
   measurementPrismVolume,
+  remapBodyFeatureAnnotations,
   remapMeasurementAnchors,
 } from './measurement-geometry'
 
@@ -164,5 +169,60 @@ describe('measurement geometry', () => {
     const last = remapped[2]!
     expect(Array.isArray(first) ? null : first.reference.nodeId).toBe('wall_a_copy')
     expect(Array.isArray(last) ? null : last.reference.nodeId).toBe('wall_b_copy')
+  })
+
+  test('remaps Body feature anchors for measurements and construction dimensions', () => {
+    const body = BodyNode.parse({
+      id: 'body_target',
+      shells: [],
+      vertices: [
+        { id: 'vertex:survivor', position: [0, 0, 0] },
+        { id: 'vertex:split:first', position: [1, 0, 0] },
+      ],
+      halfEdges: [],
+      loops: [],
+      faces: [],
+    })
+    const feature = (featureId: string, fallback: MeasurementPoint): MeasurementAnchor => ({
+      kind: 'feature',
+      reference: { nodeId: body.id, featureId },
+      fallback,
+    })
+    const measurement = MeasurementNode.parse({
+      id: 'measurement_target',
+      measurement: {
+        kind: 'distance',
+        points: [feature('vertex:merged', [0, 0, 0]), feature('vertex:gone', [3, 0, 0])],
+      },
+    })
+    const dimension = ConstructionDimensionNode.parse({
+      id: 'construction-dimension_target',
+      anchors: [feature('vertex:split', [1, 0, 0]), feature('vertex:gone', [4, 0, 0])],
+    })
+    const nodes = {
+      [body.id]: body,
+      [measurement.id]: measurement,
+      [dimension.id]: dimension,
+    } as Record<AnyNodeId, AnyNode>
+    const updates = remapBodyFeatureAnnotations(nodes, body.id, body, {
+      preserved: ['vertex:survivor'],
+      created: ['vertex:split:first'],
+      deleted: ['vertex:gone'],
+      split: { 'vertex:split': ['vertex:split:first', 'vertex:split:second'] },
+      merged: { 'vertex:merged': 'vertex:survivor' },
+    })
+
+    expect(updates).toHaveLength(2)
+    const measurementUpdate = updates.find((update) => update.id === measurement.id)
+    const dimensionUpdate = updates.find((update) => update.id === dimension.id)
+    expect(measurementUpdate?.data).toEqual({
+      measurement: {
+        kind: 'distance',
+        points: [feature('vertex:survivor', [0, 0, 0]), [3, 0, 0]],
+      },
+    })
+    expect(dimensionUpdate?.data).toEqual({
+      anchors: [feature('vertex:split:first', [1, 0, 0]), [4, 0, 0]],
+    })
   })
 })

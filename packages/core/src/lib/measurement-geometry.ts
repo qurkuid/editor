@@ -1,11 +1,13 @@
 import type { MeasurementFeature, MeasurementFeatureBinding } from '../registry/types'
+import type { BodyNode } from '../schema/nodes/body'
 import type { ConstructionDimensionNode } from '../schema/nodes/construction-dimension'
 import type {
   MeasurementAnchor,
   MeasurementPayload,
   MeasurementPoint,
 } from '../schema/nodes/measurement'
-import type { AnyNodeId } from '../schema/types'
+import type { AnyNode, AnyNodeId } from '../schema/types'
+import type { TopologyRemap } from './body-topology'
 
 const GEOMETRY_EPSILON = 1e-9
 export const MEASUREMENT_PLANAR_TOLERANCE = 0.01
@@ -227,6 +229,118 @@ export function remapConstructionDimensionReferences(
     anchors: remapMeasurementAnchors(dimension.anchors, idMap),
     controllingDimensionId,
   }
+}
+
+export type BodyAnnotationUpdate =
+  | { id: AnyNodeId; data: { measurement: MeasurementPayload } }
+  | { id: AnyNodeId; data: { anchors: MeasurementAnchor[] } }
+
+type BodyFeatureIdSource = {
+  featureId: string
+  suffix: '' | ':midpoint' | ':center'
+}
+
+function bodyFeatureIdSource(featureId: string): BodyFeatureIdSource {
+  if (featureId.endsWith(':midpoint')) {
+    return { featureId: featureId.slice(0, -':midpoint'.length), suffix: ':midpoint' }
+  }
+  if (featureId.endsWith(':center') && featureId !== 'body:center') {
+    return { featureId: featureId.slice(0, -':center'.length), suffix: ':center' }
+  }
+  return { featureId, suffix: '' }
+}
+
+function bodyFeatureIds(body: BodyNode | null): Set<string> {
+  if (!body) return new Set()
+  return new Set(
+    [
+      ...body.vertices,
+      ...body.halfEdges,
+      ...body.loops,
+      ...body.faces,
+      ...body.shells,
+      ...body.curves,
+    ].map(({ id }) => id),
+  )
+}
+
+function remappedBodyFeatureId(
+  featureId: string,
+  body: BodyNode | null,
+  topologyRemap: TopologyRemap,
+): string | null {
+  if (!body) return null
+  if (featureId === 'body:center') return body && body.vertices.length > 0 ? featureId : null
+
+  const source = bodyFeatureIdSource(featureId)
+  const surviving = bodyFeatureIds(body)
+  const exact = source.featureId
+  const preserve = topologyRemap.preserved.includes(exact)
+  if (preserve && surviving.has(exact)) return `${exact}${source.suffix}`
+
+  const merged = topologyRemap.merged[exact]
+  if (merged && surviving.has(merged)) return `${merged}${source.suffix}`
+
+  const split = topologyRemap.split[exact]
+  if (split) {
+    const destination = split.includes(exact)
+      ? exact
+      : split.find((candidate) => surviving.has(candidate))
+    if (destination) return `${destination}${source.suffix}`
+  }
+
+  if (topologyRemap.deleted.includes(exact)) return null
+  return featureId
+}
+
+function remapBodyAnchor(
+  anchor: MeasurementAnchor,
+  bodyId: AnyNodeId,
+  body: BodyNode | null,
+  topologyRemap: TopologyRemap,
+): MeasurementAnchor {
+  if (Array.isArray(anchor) || anchor.reference.nodeId !== bodyId) return anchor
+  const featureId = remappedBodyFeatureId(anchor.reference.featureId, body, topologyRemap)
+  if (featureId === null) return anchor.fallback
+  if (featureId === anchor.reference.featureId) return anchor
+  return {
+    ...anchor,
+    reference: { ...anchor.reference, featureId },
+  }
+}
+
+export function remapBodyFeatureAnnotations(
+  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
+  bodyId: AnyNodeId,
+  body: BodyNode | null,
+  topologyRemap: TopologyRemap,
+): BodyAnnotationUpdate[] {
+  const updates: BodyAnnotationUpdate[] = []
+  for (const node of Object.values(nodes)) {
+    if (node.type === 'measurement') {
+      const measurement = node.measurement
+      const map = (anchor: MeasurementAnchor) =>
+        remapBodyAnchor(anchor, bodyId, body, topologyRemap)
+      const next =
+        measurement.kind === 'distance'
+          ? { ...measurement, points: measurement.points.map(map) as typeof measurement.points }
+          : measurement.kind === 'angle'
+            ? { ...measurement, points: measurement.points.map(map) as typeof measurement.points }
+            : measurement.kind === 'volume'
+              ? { ...measurement, base: measurement.base.map(map) }
+              : { ...measurement, base: measurement.base.map(map) }
+      const changed = JSON.stringify(next) !== JSON.stringify(measurement)
+      if (changed) updates.push({ id: node.id, data: { measurement: next } })
+    } else if (node.type === 'construction-dimension') {
+      const anchors = node.anchors.map((anchor) =>
+        remapBodyAnchor(anchor, bodyId, body, topologyRemap),
+      )
+      if (JSON.stringify(anchors) !== JSON.stringify(node.anchors)) {
+        updates.push({ id: node.id, data: { anchors } })
+      }
+    }
+  }
+  return updates
 }
 
 export function measurementAnchorReferenceNodeIds(
