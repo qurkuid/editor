@@ -65,13 +65,14 @@ export const bodyDefinition: NodeDefinition<typeof BodyNode> = {
   tool: () => import('./tool'),
   toolHints: [
     { key: 'Left click', label: 'Draw active shape' },
-    { key: 'Enter', label: 'Close line face' },
-    { key: 'C', label: 'Close line face' },
+    { key: 'Enter', label: 'Close line or split arc face' },
+    { key: 'C', label: 'Close line or arc face' },
     { key: 'Esc', label: 'Cancel' },
   ],
   presentation: {
     label: 'Direct',
-    description: 'Draw line, rectangle, and circle faces, then push or pull their faces.',
+    description:
+      'Draw line, rectangle, circle, arc, and regular polygon faces, then push or pull their faces.',
     icon: { kind: 'url', src: '/icons/mesh.webp' },
     paletteSection: 'structure',
     paletteOrder: 25,
