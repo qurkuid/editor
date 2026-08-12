@@ -150,6 +150,7 @@ export type LinearResizeHandle<N> = {
    * the handle UI generic.
    */
   commit?: (node: N, patch: Partial<N>, sceneApi: SceneApi) => void
+  canCommit?: (node: N, patch: Partial<N>, sceneApi: SceneApi) => boolean
   /**
    * Optional per-tick hook fired while this handle is being dragged, with the
    * live (in-progress, override-merged) node. A pure side-channel for transient
