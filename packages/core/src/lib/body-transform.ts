@@ -1,4 +1,21 @@
 import { BodyNode, type BodyNode as BodyNodeType } from '../schema/nodes/body'
+import {
+  assertBodyFeatureGeometry,
+  autofoldBodyFaces,
+  type BodyFeatureKind,
+  bodyFeatureCurveIds,
+  bodyFeatureFaceVertexIds,
+  isBodyFeatureFacePlanar,
+  resolveBodyFeatureVertexIds,
+} from './body-feature-move'
+import { validateBodyTopology } from './body-topology'
+import { rebaseCircularArcCurve } from './body-curves'
+
+export type BodyFeatureTransform = {
+  readonly kind: BodyFeatureKind
+  readonly featureId: string
+  readonly autofold?: boolean
+}
 
 export type BodyTransform = {
   readonly translation: readonly [number, number, number]
@@ -6,6 +23,7 @@ export type BodyTransform = {
   readonly rotationAngle: number
   readonly scale: readonly [number, number, number]
   readonly pivot: readonly [number, number, number]
+  readonly feature?: BodyFeatureTransform | null
 }
 
 const ZERO_EPSILON = 1e-12
@@ -51,6 +69,19 @@ export function transformBody(source: BodyNodeType, transform: BodyTransform): B
     transform.rotationAxis[1] / axisLength,
     transform.rotationAxis[2] / axisLength,
   ]
+  const feature = transform.feature ?? null
+  const movedVertexIds = feature
+    ? resolveBodyFeatureVertexIds(source, feature.kind, feature.featureId)
+    : null
+  const fullyMovedFaceIds = feature
+    ? new Set(
+        source.faces
+          .filter((face) =>
+            [...bodyFeatureFaceVertexIds(source, face.id)].every((id) => movedVertexIds?.has(id)),
+          )
+          .map(({ id }) => id),
+      )
+    : null
   if (
     transform.translation.every((value) => value === 0) &&
     transform.rotationAngle === 0 &&
@@ -58,9 +89,18 @@ export function transformBody(source: BodyNodeType, transform: BodyTransform): B
   ) {
     throw new RangeError('Body transform requires a change')
   }
+  if (feature && !validateBodyTopology(source).valid) {
+    throw new RangeError('Body feature transform requires valid topology')
+  }
+  if (feature) {
+    const movedCurveIds = bodyFeatureCurveIds(source, movedVertexIds!)
+    if (source.curves.some(({ id, kind }) => movedCurveIds.has(id) && kind !== 'line')) {
+      throw new RangeError('Body feature transform currently supports line edges only')
+    }
+  }
   const hasCircularArc = source.curves.some((curve) => curve.kind === 'circular-arc')
   const uniformScale = transform.scale.every((value) => value === transform.scale[0])
-  if (hasCircularArc && !uniformScale) {
+  if (!feature && hasCircularArc && !uniformScale) {
     throw new RangeError('Body transform with non-uniform scale cannot preserve circular arcs')
   }
 
@@ -82,38 +122,86 @@ export function transformBody(source: BodyNodeType, transform: BodyTransform): B
   const transformDirection = (direction: readonly [number, number, number]) =>
     rotateAroundAxis(direction, axis, cosine, sine)
 
-  return BodyNode.parse({
+  let body = BodyNode.parse({
     ...source,
     revision: source.revision + 1,
-    vertices: source.vertices.map((vertex) => ({
-      ...vertex,
-      position: transformPoint(vertex.position),
-    })),
+    vertices: source.vertices.map((vertex) =>
+      !feature || movedVertexIds?.has(vertex.id)
+        ? { ...vertex, position: transformPoint(vertex.position) }
+        : vertex,
+    ),
     faces: source.faces.map((face) => ({
       ...face,
       surface: {
         ...face.surface,
-        uvOrigin: transformPoint(face.surface.uvOrigin),
-        uvU: transformDirection(face.surface.uvU),
-        uvV: transformDirection(face.surface.uvV),
+        ...(feature && !fullyMovedFaceIds?.has(face.id)
+          ? {}
+          : {
+              uvOrigin: transformPoint(face.surface.uvOrigin),
+              uvU: transformDirection(face.surface.uvU),
+              uvV: transformDirection(face.surface.uvV),
+            }),
       },
     })),
-    curves: source.curves.map((curve) => {
-      switch (curve.kind) {
-        case 'line':
-          return curve
-        case 'circular-arc':
-          return {
-            ...curve,
-            center: transformPoint(curve.center),
-            normal: transformDirection(curve.normal),
-            radius: curve.radius * transform.scale[0],
+    curves: feature
+      ? source.curves.map((curve) => curve)
+      : source.curves.map((curve) => {
+          switch (curve.kind) {
+            case 'line':
+              return curve
+            case 'circular-arc':
+              const transformedCenter = transformPoint(curve.center)
+              const transformedNormal = transformDirection(curve.normal)
+              const transformedRadius = curve.radius * transform.scale[0]
+              const sourceEdge = source.halfEdges.find((edge) => edge.curveId === curve.id)
+              const sourceNextEdge = sourceEdge
+                ? source.halfEdges.find((edge) => edge.id === sourceEdge.nextId)
+                : undefined
+              const sourceStart = sourceEdge
+                ? source.vertices.find((vertex) => vertex.id === sourceEdge.vertexId)
+                : undefined
+              const sourceEnd = sourceNextEdge
+                ? source.vertices.find((vertex) => vertex.id === sourceNextEdge.vertexId)
+                : undefined
+              if (sourceStart && sourceEnd) {
+                return rebaseCircularArcCurve(
+                  curve,
+                  transformPoint(sourceStart.position),
+                  transformPoint(sourceEnd.position),
+                  transformedCenter,
+                  transformedNormal,
+                  transformedRadius,
+                )
+              }
+              return {
+                ...curve,
+                center: transformedCenter,
+                normal: transformedNormal,
+                radius: transformedRadius,
+              }
+            default: {
+              const unreachable: never = curve
+              throw new RangeError(`Unsupported Body curve: ${String(unreachable)}`)
+            }
           }
-        default: {
-          const unreachable: never = curve
-          throw new RangeError(`Unsupported Body curve: ${String(unreachable)}`)
-        }
-      }
-    }),
+        }),
   })
+  if (!feature) return body
+  const affectedFaceIds = new Set(
+    source.faces
+      .filter((face) =>
+        [...bodyFeatureFaceVertexIds(source, face.id)].some((id) => movedVertexIds!.has(id)),
+      )
+      .filter((face) => !isBodyFeatureFacePlanar(body, face))
+      .map(({ id }) => id),
+  )
+  let result = body
+  if (affectedFaceIds.size > 0 && feature.autofold === true) {
+    result = autofoldBodyFaces(result, affectedFaceIds)
+  }
+  assertBodyFeatureGeometry(result)
+  if (!validateBodyTopology(result).valid) {
+    throw new RangeError('Body feature transform produced invalid topology')
+  }
+  return result
 }

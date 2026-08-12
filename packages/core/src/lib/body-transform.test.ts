@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { BodyNode } from '../schema/nodes/body'
 import { pushPullBodyFace } from './body-push-pull'
-import { getBodySemanticHash, validateBodyTopology } from './body-topology'
+import { createRectangleBody, getBodySemanticHash, validateBodyTopology } from './body-topology'
 import { transformBody } from './body-transform'
 
 const transform = {
@@ -185,5 +185,64 @@ describe('Body transform kernel', () => {
         pivot: [0, 0, 0],
       }),
     ).toThrow('circular arcs')
+  })
+
+  test('transforms only a persistent feature and its fully moved UV frame', () => {
+    const source = BodyNode.parse({
+      id: 'body_feature_transform',
+      shells: [{ id: 'shell:0', faceIds: ['face:0'] }],
+      vertices: [
+        { id: 'vertex:0', position: [0, 0, 0] },
+        { id: 'vertex:1', position: [2, 0, 0] },
+        { id: 'vertex:2', position: [2, 0, 2] },
+        { id: 'vertex:3', position: [0, 0, 2] },
+      ],
+      halfEdges: [
+        { id: 'edge:0', vertexId: 'vertex:0', nextId: 'edge:1', loopId: 'loop:0' },
+        { id: 'edge:1', vertexId: 'vertex:1', nextId: 'edge:2', loopId: 'loop:0' },
+        { id: 'edge:2', vertexId: 'vertex:2', nextId: 'edge:3', loopId: 'loop:0' },
+        { id: 'edge:3', vertexId: 'vertex:3', nextId: 'edge:0', loopId: 'loop:0' },
+      ],
+      loops: [{ id: 'loop:0', faceId: 'face:0', kind: 'outer' }],
+      faces: [{ id: 'face:0', outerLoopId: 'loop:0', surface: { uvOrigin: [0, 0, 0] } }],
+    })
+    const result = transformBody(source, {
+      translation: [0, 0, 0],
+      rotationAxis: [0, 1, 0],
+      rotationAngle: 0,
+      scale: [2, 1, 1],
+      pivot: [0, 0, 0],
+      feature: { kind: 'edge', featureId: 'edge:0' },
+    })
+
+    expect(result.vertices.find(({ id }) => id === 'vertex:0')?.position).toEqual([0, 0, 0])
+    expect(result.vertices.find(({ id }) => id === 'vertex:1')?.position).toEqual([4, 0, 0])
+    expect(result.vertices.find(({ id }) => id === 'vertex:2')?.position).toEqual(
+      source.vertices.find(({ id }) => id === 'vertex:2')?.position,
+    )
+    expect(result.faces[0]?.surface.uvOrigin).toEqual(source.faces[0]?.surface.uvOrigin)
+  })
+
+  test('rejects stale and non-planar feature transforms atomically', () => {
+    const source = createRectangleBody({ width: 2, depth: 2 })
+    const before = structuredClone(source)
+    expect(() =>
+      transformBody(source, {
+        ...transform,
+        feature: { kind: 'vertex', featureId: 'vertex:missing' },
+      }),
+    ).toThrow('not found')
+    expect(source).toEqual(before)
+    expect(() =>
+      transformBody(source, {
+        translation: [0, 0.5, 0],
+        rotationAxis: [0, 1, 0],
+        rotationAngle: 0,
+        scale: [1, 1, 1],
+        pivot: [0, 0, 0],
+        feature: { kind: 'vertex', featureId: 'vertex:0' },
+      }),
+    ).toThrow('non-planar')
+    expect(source).toEqual(before)
   })
 })
