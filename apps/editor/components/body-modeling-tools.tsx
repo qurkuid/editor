@@ -1,8 +1,15 @@
 'use client'
 
 import { type MessageId, useT } from '@pascal-app/editor'
-import { type BodyPrimitive, useBodyToolOptions } from '@pascal-app/nodes'
-import { Circle, Minus, MousePointer2, Move3d, Square } from 'lucide-react'
+import {
+  type BodyPrimitive,
+  MAX_ARC_SEGMENTS,
+  MAX_POLYGON_SIDES,
+  MIN_ARC_SEGMENTS,
+  MIN_POLYGON_SIDES,
+  useBodyToolOptions,
+} from '@pascal-app/nodes'
+import { Circle, Hexagon, Minus, MousePointer2, Move3d, Spline, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const PRIMITIVES: ReadonlyArray<{
@@ -13,6 +20,8 @@ const PRIMITIVES: ReadonlyArray<{
   { id: 'line', labelKey: 'bodyModeling.primitive.line', icon: Minus },
   { id: 'rectangle', labelKey: 'bodyModeling.primitive.rectangle', icon: Square },
   { id: 'circle', labelKey: 'bodyModeling.primitive.circle', icon: Circle },
+  { id: 'arc', labelKey: 'bodyModeling.primitive.arc', icon: Spline },
+  { id: 'polygon', labelKey: 'bodyModeling.primitive.polygon', icon: Hexagon },
 ]
 
 export function selectBodyPrimitive(
@@ -26,6 +35,60 @@ export function selectBodyPrimitive(
   actions.setFaceDraft?.(null)
   actions.setPrimitive(primitive)
   actions.activateBodyTool()
+}
+
+export function ArcSegmentsControl({ compact = false }: { compact?: boolean }) {
+  const t = useT()
+  const arcSegments = useBodyToolOptions((state) => state.arcSegments)
+  const setArcSegments = useBodyToolOptions((state) => state.setArcSegments)
+  const label = t('bodyModeling.arcSegments')
+  return (
+    <label
+      className={cn(
+        'flex items-center gap-2 text-[10px] text-muted-foreground',
+        compact ? 'px-1' : 'mx-3 mt-3 border-border/60 border-t pt-2.5',
+      )}
+    >
+      <span className="shrink-0">{label}</span>
+      <input
+        aria-label={label}
+        className="h-7 min-w-0 w-16 rounded border border-border/60 bg-background/70 px-1.5 text-right text-foreground"
+        max={MAX_ARC_SEGMENTS}
+        min={MIN_ARC_SEGMENTS}
+        onChange={(event) => setArcSegments(event.currentTarget.valueAsNumber)}
+        step={1}
+        type="number"
+        value={arcSegments}
+      />
+    </label>
+  )
+}
+
+export function PolygonSidesControl({ compact = false }: { compact?: boolean }) {
+  const t = useT()
+  const polygonSides = useBodyToolOptions((state) => state.polygonSides)
+  const setPolygonSides = useBodyToolOptions((state) => state.setPolygonSides)
+  const label = t('bodyModeling.polygonSides')
+  return (
+    <label
+      className={cn(
+        'flex items-center gap-2 text-[10px] text-muted-foreground',
+        compact ? 'px-1' : 'mx-3 mt-2',
+      )}
+    >
+      <span className="shrink-0">{label}</span>
+      <input
+        aria-label={label}
+        className="h-7 min-w-0 w-16 rounded border border-border/60 bg-background/70 px-1.5 text-right text-foreground"
+        max={MAX_POLYGON_SIDES}
+        min={MIN_POLYGON_SIDES}
+        onChange={(event) => setPolygonSides(event.currentTarget.valueAsNumber)}
+        step={1}
+        type="number"
+        value={polygonSides}
+      />
+    </label>
+  )
 }
 
 export function BodyModelingTools({
@@ -51,7 +114,7 @@ export function BodyModelingTools({
           {t('bodyModeling.badge')}
         </span>
       </div>
-      <div className="grid grid-cols-3 gap-1.5 px-3">
+      <div className="grid grid-cols-5 gap-1.5 px-3">
         {PRIMITIVES.map(({ id, labelKey, icon: Icon }) => {
           const selected = active && primitive === id
           const label = t(labelKey)
@@ -81,6 +144,8 @@ export function BodyModelingTools({
           )
         })}
       </div>
+      <ArcSegmentsControl />
+      <PolygonSidesControl />
       <ol className="mt-3 grid gap-1 border-border/60 border-t bg-background/25 px-3 py-2.5 text-[10px] text-muted-foreground">
         <li className="flex items-center gap-2">
           <Square className="h-3 w-3 text-sky-300" />

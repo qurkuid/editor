@@ -1,6 +1,13 @@
 'use client'
 
-import { BodyNode, createPlanarFaceBody, emitter, type GridEvent, useScene } from '@pascal-app/core'
+import {
+  BodyNode,
+  createCircularArcFaceBody,
+  createPlanarFaceBody,
+  emitter,
+  type GridEvent,
+  useScene,
+} from '@pascal-app/core'
 import {
   CursorSphere,
   constrainPlanDraftPoint,
@@ -19,9 +26,11 @@ import { BodyFaceDraftTool } from './face-imprint-tool'
 import { buildBodyGeometry } from './geometry'
 import { useBodyToolOptions } from './options'
 import {
+  resolveArcDraft,
   resolveBodyDraftFeedback,
   resolveCircleDraft,
   resolveLineFaceDraft,
+  resolveRegularPolygonDraft,
   shouldCloseLineDraft,
   snapLineDraftPoint,
 } from './primitive-draft'
@@ -37,6 +46,8 @@ const BodyTool = () => {
   const activeLevelId = useViewer((state) => state.selection.levelId)
   const viewMode = useEditor((state) => state.viewMode)
   const primitive = useBodyToolOptions((state) => state.primitive)
+  const arcSegments = useBodyToolOptions((state) => state.arcSegments)
+  const polygonSides = useBodyToolOptions((state) => state.polygonSides)
   const faceDraft = useBodyToolOptions((state) => state.faceDraft)
   const pointsRef = useRef<BodyDraftPoint[]>([])
   const [points, setPoints] = useState<BodyDraftPoint[]>([])
@@ -64,8 +75,14 @@ const BodyTool = () => {
     if (primitive === 'circle' && first && !second) {
       return resolveCircleDraft(first, hover, getLengthMeters())
     }
+    if (primitive === 'arc' && first && second) {
+      return resolveArcDraft(first, second, hover, arcSegments)
+    }
+    if (primitive === 'polygon' && first && !second) {
+      return resolveRegularPolygonDraft(first, hover, getLengthMeters(), polygonSides)
+    }
     return null
-  }, [getLengthMeters, hover, points, primitive])
+  }, [arcSegments, getLengthMeters, hover, points, polygonSides, primitive])
   const preview = useMemo(() => {
     if (!draftPolygon) return null
     const body = createPlanarFaceBody(draftPolygon.map(([x, z]) => [x, 0.006, z]))
@@ -129,16 +146,32 @@ const BodyTool = () => {
         ? snapLineDraftPoint(pointsRef.current, constrained, CLOSE_TOLERANCE)
         : constrained
     }
-    const finish = (polygon: readonly BodyDraftPoint[], name: string) => {
-      const body = BodyNode.parse({
-        ...createPlanarFaceBody(polygon.map(([x, z]) => [x, 0, z])),
-        name,
-      })
+    const finishBody = (body: BodyNode) => {
       useScene.getState().createNode(body, activeLevelId)
       useViewer.getState().setSelection({ selectedIds: [body.id] })
       triggerSFX('sfx:structure-build')
       useEditor.getState().setTool(null)
       useEditor.getState().setMode('select')
+    }
+    const finish = (polygon: readonly BodyDraftPoint[], name: string) => {
+      finishBody(
+        BodyNode.parse({
+          ...createPlanarFaceBody(polygon.map(([x, z]) => [x, 0, z])),
+          name,
+        }),
+      )
+    }
+    const finishArc = (start: BodyDraftPoint, through: BodyDraftPoint, end: BodyDraftPoint) => {
+      finishBody(
+        BodyNode.parse({
+          ...createCircularArcFaceBody(
+            [start[0], 0, start[1]],
+            [through[0], 0, through[1]],
+            [end[0], 0, end[1]],
+          ),
+          name: 'Arc Face',
+        }),
+      )
     }
     const onMove = (event: GridEvent) => setHover(resolvePoint(event))
     const onClick = (event: GridEvent) => {
@@ -158,6 +191,28 @@ const BodyTool = () => {
         else if (first) {
           const polygon = resolveCircleDraft(first, point, getLengthMeters())
           if (polygon) finish(polygon, 'Circle Face')
+        }
+      } else if (primitive === 'arc') {
+        if (current.length < 2) updatePoints([...current, point])
+        else if (first && second) {
+          const arc = resolveArcDraft(
+            first,
+            second,
+            point,
+            useBodyToolOptions.getState().arcSegments,
+          )
+          if (arc) finishArc(first, second, point)
+        }
+      } else if (primitive === 'polygon') {
+        if (current.length === 0) updatePoints([point])
+        else if (first) {
+          const polygon = resolveRegularPolygonDraft(
+            first,
+            point,
+            getLengthMeters(),
+            useBodyToolOptions.getState().polygonSides,
+          )
+          if (polygon) finish(polygon, 'Polygon Face')
         }
       } else if (current.length < 2) updatePoints([...current, point])
       else if (first && second) {
