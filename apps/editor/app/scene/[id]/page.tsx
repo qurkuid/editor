@@ -1,4 +1,3 @@
-import type { SceneGraph } from '@pascal-app/editor'
 import { headers } from 'next/headers'
 import Link from 'next/link'
 import { SceneLoader, type SceneMeta } from '@/components/scene-loader'
@@ -7,13 +6,9 @@ import { selfUrl } from '@/lib/self-url'
 
 export const dynamic = 'force-dynamic'
 
-interface SceneWithGraph extends SceneMeta {
-  graph: SceneGraph
-}
-
-async function fetchScene(id: string): Promise<SceneWithGraph | null> {
+async function fetchScene(id: string): Promise<SceneMeta | null> {
   const cookie = (await headers()).get('cookie')
-  const response = await fetch(await selfUrl(`/api/scenes/${encodeURIComponent(id)}`), {
+  const response = await fetch(await selfUrl(`/api/scenes/${encodeURIComponent(id)}?meta=1`), {
     cache: 'no-store',
     headers: cookie ? { cookie } : undefined,
   })
@@ -23,7 +18,7 @@ async function fetchScene(id: string): Promise<SceneWithGraph | null> {
   if (!response.ok) {
     throw new Error(`Failed to load scene: ${response.status}`)
   }
-  return (await response.json()) as SceneWithGraph
+  return (await response.json()) as SceneMeta
 }
 
 export default async function ScenePage({ params }: { params: Promise<{ id: string }> }) {
@@ -60,6 +55,5 @@ export default async function ScenePage({ params }: { params: Promise<{ id: stri
     )
   }
 
-  const { graph, ...meta } = scene
-  return <SceneLoader initialScene={graph} meta={meta} />
+  return <SceneLoader meta={scene} />
 }

@@ -37,6 +37,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const { id } = await params
   const operations = await getSceneOperations()
   try {
+    if (request.nextUrl.searchParams.get('meta') === '1') {
+      const status = await operations.getProjectStatus(id)
+      if (!status) {
+        return sceneApiJson(request, { error: 'not_found' }, { status: 404 })
+      }
+      return sceneApiJson(request, status, {
+        headers: { ETag: `"${status.version}"` },
+      })
+    }
     const scene = await operations.loadStoredScene(id)
     if (!scene) {
       return sceneApiJson(request, { error: 'not_found' }, { status: 404 })

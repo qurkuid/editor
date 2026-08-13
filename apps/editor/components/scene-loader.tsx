@@ -196,7 +196,6 @@ function buildSidebarTabs(
 }
 
 interface SceneLoaderProps {
-  initialScene: SceneGraph
   meta: SceneMeta
 }
 
@@ -223,7 +222,7 @@ function sceneGraphSignature(graph: SceneGraphWithCollections): string {
   })
 }
 
-export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
+export function SceneLoader({ meta }: SceneLoaderProps) {
   const router = useRouter()
   const versionRef = useRef(meta.version)
   const lastThumbnailAtRef = useRef(0)
@@ -234,7 +233,13 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
   const t = useT()
   const sidebarTabs = useMemo(() => buildSidebarTabs(t), [t])
 
-  const handleLoad = useCallback(async () => initialScene, [initialScene])
+  const handleLoad = useCallback(async () => {
+    const response = await fetch(withBasePath(`/api/scenes/${meta.id}`), { cache: 'no-store' })
+    if (!response.ok) throw new Error(`Failed to load scene: ${response.status}`)
+    const scene = (await response.json()) as SceneMeta & { graph: SceneGraph }
+    versionRef.current = scene.version
+    return scene.graph
+  }, [meta.id])
 
   const handleSave = useCallback(
     async (graph: SceneGraph, options?: { keepalive?: boolean }) => {
