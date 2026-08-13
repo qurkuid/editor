@@ -140,6 +140,36 @@ describe('SqliteSceneStore', () => {
     expect(loaded!.name).toBe('Kitchen')
   })
 
+  test('round-trips a large compressible scene while storing compressed graph data', async () => {
+    const graph = makeGraph({
+      nodes: {
+        ...makeGraph().nodes,
+        large_body: {
+          object: 'node',
+          id: 'large_body',
+          type: 'body',
+          parentId: null,
+          visible: true,
+          metadata: { payload: 'x'.repeat(11 * 1024 * 1024) },
+        },
+      } as SceneGraph['nodes'],
+    })
+
+    await store.save({ id: 'large-scene', name: 'Large scene', graph })
+    store.close()
+
+    const db = new Database(path.join(rootDir, 'pascal.db'), { readonly: true })
+    const row = db.query('SELECT graph_json FROM scenes WHERE id = ?').get('large-scene') as {
+      graph_json: string
+    }
+    expect(row.graph_json.startsWith('gzip:')).toBe(true)
+    db.close()
+
+    store = createStore(rootDir)
+    expect((await store.load('large-scene'))?.graph).toEqual(graph)
+    expect((await store.listRevisions('large-scene'))[0]?.nodeCount).toBe(3)
+  })
+
   test('preserves a painted SceneMaterial through save and reopen', async () => {
     const base = makeGraph()
     const body = createRectangleBody({ width: 1.2, depth: 0.8 })

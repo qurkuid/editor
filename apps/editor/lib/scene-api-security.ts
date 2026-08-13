@@ -1,11 +1,15 @@
 import { timingSafeEqual } from 'node:crypto'
+import { gunzipSync } from 'node:zlib'
 import { NextResponse } from 'next/server'
 import { INTM_SESSION_COOKIE, intmAuthEnabled } from './intm-session'
 
 const DEFAULT_RATE_LIMIT_PER_MINUTE = 120
 const WINDOW_MS = 60_000
 const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-const ALLOWED_HEADERS = 'authorization, content-type, if-match, last-event-id, x-pascal-scene-token'
+const ALLOWED_HEADERS =
+  'authorization, content-encoding, content-type, if-match, last-event-id, x-pascal-scene-token'
+const MAX_COMPRESSED_REQUEST_BYTES = 40 * 1024 * 1024
+const MAX_EXPANDED_REQUEST_BYTES = 300 * 1024 * 1024
 
 type RateBucket = {
   resetAt: number
@@ -42,6 +46,16 @@ export function guardSceneApiRequest(
 
 export function sceneApiJson(request: Request, body: unknown, init?: ResponseInit): NextResponse {
   return withSceneApiHeaders(request, NextResponse.json(body, init))
+}
+
+export async function readSceneApiJson(request: Request): Promise<unknown> {
+  if (request.headers.get('content-encoding') !== 'gzip') return request.json()
+  const compressed = Buffer.from(await request.arrayBuffer())
+  if (compressed.byteLength > MAX_COMPRESSED_REQUEST_BYTES) {
+    throw new RangeError('compressed request body is too large')
+  }
+  const expanded = gunzipSync(compressed, { maxOutputLength: MAX_EXPANDED_REQUEST_BYTES })
+  return JSON.parse(expanded.toString('utf8'))
 }
 
 export function withSceneApiHeaders<T extends Response>(request: Request, response: T): T {

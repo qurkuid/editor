@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { apiGraphSchema } from '@/lib/graph-schema'
 import {
   guardSceneApiRequest,
+  readSceneApiJson,
   sceneApiJson,
   sceneApiPreflight,
   withSceneApiHeaders,
@@ -56,7 +57,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   let body: unknown
   try {
-    body = await request.json()
+    body = await readSceneApiJson(request)
   } catch {
     return sceneApiJson(
       request,

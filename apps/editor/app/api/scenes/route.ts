@@ -1,7 +1,12 @@
 import type { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { apiGraphSchema } from '@/lib/graph-schema'
-import { guardSceneApiRequest, sceneApiJson, sceneApiPreflight } from '@/lib/scene-api-security'
+import {
+  guardSceneApiRequest,
+  readSceneApiJson,
+  sceneApiJson,
+  sceneApiPreflight,
+} from '@/lib/scene-api-security'
 import { getSceneOperations } from '@/lib/scene-store-server'
 
 export const dynamic = 'force-dynamic'
@@ -54,7 +59,7 @@ export async function POST(request: NextRequest) {
 
   let body: unknown
   try {
-    body = await request.json()
+    body = await readSceneApiJson(request)
   } catch {
     return sceneApiJson(
       request,

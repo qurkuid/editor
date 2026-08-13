@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test'
-import { guardSceneApiRequest, sceneApiPreflight } from './scene-api-security'
+import { guardSceneApiRequest, readSceneApiJson, sceneApiPreflight } from './scene-api-security'
 
 const OLD_ENV = { ...process.env }
 
@@ -15,6 +15,17 @@ function restoreEnv(key: keyof NodeJS.ProcessEnv): void {
   if (OLD_ENV[key] === undefined) delete process.env[key]
   else process.env[key] = OLD_ENV[key]
 }
+
+test('reads gzip-compressed JSON request bodies', async () => {
+  const payload = { graph: { nodes: {}, rootNodeIds: [] } }
+  const request = new Request('http://127.0.0.1:3000/api/scenes', {
+    method: 'PUT',
+    headers: { 'Content-Encoding': 'gzip' },
+    body: Bun.gzipSync(JSON.stringify(payload)),
+  })
+
+  expect(await readSceneApiJson(request)).toEqual(payload)
+})
 
 test('allows loopback scene API requests without a token', () => {
   delete process.env.PASCAL_SCENE_API_TOKEN

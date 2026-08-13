@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
+import { gunzipSync, gzipSync } from 'node:zlib'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
 import { SceneMaterial } from '@pascal-app/core/schema'
 import { z } from 'zod'
@@ -27,7 +28,10 @@ import {
   type SceneWithGraph,
 } from './types'
 
-const DEFAULT_MAX_SCENE_BYTES = 10 * 1024 * 1024
+const DEFAULT_MAX_SCENE_BYTES = 300 * 1024 * 1024
+const MAX_STORED_SCENE_BYTES = 40 * 1024 * 1024
+const COMPRESS_SCENE_BYTES = 1024 * 1024
+const COMPRESSED_GRAPH_PREFIX = 'gzip:'
 const DEFAULT_LIST_LIMIT = 100
 
 // Wipe guard of last resort: a stored scene at least this populated refuses a
@@ -50,7 +54,7 @@ export interface SqliteSceneStoreOptions {
   databasePath?: string
   /** Optional env override for default path and size-limit resolution. */
   env?: NodeJS.ProcessEnv
-  /** Maximum UTF-8 byte length of graph JSON. Defaults to 10 MB. */
+  /** Maximum expanded UTF-8 byte length of graph JSON. Defaults to 300 MB. */
   maxSceneBytes?: number
 }
 
@@ -236,10 +240,22 @@ function serializeGraph(graph: SceneGraph): string {
   return JSON.stringify(graph)
 }
 
+function encodeGraph(raw: string): string {
+  if (Buffer.byteLength(raw, 'utf8') < COMPRESS_SCENE_BYTES) return raw
+  return `${COMPRESSED_GRAPH_PREFIX}${gzipSync(raw).toString('base64')}`
+}
+
+function decodeGraph(raw: string): string {
+  if (!raw.startsWith(COMPRESSED_GRAPH_PREFIX)) return raw
+  return gunzipSync(Buffer.from(raw.slice(COMPRESSED_GRAPH_PREFIX.length), 'base64')).toString(
+    'utf8',
+  )
+}
+
 function parseGraph(raw: string, context: string): SceneGraph {
   let parsed: unknown
   try {
-    parsed = JSON.parse(raw)
+    parsed = JSON.parse(decodeGraph(raw))
   } catch (err) {
     throw new SceneInvalidError(
       `Failed to parse scene graph for ${context}: ${err instanceof Error ? err.message : String(err)}`,
@@ -370,11 +386,18 @@ export class SqliteSceneStore implements SceneStore {
         }
       }
 
-      const graphJson = serializeGraph(opts.graph)
-      const sizeBytes = Buffer.byteLength(graphJson, 'utf8')
+      const rawGraphJson = serializeGraph(opts.graph)
+      const sizeBytes = Buffer.byteLength(rawGraphJson, 'utf8')
       if (sizeBytes > this.maxSceneBytes) {
         throw new SceneTooLargeError(
           `Scene "${id}" is ${sizeBytes} bytes, exceeds cap of ${this.maxSceneBytes} bytes`,
+        )
+      }
+      const graphJson = encodeGraph(rawGraphJson)
+      const storedSizeBytes = Buffer.byteLength(graphJson, 'utf8')
+      if (storedSizeBytes > MAX_STORED_SCENE_BYTES) {
+        throw new SceneTooLargeError(
+          `Compressed scene "${id}" is ${storedSizeBytes} bytes, exceeds storage cap of ${MAX_STORED_SCENE_BYTES} bytes`,
         )
       }
 
@@ -531,8 +554,7 @@ export class SqliteSceneStore implements SceneStore {
                 created_at,
                 author_kind,
                 author_id,
-                length(graph_json) AS size_bytes,
-                (SELECT count(*) FROM json_each(scene_revisions.graph_json, '$.nodes')) AS node_count
+                graph_json
            FROM scene_revisions
           WHERE scene_id = ?
           ORDER BY version DESC
@@ -543,17 +565,20 @@ export class SqliteSceneStore implements SceneStore {
       created_at: string
       author_kind: string
       author_id: string | null
-      size_bytes: number
-      node_count: number
+      graph_json: string
     }>
-    return rows.map((row) => ({
-      version: row.version,
-      createdAt: row.created_at,
-      authorKind: row.author_kind,
-      authorId: row.author_id,
-      sizeBytes: row.size_bytes,
-      nodeCount: row.node_count,
-    }))
+    return rows.map((row) => {
+      const rawGraphJson = decodeGraph(row.graph_json)
+      const graph = parseGraph(rawGraphJson, `${id}@${row.version}`)
+      return {
+        version: row.version,
+        createdAt: row.created_at,
+        authorKind: row.author_kind,
+        authorId: row.author_id,
+        sizeBytes: Buffer.byteLength(rawGraphJson, 'utf8'),
+        nodeCount: Object.keys(graph.nodes).length,
+      }
+    })
   }
 
   async loadRevision(id: string, version: number): Promise<SceneGraph | null> {
@@ -659,7 +684,7 @@ export class SqliteSceneStore implements SceneStore {
         throw new SceneNotFoundError(`Scene "${safeId}" not found`)
       }
 
-      const graphJson = serializeGraph(opts.graph)
+      const graphJson = encodeGraph(serializeGraph(opts.graph))
       const now = new Date().toISOString()
       const result = db
         .query(

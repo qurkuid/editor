@@ -248,13 +248,21 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
       if (isRecentRemoteApply) return
 
       try {
+        const jsonBody = JSON.stringify({ name: meta.name, graph })
+        const compress = jsonBody.length >= 1024 * 1024
+        const body = compress
+          ? await new Response(
+              new Blob([jsonBody]).stream().pipeThrough(new CompressionStream('gzip')),
+            ).blob()
+          : jsonBody
         const response = await fetch(withBasePath(`/api/scenes/${meta.id}`), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'If-Match': String(versionRef.current),
+            ...(compress ? { 'Content-Encoding': 'gzip' } : {}),
           },
-          body: JSON.stringify({ name: meta.name, graph }),
+          body,
           // `keepalive` lets the request outlive a page unload (the autosave
           // flush on refresh/close). Browsers cap keepalive bodies at 64KB, so
           // only the unload flush opts in — normal debounced saves omit it and
@@ -268,7 +276,9 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
             // The server refused to overwrite a populated scene with a (near)
             // empty graph — almost always a failed load autosaving, not the
             // user. Surface it as an error instead of a version conflict.
-            setSaveError('저장 차단: 빈 씬으로 덮어쓰기가 방지되었습니다. 새로고침 후 다시 시도하세요.')
+            setSaveError(
+              '저장 차단: 빈 씬으로 덮어쓰기가 방지되었습니다. 새로고침 후 다시 시도하세요.',
+            )
             return
           }
           setConflict(true)
