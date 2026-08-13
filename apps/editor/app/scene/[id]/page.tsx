@@ -1,4 +1,5 @@
 import type { SceneGraph } from '@pascal-app/editor'
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { SceneLoader, type SceneMeta } from '@/components/scene-loader'
 import { TText } from '@/components/t-text'
@@ -11,8 +12,10 @@ interface SceneWithGraph extends SceneMeta {
 }
 
 async function fetchScene(id: string): Promise<SceneWithGraph | null> {
+  const cookie = (await headers()).get('cookie')
   const response = await fetch(await selfUrl(`/api/scenes/${encodeURIComponent(id)}`), {
     cache: 'no-store',
+    headers: cookie ? { cookie } : undefined,
   })
   if (response.status === 404) {
     return null
