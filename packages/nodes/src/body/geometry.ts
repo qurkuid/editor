@@ -18,9 +18,16 @@ import {
   ShapeUtils,
   Vector2,
 } from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 type Point3 = [number, number, number]
+
+type ImportedGeometry = {
+  faceIdsByTriangle: string[]
+  indices: number[]
+  material: Material
+  positions: number[]
+  uvs: number[]
+}
 
 const COPLANAR_EPSILON = 1e-6
 
@@ -101,8 +108,8 @@ export function buildBodyGeometry(body: BodyNode, ctx?: GeometryContext): Group 
     body.metadata !== null &&
     !Array.isArray(body.metadata) &&
     body.metadata.source === 'SketchUp'
-  const importedMeshes: Mesh[] = []
   const importedMaterials = new Map<string, Material>()
+  const importedGeometryByMaterial = new Map<string, ImportedGeometry>()
 
   for (const face of body.faces) {
     const contour = loopVertices(face.outerLoopId)
@@ -115,20 +122,11 @@ export function buildBodyGeometry(body: BodyNode, ctx?: GeometryContext): Group 
       holes.map((hole) => hole.map(project)),
     )
     const vertices = [contour, ...holes].flat()
-    const geometry = new BufferGeometry()
-    geometry.setAttribute('position', new Float32BufferAttribute(vertices.flat(), 3))
-    geometry.setAttribute(
-      'uv',
-      new Float32BufferAttribute(
-        vertices.flatMap((point) => [
-          surfaceCoordinate(point, face.surface.uvOrigin, face.surface.uvU),
-          surfaceCoordinate(point, face.surface.uvOrigin, face.surface.uvV),
-        ]),
-        2,
-      ),
-    )
-    geometry.setIndex(triangles.flat())
-    geometry.computeVertexNormals()
+    const indices = triangles.flat()
+    const uvs = vertices.flatMap((point) => [
+      surfaceCoordinate(point, face.surface.uvOrigin, face.surface.uvU),
+      surfaceCoordinate(point, face.surface.uvOrigin, face.surface.uvV),
+    ])
     const materialKey = face.surface.materialRef ?? 'default'
     const cachedMaterial = importedFromSketchUp ? importedMaterials.get(materialKey) : undefined
     const resolvedMaterial = cachedMaterial ?? resolveMaterialRef(face.surface.materialRef, ctx?.materials)?.clone()
@@ -144,37 +142,47 @@ export function buildBodyGeometry(body: BodyNode, ctx?: GeometryContext): Group 
     if (importedFromSketchUp && !importedMaterials.has(materialKey)) {
       importedMaterials.set(materialKey, material)
     }
+    if (importedFromSketchUp) {
+      const accumulated = importedGeometryByMaterial.get(materialKey) ?? {
+        faceIdsByTriangle: [],
+        indices: [],
+        material,
+        positions: [],
+        uvs: [],
+      }
+      const vertexOffset = accumulated.positions.length / 3
+      accumulated.positions.push(...vertices.flat())
+      accumulated.uvs.push(...uvs)
+      accumulated.indices.push(...indices.map((index) => index + vertexOffset))
+      accumulated.faceIdsByTriangle.push(...Array(indices.length / 3).fill(face.id))
+      importedGeometryByMaterial.set(materialKey, accumulated)
+      continue
+    }
+    const geometry = new BufferGeometry()
+    geometry.setAttribute('position', new Float32BufferAttribute(vertices.flat(), 3))
+    geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
+    geometry.setIndex(indices)
+    geometry.computeVertexNormals()
     const mesh = new Mesh(geometry, material)
     mesh.name = `face:${face.id}`
     mesh.userData = { bodyId: body.id, faceId: face.id, pascalNodeId: body.id }
-    if (importedFromSketchUp) {
-      mesh.userData.materialKey = materialKey
-      importedMeshes.push(mesh)
-    }
-    else group.add(mesh)
+    group.add(mesh)
   }
 
-  if (importedMeshes.length > 0) {
-    const meshesByMaterial = new Map<string, Mesh[]>()
-    for (const mesh of importedMeshes) {
-      const key = mesh.userData.materialKey
-      meshesByMaterial.set(key, [...(meshesByMaterial.get(key) ?? []), mesh])
+  for (const accumulated of importedGeometryByMaterial.values()) {
+    const geometry = new BufferGeometry()
+    geometry.setAttribute('position', new Float32BufferAttribute(accumulated.positions, 3))
+    geometry.setAttribute('uv', new Float32BufferAttribute(accumulated.uvs, 2))
+    geometry.setIndex(accumulated.indices)
+    geometry.computeVertexNormals()
+    const mesh = new Mesh(geometry, accumulated.material)
+    mesh.name = 'body:sketchup'
+    mesh.userData = {
+      bodyId: body.id,
+      faceIdsByTriangle: accumulated.faceIdsByTriangle,
+      pascalNodeId: body.id,
     }
-    for (const meshes of meshesByMaterial.values()) {
-      const mergedGeometry = mergeGeometries(
-        meshes.map((mesh) => mesh.geometry),
-        false,
-      )
-      if (!mergedGeometry) continue
-      const faceIdsByTriangle = meshes.flatMap((mesh) =>
-        Array((mesh.geometry.getIndex()?.count ?? 0) / 3).fill(mesh.userData.faceId),
-      )
-      const mesh = new Mesh(mergedGeometry, meshes[0]?.material)
-      mesh.name = 'body:sketchup'
-      mesh.userData = { bodyId: body.id, faceIdsByTriangle, pascalNodeId: body.id }
-      group.add(mesh)
-    }
-    for (const mesh of importedMeshes) mesh.geometry.dispose()
+    group.add(mesh)
   }
 
   const loopsById = new Map(body.loops.map((loop) => [loop.id, loop]))
