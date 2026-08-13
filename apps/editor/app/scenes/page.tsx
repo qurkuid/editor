@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { CreateSceneButton } from '@/components/save-button'
 import type { SceneMeta } from '@/components/scene-loader'
@@ -8,8 +9,10 @@ import { selfUrl } from '@/lib/self-url'
 export const dynamic = 'force-dynamic'
 
 async function fetchScenes(): Promise<SceneMeta[]> {
+  const cookie = (await headers()).get('cookie')
   const response = await fetch(await selfUrl('/api/scenes?limit=50'), {
     cache: 'no-store',
+    headers: cookie ? { cookie } : undefined,
   })
   if (!response.ok) {
     return []
