@@ -7,6 +7,8 @@ afterEach(() => {
   restoreEnv('PASCAL_SCENE_API_TOKEN')
   restoreEnv('PASCAL_SCENE_API_ORIGINS')
   restoreEnv('PASCAL_SCENE_API_RATE_LIMIT')
+  restoreEnv('INTM_BASE_URL')
+  restoreEnv('INTM_AUTH_DISABLED')
 })
 
 function restoreEnv(key: keyof NodeJS.ProcessEnv): void {
@@ -25,6 +27,34 @@ test('allows loopback scene API requests without a token', () => {
 
 test('requires a token for non-loopback scene API requests', async () => {
   delete process.env.PASCAL_SCENE_API_TOKEN
+  const request = new Request('https://editor.example/api/scenes', {
+    headers: { host: 'editor.example' },
+  })
+
+  const response = guardSceneApiRequest(request)
+
+  expect(response?.status).toBe(503)
+  expect(await response?.json()).toEqual({ error: 'scene_api_token_required' })
+})
+
+test('accepts an INTM session cookie when INTM auth is enabled', () => {
+  delete process.env.PASCAL_SCENE_API_TOKEN
+  process.env.INTM_BASE_URL = 'https://intm.kr'
+  delete process.env.INTM_AUTH_DISABLED
+  const request = new Request('https://editor.example/api/scenes', {
+    headers: {
+      cookie: 'session_token=verified-by-middleware',
+      host: 'editor.example',
+    },
+  })
+
+  expect(guardSceneApiRequest(request)).toBeNull()
+})
+
+test('still rejects an INTM-enabled request without a session cookie', async () => {
+  delete process.env.PASCAL_SCENE_API_TOKEN
+  process.env.INTM_BASE_URL = 'https://intm.kr'
+  delete process.env.INTM_AUTH_DISABLED
   const request = new Request('https://editor.example/api/scenes', {
     headers: { host: 'editor.example' },
   })

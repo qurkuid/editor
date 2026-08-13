@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
+import { INTM_SESSION_COOKIE, intmAuthEnabled } from './intm-session'
 
 const DEFAULT_RATE_LIMIT_PER_MINUTE = 120
 const WINDOW_MS = 60_000
@@ -63,6 +64,10 @@ function validateOrigin(request: Request): NextResponse | null {
 }
 
 function validateAuth(request: Request): NextResponse | null {
+  if (intmAuthEnabled() && hasSessionCookie(request)) {
+    return null
+  }
+
   const token = process.env.PASCAL_SCENE_API_TOKEN
   if (!token) {
     if (isLoopbackRequest(request)) return null
@@ -72,6 +77,15 @@ function validateAuth(request: Request): NextResponse | null {
   const supplied = bearerToken(request) ?? request.headers.get('x-pascal-scene-token')
   if (supplied && safeEqual(supplied, token)) return null
   return sceneApiJson(request, { error: 'unauthorized' }, { status: 401 })
+}
+
+function hasSessionCookie(request: Request): boolean {
+  return (
+    request.headers
+      .get('cookie')
+      ?.split(';')
+      .some((part) => part.trim().startsWith(`${INTM_SESSION_COOKIE}=`)) ?? false
+  )
 }
 
 function validateRateLimit(request: Request): NextResponse | null {
