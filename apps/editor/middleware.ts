@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { isAppRootPath, isPublicAssetPath, isPublicRoutePath } from '@/lib/auth-gate'
-import { withBasePath } from '@/lib/base-path'
+import { isPublicAssetPath, isPublicRoutePath } from '@/lib/auth-gate'
 import { fetchIntmUser, intmAuthEnabled, intmLoginUrl } from '@/lib/intm-session'
 
 /**
@@ -33,16 +32,6 @@ export async function middleware(request: NextRequest) {
       { error: 'INTM authentication required', login: target },
       { status: 401 },
     )
-  }
-
-  // The public front door: an anonymous visit to the app ROOT lands on the
-  // apartment map (the old apt.intm.kr behavior), not a login wall. Members
-  // hitting `/` never reach this branch and keep the editor.
-  if (isAppRootPath(request.nextUrl.pathname)) {
-    const mapUrl = new URL(publicUrl(request))
-    mapUrl.pathname = withBasePath('/apt')
-    mapUrl.search = ''
-    return NextResponse.redirect(mapUrl)
   }
 
   return NextResponse.redirect(target)

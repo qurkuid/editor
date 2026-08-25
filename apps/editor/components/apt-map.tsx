@@ -67,6 +67,8 @@ type InteriorInfo = {
   scopeWarning?: string
 }
 
+type SceneListItem = { id: string; name: string; updatedAt: string; nodeCount: number }
+
 type PlansState = { status: 'loading' } | { status: 'full'; plans: Plan[] } | { status: 'fallback' }
 type InteriorState =
   | { status: 'loading' }
@@ -86,6 +88,13 @@ export function AptMap() {
   const [interiorState, setInteriorState] = useState<InteriorState>({ status: 'loading' })
   const [viewer, setViewer] = useState<ViewerState>(null)
   const [mapMessage, setMapMessage] = useState<React.ReactNode>(null)
+  // A ?apartmentId= deep link that named a complex missing from the dataset.
+  const [deepLinkMiss, setDeepLinkMiss] = useState(false)
+  // Scenes already traced for the open complex — the "search first, resume
+  // modeling" path. The scene store is shared across INTM members (no
+  // per-user ownership recorded), so this lists the team's scenes; anonymous
+  // visitors get a 401 and see no section.
+  const [myScenes, setMyScenes] = useState<SceneListItem[]>([])
 
   const mapRef = useRef<NMap | null>(null)
   const naverRef = useRef<NaverMaps | null>(null)
@@ -93,6 +102,8 @@ export function AptMap() {
   const overlaysRef = useRef<NMarker[]>([])
   const activeIdRef = useRef<string | null>(null)
   const openDetailRef = useRef<(apt: AptEntry) => void>(() => {})
+  // `?apartmentId=` deep link resolved before the map SDK is ready.
+  const pendingCenterRef = useRef<AptEntry | null>(null)
 
   /* ── dataset ─────────────────────────────────────────── */
   useEffect(() => {
@@ -103,7 +114,26 @@ export function AptMap() {
         return res.json() as Promise<AptDatasetPayload>
       })
       .then((payload) => {
-        if (!cancelled) setEntries(parseAptDataset(payload))
+        if (cancelled) return
+        const parsed = parseAptDataset(payload)
+        setEntries(parsed)
+        // Deep link (?apartmentId=…) from a scene card's "지도에서 보기".
+        const wanted = new URLSearchParams(window.location.search).get('apartmentId')
+        const entry = wanted ? parsed.find((a) => a.apartmentId === wanted) : undefined
+        if (wanted && !entry) setDeepLinkMiss(true)
+        if (entry) {
+          openDetailRef.current(entry)
+          const maps = naverRef.current
+          const map = mapRef.current
+          if (maps && map) {
+            sdkQuietly(() => {
+              map.setCenter(new maps.LatLng(entry.lat, entry.lng))
+              map.setZoom(16)
+            })
+          } else {
+            pendingCenterRef.current = entry
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) setLoadFailed(true)
@@ -141,6 +171,16 @@ export function AptMap() {
       }, 250)
       idleListener = maps.Event.addListener(map, 'idle', readBounds)
       readBounds()
+      const pending = pendingCenterRef.current
+      pendingCenterRef.current = null
+      // Only if the deep-linked complex is still the open one — the user may
+      // have clicked another apartment while the map SDK was loading.
+      if (pending && activeIdRef.current === pending.apartmentId) {
+        sdkQuietly(() => {
+          map.setCenter(new maps.LatLng(pending.lat, pending.lng))
+          map.setZoom(16)
+        })
+      }
     }
 
     window.navermap_authFailure = () => {
@@ -268,6 +308,27 @@ export function AptMap() {
     setActive(apt)
     setPlansState({ status: 'loading' })
     setInteriorState({ status: 'loading' })
+    setMyScenes([])
+
+    // Existing scenes for this complex (`apt-<id>` projectId convention) so a
+    // member resumes modeling instead of starting over. The store is shared
+    // team-wide; anonymous visitors get a 401 here and simply see no section.
+    fetch(
+      withBasePath(
+        `/api/scenes?projectId=${encodeURIComponent(`apt-${apt.apartmentId}`)}&limit=50`,
+      ),
+    )
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+      .then((json: { scenes?: SceneListItem[] } | SceneListItem[]) => {
+        if (activeIdRef.current !== apt.apartmentId) return
+        const scenes = Array.isArray(json) ? json : (json.scenes ?? [])
+        setMyScenes(
+          [...scenes].sort(
+            (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+          ),
+        )
+      })
+      .catch(() => {})
 
     fetch(withBasePath(`/api/apartments/${encodeURIComponent(apt.apartmentId)}/plans`))
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
@@ -403,6 +464,7 @@ export function AptMap() {
   const applyFilters = useCallback(
     (next: typeof filters, opts: { fitAll?: boolean; openSingle?: boolean } = {}) => {
       setFilters(next)
+      setDeepLinkMiss(false)
       closeDetail()
       if (!entries) return
       const kw = normalizeSearch(next.keyword)
@@ -522,6 +584,11 @@ export function AptMap() {
         </div>
         <div className={styles.status}>{statusText}</div>
         <div className={styles.list}>
+          {deepLinkMiss && (
+            <div className={styles.note}>
+              연결된 단지를 지도 데이터에서 찾지 못했습니다. 이름으로 검색해보세요.
+            </div>
+          )}
           {listItems.map((a) => (
             <div
               className={
@@ -560,7 +627,7 @@ export function AptMap() {
         </div>
         <div className={styles.sidebarFooter}>
           <Link href="/scenes">내 씬 목록</Link>
-          <Link href="/">도면 에디터 열기</Link>
+          <Link href="/editor">빈 캔버스 에디터</Link>
         </div>
       </div>
 
@@ -594,6 +661,22 @@ export function AptMap() {
                 Npay 부동산에서 확인 ↗
               </a>
             </div>
+            {myScenes.length > 0 && (
+              <section className={styles.myScenes}>
+                <div className={styles.interiorTitleRow}>
+                  <div className={styles.interiorTitle}>작업 중인 도면 이어서 열기</div>
+                  <div className={styles.interiorSource}>{myScenes.length}개</div>
+                </div>
+                {myScenes.slice(0, 5).map((scene) => (
+                  <Link className={styles.mySceneItem} href={`/scene/${scene.id}`} key={scene.id}>
+                    <span className={styles.mySceneName}>{scene.name}</span>
+                    <span className={styles.mySceneMeta}>
+                      {formatSceneDate(scene.updatedAt)} 수정 · 이어서 모델링 →
+                    </span>
+                  </Link>
+                ))}
+              </section>
+            )}
             <section aria-live="polite" className={styles.interiorInfo}>
               <InteriorPanel apt={active} state={interiorState} />
             </section>
@@ -813,6 +896,12 @@ function sdkQuietly(run: () => void): void {
   } catch {
     /* map unusable — the list UI stays alive */
   }
+}
+
+function formatSceneDate(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
 }
 
 function debounce<A extends unknown[]>(fn: (...args: A) => void, ms: number) {

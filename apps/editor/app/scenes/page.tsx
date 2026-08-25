@@ -4,6 +4,7 @@ import { CreateSceneButton } from '@/components/save-button'
 import type { SceneMeta } from '@/components/scene-loader'
 import { SceneVersionsButton } from '@/components/scene-versions'
 import { TText } from '@/components/t-text'
+import { getAptData } from '@/lib/apt-data'
 import { selfUrl } from '@/lib/self-url'
 
 export const dynamic = 'force-dynamic'
@@ -32,8 +33,44 @@ function formatDate(iso: string): string {
   }
 }
 
+/** `apt-<apartmentId>` projectId convention from the apartment-map bridge. */
+function aptApartmentId(scene: SceneMeta): string | null {
+  return scene.projectId?.startsWith('apt-') ? scene.projectId.slice(4) : null
+}
+
+async function resolveApartmentNames(scenes: SceneMeta[]): Promise<Map<string, string>> {
+  const ids = [...new Set(scenes.map(aptApartmentId).filter((id): id is string => !!id))]
+  if (ids.length === 0) return new Map()
+  try {
+    const { apartmentMeta } = await getAptData()
+    return new Map(
+      ids.flatMap((id) => {
+        const meta = apartmentMeta.get(id)
+        return meta ? [[id, meta.name] as const] : []
+      }),
+    )
+  } catch {
+    // 지도 데이터가 없어도 씬 목록은 그대로 동작해야 한다.
+    return new Map()
+  }
+}
+
+function apartmentBadge(scene: SceneMeta, names: Map<string, string>) {
+  const apartmentId = aptApartmentId(scene)
+  if (!apartmentId) return null
+  return (
+    <Link
+      className="mt-2 inline-flex max-w-full items-center gap-1 truncate rounded-md border border-border/60 px-2 py-1 text-muted-foreground text-xs transition-colors hover:border-border hover:text-foreground"
+      href={`/apt?apartmentId=${encodeURIComponent(apartmentId)}`}
+    >
+      🏢 {names.get(apartmentId) ?? '아파트'} · 지도에서 보기
+    </Link>
+  )
+}
+
 export default async function ScenesPage() {
   const scenes = await fetchScenes()
+  const apartmentNames = await resolveApartmentNames(scenes)
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,6 +159,7 @@ export default async function ScenesPage() {
                   sceneId={scene.id}
                   sceneName={scene.name}
                 />
+                {apartmentBadge(scene, apartmentNames)}
               </li>
             ))}
           </ul>

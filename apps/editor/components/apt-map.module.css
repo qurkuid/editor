@@ -250,6 +250,42 @@
   text-decoration: none;
 }
 
+.myScenes {
+  margin: 12px 14px 4px;
+  padding: 13px;
+  border: 1px solid #a7f3d0;
+  border-radius: 12px;
+  background: #f4fdf9;
+}
+.mySceneItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border: 1px solid #d1fae5;
+  border-radius: 8px;
+  background: #fff;
+  text-decoration: none;
+}
+.mySceneItem:hover {
+  border-color: #34d399;
+  background: #f0fdf7;
+}
+.mySceneName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mySceneMeta {
+  font-size: 10px;
+  color: #059669;
+  font-weight: 600;
+}
+
 .plan {
   padding: 12px 14px;
   border-bottom: 1px solid #f5f5f5;

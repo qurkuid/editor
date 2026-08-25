@@ -53,7 +53,7 @@ export interface SceneMeta {
   nodeCount: number
 }
 
-// Matches the standalone editor's own Items panel (see `app/page.tsx`) — the
+// Matches the standalone editor's own Items panel (see `app/editor/page.tsx`) — the
 // scene route registers its tabs separately, so anything added there has to be
 // added here too or it only exists on the home route.
 const EditorItemsPanel = SkpItemsPanel
@@ -404,7 +404,7 @@ export function SceneLoader({ meta }: SceneLoaderProps) {
           All scenes
         </Link>
       </div>
-      {/* Also mounted in app/page.tsx — this app has two Editor roots. */}
+      {/* Also mounted in app/editor/page.tsx — this app has two Editor roots. */}
       <IntmMaterialLibrary />
       <Editor
         actionMenuControls={<ModelingRailControls />}

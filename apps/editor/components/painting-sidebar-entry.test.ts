@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 
-const PAGE_SOURCE = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8')
+const PAGE_SOURCE = readFileSync(new URL('../app/editor/page.tsx', import.meta.url), 'utf8')
 const SCENE_LOADER_SOURCE = readFileSync(new URL('./scene-loader.tsx', import.meta.url), 'utf8')
 
 test('keeps the primary creation workspaces directly accessible from every editor sidebar', () => {
