@@ -20,11 +20,27 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
  * test than listing the directories under `public/`, which drift.
  */
 export function isPublicAssetPath(pathname: string, basePath = BASE_PATH): boolean {
-  const path =
-    basePath && (pathname === basePath || pathname.startsWith(`${basePath}/`))
-      ? pathname.slice(basePath.length) || '/'
-      : pathname
+  const path = stripBasePath(pathname, basePath)
 
   if (path.startsWith('/_next/')) return true
   return path.slice(path.lastIndexOf('/') + 1).includes('.')
+}
+
+/**
+ * The apartment map is the public front door of the app; its page and data
+ * APIs bypass the login gate. `/apt` matches exactly (not as a prefix) so
+ * that `/apt/trace` — the map→editor bridge page — still goes through the
+ * gate and can answer with a login redirect.
+ */
+export function isPublicRoutePath(pathname: string, basePath = BASE_PATH): boolean {
+  const path = stripBasePath(pathname, basePath)
+
+  if (path === '/apt' || path === '/apt/') return true
+  return path === '/api/apartments' || path.startsWith('/api/apartments/')
+}
+
+function stripBasePath(pathname: string, basePath: string): string {
+  return basePath && (pathname === basePath || pathname.startsWith(`${basePath}/`))
+    ? pathname.slice(basePath.length) || '/'
+    : pathname
 }

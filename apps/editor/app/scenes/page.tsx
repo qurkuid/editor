@@ -50,6 +50,13 @@ export default async function ScenesPage() {
             <span className="font-medium text-foreground">
               <TText k="scenes.title" />
             </span>
+            <span className="text-muted-foreground">·</span>
+            <Link
+              className="text-muted-foreground transition-colors hover:text-foreground"
+              href="/apt"
+            >
+              아파트 지도
+            </Link>
           </nav>
           <CreateSceneButton />
         </div>

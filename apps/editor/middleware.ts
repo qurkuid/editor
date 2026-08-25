@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { isPublicAssetPath } from '@/lib/auth-gate'
+import { isPublicAssetPath, isPublicRoutePath } from '@/lib/auth-gate'
 import { fetchIntmUser, intmAuthEnabled, intmLoginUrl } from '@/lib/intm-session'
 
 /**
@@ -13,6 +13,8 @@ export async function middleware(request: NextRequest) {
   // the app booting. Checked here rather than in `matcher` because the matcher
   // does not see the basePath the request actually carries.
   if (isPublicAssetPath(request.nextUrl.pathname)) return NextResponse.next()
+  // The apartment map (page + data APIs) is deliberately public.
+  if (isPublicRoutePath(request.nextUrl.pathname)) return NextResponse.next()
 
   const user = await fetchIntmUser(request.headers.get('cookie'))
   if (user) return NextResponse.next()

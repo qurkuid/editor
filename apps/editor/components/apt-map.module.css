@@ -1,0 +1,486 @@
+/* 1:1 port of the standalone apt.intm.kr map styling (light theme by design). */
+
+.app {
+  display: flex;
+  height: 100dvh;
+  background: #fff;
+  color: #111827;
+  font-family: 'Apple SD Gothic Neo', 'Pretendard', -apple-system, sans-serif;
+}
+
+.sidebar {
+  width: 360px;
+  min-width: 360px;
+  height: 100%;
+  border-right: 1px solid #e5e7eb;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.searchBox {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  gap: 8px;
+}
+
+.keyword {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: #fff;
+  color: inherit;
+}
+.keyword:focus {
+  border-color: #2563eb;
+}
+
+.searchBtn {
+  padding: 10px 16px;
+  background: #2563eb;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.regionRow {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.regionRow select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+  color: inherit;
+}
+
+.status {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #6b7280;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.aptItem {
+  padding: 12px;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+}
+.aptItem:hover {
+  background: #f8fafc;
+}
+.aptItemActive {
+  background: #eff6ff;
+}
+.aptName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+.aptAddr {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.aptType {
+  font-size: 12px;
+  color: #2563eb;
+  margin-top: 4px;
+}
+
+.mapWrap {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+.detail {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 340px;
+  max-height: 100%;
+  overflow-y: auto;
+  background: #fff;
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.12);
+  z-index: 50;
+}
+.detailHeader {
+  padding: 14px 40px 14px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+}
+.detailHeader h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.detailHeader p {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+.detailClose {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #9ca3af;
+}
+.detailNaverLink {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 6px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.detailNaverLink:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.interiorInfo {
+  margin: 12px 14px 4px;
+  padding: 13px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+.interiorTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.interiorTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: #172554;
+}
+.interiorSource {
+  font-size: 10px;
+  color: #64748b;
+  white-space: nowrap;
+}
+.interiorGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.interiorItem {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+.interiorLabel {
+  display: block;
+  margin-bottom: 3px;
+  color: #6b7280;
+  font-size: 10px;
+}
+.interiorValue {
+  color: #111827;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.interiorValue a {
+  color: #2563eb;
+  text-decoration: none;
+}
+.interiorCheck {
+  margin-top: 9px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.interiorScope {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.interiorEmpty {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.interiorEmpty a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.plan {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f5f5f5;
+}
+.planThumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+  cursor: zoom-in;
+}
+.planThumb img {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  background: #fafafa;
+  min-height: 120px;
+}
+.planZoomLabel {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: rgba(17, 24, 39, 0.82);
+  color: #fff;
+  font-size: 11px;
+}
+.planType {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.planTraceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.planTraceLink:hover {
+  background: #1d4ed8;
+}
+
+.note {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+.note a {
+  color: #2563eb;
+}
+
+.mapMsg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  /* Below .detail (50): the notice must never steal clicks from the panel. */
+  z-index: 40;
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.8;
+}
+.mapMsg a {
+  color: #2563eb;
+}
+.mapMsgCard {
+  max-width: 480px;
+  background: #fff;
+  padding: 28px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Injected into Naver marker HTML strings — see buildMarkerHtml(). */
+.aptMarker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 170px;
+  padding: 5px 10px 5px 6px;
+  border: 2px solid #fff;
+  border-radius: 18px;
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 3px 9px rgba(15, 23, 42, 0.3);
+  cursor: pointer;
+  white-space: nowrap;
+  font: inherit;
+}
+.aptMarker:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+.aptMarkerIcon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 50%;
+  background: #fff;
+  color: #2563eb;
+}
+.aptMarkerIcon svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+.aptMarkerName {
+  overflow: hidden;
+  max-width: 126px;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 700;
+}
+.cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.92);
+  color: #fff;
+  border-radius: 50%;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+}
+
+.planViewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(3, 7, 18, 0.88);
+}
+.viewerImage {
+  max-width: min(1100px, 94vw);
+  max-height: 86vh;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #fff;
+}
+.viewerClose {
+  position: fixed;
+  top: 20px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #111827;
+  font-size: 22px;
+  cursor: pointer;
+}
+.viewerCaption {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  max-width: 80vw;
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+}
+
+.sidebarFooter {
+  padding: 10px 12px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  gap: 8px;
+}
+.sidebarFooter a {
+  flex: 1;
+  text-align: center;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.sidebarFooter a:hover {
+  background: #f8fafc;
+}
+
+@media (max-width: 760px) {
+  .app {
+    display: block;
+  }
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    height: 42%;
+  }
+  .mapWrap {
+    height: 58%;
+  }
+  .detail {
+    width: min(92vw, 360px);
+  }
+  .interiorInfo {
+    margin: 10px 12px 4px;
+    padding: 11px;
+  }
+  .interiorGrid {
+    gap: 6px;
+  }
+  .interiorItem {
+    padding: 7px;
+  }
+}
