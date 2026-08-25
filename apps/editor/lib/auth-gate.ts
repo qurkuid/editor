@@ -39,6 +39,12 @@ export function isPublicRoutePath(pathname: string, basePath = BASE_PATH): boole
   return path === '/api/apartments' || path.startsWith('/api/apartments/')
 }
 
+/** The app root — where an anonymous visitor is sent to the map, not a login wall. */
+export function isAppRootPath(pathname: string, basePath = BASE_PATH): boolean {
+  const path = stripBasePath(pathname, basePath)
+  return path === '/' || path === ''
+}
+
 function stripBasePath(pathname: string, basePath: string): string {
   return basePath && (pathname === basePath || pathname.startsWith(`${basePath}/`))
     ? pathname.slice(basePath.length) || '/'

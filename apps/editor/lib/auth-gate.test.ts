@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { isPublicAssetPath, isPublicRoutePath } from './auth-gate'
+import { isAppRootPath, isPublicAssetPath, isPublicRoutePath } from './auth-gate'
 
 const BASE = '/floorplan'
 
@@ -77,5 +77,16 @@ describe('the public apartment-map surface', () => {
     expect(isPublicRoutePath('/floorplan/apt', BASE)).toBe(true)
     expect(isPublicRoutePath('/floorplan/api/apartments/x/plans', BASE)).toBe(true)
     expect(isPublicRoutePath('/floorplanner/apt', BASE)).toBe(false)
+  })
+
+  // Anonymous visits to the app root bounce to the map instead of the login.
+  test.each([
+    ['/', '', true],
+    ['/floorplan', BASE, true],
+    ['/floorplan/', BASE, true],
+    ['/scenes', '', false],
+    ['/floorplan/scenes', BASE, false],
+  ])('isAppRootPath(%s, %s) → %p', (path, base, expected) => {
+    expect(isAppRootPath(path, base)).toBe(expected)
   })
 })
