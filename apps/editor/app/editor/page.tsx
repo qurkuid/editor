@@ -5,6 +5,7 @@ import {
   Armchair,
   BarChart3,
   Bot,
+  Building2,
   Camera,
   Hammer,
   Layers,
@@ -17,6 +18,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { AiChatPanel } from '@/components/ai-chat-panel'
+import { AptSearchPanel } from '@/components/apt-search-panel'
 import { FurnitureTab } from '@/components/furniture-tab'
 import { GuidedBuildTab } from '@/components/guided-build-tab'
 import { HostSettingsSection } from '@/components/host-settings-section'
@@ -54,6 +56,14 @@ function buildSidebarTabs(t: ReturnType<typeof useT>) {
           width={32}
         />
       ),
+    },
+    {
+      id: 'apt',
+      label: '아파트',
+      component: AptSearchPanel,
+      mobileDefaultSnap: 0.75,
+      mobileIcon: <Building2 className="h-5 w-5" />,
+      icon: <Building2 className="h-5 w-5" />,
     },
     {
       id: 'build',

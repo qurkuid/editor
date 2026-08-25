@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { normalizeSearch, parseAptDataset, shortName, typeWithPyeong } from './apt-format'
+import {
+  groupComplexes,
+  normalizeSearch,
+  parseAptDataset,
+  shortName,
+  typeWithPyeong,
+} from './apt-format'
 
 describe('normalizeSearch', () => {
   test('collapses city suffixes and symbols the way the search index does', () => {
@@ -83,11 +89,20 @@ describe('parseAptDataset', () => {
     ],
   }
 
-  test('resolves relative plan pics and drops rows outside Korea bounds', () => {
+  test('resolves relative plan pics and keeps rows regardless of coordinates', () => {
     const entries = parseAptDataset(payload)
-    expect(entries).toHaveLength(1)
+    expect(entries).toHaveLength(2)
     expect(entries[0]?.planPic).toBe('https://cdn.example/img/a.jpg')
     expect(entries[0]?.addr).toBe('도로명주소')
     expect(entries[0]?.searchText).toContain('단지a')
+  })
+
+  test('groupComplexes collapses to one row per apartmentId with an address fallback', () => {
+    const twice = { ...payload, rows: [...payload.rows, payload.rows[0] as (string | number)[]] }
+    const complexes = groupComplexes(parseAptDataset(twice))
+    expect(complexes).toHaveLength(2)
+    expect(complexes[0]?.apartmentId).toBe('apt1')
+    expect(complexes[0]?.planId).toBe('p1')
+    expect(complexes[1]?.addr).toBe('경기 성남시 분당동')
   })
 })

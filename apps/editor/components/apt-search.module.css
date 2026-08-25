@@ -1,0 +1,357 @@
+/* Standalone apartment search — clean, list-first, light theme by design. */
+
+.page {
+  min-height: 100dvh;
+  background: #f8fafc;
+  color: #111827;
+  font-family: 'Apple SD Gothic Neo', 'Pretendard', -apple-system, sans-serif;
+}
+
+.shell {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.title {
+  font-size: 22px;
+  font-weight: 800;
+}
+.headerLinks {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.headerLinks a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+.headerLinks a:hover {
+  text-decoration: underline;
+}
+
+.searchBox {
+  display: flex;
+  gap: 8px;
+}
+.keyword {
+  flex: 1;
+  min-width: 0;
+  padding: 13px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 15px;
+  outline: none;
+  background: #fff;
+  color: inherit;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+.keyword:focus {
+  border-color: #2563eb;
+}
+
+.hint {
+  margin-top: 14px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.results {
+  margin-top: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.resultItem {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid #f3f4f6;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.resultItem:last-child {
+  border-bottom: 0;
+}
+.resultItem:hover {
+  background: #f8fafc;
+}
+.resultName {
+  font-size: 14px;
+  font-weight: 700;
+}
+.resultAddr {
+  margin-top: 2px;
+  color: #6b7280;
+  font-size: 12px;
+}
+.resultMore {
+  padding: 10px 14px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.detail {
+  margin-top: 14px;
+}
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+}
+.backBtn:hover {
+  color: #111827;
+}
+
+.card {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 18px;
+}
+.complexName {
+  font-size: 18px;
+  font-weight: 800;
+}
+.complexAddr {
+  margin-top: 3px;
+  color: #6b7280;
+  font-size: 13px;
+}
+.naverLink {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 9px;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.naverLink:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.sectionTitle {
+  margin: 18px 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #172554;
+}
+
+.teamScenes {
+  border: 1px solid #a7f3d0;
+  border-radius: 12px;
+  background: #f4fdf9;
+  padding: 10px;
+}
+.teamSceneItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-top: 4px;
+  border: 1px solid #d1fae5;
+  border-radius: 8px;
+  background: #fff;
+  text-decoration: none;
+}
+.teamSceneItem:first-child {
+  margin-top: 0;
+}
+.teamSceneItem:hover {
+  border-color: #34d399;
+}
+.teamSceneName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+.teamSceneMeta {
+  color: #059669;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.factsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.factItem {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+.factLabel {
+  display: block;
+  margin-bottom: 3px;
+  color: #6b7280;
+  font-size: 10px;
+}
+.factValue {
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.factsScope {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.plansGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.plan {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px;
+}
+.planType {
+  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.planThumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8fafc;
+  cursor: zoom-in;
+}
+.planThumb img {
+  display: block;
+  width: 100%;
+  min-height: 100px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  background: #fafafa;
+}
+.planZoomLabel {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: rgba(17, 24, 39, 0.82);
+  color: #fff;
+  font-size: 10px;
+}
+.planTraceLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.planTraceLink:hover {
+  background: #1d4ed8;
+}
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(3, 7, 18, 0.88);
+}
+.viewerImage {
+  max-width: min(1100px, 94vw);
+  max-height: 86vh;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #fff;
+}
+.viewerClose {
+  position: fixed;
+  top: 20px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #111827;
+  font-size: 22px;
+  cursor: pointer;
+}
+.viewerCaption {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  max-width: 80vw;
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .header {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .factsGrid {
+    grid-template-columns: 1fr;
+  }
+}

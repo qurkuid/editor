@@ -28,7 +28,11 @@ export type AptEntry = {
   type: string
 }
 
-/** Port of the standalone map's `APTS` builder, Korea-bounds filter included. */
+/**
+ * Rows of the dataset snapshot, one per representative plan. The old map's
+ * Korea-bounds coordinate filter is gone with the map itself — a complex with
+ * a broken latitude is still searchable.
+ */
 export function parseAptDataset(payload: AptDatasetPayload): AptEntry[] {
   const idx = new Map(payload.cols.map((name, i) => [name, i]))
   const col = (row: (string | number)[], name: string) => String(row[idx.get(name) ?? -1] ?? '')
@@ -64,15 +68,44 @@ export function parseAptDataset(payload: AptDatasetPayload): AptEntry[] {
         type: col(row, 'type'),
       }
     })
-    .filter(
-      (a) =>
-        Number.isFinite(a.lat) &&
-        Number.isFinite(a.lng) &&
-        a.lat > 32 &&
-        a.lat < 40 &&
-        a.lng > 124 &&
-        a.lng < 132,
-    )
+    .filter((a) => a.apartmentId !== '')
+}
+
+export type AptComplex = {
+  apartmentId: string
+  name: string
+  addr: string
+  cityDo: string
+  guSi: string
+  dongEup: string
+  searchText: string
+  /** Representative plan, used as a fallback when the full index misses. */
+  planId: string
+  planPic: string
+  planName: string
+  type: string
+}
+
+/** One row per complex — the dataset carries one row per representative plan. */
+export function groupComplexes(entries: AptEntry[]): AptComplex[] {
+  const byId = new Map<string, AptComplex>()
+  for (const entry of entries) {
+    if (!entry.apartmentId || byId.has(entry.apartmentId)) continue
+    byId.set(entry.apartmentId, {
+      apartmentId: entry.apartmentId,
+      name: entry.name,
+      addr: entry.addr || [entry.cityDo, entry.guSi, entry.dongEup].filter(Boolean).join(' '),
+      cityDo: entry.cityDo,
+      guSi: entry.guSi,
+      dongEup: entry.dongEup,
+      searchText: entry.searchText,
+      planId: entry.planId,
+      planPic: entry.planPic,
+      planName: entry.planName,
+      type: entry.type,
+    })
+  }
+  return [...byId.values()]
 }
 
 export function normalizeSearch(value: string): string {

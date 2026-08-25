@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
-import { AptMap } from '@/components/apt-map'
+import { AptSearch } from '@/components/apt-search'
 
 export const metadata: Metadata = {
-  title: '아파트 도면 지도',
-  description: '전국 아파트 단지의 평형별 평면도를 찾아보고, 그 위에 바로 도면을 그려보세요.',
+  title: '아파트 도면 검색',
+  description: '아파트를 검색해 단지 정보를 확인하고, 원하는 평형의 평면도 위에 바로 그리세요.',
 }
 
 export default function AptPage() {
-  return <AptMap />
+  return <AptSearch />
 }
