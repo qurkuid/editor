@@ -185,6 +185,12 @@ export default function Home() {
             <span aria-live="polite" className="text-muted-foreground">
               {t(localEditorSaveStatusKey(saveStatus))}
             </span>
+            <Link className="font-medium text-foreground hover:underline" href="/apt">
+              아파트 지도
+            </Link>
+            <span aria-hidden className="text-muted-foreground">
+              ·
+            </span>
             <Link className="font-medium text-foreground hover:underline" href="/scenes">
               {t('panel.openRecentScenes')}
             </Link>
