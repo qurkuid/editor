@@ -9,6 +9,7 @@ import {
 /** JSON document produced by the floorplan-vectorizer CLI (`--stdout`). */
 export type AptVectorDoc = {
   unit: 'mm' | 'px'
+  docVersion?: number
   imageSize: [number, number]
   mmPerPx: number | null
   walls: {

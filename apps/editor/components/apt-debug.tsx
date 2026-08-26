@@ -6,6 +6,17 @@ import { type AptVectorDoc, buildVectorNodes, type VectorSceneNodes } from '@/li
 import { withBasePath } from '@/lib/base-path'
 import { type AptComplex, type AptPlan, plansToShow, useAptSearch } from '@/lib/use-apt-search'
 
+type FeedbackType = 'wall' | 'door' | 'window' | 'zone' | 'other'
+type FeedbackPin = { x: number; y: number; type: FeedbackType; note: string }
+
+const FEEDBACK_META: Record<FeedbackType, { label: string; color: string }> = {
+  wall: { label: '벽', color: '#dc2626' },
+  door: { label: '문', color: '#f97316' },
+  window: { label: '창', color: '#2563eb' },
+  zone: { label: '존', color: '#7c3aed' },
+  other: { label: '기타', color: '#334155' },
+}
+
 /**
  * Pipeline QA viewer: renders, over the original plan image, both what the
  * vectorizer detected (raw walls/gaps/rooms) and what the importer built
@@ -40,6 +51,61 @@ export function AptDebug({
     zones: true,
     defects: true,
   })
+  const [feedbackMode, setFeedbackMode] = useState(false)
+  const [pinType, setPinType] = useState<FeedbackType>('wall')
+  const [pending, setPending] = useState<FeedbackPin[]>([])
+  const [saved, setSaved] = useState<FeedbackPin[]>([])
+  const [sendState, setSendState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+  useEffect(() => {
+    setPending([])
+    setSaved([])
+    setSendState('idle')
+    if (!selected) return
+    let stale = false
+    fetch(withBasePath(`/api/apt-feedback?planId=${encodeURIComponent(selected.planId)}`))
+      .then(async (response) => (response.ok ? response.json() : null))
+      .then((body: { code?: string; data?: { points?: FeedbackPin[] }[] } | null) => {
+        if (stale || body?.code !== 'OK' || !body.data) return
+        setSaved(body.data.flatMap((entry) => entry.points ?? []))
+      })
+      .catch(() => {})
+    return () => {
+      stale = true
+    }
+  }, [selected])
+
+  const addPin = useCallback(
+    (x: number, y: number) => {
+      setPending((current) =>
+        current.length >= 20 ? current : [...current, { x, y, type: pinType, note: '' }],
+      )
+    },
+    [pinType],
+  )
+
+  const submitFeedback = useCallback(async () => {
+    if (!selected || pending.length === 0) return
+    setSendState('sending')
+    try {
+      const response = await fetch(withBasePath('/api/apt-feedback'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apartmentId: selected.apartmentId,
+          planId: selected.planId,
+          docVersion: doc?.docVersion,
+          points: pending,
+        }),
+      })
+      if (!response.ok) throw new Error(String(response.status))
+      setSaved((current) => [...current, ...pending])
+      setPending([])
+      setSendState('sent')
+    } catch {
+      setSendState('error')
+    }
+  }, [selected, pending, doc])
 
   useEffect(() => {
     if (!selected) return
@@ -172,8 +238,94 @@ export function AptDebug({
                   {label}
                 </label>
               ))}
+              <span className="mx-1 text-border">|</span>
+              <button
+                className={`rounded-md border px-2 py-1 font-medium ${feedbackMode ? 'border-red-500 bg-red-500/10 text-red-600' : 'border-border hover:bg-accent/40'}`}
+                onClick={() => setFeedbackMode((on) => !on)}
+                type="button"
+              >
+                {feedbackMode ? '📍 피드백 모드 켜짐 — 문제 지점을 클릭' : '📍 피드백 모드'}
+              </button>
+              {feedbackMode &&
+                (Object.keys(FEEDBACK_META) as FeedbackType[]).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setPinType(type)}
+                    style={{
+                      borderColor: FEEDBACK_META[type].color,
+                      background: pinType === type ? FEEDBACK_META[type].color : undefined,
+                      color: pinType === type ? '#fff' : FEEDBACK_META[type].color,
+                    }}
+                    className="rounded-full border px-2 py-0.5 font-medium"
+                    type="button"
+                  >
+                    {FEEDBACK_META[type].label}
+                  </button>
+                ))}
             </div>
-            <DebugCanvas built={built} doc={doc} layers={layers} selected={selected} />
+            {feedbackMode && (pending.length > 0 || sendState !== 'idle') && (
+              <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-border/60 p-2 text-xs">
+                {pending.map((pin, index) => (
+                  <span
+                    className="inline-flex items-center gap-1 rounded border border-border/60 px-1.5 py-1"
+                    key={`${pin.x.toFixed(0)}-${pin.y.toFixed(0)}-${index.toString()}`}
+                  >
+                    <span
+                      className="inline-block h-4 w-4 rounded-full text-center font-bold text-[10px] text-white leading-4"
+                      style={{ background: FEEDBACK_META[pin.type].color }}
+                    >
+                      {index + 1}
+                    </span>
+                    <input
+                      className="w-40 bg-transparent outline-none placeholder:text-muted-foreground"
+                      onChange={(event) =>
+                        setPending((current) =>
+                          current.map((p, i) =>
+                            i === index ? { ...p, note: event.target.value } : p,
+                          ),
+                        )
+                      }
+                      placeholder="메모 (선택)"
+                      value={pin.note}
+                    />
+                    <button
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => setPending((current) => current.filter((_, i) => i !== index))}
+                      type="button"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+                {pending.length > 0 && (
+                  <button
+                    className="rounded-md bg-foreground px-3 py-1.5 font-medium text-background disabled:opacity-50"
+                    disabled={sendState === 'sending'}
+                    onClick={() => void submitFeedback()}
+                    type="button"
+                  >
+                    {sendState === 'sending' ? '전송 중…' : `핀 ${pending.length}개 전송`}
+                  </button>
+                )}
+                {sendState === 'sent' && pending.length === 0 && (
+                  <span className="text-green-600">
+                    전송됨 — 다음 세션에서 좌표 기반으로 분석합니다
+                  </span>
+                )}
+                {sendState === 'error' && (
+                  <span className="text-destructive">전송 실패 — 다시 시도해 주세요</span>
+                )}
+              </div>
+            )}
+            <DebugCanvas
+              built={built}
+              doc={doc}
+              feedbackMode={feedbackMode}
+              layers={layers}
+              onAddPin={addPin}
+              pins={{ pending, saved }}
+              selected={selected}
+            />
           </>
         )}
       </main>
@@ -232,11 +384,17 @@ function DebugCanvas({
   built,
   layers,
   selected,
+  feedbackMode,
+  pins,
+  onAddPin,
 }: {
   doc: AptVectorDoc
   built: VectorSceneNodes | null
   layers: { raw: boolean; walls: boolean; openings: boolean; zones: boolean; defects: boolean }
   selected: { apartmentId: string; planId: string }
+  feedbackMode: boolean
+  pins: { pending: FeedbackPin[]; saved: FeedbackPin[] }
+  onAddPin: (x: number, y: number) => void
 }) {
   const [imageW, imageH] = doc.imageSize
   const s = doc.mmPerPx ?? 1
@@ -254,8 +412,17 @@ function DebugCanvas({
   const rawColor = { door: '#f97316', window: '#2563eb', opening: '#c026d3' } as const
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: QA pin-drop surface
     <svg
-      className="h-auto w-full max-w-[1400px] rounded border border-border/60 bg-white"
+      className={`h-auto w-full max-w-[1400px] rounded border border-border/60 bg-white ${feedbackMode ? 'cursor-crosshair' : ''}`}
+      onClick={(event) => {
+        if (!feedbackMode) return
+        const rect = event.currentTarget.getBoundingClientRect()
+        onAddPin(
+          ((event.clientX - rect.left) / rect.width) * imageW,
+          ((event.clientY - rect.top) / rect.height) * imageH,
+        )
+      }}
       role="img"
       viewBox={`0 0 ${imageW} ${imageH}`}
     >
@@ -445,6 +612,45 @@ function DebugCanvas({
           })}
         </g>
       )}
+
+      <g>
+        {pins.saved.map((pin, index) => (
+          <g key={`saved-${index.toString()}`} opacity={0.85}>
+            <circle
+              cx={pin.x}
+              cy={pin.y}
+              fill={FEEDBACK_META[pin.type]?.color ?? '#334155'}
+              r={8}
+              stroke="#fff"
+              strokeWidth={2}
+            />
+            <title>{`신고됨 · ${FEEDBACK_META[pin.type]?.label ?? pin.type}${pin.note ? ` · ${pin.note}` : ''}`}</title>
+          </g>
+        ))}
+        {pins.pending.map((pin, index) => (
+          <g key={`pending-${index.toString()}`}>
+            <circle
+              cx={pin.x}
+              cy={pin.y}
+              fill={FEEDBACK_META[pin.type].color}
+              r={11}
+              stroke="#fff"
+              strokeDasharray="4 3"
+              strokeWidth={2.5}
+            />
+            <text
+              fill="#fff"
+              fontSize={12}
+              fontWeight={700}
+              textAnchor="middle"
+              x={pin.x}
+              y={pin.y + 4}
+            >
+              {index + 1}
+            </text>
+          </g>
+        ))}
+      </g>
     </svg>
   )
 }
