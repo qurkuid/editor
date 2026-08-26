@@ -24,6 +24,7 @@ export type AptVectorDoc = {
     a: [number, number]
     b: [number, number]
     wallThickness: number
+    src?: 'pair' | 'ray' | 'boundary'
     hinge?: [number, number]
     radius?: number
   }[]
@@ -209,10 +210,28 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
     if (left !== null && right !== null && left !== right) {
       union(left, right)
       placements.push({ doc: opening, group: left, width })
-    } else if (left !== null || right !== null) {
+    } else if ((left !== null || right !== null) && opening.src !== 'boundary') {
+      // Extending a single flank across the gap is right for corner doors,
+      // but a boundary glazing span next to one stray collinear stub would
+      // stretch that stub metres across to a glazed corner with nothing to
+      // weld the far end to — boundary spans go through the both-ends
+      // synthesis below instead.
       const member = (left ?? right)!
       extraPoints.push({ member, point: left !== null ? b : a })
       placements.push({ doc: opening, group: member, width })
+    } else if (gapLen >= MIN_WALL_LENGTH_M) {
+      // No collinear flank at all — silhouette-boundary glazing whose corner
+      // piers merged into the perpendicular walls. Materialize the host wall
+      // the vectorizer asserted, but only when BOTH ends reach a crossing
+      // wall to weld onto — a floating span would just trade an unhosted
+      // opening for two dangling wall ends.
+      const th = clamp(opening.wallThickness / 1000, 0.05, 0.6)
+      const synth: Seg = { start: [...a] as Vec2, end: [...b] as Vec2, th }
+      if (extendToCrossingWalls(synth, segs)) {
+        const index = segs.push(synth) - 1
+        parent.push(index)
+        placements.push({ doc: opening, group: index, width })
+      }
     }
   }
 
@@ -254,11 +273,16 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   }
 
   snapJunctions(merged)
+  weldDanglingEnds(merged)
 
   const walls: WallNode[] = []
-  const hostByMerged: { node: WallNode; anchor: Vec2; dir: Vec2; len: number }[] = []
+  const hostByMerged: ({ node: WallNode; anchor: Vec2; dir: Vec2; len: number } | null)[] = []
   for (const seg of merged) {
     const len = segLen(seg)
+    if (len < 0.05) {
+      hostByMerged.push(null)
+      continue
+    }
     const node = WallNode.parse({
       start: seg.start,
       end: seg.end,
@@ -437,7 +461,7 @@ function snapJunctions(segs: Seg[]): void {
             if (lat <= b.th / 2 + SNAP_TEE_LATERAL_M) {
               const move = Math.hypot(p[0] - cross[0], p[1] - cross[1])
               const t = along(cross, b.start, segDir(b))
-              if (move <= SNAP_MAX_MOVE_M && t >= -0.05 && t <= segLen(b) + 0.05) {
+              if (move <= SNAP_MAX_MOVE_M && t >= -0.15 && t <= segLen(b) + 0.15) {
                 if (!bestTee || move < bestTee.d) bestTee = { q: cross, d: move }
               }
             }
@@ -445,11 +469,86 @@ function snapJunctions(segs: Seg[]): void {
         }
         const target = bestCorner ?? bestTee
         if (target && Math.hypot(p[0] - target.q[0], p[1] - target.q[1]) > 1e-6) {
-          a[endKey] = [target.q[0], target.q[1]]
+          const otherEnd = a[endKey === 'start' ? 'end' : 'start']
+          if (Math.hypot(target.q[0] - otherEnd[0], target.q[1] - otherEnd[1]) >= 0.1) {
+            a[endKey] = [target.q[0], target.q[1]]
+          }
         }
       }
     }
   }
+}
+
+/**
+ * Last-resort closure: endpoints that STILL touch nothing after the normal
+ * snap get a bigger 1 m budget — first bridging a facing collinear end (an
+ * undetected opening left a hole in one wall run), then extending onto a
+ * crossing wall line. Ordinary endpoints are never moved, which keeps the
+ * larger budget from welding across real narrow spaces.
+ */
+function weldDanglingEnds(segs: Seg[]): void {
+  const touches = (point: Vec2, self: Seg) =>
+    segs.some((other) => other !== self && distToSegment(point, other) <= other.th / 2 + 0.02)
+  for (let pass = 0; pass < 2; pass++) {
+    const dangling = new Set<string>()
+    for (const seg of segs) {
+      for (const endKey of ['start', 'end'] as const) {
+        if (!touches(seg[endKey], seg)) dangling.add(endId(segs, seg, endKey))
+      }
+    }
+    for (const seg of segs) {
+      for (const endKey of ['start', 'end'] as const) {
+        if (!dangling.has(endId(segs, seg, endKey))) continue
+        const p = seg[endKey]
+        if (touches(p, seg)) continue
+        const dir = segDir(seg)
+        const outward: Vec2 = endKey === 'start' ? [-dir[0], -dir[1]] : dir
+        let target: Vec2 | null = null
+        let bestMove = 1.0
+        for (const other of segs) {
+          if (other === seg) continue
+          const cross = lineIntersection(seg, other)
+          if (cross) {
+            const t = along(cross, other.start, segDir(other))
+            const otherLen = segLen(other)
+            let reachable = t >= -0.15 && t <= otherLen + 0.15
+            if (!reachable) {
+              // a mutually-dangling L-corner: both short legs point at the
+              // same line intersection — let each extend to it in turn
+              const nearKey = t < 0 ? 'start' : 'end'
+              const overrun = t < 0 ? -t : t - otherLen
+              reachable = overrun <= 1.0 && dangling.has(endId(segs, other, nearKey))
+            }
+            if (!reachable) continue
+            const move = (cross[0] - p[0]) * outward[0] + (cross[1] - p[1]) * outward[1]
+            if (move > 0.01 && move <= bestMove) {
+              bestMove = move
+              target = cross
+            }
+          } else {
+            for (const otherKey of ['start', 'end'] as const) {
+              const q = other[otherKey]
+              const lateral = Math.abs((q[0] - p[0]) * dir[1] - (q[1] - p[1]) * dir[0])
+              const forward = (q[0] - p[0]) * outward[0] + (q[1] - p[1]) * outward[1]
+              if (lateral > 0.15 || forward <= 0.01 || forward > bestMove) continue
+              bestMove = forward
+              target = [p[0] + outward[0] * forward, p[1] + outward[1] * forward]
+            }
+          }
+        }
+        if (target) {
+          const otherEnd = seg[endKey === 'start' ? 'end' : 'start']
+          if (Math.hypot(target[0] - otherEnd[0], target[1] - otherEnd[1]) >= 0.1) {
+            seg[endKey] = target
+          }
+        }
+      }
+    }
+  }
+}
+
+function endId(segs: Seg[], seg: Seg, endKey: 'start' | 'end'): string {
+  return `${segs.indexOf(seg)}:${endKey}`
 }
 
 function lineIntersection(a: Seg, b: Seg): Vec2 | null {
@@ -489,6 +588,31 @@ function alongLo(seg: Seg, anchor: Vec2, dir: Vec2): number {
 
 function alongHi(seg: Seg, anchor: Vec2, dir: Vec2): number {
   return Math.max(along(seg.start, anchor, dir), along(seg.end, anchor, dir))
+}
+
+/** Stretch a synthesized host wall's ends onto the nearest crossing wall
+ * lines so its corners land exactly where the snap welds. Returns false when
+ * either end has no crossing wall within 0.7 m — the caller must not create
+ * a floating wall then. */
+function extendToCrossingWalls(synth: Seg, segs: Seg[]): boolean {
+  const dir = segDir(synth)
+  for (const endKey of ['start', 'end'] as const) {
+    const outward: Vec2 = endKey === 'start' ? [-dir[0], -dir[1]] : dir
+    const p = synth[endKey]
+    let best: { point: Vec2; move: number } | null = null
+    for (const other of segs) {
+      const cross = lineIntersection(synth, other)
+      if (!cross) continue
+      const t = along(cross, other.start, segDir(other))
+      if (t < -0.15 || t > segLen(other) + 0.15) continue
+      const move = (cross[0] - p[0]) * outward[0] + (cross[1] - p[1]) * outward[1]
+      if (move < -0.05 || move > 0.7) continue
+      if (!best || move < best.move) best = { point: cross, move }
+    }
+    if (!best) return false
+    synth[endKey] = [best.point[0], best.point[1]]
+  }
+  return true
 }
 
 function isSameWallRun(a: Seg, b: Seg): boolean {
