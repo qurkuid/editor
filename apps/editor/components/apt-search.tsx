@@ -247,6 +247,9 @@ function PlanCard({
       <Link className={styles.planTraceLink} href={traceHref}>
         이 도면 위에 그리기 → ✏️
       </Link>
+      <Link className={styles.planTraceLink} href={`${traceHref}&vector=1`}>
+        자동 모델링으로 시작 → 🪄
+      </Link>
     </div>
   )
 }

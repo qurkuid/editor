@@ -9,9 +9,15 @@ import { AptTrace } from '@/components/apt-trace'
 export default async function AptTracePage({
   searchParams,
 }: {
-  searchParams: Promise<{ apartmentId?: string; planId?: string; name?: string; type?: string }>
+  searchParams: Promise<{
+    apartmentId?: string
+    planId?: string
+    name?: string
+    type?: string
+    vector?: string
+  }>
 }) {
-  const { apartmentId, planId, name, type } = await searchParams
+  const { apartmentId, planId, name, type, vector } = await searchParams
 
   if (!apartmentId || !planId) {
     return (
@@ -24,5 +30,13 @@ export default async function AptTracePage({
     )
   }
 
-  return <AptTrace apartmentId={apartmentId} name={name ?? ''} planId={planId} type={type ?? ''} />
+  return (
+    <AptTrace
+      apartmentId={apartmentId}
+      name={name ?? ''}
+      planId={planId}
+      type={type ?? ''}
+      vector={vector === '1'}
+    />
+  )
 }

@@ -1,11 +1,12 @@
 'use client'
 
-import { GuideNode } from '@pascal-app/core'
+import { GuideNode, runAsSingleSceneHistoryStep } from '@pascal-app/core'
 import { useEditor, useScene, useViewer } from '@pascal-app/editor'
-import { ArrowLeft, Building2, Check, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Building2, Check, ExternalLink, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useState } from 'react'
 import { typeWithPyeong } from '@/lib/apt-format'
+import { type AptVectorDoc, buildVectorNodes } from '@/lib/apt-vector-scene'
 import { withBasePath } from '@/lib/base-path'
 import {
   type AptComplex,
@@ -28,32 +29,83 @@ export function AptSearchPanel() {
   const createNode = useScene((s) => s.createNode)
   const setSelectedReferenceId = useEditor((s) => s.setSelectedReferenceId)
   const [addedPlanId, setAddedPlanId] = useState<string | null>(null)
+  const [autoPlan, setAutoPlan] = useState<{ planId: string; status: 'loading' | 'error' } | null>(
+    null,
+  )
 
-  const addPlanToScene = useCallback(
-    (complex: AptComplex, plan: AptPlan) => {
-      if (!levelId) return
-      const guide = GuideNode.parse({
+  const markAdded = useCallback((planId: string) => {
+    setAddedPlanId(planId)
+    setTimeout(() => setAddedPlanId((current) => (current === planId ? null : current)), 2500)
+  }, [])
+
+  const buildGuide = useCallback(
+    (complex: AptComplex, plan: AptPlan, scale: number) =>
+      GuideNode.parse({
         name: [complex.name, plan.type].filter(Boolean).join(' '),
         url: withBasePath(
           `/api/apartments/${encodeURIComponent(complex.apartmentId)}/plans/${encodeURIComponent(plan.planId)}/image`,
         ),
         position: [0, 0, 0],
         rotation: [0, 0, 0],
-        scale: 1,
+        scale,
         opacity: 50,
         scaleReference: null,
         metadata: { apartmentId: complex.apartmentId, planId: plan.planId },
-      })
+      }),
+    [],
+  )
+
+  const addPlanToScene = useCallback(
+    (complex: AptComplex, plan: AptPlan) => {
+      if (!levelId) return
+      const guide = buildGuide(complex, plan, 1)
       createNode(guide, levelId as never)
       setShowGuides(true)
       setSelectedReferenceId(guide.id)
-      setAddedPlanId(plan.planId)
-      setTimeout(
-        () => setAddedPlanId((current) => (current === plan.planId ? null : current)),
-        2500,
-      )
+      markAdded(plan.planId)
     },
-    [levelId, createNode, setShowGuides, setSelectedReferenceId],
+    [levelId, createNode, setShowGuides, setSelectedReferenceId, buildGuide, markAdded],
+  )
+
+  // Vectorizes the plan server-side and lands guide + walls + doors/windows
+  // in the active level as ONE undoable step. Failure leaves the scene
+  // untouched — the plain "현재 씬에 깔기" path stays available.
+  const autoModelPlan = useCallback(
+    async (complex: AptComplex, plan: AptPlan) => {
+      if (!levelId) return
+      setAutoPlan({ planId: plan.planId, status: 'loading' })
+      try {
+        const response = await fetch(
+          withBasePath(
+            `/api/apartments/${encodeURIComponent(complex.apartmentId)}/plans/${encodeURIComponent(plan.planId)}/vector`,
+          ),
+        )
+        const body = response.ok
+          ? ((await response.json()) as { code: string; data?: AptVectorDoc })
+          : null
+        const built = body?.code === 'OK' && body.data ? buildVectorNodes(body.data) : null
+        if (!built) {
+          setAutoPlan({ planId: plan.planId, status: 'error' })
+          return
+        }
+        const guide = buildGuide(complex, plan, built.guideScale)
+        runAsSingleSceneHistoryStep(useScene, () => {
+          const { createNode: create } = useScene.getState()
+          create(guide, levelId as never)
+          for (const wall of built.walls) create(wall, levelId as never)
+          for (const opening of built.openings) {
+            if (opening.wallId) create(opening, opening.wallId as never)
+          }
+        })
+        setShowGuides(true)
+        setSelectedReferenceId(guide.id)
+        setAutoPlan(null)
+        markAdded(plan.planId)
+      } catch {
+        setAutoPlan({ planId: plan.planId, status: 'error' })
+      }
+    },
+    [levelId, setShowGuides, setSelectedReferenceId, buildGuide, markAdded],
   )
 
   if (search.loadFailed) {
@@ -75,10 +127,12 @@ export function AptSearchPanel() {
         {search.selected ? (
           <ComplexDetail
             addedPlanId={addedPlanId}
+            autoPlan={autoPlan}
             canAdd={!!levelId}
             complex={search.selected}
             interiorState={search.interiorState}
             onAdd={addPlanToScene}
+            onAutoModel={autoModelPlan}
             onBack={search.clearSelection}
             plans={plansToShow(search.selected, search.plansState)}
             plansLoading={search.plansState.status === 'loading'}
@@ -130,7 +184,9 @@ function ComplexDetail({
   teamScenes,
   canAdd,
   addedPlanId,
+  autoPlan,
   onAdd,
+  onAutoModel,
   onBack,
 }: {
   complex: AptComplex
@@ -140,7 +196,9 @@ function ComplexDetail({
   teamScenes: { id: string; name: string; updatedAt: string }[]
   canAdd: boolean
   addedPlanId: string | null
+  autoPlan: { planId: string; status: 'loading' | 'error' } | null
   onAdd: (complex: AptComplex, plan: AptPlan) => void
+  onAutoModel: (complex: AptComplex, plan: AptPlan) => void
   onBack: () => void
 }) {
   return (
@@ -229,6 +287,23 @@ function ComplexDetail({
                 새 씬으로
               </button>
             </div>
+            <button
+              className="mt-1.5 w-full rounded-md border border-border px-2 py-1.5 font-medium text-xs hover:bg-accent/40 disabled:opacity-50"
+              disabled={!canAdd || autoPlan?.status === 'loading'}
+              onClick={() => onAutoModel(complex, plan)}
+              title={canAdd ? undefined : '레벨을 먼저 선택하세요'}
+              type="button"
+            >
+              {autoPlan?.planId === plan.planId && autoPlan.status === 'loading' ? (
+                '도면 분석 중… (최초 10초)'
+              ) : autoPlan?.planId === plan.planId && autoPlan.status === 'error' ? (
+                '자동 모델링 실패 — 밑그림만 추가해 보세요'
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <Wand2 className="h-3 w-3" /> 자동 모델링 (벽·문·창)
+                </span>
+              )}
+            </button>
           </div>
         ))}
       </div>
