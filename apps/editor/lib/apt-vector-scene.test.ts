@@ -155,13 +155,22 @@ describe('buildVectorNodes', () => {
         { id: 'o0b', type: 'door', a: [2000, 1000], b: [2900, 1000], wallThickness: 200 },
       ],
     }
-    const { openings } = buildVectorNodes(dup)!
+    const { openings, diagnostics } = buildVectorNodes(dup)!
     expect(openings).toHaveLength(2)
     expect(openings.filter((node) => node.type === 'door')).toHaveLength(1)
     const windows = openings.filter((node) => node.type === 'window')
     expect(windows).toHaveLength(1)
     // the tighter detection was kept
     expect(windows[0]!.width).toBeCloseTo(1.5)
+    expect(diagnostics.dedupedOpeningIds.sort()).toEqual(['o0', 'o1b'])
+  })
+
+  test('reports what the conversion left out', () => {
+    const { diagnostics } = buildVectorNodes(doc)!
+    // orphan opening far from every wall
+    expect(diagnostics.unhostedOpeningIds).toEqual(['o3'])
+    expect(diagnostics.dedupedOpeningIds).toEqual([])
+    expect(diagnostics.droppedWallIds).toEqual([])
   })
 
   test('extends a single flank across a corner-door gap', () => {

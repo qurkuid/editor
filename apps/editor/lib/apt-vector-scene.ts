@@ -37,6 +37,15 @@ export type AptVectorDoc = {
   metrics?: { style?: string; wallIoU?: number }
 }
 
+export type VectorDiagnostics = {
+  /** doc opening ids that never got hosted on a wall (no flank, too small). */
+  unhostedOpeningIds: string[]
+  /** doc opening ids suppressed as duplicate detections of a kept opening. */
+  dedupedOpeningIds: string[]
+  /** doc wall ids filtered out for being shorter than the minimum length. */
+  droppedWallIds: string[]
+}
+
 export type VectorSceneNodes = {
   /** Parsed wall nodes; children/parentId linking is the caller's job. */
   walls: WallNode[]
@@ -46,6 +55,8 @@ export type VectorSceneNodes = {
   zones: ZoneNode[]
   /** guide.scale that makes the 10 m guide plane match the plan's real size. */
   guideScale: number
+  /** What the conversion left out — the debug viewer's defect layer. */
+  diagnostics: VectorDiagnostics
 }
 
 const MIN_WALL_LENGTH_M = 0.12
@@ -121,11 +132,15 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   const cy = (imageH * doc.mmPerPx) / 2
   const toLevel = ([x, y]: Vec2): Vec2 => [(x - cx) / 1000, (y - cy) / 1000]
 
+  const droppedWallIds: string[] = []
   const segs: Seg[] = []
   for (const wall of doc.walls) {
     const start = toLevel(wall.start)
     const end = toLevel(wall.end)
-    if (Math.hypot(end[0] - start[0], end[1] - start[1]) < MIN_WALL_LENGTH_M) continue
+    if (Math.hypot(end[0] - start[0], end[1] - start[1]) < MIN_WALL_LENGTH_M) {
+      droppedWallIds.push(wall.id)
+      continue
+    }
     segs.push({ start, end, th: clamp(wall.thickness / 1000, 0.05, 0.6) })
   }
   if (segs.length < 3) return null
@@ -264,6 +279,7 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   // ray gap) would otherwise stack two windows on one wall. Doors outrank
   // windows outrank bare openings; among equals the tighter span wins.
   type Hosted = {
+    docId: string
     mergedIndex: number
     at: number
     width: number
@@ -283,7 +299,13 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
       placement.width / 2,
       host.len - placement.width / 2,
     )
-    hosted.push({ mergedIndex, at, width: placement.width, type: placement.doc.type })
+    hosted.push({
+      docId: placement.doc.id,
+      mergedIndex,
+      at,
+      width: placement.width,
+      type: placement.doc.type,
+    })
   }
   const typeRank = { door: 0, window: 1, opening: 2 } as const
   hosted.sort(
@@ -291,6 +313,7 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
       p.mergedIndex - q.mergedIndex || typeRank[p.type] - typeRank[q.type] || p.width - q.width,
   )
   const kept: Hosted[] = []
+  const dedupedOpeningIds: string[] = []
   for (const candidate of hosted) {
     const clash = kept.some((other) => {
       if (other.mergedIndex !== candidate.mergedIndex) return false
@@ -299,8 +322,13 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
         Math.max(candidate.at - candidate.width / 2, other.at - other.width / 2)
       return overlap > OPENING_OVERLAP_FRAC * Math.min(candidate.width, other.width)
     })
-    if (!clash) kept.push(candidate)
+    if (clash) dedupedOpeningIds.push(candidate.docId)
+    else kept.push(candidate)
   }
+  const placedIds = new Set([...kept.map((item) => item.docId), ...dedupedOpeningIds])
+  const unhostedOpeningIds = doc.openings
+    .filter((opening) => !placedIds.has(opening.id))
+    .map((opening) => opening.id)
 
   const openings: (DoorNode | WindowNode)[] = []
   for (const item of kept) {
@@ -344,7 +372,13 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
     )
   }
 
-  return { walls, openings, zones, guideScale: (imageW * doc.mmPerPx) / 10000 }
+  return {
+    walls,
+    openings,
+    zones,
+    guideScale: (imageW * doc.mmPerPx) / 10000,
+    diagnostics: { unhostedOpeningIds, dedupedOpeningIds, droppedWallIds },
+  }
 }
 
 /**

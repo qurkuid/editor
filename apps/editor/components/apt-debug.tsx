@@ -1,0 +1,471 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { typeWithPyeong } from '@/lib/apt-format'
+import { type AptVectorDoc, buildVectorNodes, type VectorSceneNodes } from '@/lib/apt-vector-scene'
+import { withBasePath } from '@/lib/base-path'
+import { type AptComplex, type AptPlan, plansToShow, useAptSearch } from '@/lib/use-apt-search'
+
+/**
+ * Pipeline QA viewer: renders, over the original plan image, both what the
+ * vectorizer detected (raw walls/gaps/rooms) and what the importer built
+ * (merged walls, hosted openings, zones), plus a defect layer (dangling wall
+ * ends, unhosted/deduped openings, dropped walls). Everything is computed
+ * client-side from the same `/vector` document the real flow uses, so what
+ * this page shows IS what auto-modeling would produce.
+ */
+export function AptDebug({
+  initialApartmentId,
+  initialPlanId,
+}: {
+  initialApartmentId?: string
+  initialPlanId?: string
+}) {
+  const search = useAptSearch({ resultLimit: 30 })
+  const [selected, setSelected] = useState<{
+    apartmentId: string
+    planId: string
+    label: string
+  } | null>(
+    initialApartmentId && initialPlanId
+      ? { apartmentId: initialApartmentId, planId: initialPlanId, label: initialPlanId }
+      : null,
+  )
+  const [doc, setDoc] = useState<AptVectorDoc | null>(null)
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [layers, setLayers] = useState({
+    raw: true,
+    walls: true,
+    openings: true,
+    zones: true,
+    defects: true,
+  })
+
+  useEffect(() => {
+    if (!selected) return
+    let stale = false
+    setStatus('loading')
+    setDoc(null)
+    fetch(
+      withBasePath(
+        `/api/apartments/${encodeURIComponent(selected.apartmentId)}/plans/${encodeURIComponent(selected.planId)}/vector`,
+      ),
+    )
+      .then(async (response) => {
+        if (!response.ok) throw new Error(String(response.status))
+        const body = (await response.json()) as { code: string; data?: AptVectorDoc }
+        if (body.code !== 'OK' || !body.data) throw new Error(body.code)
+        if (!stale) {
+          setDoc(body.data)
+          setStatus('idle')
+        }
+      })
+      .catch(() => {
+        if (!stale) setStatus('error')
+      })
+    return () => {
+      stale = true
+    }
+  }, [selected])
+
+  const built = useMemo(() => (doc ? buildVectorNodes(doc) : null), [doc])
+  const pickPlan = useCallback((complex: AptComplex, plan: AptPlan) => {
+    setSelected({
+      apartmentId: complex.apartmentId,
+      planId: plan.planId,
+      label: `${complex.name} ${typeWithPyeong(plan.type)}`,
+    })
+  }, [])
+
+  return (
+    <div className="flex min-h-dvh">
+      <aside className="flex w-72 shrink-0 flex-col border-border/60 border-r">
+        <div className="border-border/50 border-b p-3">
+          <p className="mb-2 font-semibold text-sm">자동 모델링 디버그</p>
+          <input
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+            onChange={(event) => search.setKeyword(event.target.value)}
+            placeholder="아파트명·주소 검색"
+            value={search.keyword}
+          />
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {search.selected ? (
+            <div className="p-2">
+              <button
+                className="mb-1 text-muted-foreground text-xs hover:text-foreground"
+                onClick={search.clearSelection}
+                type="button"
+              >
+                ← 검색 결과로
+              </button>
+              {plansToShow(search.selected, search.plansState).map((plan) => (
+                <button
+                  className="block w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent/40"
+                  key={plan.planId}
+                  onClick={() => search.selected && pickPlan(search.selected, plan)}
+                  type="button"
+                >
+                  {typeWithPyeong(plan.type)}{' '}
+                  <span className="text-muted-foreground">{plan.planId}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <ul>
+              {search.results.map((complex) => (
+                <li key={complex.apartmentId}>
+                  <button
+                    className="w-full border-border/40 border-b px-3 py-2 text-left hover:bg-accent/40"
+                    onClick={() => search.select(complex)}
+                    type="button"
+                  >
+                    <span className="block truncate text-sm">{complex.name}</span>
+                    <span className="block truncate text-muted-foreground text-xs">
+                      {complex.addr}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {doc && built && <DebugSummary built={built} doc={doc} planId={selected?.planId ?? ''} />}
+      </aside>
+
+      <main className="min-w-0 flex-1 overflow-auto p-4">
+        {!selected && (
+          <p className="p-8 text-muted-foreground text-sm">
+            좌측에서 단지 → 도면을 선택하면 벡터라이저 검출과 임포트 결과를 원본 위에 겹쳐
+            보여줍니다.
+          </p>
+        )}
+        {status === 'loading' && (
+          <p className="p-8 text-muted-foreground text-sm">
+            도면 분석 중… (최초 분석은 10초 정도 걸립니다)
+          </p>
+        )}
+        {status === 'error' && (
+          <p className="p-8 text-destructive text-sm">벡터 데이터를 불러오지 못했습니다.</p>
+        )}
+        {selected && doc && (
+          <>
+            <div className="mb-2 flex flex-wrap items-center gap-3 text-xs">
+              <span className="font-medium">{selected.label}</span>
+              {(
+                [
+                  ['raw', '원시 검출'],
+                  ['walls', '병합 벽'],
+                  ['openings', '개구부'],
+                  ['zones', '존'],
+                  ['defects', '결함'],
+                ] as const
+              ).map(([key, label]) => (
+                <label className="inline-flex items-center gap-1" key={key}>
+                  <input
+                    checked={layers[key]}
+                    onChange={(event) =>
+                      setLayers((current) => ({ ...current, [key]: event.target.checked }))
+                    }
+                    type="checkbox"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <DebugCanvas built={built} doc={doc} layers={layers} selected={selected} />
+          </>
+        )}
+      </main>
+    </div>
+  )
+}
+
+function DebugSummary({
+  doc,
+  built,
+  planId,
+}: {
+  doc: AptVectorDoc
+  built: VectorSceneNodes | null
+  planId: string
+}) {
+  const dangling = useMemo(() => (built ? danglingEndpoints(built) : []), [built])
+  return (
+    <div className="space-y-1 border-border/50 border-t p-3 text-xs">
+      <p>
+        planId <code className="select-all rounded bg-accent/60 px-1">{planId}</code>
+      </p>
+      <p className="text-muted-foreground">
+        {doc.mmPerPx ? `${doc.mmPerPx.toFixed(2)} mm/px` : '스케일 없음'} · IoU{' '}
+        {doc.metrics?.wallIoU ?? '-'} · {doc.metrics?.style}
+      </p>
+      {built ? (
+        <>
+          <p>
+            벽 {doc.walls.length} → {built.walls.length} · 개구부 {doc.openings.length} →{' '}
+            {built.openings.length} · 존 {built.zones.length}
+          </p>
+          <p className={dangling.length ? 'text-destructive' : 'text-muted-foreground'}>
+            끊긴 벽 끝점 {dangling.length} · 미배치 {built.diagnostics.unhostedOpeningIds.length} ·
+            중복제거 {built.diagnostics.dedupedOpeningIds.length} · 드랍 벽{' '}
+            {built.diagnostics.droppedWallIds.length}
+          </p>
+        </>
+      ) : (
+        <p className="text-destructive">임포터가 이 문서를 거부했습니다 (가이드-온리 폴백).</p>
+      )}
+    </div>
+  )
+}
+
+function DebugCanvas({
+  doc,
+  built,
+  layers,
+  selected,
+}: {
+  doc: AptVectorDoc
+  built: VectorSceneNodes | null
+  layers: { raw: boolean; walls: boolean; openings: boolean; zones: boolean; defects: boolean }
+  selected: { apartmentId: string; planId: string }
+}) {
+  const [imageW, imageH] = doc.imageSize
+  const s = doc.mmPerPx ?? 1
+  const mmToPx = ([x, y]: [number, number]): [number, number] => [x / s, y / s]
+  const mToPx = ([x, y]: [number, number]): [number, number] => [
+    (x * 1000) / s + imageW / 2,
+    (y * 1000) / s + imageH / 2,
+  ]
+  const imageUrl = withBasePath(
+    `/api/apartments/${encodeURIComponent(selected.apartmentId)}/plans/${encodeURIComponent(selected.planId)}/image`,
+  )
+  const docOpeningById = new Map(doc.openings.map((opening) => [opening.id, opening]))
+  const docWallById = new Map(doc.walls.map((wall) => [wall.id, wall]))
+  const dangling = built && layers.defects ? danglingEndpoints(built) : []
+  const rawColor = { door: '#f97316', window: '#2563eb', opening: '#c026d3' } as const
+
+  return (
+    <svg
+      className="h-auto w-full max-w-[1400px] rounded border border-border/60 bg-white"
+      role="img"
+      viewBox={`0 0 ${imageW} ${imageH}`}
+    >
+      <title>플랜 디버그 오버레이</title>
+      <image height={imageH} href={imageUrl} width={imageW} />
+
+      {layers.raw && (
+        <g>
+          {doc.walls.map((wall) => {
+            const [x1, y1] = mmToPx(wall.start)
+            const [x2, y2] = mmToPx(wall.end)
+            return (
+              <line
+                key={wall.id}
+                stroke={wall.kind === 'exterior' ? '#e11d48' : '#16a34a'}
+                strokeWidth={2}
+                x1={x1}
+                x2={x2}
+                y1={y1}
+                y2={y2}
+              >
+                <title>{`${wall.id} ${wall.kind} th=${wall.thickness}mm`}</title>
+              </line>
+            )
+          })}
+          {doc.openings.map((opening) => {
+            const [x1, y1] = mmToPx(opening.a)
+            const [x2, y2] = mmToPx(opening.b)
+            return (
+              <line
+                key={opening.id}
+                stroke={rawColor[opening.type]}
+                strokeDasharray="5 3"
+                strokeWidth={3}
+                x1={x1}
+                x2={x2}
+                y1={y1}
+                y2={y2}
+              >
+                <title>{`${opening.id} ${opening.type}`}</title>
+              </line>
+            )
+          })}
+        </g>
+      )}
+
+      {built && layers.walls && (
+        <g opacity={0.45}>
+          {built.walls.map((wall) => {
+            const [x1, y1] = mToPx(wall.start)
+            const [x2, y2] = mToPx(wall.end)
+            return (
+              <line
+                key={wall.id}
+                stroke="#0f172a"
+                strokeWidth={((wall.thickness ?? 0.1) * 1000) / s}
+                x1={x1}
+                x2={x2}
+                y1={y1}
+                y2={y2}
+              >
+                <title>{`${wall.id} th=${((wall.thickness ?? 0.1) * 1000).toFixed(0)}mm`}</title>
+              </line>
+            )
+          })}
+        </g>
+      )}
+
+      {built && layers.openings && (
+        <g>
+          {built.openings.map((opening) => {
+            const host = built.walls.find((wall) => wall.id === opening.wallId)
+            if (!host) return null
+            const [sx, sy] = mToPx(host.start)
+            const [ex, ey] = mToPx(host.end)
+            const len = Math.hypot(ex - sx, ey - sy)
+            const dir: [number, number] = [(ex - sx) / len, (ey - sy) / len]
+            const atPx = (opening.position[0] * 1000) / s
+            const widthPx = (opening.width * 1000) / s
+            const p1: [number, number] = [
+              sx + dir[0] * (atPx - widthPx / 2),
+              sy + dir[1] * (atPx - widthPx / 2),
+            ]
+            const p2: [number, number] = [
+              sx + dir[0] * (atPx + widthPx / 2),
+              sy + dir[1] * (atPx + widthPx / 2),
+            ]
+            const isOpeningCut = opening.type === 'window' && opening.openingKind === 'opening'
+            const color = opening.type === 'door' ? '#f97316' : isOpeningCut ? '#c026d3' : '#2563eb'
+            return (
+              <line
+                key={opening.id}
+                stroke={color}
+                strokeWidth={((host.thickness ?? 0.1) * 1000) / s + 4}
+                opacity={0.75}
+                x1={p1[0]}
+                x2={p2[0]}
+                y1={p1[1]}
+                y2={p2[1]}
+              >
+                <title>{`${opening.type}${isOpeningCut ? '(개구부)' : ''} w=${(opening.width * 1000).toFixed(0)}mm`}</title>
+              </line>
+            )
+          })}
+        </g>
+      )}
+
+      {built && layers.zones && (
+        <g>
+          {built.zones.map((zone) => {
+            const points = zone.polygon.map((point) => mToPx(point as [number, number]))
+            const cx = points.reduce((sum, point) => sum + point[0], 0) / points.length
+            const cy = points.reduce((sum, point) => sum + point[1], 0) / points.length
+            return (
+              <g key={zone.id}>
+                <polygon
+                  fill={zone.color}
+                  fillOpacity={0.14}
+                  points={points.map((point) => point.join(',')).join(' ')}
+                  stroke={zone.color}
+                  strokeDasharray="4 3"
+                />
+                <text fill="#111" fontSize={13} textAnchor="middle" x={cx} y={cy}>
+                  {zone.name}
+                </text>
+              </g>
+            )
+          })}
+        </g>
+      )}
+
+      {built && layers.defects && (
+        <g>
+          {dangling.map((point, index) => {
+            const [x, y] = mToPx(point)
+            return (
+              <circle
+                cx={x}
+                cy={y}
+                fill="none"
+                key={`dangling-${index.toString()}`}
+                r={10}
+                stroke="#dc2626"
+                strokeWidth={2.5}
+              >
+                <title>끊긴 벽 끝점</title>
+              </circle>
+            )
+          })}
+          {built.diagnostics.unhostedOpeningIds.map((id) => {
+            const opening = docOpeningById.get(id)
+            if (!opening) return null
+            const [x, y] = mmToPx([
+              (opening.a[0] + opening.b[0]) / 2,
+              (opening.a[1] + opening.b[1]) / 2,
+            ])
+            return (
+              <text
+                fill="#dc2626"
+                fontSize={16}
+                fontWeight={700}
+                key={id}
+                textAnchor="middle"
+                x={x}
+                y={y}
+              >
+                ✕<title>{`미배치 ${opening.type} (${id})`}</title>
+              </text>
+            )
+          })}
+          {built.diagnostics.droppedWallIds.map((id) => {
+            const wall = docWallById.get(id)
+            if (!wall) return null
+            const [x, y] = mmToPx([
+              (wall.start[0] + wall.end[0]) / 2,
+              (wall.start[1] + wall.end[1]) / 2,
+            ])
+            return (
+              <circle cx={x} cy={y} fill="#dc2626" key={id} opacity={0.6} r={4}>
+                <title>{`드랍된 짧은 벽 (${id})`}</title>
+              </circle>
+            )
+          })}
+        </g>
+      )}
+    </svg>
+  )
+}
+
+function danglingEndpoints(built: VectorSceneNodes): [number, number][] {
+  const out: [number, number][] = []
+  for (const wall of built.walls) {
+    for (const point of [wall.start, wall.end]) {
+      let best = Number.POSITIVE_INFINITY
+      for (const other of built.walls) {
+        if (other === wall) continue
+        best = Math.min(
+          best,
+          distanceToSegment(point, other.start, other.end) - (other.thickness ?? 0.1) / 2,
+        )
+      }
+      if (best > 0.02) out.push([point[0], point[1]])
+    }
+  }
+  return out
+}
+
+function distanceToSegment(
+  point: readonly [number, number],
+  start: readonly [number, number],
+  end: readonly [number, number],
+): number {
+  const dx = end[0] - start[0]
+  const dz = end[1] - start[1]
+  const lengthSq = dx * dx + dz * dz
+  const t = Math.max(
+    0,
+    Math.min(1, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dz) / (lengthSq || 1)),
+  )
+  return Math.hypot(point[0] - (start[0] + dx * t), point[1] - (start[1] + dz * t))
+}
