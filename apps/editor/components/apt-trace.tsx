@@ -78,7 +78,7 @@ export function AptTrace({
     const base = { object: 'node', visible: true, metadata: {} }
 
     const extraNodes: Record<string, unknown> = {}
-    const wallIds: string[] = []
+    const levelChildIds: string[] = []
     if (vectorNodes) {
       const childIdsByWall = new Map<string, string[]>()
       for (const opening of vectorNodes.openings) {
@@ -89,12 +89,16 @@ export function AptTrace({
         extraNodes[opening.id] = { ...opening, parentId: opening.wallId }
       }
       for (const wall of vectorNodes.walls) {
-        wallIds.push(wall.id)
+        levelChildIds.push(wall.id)
         extraNodes[wall.id] = {
           ...wall,
           parentId: levelId,
           children: childIdsByWall.get(wall.id) ?? [],
         }
+      }
+      for (const zone of vectorNodes.zones) {
+        levelChildIds.push(zone.id)
+        extraNodes[zone.id] = { ...zone, parentId: levelId }
       }
     }
 
@@ -117,7 +121,7 @@ export function AptTrace({
           type: 'level',
           name: 'Ground Floor',
           parentId: buildingId,
-          children: [guideId, ...wallIds],
+          children: [guideId, ...levelChildIds],
           level: 0,
           height: 2.5,
         },

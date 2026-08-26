@@ -1,4 +1,10 @@
-import { createDefaultWallFaceBands, DoorNode, WallNode, WindowNode } from '@pascal-app/core'
+import {
+  createDefaultWallFaceBands,
+  DoorNode,
+  WallNode,
+  WindowNode,
+  ZoneNode,
+} from '@pascal-app/core'
 
 /** JSON document produced by the floorplan-vectorizer CLI (`--stdout`). */
 export type AptVectorDoc = {
@@ -21,7 +27,13 @@ export type AptVectorDoc = {
     hinge?: [number, number]
     radius?: number
   }[]
-  rooms: { id: string; name: string | null; cls: string; areaM2: number | null }[]
+  rooms: {
+    id: string
+    name: string | null
+    cls: string
+    areaM2: number | null
+    polygon?: [number, number][]
+  }[]
   metrics?: { style?: string; wallIoU?: number }
 }
 
@@ -30,18 +42,53 @@ export type VectorSceneNodes = {
   walls: WallNode[]
   /** Wall-hosted doors/windows/openings; `wallId` names the host wall. */
   openings: (DoorNode | WindowNode)[]
+  /** Room zones (OCR label + polygon) for space documentation. */
+  zones: ZoneNode[]
   /** guide.scale that makes the 10 m guide plane match the plan's real size. */
   guideScale: number
 }
 
-const MIN_WALL_LENGTH_M = 0.25
+const MIN_WALL_LENGTH_M = 0.12
 const FLANK_LATERAL_M = 0.25
 const FLANK_ALONG_M = 0.45
+const SNAP_CORNER_M = 0.3
+const SNAP_TEE_LATERAL_M = 0.35
+const SNAP_COLLINEAR_M = 0.6
+const SNAP_MAX_MOVE_M = 0.6
 const DOOR_HEIGHT_M = 2.1
 const WINDOW_HEIGHT_M = 1.5
 const WINDOW_SILL_M = 0.9
 
-type Seg = { start: [number, number]; end: [number, number]; th: number }
+const ROOM_NAME_KO: Record<string, string> = {
+  bedroom: '방',
+  living: '거실',
+  kitchen: '주방',
+  bath: '욕실',
+  balcony: '발코니',
+  entrance: '현관',
+  dress: '드레스룸',
+  storage: '창고',
+  utility: '다용도실',
+  study: '서재',
+  hall: '복도',
+  shelter: '대피공간',
+  elevator: '코어',
+}
+
+const ROOM_COLOR: Record<string, string> = {
+  bedroom: '#c98f4e',
+  living: '#8f8878',
+  kitchen: '#a09a8b',
+  bath: '#6fa7c7',
+  balcony: '#b0a468',
+  entrance: '#9b8f7f',
+  dress: '#b08d55',
+  storage: '#8d8577',
+  utility: '#8d8577',
+}
+
+type Vec2 = [number, number]
+type Seg = { start: Vec2; end: Vec2; th: number }
 type OpeningPlacement = { doc: AptVectorDoc['openings'][number]; group: number; width: number }
 
 /**
@@ -53,6 +100,10 @@ type OpeningPlacement = { doc: AptVectorDoc['openings'][number]; group: number; 
  * hosts doors/windows INSIDE a continuous wall (`cut-opening` model). So the
  * collinear walls flanking each gap are merged into one wall spanning the
  * opening, and the opening is then hosted wall-locally on the merged wall.
+ * A junction-snap pass then closes the remaining corner/tee gaps (extending
+ * each wall along its own axis, so directions are preserved and enclosed
+ * spaces actually close), and the vectorizer's labeled room polygons become
+ * room zones.
  *
  * Returns null when the document is not trustworthy enough to auto-model
  * (no scale, degraded render variant, or too few walls) so callers can fall
@@ -65,7 +116,7 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   const [imageW, imageH] = doc.imageSize
   const cx = (imageW * doc.mmPerPx) / 2
   const cy = (imageH * doc.mmPerPx) / 2
-  const toLevel = ([x, y]: [number, number]): [number, number] => [(x - cx) / 1000, (y - cy) / 1000]
+  const toLevel = ([x, y]: Vec2): Vec2 => [(x - cx) / 1000, (y - cy) / 1000]
 
   const segs: Seg[] = []
   for (const wall of doc.walls) {
@@ -91,7 +142,7 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   }
   // Extra coverage points a group must span (far gap ends of single-flank
   // openings), keyed by any member index.
-  const extraPoints: { member: number; point: [number, number] }[] = []
+  const extraPoints: { member: number; point: Vec2 }[] = []
 
   const placements: OpeningPlacement[] = []
   for (const opening of doc.openings) {
@@ -99,7 +150,7 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
     const b = toLevel(opening.b)
     const gapLen = Math.hypot(b[0] - a[0], b[1] - a[1])
     if (gapLen < 0.05) continue
-    const dir: [number, number] = [(b[0] - a[0]) / gapLen, (b[1] - a[1]) / gapLen]
+    const dir: Vec2 = [(b[0] - a[0]) / gapLen, (b[1] - a[1]) / gapLen]
     const width = clampOpeningWidth(opening.type, gapLen)
     if (!width) continue
 
@@ -136,8 +187,8 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
     }
   }
 
-  // Build one merged wall per group: project member endpoints (plus coverage
-  // points) onto the longest member's line and keep the extremes.
+  // Build one merged segment per group: project member endpoints (plus
+  // coverage points) onto the longest member's line and keep the extremes.
   const groupMembers = new Map<number, number[]>()
   segs.forEach((_, i) => {
     const root = find(i)
@@ -146,21 +197,15 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
     groupMembers.set(root, members)
   })
 
-  const walls: WallNode[] = []
-  const wallByGroup = new Map<
-    number,
-    { node: WallNode; anchor: [number, number]; dir: [number, number]; len: number }
-  >()
+  const merged: Seg[] = []
+  const mergedIndexByRoot = new Map<number, number>()
   for (const [root, members] of groupMembers) {
     const longest = members.reduce((best, i) => (segLen(segs[i]!) > segLen(segs[best]!) ? i : best))
     const ref = segs[longest]!
     const len0 = segLen(ref)
-    const dir: [number, number] = [
-      (ref.end[0] - ref.start[0]) / len0,
-      (ref.end[1] - ref.start[1]) / len0,
-    ]
+    const dir: Vec2 = [(ref.end[0] - ref.start[0]) / len0, (ref.end[1] - ref.start[1]) / len0]
     const anchor = ref.start
-    const points: [number, number][] = members.flatMap((i) => [segs[i]!.start, segs[i]!.end])
+    const points: Vec2[] = members.flatMap((i) => [segs[i]!.start, segs[i]!.end])
     for (const extra of extraPoints) if (find(extra.member) === root) points.push(extra.point)
     let lo = Number.POSITIVE_INFINITY
     let hi = Number.NEGATIVE_INFINITY
@@ -171,25 +216,43 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
     }
     if (hi - lo < MIN_WALL_LENGTH_M) continue
     const thickness = Math.max(...members.map((i) => segs[i]!.th))
-    const start: [number, number] = [anchor[0] + dir[0] * lo, anchor[1] + dir[1] * lo]
-    const end: [number, number] = [anchor[0] + dir[0] * hi, anchor[1] + dir[1] * hi]
+    mergedIndexByRoot.set(root, merged.length)
+    merged.push({
+      start: [anchor[0] + dir[0] * lo, anchor[1] + dir[1] * lo],
+      end: [anchor[0] + dir[0] * hi, anchor[1] + dir[1] * hi],
+      th: thickness,
+    })
+  }
+
+  snapJunctions(merged)
+
+  const walls: WallNode[] = []
+  const hostByMerged: { node: WallNode; anchor: Vec2; dir: Vec2; len: number }[] = []
+  for (const seg of merged) {
+    const len = segLen(seg)
     const node = WallNode.parse({
-      start,
-      end,
-      thickness,
-      faceBands: createDefaultWallFaceBands(thickness),
+      start: seg.start,
+      end: seg.end,
+      thickness: seg.th,
+      faceBands: createDefaultWallFaceBands(seg.th),
     })
     walls.push(node)
-    wallByGroup.set(root, { node, anchor: start, dir, len: hi - lo })
+    hostByMerged.push({
+      node,
+      anchor: seg.start,
+      dir: [(seg.end[0] - seg.start[0]) / len, (seg.end[1] - seg.start[1]) / len],
+      len,
+    })
   }
 
   const openings: (DoorNode | WindowNode)[] = []
   for (const placement of placements) {
-    const host = wallByGroup.get(find(placement.group))
+    const mergedIndex = mergedIndexByRoot.get(find(placement.group))
+    const host = mergedIndex === undefined ? undefined : hostByMerged[mergedIndex]
     if (!host || host.len < placement.width) continue
     const a = toLevel(placement.doc.a)
     const b = toLevel(placement.doc.b)
-    const center: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+    const center: Vec2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
     const at = clamp(
       along(center, host.anchor, host.dir),
       placement.width / 2,
@@ -220,35 +283,139 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
     }
   }
 
-  return { walls, openings, guideScale: (imageW * doc.mmPerPx) / 10000 }
+  const zones: ZoneNode[] = []
+  for (const room of doc.rooms) {
+    if (!room.polygon || room.polygon.length < 3) continue
+    zones.push(
+      ZoneNode.parse({
+        name: room.name ?? ROOM_NAME_KO[room.cls] ?? '공간',
+        polygon: room.polygon.map(toLevel),
+        spaceRole: 'room',
+        ...(ROOM_COLOR[room.cls] ? { color: ROOM_COLOR[room.cls] } : {}),
+        metadata: { source: 'apt-vector', cls: room.cls, areaM2: room.areaM2 },
+      }),
+    )
+  }
+
+  return { walls, openings, zones, guideScale: (imageW * doc.mmPerPx) / 10000 }
+}
+
+/**
+ * Closes corner and tee gaps by moving endpoints ALONG each wall's own axis:
+ * an L-corner pair meets at the intersection of the two wall lines, and a
+ * tee endpoint extends to the crossed wall's centerline. Directions never
+ * change, so hosted opening projections stay valid.
+ */
+function snapJunctions(segs: Seg[]): void {
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < segs.length; i++) {
+      const a = segs[i]!
+      for (const endKey of ['start', 'end'] as const) {
+        const p = a[endKey]
+        let bestCorner: { q: Vec2; d: number } | null = null
+        let bestTee: { q: Vec2; d: number } | null = null
+        for (let j = 0; j < segs.length; j++) {
+          if (j === i) continue
+          const b = segs[j]!
+          const cross = lineIntersection(a, b)
+          if (!cross) {
+            // near-parallel: bridge an end-to-end split in the same wall run
+            // (hosted openings sit INSIDE walls, so this cannot seal a door)
+            const da = segDir(a)
+            for (const otherKey of ['start', 'end'] as const) {
+              const q = b[otherKey]
+              const gap = Math.hypot(p[0] - q[0], p[1] - q[1])
+              if (gap < 1e-9 || gap > SNAP_COLLINEAR_M) continue
+              const lateral = Math.abs((q[0] - p[0]) * da[1] - (q[1] - p[1]) * da[0])
+              if (lateral > 0.15) continue
+              const forward = along(q, p, da)
+              const intoOwn = along(q, a[endKey === 'start' ? 'end' : 'start'], da)
+              const ownSpan = along(p, a[endKey === 'start' ? 'end' : 'start'], da)
+              // only extend outward past this end, never fold back inside
+              if (
+                Math.sign(intoOwn) !== Math.sign(ownSpan) ||
+                Math.abs(intoOwn) < Math.abs(ownSpan)
+              )
+                continue
+              const target: Vec2 = [p[0] + da[0] * forward, p[1] + da[1] * forward]
+              if (!bestTee || gap < bestTee.d) bestTee = { q: target, d: gap }
+            }
+            continue
+          }
+          for (const otherKey of ['start', 'end'] as const) {
+            const q = b[otherKey]
+            const d = Math.hypot(p[0] - q[0], p[1] - q[1])
+            if (d < 1e-9 || d > SNAP_CORNER_M) continue
+            const move = Math.hypot(p[0] - cross[0], p[1] - cross[1])
+            const moveOther = Math.hypot(q[0] - cross[0], q[1] - cross[1])
+            if (move > SNAP_MAX_MOVE_M || moveOther > SNAP_MAX_MOVE_M) continue
+            if (!bestCorner || d < bestCorner.d) bestCorner = { q: cross, d }
+          }
+          if (!bestCorner) {
+            const lat = distToSegment(p, b)
+            if (lat <= b.th / 2 + SNAP_TEE_LATERAL_M) {
+              const move = Math.hypot(p[0] - cross[0], p[1] - cross[1])
+              const t = along(cross, b.start, segDir(b))
+              if (move <= SNAP_MAX_MOVE_M && t >= -0.05 && t <= segLen(b) + 0.05) {
+                if (!bestTee || move < bestTee.d) bestTee = { q: cross, d: move }
+              }
+            }
+          }
+        }
+        const target = bestCorner ?? bestTee
+        if (target && Math.hypot(p[0] - target.q[0], p[1] - target.q[1]) > 1e-6) {
+          a[endKey] = [target.q[0], target.q[1]]
+        }
+      }
+    }
+  }
+}
+
+function lineIntersection(a: Seg, b: Seg): Vec2 | null {
+  const da = segDir(a)
+  const db = segDir(b)
+  const det = da[0] * db[1] - da[1] * db[0]
+  if (Math.abs(det) < Math.sin((15 * Math.PI) / 180)) return null
+  const dx = b.start[0] - a.start[0]
+  const dz = b.start[1] - a.start[1]
+  const t = (dx * db[1] - dz * db[0]) / det
+  return [a.start[0] + da[0] * t, a.start[1] + da[1] * t]
+}
+
+function segDir(seg: Seg): Vec2 {
+  const len = segLen(seg)
+  return [(seg.end[0] - seg.start[0]) / len, (seg.end[1] - seg.start[1]) / len]
+}
+
+function distToSegment(p: Vec2, seg: Seg): number {
+  const dir = segDir(seg)
+  const t = clamp(along(p, seg.start, dir), 0, segLen(seg))
+  const q: Vec2 = [seg.start[0] + dir[0] * t, seg.start[1] + dir[1] * t]
+  return Math.hypot(p[0] - q[0], p[1] - q[1])
 }
 
 function segLen(seg: Seg): number {
   return Math.hypot(seg.end[0] - seg.start[0], seg.end[1] - seg.start[1])
 }
 
-function along(point: [number, number], anchor: [number, number], dir: [number, number]): number {
+function along(point: Vec2, anchor: Vec2, dir: Vec2): number {
   return (point[0] - anchor[0]) * dir[0] + (point[1] - anchor[1]) * dir[1]
 }
 
-function alongLo(seg: Seg, anchor: [number, number], dir: [number, number]): number {
+function alongLo(seg: Seg, anchor: Vec2, dir: Vec2): number {
   return Math.min(along(seg.start, anchor, dir), along(seg.end, anchor, dir))
 }
 
-function alongHi(seg: Seg, anchor: [number, number], dir: [number, number]): number {
+function alongHi(seg: Seg, anchor: Vec2, dir: Vec2): number {
   return Math.max(along(seg.start, anchor, dir), along(seg.end, anchor, dir))
 }
 
-function isCollinearWith(seg: Seg, anchor: [number, number], dir: [number, number]): boolean {
+function isCollinearWith(seg: Seg, anchor: Vec2, dir: Vec2): boolean {
   const len = segLen(seg)
   if (len < 1e-6) return false
-  const sdir: [number, number] = [
-    (seg.end[0] - seg.start[0]) / len,
-    (seg.end[1] - seg.start[1]) / len,
-  ]
+  const sdir: Vec2 = [(seg.end[0] - seg.start[0]) / len, (seg.end[1] - seg.start[1]) / len]
   if (Math.abs(sdir[0] * dir[0] + sdir[1] * dir[1]) < Math.cos((10 * Math.PI) / 180)) return false
-  const lateral = (a: [number, number]) =>
-    Math.abs((a[0] - anchor[0]) * dir[1] - (a[1] - anchor[1]) * dir[0])
+  const lateral = (a: Vec2) => Math.abs((a[0] - anchor[0]) * dir[1] - (a[1] - anchor[1]) * dir[0])
   return (
     lateral(seg.start) <= seg.th / 2 + FLANK_LATERAL_M &&
     lateral(seg.end) <= seg.th / 2 + FLANK_LATERAL_M

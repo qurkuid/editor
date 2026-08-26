@@ -96,6 +96,7 @@ export function AptSearchPanel() {
           for (const opening of built.openings) {
             if (opening.wallId) create(opening, opening.wallId as never)
           }
+          for (const zone of built.zones) create(zone, levelId as never)
         })
         setShowGuides(true)
         setSelectedReferenceId(guide.id)

@@ -23,7 +23,34 @@ const doc: AptVectorDoc = {
     // nowhere near a wall → dropped
     { id: 'o3', type: 'door', a: [3000, 6000], b: [3900, 6000], wallThickness: 100 },
   ],
-  rooms: [],
+  rooms: [
+    {
+      id: 'r0',
+      name: '거실',
+      cls: 'living',
+      areaM2: 28.1,
+      polygon: [
+        [3000, 1200],
+        [8800, 1200],
+        [8800, 3800],
+        [3000, 3800],
+      ],
+    },
+    {
+      id: 'r1',
+      name: null,
+      cls: 'bath',
+      areaM2: 3.2,
+      polygon: [
+        [1200, 1200],
+        [2800, 1200],
+        [2800, 3800],
+        [1200, 3800],
+      ],
+    },
+    // degenerate polygon → skipped
+    { id: 'r2', name: null, cls: 'hall', areaM2: null, polygon: [[0, 0]] as never },
+  ],
 }
 
 describe('buildVectorNodes', () => {
@@ -69,9 +96,51 @@ describe('buildVectorNodes', () => {
     expect(opening.position[1]).toBeCloseTo(1.05)
   })
 
+  test('creates room zones from labeled polygons', () => {
+    const { zones } = buildVectorNodes(doc)!
+    expect(zones).toHaveLength(2)
+    const living = zones.find((zone) => zone.name === '거실')!
+    expect(living.spaceRole).toBe('room')
+    expect(living.polygon[0]![0]).toBeCloseTo(-2)
+    expect(living.polygon[0]![1]).toBeCloseTo(-2.8)
+    // unlabeled room falls back to the class name in Korean
+    expect(zones.some((zone) => zone.name === '욕실')).toBe(true)
+  })
+
+  test('snaps corner and tee gaps closed along each wall axis', () => {
+    const gappy: AptVectorDoc = {
+      ...doc,
+      rooms: [],
+      openings: [],
+      walls: [
+        // L-corner left open by 200 mm on each leg
+        { id: 'a', kind: 'exterior', start: [1000, 1200], end: [1000, 3000], thickness: 150 },
+        { id: 'b', kind: 'exterior', start: [1200, 1000], end: [3000, 1000], thickness: 150 },
+        // tee: this wall stops 300 mm short of wall `a`'s centreline
+        { id: 'c', kind: 'interior', start: [1300, 2000], end: [3000, 2000], thickness: 100 },
+        // short pier that must survive the length filter (150 mm)
+        { id: 'd', kind: 'exterior', start: [3000, 1000], end: [3150, 1000], thickness: 150 },
+      ],
+    }
+    const { walls } = buildVectorNodes(gappy)!
+    const cornerV = walls.find((wall) => wall.thickness! > 0.12 && wall.start[0] === wall.end[0])!
+    const cornerH = walls.find(
+      (wall) => wall.thickness! > 0.12 && wall.start[1] === wall.end[1] && segLenOf(wall) > 1,
+    )!
+    // both legs now reach the shared corner (1000, 1000) mm → (-4, -3) m
+    expect(Math.min(cornerV.start[1], cornerV.end[1])).toBeCloseTo(-3)
+    expect(Math.min(cornerH.start[0], cornerH.end[0])).toBeCloseTo(-4)
+    // the tee wall extends to wall `a`'s centreline x = -4
+    const tee = walls.find((wall) => wall.thickness! < 0.12)!
+    expect(Math.min(tee.start[0], tee.end[0])).toBeCloseTo(-4)
+    // the 150 mm pier survived
+    expect(walls.some((wall) => segLenOf(wall) < 0.2)).toBe(true)
+  })
+
   test('extends a single flank across a corner-door gap', () => {
     const corner: AptVectorDoc = {
       ...doc,
+      rooms: [],
       walls: [
         { id: 'a', kind: 'interior', start: [1000, 1000], end: [3000, 1000], thickness: 100 },
         { id: 'b', kind: 'interior', start: [3900, 800], end: [3900, 3000], thickness: 100 },
@@ -96,3 +165,7 @@ describe('buildVectorNodes', () => {
     expect(buildVectorNodes({ ...doc, walls: doc.walls.slice(0, 2) })).toBeNull()
   })
 })
+
+function segLenOf(wall: { start: [number, number]; end: [number, number] }): number {
+  return Math.hypot(wall.end[0] - wall.start[0], wall.end[1] - wall.start[1])
+}
