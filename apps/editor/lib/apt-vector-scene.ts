@@ -385,9 +385,15 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   const zones: ZoneNode[] = []
   for (const room of doc.rooms) {
     if (!room.polygon || room.polygon.length < 3) continue
+    // white-tile rooms without an OCR label are utility/service spaces as
+    // often as bathrooms — only small ones get the 욕실 guess
+    const fallback =
+      room.cls === 'bath' && (room.areaM2 == null || room.areaM2 > 5)
+        ? '공간'
+        : (ROOM_NAME_KO[room.cls] ?? '공간')
     zones.push(
       ZoneNode.parse({
-        name: room.name ?? ROOM_NAME_KO[room.cls] ?? '공간',
+        name: room.name ?? fallback,
         polygon: room.polygon.map(toLevel),
         spaceRole: 'room',
         ...(ROOM_COLOR[room.cls] ? { color: ROOM_COLOR[room.cls] } : {}),

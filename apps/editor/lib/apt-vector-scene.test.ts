@@ -97,6 +97,30 @@ describe('buildVectorNodes', () => {
   })
 
   test('creates room zones from labeled polygons', () => {
+    const withBigBath: AptVectorDoc = {
+      ...doc,
+      rooms: [
+        ...doc.rooms,
+        {
+          id: 'r3',
+          name: null,
+          cls: 'bath',
+          areaM2: 7.5,
+          polygon: [
+            [5200, 4200],
+            [8800, 4200],
+            [8800, 7000],
+            [5200, 7000],
+          ],
+        },
+      ],
+    }
+    const { zones: zonesWithBig } = buildVectorNodes(withBigBath)!
+    // a big unlabeled white-tile room is a utility space, not a bathroom
+    expect(
+      zonesWithBig.find((zone) => zone.polygon.length === 4 && zone.name === '공간'),
+    ).toBeTruthy()
+
     const { zones } = buildVectorNodes(doc)!
     expect(zones).toHaveLength(2)
     const living = zones.find((zone) => zone.name === '거실')!

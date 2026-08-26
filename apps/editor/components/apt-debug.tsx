@@ -206,9 +206,17 @@ function DebugSummary({
             벽 {doc.walls.length} → {built.walls.length} · 개구부 {doc.openings.length} →{' '}
             {built.openings.length} · 존 {built.zones.length}
           </p>
-          <p className={dangling.length ? 'text-destructive' : 'text-muted-foreground'}>
-            끊긴 벽 끝점 {dangling.length} · 미배치 {built.diagnostics.unhostedOpeningIds.length} ·
-            중복제거 {built.diagnostics.dedupedOpeningIds.length} · 드랍 벽{' '}
+          <p
+            className={
+              dangling.some((end) => end.kind === 'defect')
+                ? 'text-destructive'
+                : 'text-muted-foreground'
+            }
+          >
+            결함 끝점 {dangling.filter((end) => end.kind === 'defect').length} · 개방 끝{' '}
+            {dangling.filter((end) => end.kind === 'free').length} · 미배치{' '}
+            {built.diagnostics.unhostedOpeningIds.length} · 중복제거{' '}
+            {built.diagnostics.dedupedOpeningIds.length} · 드랍 벽{' '}
             {built.diagnostics.droppedWallIds.length}
           </p>
         </>
@@ -381,19 +389,23 @@ function DebugCanvas({
 
       {built && layers.defects && (
         <g>
-          {dangling.map((point, index) => {
-            const [x, y] = mToPx(point)
+          {dangling.map((end, index) => {
+            const [x, y] = mToPx(end.point)
+            const defect = end.kind === 'defect'
             return (
               <circle
                 cx={x}
                 cy={y}
                 fill="none"
                 key={`dangling-${index.toString()}`}
-                r={10}
-                stroke="#dc2626"
-                strokeWidth={2.5}
+                r={defect ? 10 : 7}
+                stroke={defect ? '#dc2626' : '#9ca3af'}
+                strokeDasharray={defect ? undefined : '3 3'}
+                strokeWidth={defect ? 2.5 : 2}
               >
-                <title>끊긴 벽 끝점</title>
+                <title>
+                  {defect ? '결함: 근처 벽에 못 닿은 끝점' : '개방형 벽 끝 (정상 추정)'}
+                </title>
               </circle>
             )
           })}
@@ -437,10 +449,24 @@ function DebugCanvas({
   )
 }
 
-function danglingEndpoints(built: VectorSceneNodes): [number, number][] {
-  const out: [number, number][] = []
+type DanglingEnd = { point: [number, number]; kind: 'defect' | 'free' }
+
+/**
+ * Wall ends touching nothing, split into DEFECTS (a weld target — crossing
+ * wall line or facing collinear end — sits within 1.2 m, so the pipeline
+ * SHOULD have closed this) and FREE ends (open-plan wall ends that are real
+ * architecture and must not be welded shut).
+ */
+function danglingEndpoints(built: VectorSceneNodes): DanglingEnd[] {
+  const out: DanglingEnd[] = []
   for (const wall of built.walls) {
-    for (const point of [wall.start, wall.end]) {
+    const len = Math.hypot(wall.end[0] - wall.start[0], wall.end[1] - wall.start[1])
+    const dir: [number, number] = [
+      (wall.end[0] - wall.start[0]) / len,
+      (wall.end[1] - wall.start[1]) / len,
+    ]
+    for (const endKey of ['start', 'end'] as const) {
+      const point = wall[endKey] as [number, number]
       let best = Number.POSITIVE_INFINITY
       for (const other of built.walls) {
         if (other === wall) continue
@@ -449,10 +475,52 @@ function danglingEndpoints(built: VectorSceneNodes): [number, number][] {
           distanceToSegment(point, other.start, other.end) - (other.thickness ?? 0.1) / 2,
         )
       }
-      if (best > 0.02) out.push([point[0], point[1]])
+      if (best <= 0.02) continue
+      const outward: [number, number] = endKey === 'start' ? [-dir[0], -dir[1]] : dir
+      out.push({
+        point: [point[0], point[1]],
+        kind: hasWeldTarget(built, wall, point, dir, outward) ? 'defect' : 'free',
+      })
     }
   }
   return out
+}
+
+function hasWeldTarget(
+  built: VectorSceneNodes,
+  self: VectorSceneNodes['walls'][number],
+  p: [number, number],
+  dir: [number, number],
+  outward: [number, number],
+): boolean {
+  for (const other of built.walls) {
+    if (other === self) continue
+    const oLen = Math.hypot(other.end[0] - other.start[0], other.end[1] - other.start[1])
+    const oDir: [number, number] = [
+      (other.end[0] - other.start[0]) / oLen,
+      (other.end[1] - other.start[1]) / oLen,
+    ]
+    const det = dir[0] * oDir[1] - dir[1] * oDir[0]
+    if (Math.abs(det) >= Math.sin((15 * Math.PI) / 180)) {
+      // crossing line ahead within reach, near the other wall's extent
+      const dx = other.start[0] - p[0]
+      const dz = other.start[1] - p[1]
+      const tSelf = (dx * oDir[1] - dz * oDir[0]) / det
+      const forward = tSelf * (dir[0] * outward[0] + dir[1] * outward[1])
+      if (forward < 0.02 || forward > 1.2) continue
+      const cross: [number, number] = [p[0] + dir[0] * tSelf, p[1] + dir[1] * tSelf]
+      const tOther = (cross[0] - other.start[0]) * oDir[0] + (cross[1] - other.start[1]) * oDir[1]
+      if (tOther >= -0.5 && tOther <= oLen + 0.5) return true
+    } else {
+      // facing collinear end within reach
+      for (const q of [other.start, other.end]) {
+        const lateral = Math.abs((q[0] - p[0]) * dir[1] - (q[1] - p[1]) * dir[0])
+        const forward = (q[0] - p[0]) * outward[0] + (q[1] - p[1]) * outward[1]
+        if (lateral <= 0.2 && forward > 0.02 && forward <= 1.2) return true
+      }
+    }
+  }
+  return false
 }
 
 function distanceToSegment(
