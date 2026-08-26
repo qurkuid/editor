@@ -10,6 +10,9 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const execFileAsync = promisify(execFile)
+// bump together with the vectorizer's build_doc docVersion to invalidate
+// disk-cached documents produced by older extraction logic
+const DOC_VERSION = 2
 const VECTORIZE_TIMEOUT_MS = 90_000
 const MAX_STDOUT_BYTES = 16 * 1024 * 1024
 const SAFE_ID = /^[0-9A-Za-z_-]+$/
@@ -42,13 +45,13 @@ export async function GET(
   const cacheDir = cacheDirPath()
   if (cacheDir) {
     try {
-      const cached = await readFile(path.join(cacheDir, `${plainPlanId}.json`), 'utf8')
-      return aptJson(
-        request,
-        { code: 'OK', data: JSON.parse(cached) },
-        200,
-        'public, max-age=86400',
-      )
+      const cached = JSON.parse(
+        await readFile(path.join(cacheDir, `${plainPlanId}.json`), 'utf8'),
+      ) as { docVersion?: number }
+      if ((cached.docVersion ?? 1) >= DOC_VERSION) {
+        return aptJson(request, { code: 'OK', data: cached }, 200, 'public, max-age=86400')
+      }
+      // older vectorizer output — re-run below and overwrite
     } catch {
       // cache miss — fall through to a fresh run
     }
@@ -93,7 +96,9 @@ async function vectorize(
   const image = await fetchPlanImage(id, planId)
   if (!image.ok) throw new PlanImageError(image.code, image.status)
 
-  const tmpFile = path.join(tmpdir(), `apt-vector-${planId}-${process.pid}.img`)
+  // stable name on purpose: the vectorizer's OCR cache is keyed by the image
+  // basename, so re-vectorizing the same plan skips the ~10 s Vision pass
+  const tmpFile = path.join(tmpdir(), `apt-vector-${planId}.img`)
   await writeFile(tmpFile, Buffer.from(image.bytes))
   try {
     const python = process.env.VECTORIZER_PYTHON ?? 'python3'

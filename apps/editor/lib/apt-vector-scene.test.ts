@@ -118,8 +118,10 @@ describe('buildVectorNodes', () => {
         { id: 'b', kind: 'exterior', start: [1200, 1000], end: [3000, 1000], thickness: 150 },
         // tee: this wall stops 300 mm short of wall `a`'s centreline
         { id: 'c', kind: 'interior', start: [1300, 2000], end: [3000, 2000], thickness: 100 },
-        // short pier that must survive the length filter (150 mm)
+        // same-run continuation split off by 0 mm — must merge, not seam
         { id: 'd', kind: 'exterior', start: [3000, 1000], end: [3150, 1000], thickness: 150 },
+        // isolated 150 mm pier far from everything — survives the length filter
+        { id: 'e', kind: 'interior', start: [5000, 5000], end: [5150, 5000], thickness: 100 },
       ],
     }
     const { walls } = buildVectorNodes(gappy)!
@@ -130,11 +132,36 @@ describe('buildVectorNodes', () => {
     // both legs now reach the shared corner (1000, 1000) mm → (-4, -3) m
     expect(Math.min(cornerV.start[1], cornerV.end[1])).toBeCloseTo(-3)
     expect(Math.min(cornerH.start[0], cornerH.end[0])).toBeCloseTo(-4)
+    // the collinear continuation `d` was absorbed into the same wall node
+    expect(Math.max(cornerH.start[0], cornerH.end[0])).toBeCloseTo(-1.85)
     // the tee wall extends to wall `a`'s centreline x = -4
-    const tee = walls.find((wall) => wall.thickness! < 0.12)!
+    const tee = walls.find((wall) => wall.thickness! < 0.12 && segLenOf(wall) > 1)!
     expect(Math.min(tee.start[0], tee.end[0])).toBeCloseTo(-4)
-    // the 150 mm pier survived
+    // the isolated 150 mm pier survived as its own wall
     expect(walls.some((wall) => segLenOf(wall) < 0.2)).toBe(true)
+  })
+
+  test('deduplicates overlapping opening detections on one wall', () => {
+    const dup: AptVectorDoc = {
+      ...doc,
+      rooms: [],
+      openings: [
+        // precise pair-gap window …
+        { id: 'o1', type: 'window', a: [6000, 1000], b: [7500, 1000], wallThickness: 200 },
+        // … plus an overshooting duplicate of the same opening
+        { id: 'o1b', type: 'window', a: [6000, 1000], b: [7900, 1000], wallThickness: 200 },
+        // door and window describing the same gap → the door wins
+        { id: 'o0', type: 'window', a: [2000, 1000], b: [2900, 1000], wallThickness: 200 },
+        { id: 'o0b', type: 'door', a: [2000, 1000], b: [2900, 1000], wallThickness: 200 },
+      ],
+    }
+    const { openings } = buildVectorNodes(dup)!
+    expect(openings).toHaveLength(2)
+    expect(openings.filter((node) => node.type === 'door')).toHaveLength(1)
+    const windows = openings.filter((node) => node.type === 'window')
+    expect(windows).toHaveLength(1)
+    // the tighter detection was kept
+    expect(windows[0]!.width).toBeCloseTo(1.5)
   })
 
   test('extends a single flank across a corner-door gap', () => {

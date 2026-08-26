@@ -55,6 +55,9 @@ const SNAP_CORNER_M = 0.3
 const SNAP_TEE_LATERAL_M = 0.35
 const SNAP_COLLINEAR_M = 0.6
 const SNAP_MAX_MOVE_M = 0.6
+const MERGE_THICKNESS_TOL_M = 0.08
+const MERGE_RUN_GAP_M = 0.35
+const OPENING_OVERLAP_FRAC = 0.3
 const DOOR_HEIGHT_M = 2.1
 const WINDOW_HEIGHT_M = 1.5
 const WINDOW_SILL_M = 0.9
@@ -139,6 +142,17 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   }
   const union = (i: number, j: number) => {
     parent[find(i)] = find(j)
+  }
+
+  // The vectorizer splits one physical wall run into several segments (and
+  // occasionally traces a thick wall twice, slightly offset). Merge same-run
+  // segments up front so one wall face comes out as ONE wall node instead of
+  // seam-touching fragments. Different-thickness continuations stay separate
+  // walls and are only end-snapped later.
+  for (let i = 0; i < segs.length; i++) {
+    for (let j = i + 1; j < segs.length; j++) {
+      if (isSameWallRun(segs[i]!, segs[j]!)) union(i, j)
+    }
   }
   // Extra coverage points a group must span (far gap ends of single-flank
   // openings), keyed by any member index.
@@ -245,10 +259,21 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
     })
   }
 
-  const openings: (DoorNode | WindowNode)[] = []
+  // Host every placement first, then resolve overlaps per wall: duplicate
+  // detections of the same physical opening (a pair gap plus an overshooting
+  // ray gap) would otherwise stack two windows on one wall. Doors outrank
+  // windows outrank bare openings; among equals the tighter span wins.
+  type Hosted = {
+    mergedIndex: number
+    at: number
+    width: number
+    type: 'door' | 'window' | 'opening'
+  }
+  const hosted: Hosted[] = []
   for (const placement of placements) {
     const mergedIndex = mergedIndexByRoot.get(find(placement.group))
-    const host = mergedIndex === undefined ? undefined : hostByMerged[mergedIndex]
+    if (mergedIndex === undefined) continue
+    const host = hostByMerged[mergedIndex]
     if (!host || host.len < placement.width) continue
     const a = toLevel(placement.doc.a)
     const b = toLevel(placement.doc.b)
@@ -258,26 +283,48 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
       placement.width / 2,
       host.len - placement.width / 2,
     )
-    if (placement.doc.type === 'door') {
+    hosted.push({ mergedIndex, at, width: placement.width, type: placement.doc.type })
+  }
+  const typeRank = { door: 0, window: 1, opening: 2 } as const
+  hosted.sort(
+    (p, q) =>
+      p.mergedIndex - q.mergedIndex || typeRank[p.type] - typeRank[q.type] || p.width - q.width,
+  )
+  const kept: Hosted[] = []
+  for (const candidate of hosted) {
+    const clash = kept.some((other) => {
+      if (other.mergedIndex !== candidate.mergedIndex) return false
+      const overlap =
+        Math.min(candidate.at + candidate.width / 2, other.at + other.width / 2) -
+        Math.max(candidate.at - candidate.width / 2, other.at - other.width / 2)
+      return overlap > OPENING_OVERLAP_FRAC * Math.min(candidate.width, other.width)
+    })
+    if (!clash) kept.push(candidate)
+  }
+
+  const openings: (DoorNode | WindowNode)[] = []
+  for (const item of kept) {
+    const host = hostByMerged[item.mergedIndex]!
+    if (item.type === 'door') {
       openings.push(
         DoorNode.parse({
           wallId: host.node.id,
-          width: placement.width,
+          width: item.width,
           height: DOOR_HEIGHT_M,
-          position: [at, DOOR_HEIGHT_M / 2, 0],
+          position: [item.at, DOOR_HEIGHT_M / 2, 0],
         }),
       )
     } else {
-      const isOpening = placement.doc.type === 'opening'
+      const isOpening = item.type === 'opening'
       const height = isOpening ? DOOR_HEIGHT_M : WINDOW_HEIGHT_M
       const sill = isOpening ? 0 : WINDOW_SILL_M
       openings.push(
         WindowNode.parse({
           wallId: host.node.id,
-          width: placement.width,
+          width: item.width,
           height,
           ...(isOpening ? { openingKind: 'opening' } : {}),
-          position: [at, sill + height / 2, 0],
+          position: [item.at, sill + height / 2, 0],
         }),
       )
     }
@@ -408,6 +455,24 @@ function alongLo(seg: Seg, anchor: Vec2, dir: Vec2): number {
 
 function alongHi(seg: Seg, anchor: Vec2, dir: Vec2): number {
   return Math.max(along(seg.start, anchor, dir), along(seg.end, anchor, dir))
+}
+
+function isSameWallRun(a: Seg, b: Seg): boolean {
+  if (Math.abs(a.th - b.th) > MERGE_THICKNESS_TOL_M) return false
+  const da = segDir(a)
+  const db = segDir(b)
+  if (Math.abs(da[0] * db[0] + da[1] * db[1]) < Math.cos((10 * Math.PI) / 180)) return false
+  const latTol = Math.max(a.th, b.th) / 2
+  const lateral = (p: Vec2) => Math.abs((p[0] - a.start[0]) * da[1] - (p[1] - a.start[1]) * da[0])
+  if (lateral(b.start) > latTol || lateral(b.end) > latTol) return false
+  const t1a = along(a.start, a.start, da)
+  const t1b = along(a.end, a.start, da)
+  const t2a = along(b.start, a.start, da)
+  const t2b = along(b.end, a.start, da)
+  const gap =
+    Math.max(Math.min(t1a, t1b), Math.min(t2a, t2b)) -
+    Math.min(Math.max(t1a, t1b), Math.max(t2a, t2b))
+  return gap <= MERGE_RUN_GAP_M
 }
 
 function isCollinearWith(seg: Seg, anchor: Vec2, dir: Vec2): boolean {
