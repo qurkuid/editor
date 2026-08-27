@@ -42,8 +42,11 @@ export async function GET(
   const vectorizerDir = process.env.VECTORIZER_DIR
   if (!vectorizerDir) return aptJson(request, { code: 'VECTOR_UNAVAILABLE' }, 503)
 
+  // ?refresh=1 forces a fresh run (the debug viewer's 다시 분석 button), so
+  // iterating on the same plan doesn't depend on docVersion bookkeeping
+  const refresh = new URL(request.url).searchParams.get('refresh') === '1'
   const cacheDir = cacheDirPath()
-  if (cacheDir) {
+  if (cacheDir && !refresh) {
     try {
       const cached = JSON.parse(
         await readFile(path.join(cacheDir, `${plainPlanId}.json`), 'utf8'),

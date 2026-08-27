@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { typeWithPyeong } from '@/lib/apt-format'
 import { type AptVectorDoc, buildVectorNodes, type VectorSceneNodes } from '@/lib/apt-vector-scene'
 import { withBasePath } from '@/lib/base-path'
@@ -107,14 +107,19 @@ export function AptDebug({
     }
   }, [selected, pending, doc])
 
+  const [refreshTick, setRefreshTick] = useState(0)
+  const refreshNextRef = useRef(false)
+
   useEffect(() => {
     if (!selected) return
     let stale = false
+    const force = refreshNextRef.current
+    refreshNextRef.current = false
     setStatus('loading')
     setDoc(null)
     fetch(
       withBasePath(
-        `/api/apartments/${encodeURIComponent(selected.apartmentId)}/plans/${encodeURIComponent(selected.planId)}/vector`,
+        `/api/apartments/${encodeURIComponent(selected.apartmentId)}/plans/${encodeURIComponent(selected.planId)}/vector${force ? '?refresh=1' : ''}`,
       ),
     )
       .then(async (response) => {
@@ -132,7 +137,7 @@ export function AptDebug({
     return () => {
       stale = true
     }
-  }, [selected])
+  }, [selected, refreshTick])
 
   const built = useMemo(() => (doc ? buildVectorNodes(doc) : null), [doc])
   const pickPlan = useCallback((complex: AptComplex, plan: AptPlan) => {
@@ -239,6 +244,18 @@ export function AptDebug({
                 </label>
               ))}
               <span className="mx-1 text-border">|</span>
+              <button
+                className="rounded-md border border-border px-2 py-1 font-medium hover:bg-accent/40 disabled:opacity-50"
+                disabled={status === 'loading'}
+                onClick={() => {
+                  refreshNextRef.current = true
+                  setRefreshTick((tick) => tick + 1)
+                }}
+                title="캐시를 무시하고 최신 파이프라인으로 다시 분석"
+                type="button"
+              >
+                🔄 다시 분석
+              </button>
               <button
                 className={`rounded-md border px-2 py-1 font-medium ${feedbackMode ? 'border-red-500 bg-red-500/10 text-red-600' : 'border-border hover:bg-accent/40'}`}
                 onClick={() => setFeedbackMode((on) => !on)}
@@ -349,6 +366,7 @@ function DebugSummary({
         planId <code className="select-all rounded bg-accent/60 px-1">{planId}</code>
       </p>
       <p className="text-muted-foreground">
+        파이프라인 v{doc.docVersion ?? '?'} ·{' '}
         {doc.mmPerPx ? `${doc.mmPerPx.toFixed(2)} mm/px` : '스케일 없음'} · IoU{' '}
         {doc.metrics?.wallIoU ?? '-'} · {doc.metrics?.style}
       </p>

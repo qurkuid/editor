@@ -89,8 +89,22 @@ export function AptSearchPanel() {
           return
         }
         const guide = buildGuide(complex, plan, built.guideScale)
+        const tag = { source: 'apt-vector', planId: plan.planId }
+        for (const node of [...built.walls, ...built.openings, ...built.zones]) {
+          node.metadata = { ...(node.metadata as Record<string, unknown>), ...tag }
+        }
         runAsSingleSceneHistoryStep(useScene, () => {
-          const { createNode: create } = useScene.getState()
+          const { createNode: create, deleteNodes, nodes } = useScene.getState()
+          // rerunning on the same plan REPLACES the previous auto-model
+          // output (and its guide), so iteration doesn't stack duplicates
+          const stale = Object.values(nodes)
+            .filter((node) => {
+              const meta = node.metadata as { source?: string; planId?: string } | undefined
+              if (meta?.planId !== plan.planId) return false
+              return meta.source === 'apt-vector' || node.type === 'guide'
+            })
+            .map((node) => node.id)
+          if (stale.length) deleteNodes(stale as never[])
           create(guide, levelId as never)
           for (const wall of built.walls) create(wall, levelId as never)
           for (const opening of built.openings) {

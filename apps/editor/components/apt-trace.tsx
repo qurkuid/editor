@@ -42,6 +42,7 @@ export function AptTrace({
     setError(null)
 
     let vectorNodes: VectorSceneNodes | null = null
+    let pipelineVersion: number | undefined
     if (vector) {
       setAnalyzing(true)
       try {
@@ -52,7 +53,10 @@ export function AptTrace({
         )
         if (response.ok) {
           const body = (await response.json()) as { code: string; data?: AptVectorDoc }
-          if (body.code === 'OK' && body.data) vectorNodes = buildVectorNodes(body.data)
+          if (body.code === 'OK' && body.data) {
+            vectorNodes = buildVectorNodes(body.data)
+            pipelineVersion = body.data.docVersion
+          }
         }
       } catch {
         // fall through to the guide-only scene
@@ -74,19 +78,28 @@ export function AptTrace({
     const imageUrl = withBasePath(
       `/api/apartments/${encodeURIComponent(apartmentId)}/plans/${encodeURIComponent(planId)}/image`,
     )
-    const sceneName = [name, type].filter(Boolean).join(' ') || '아파트 평면도'
+    // pipeline version in the name keeps improvement rounds tellable apart
+    // in the scene list when the same plan is re-run after fixes
+    const sceneName =
+      ([name, type].filter(Boolean).join(' ') || '아파트 평면도') +
+      (vectorNodes ? ` · 자동모델 v${pipelineVersion ?? '?'}` : '')
     const base = { object: 'node', visible: true, metadata: {} }
 
     const extraNodes: Record<string, unknown> = {}
     const levelChildIds: string[] = []
     if (vectorNodes) {
+      const tag = { source: 'apt-vector', planId }
       const childIdsByWall = new Map<string, string[]>()
       for (const opening of vectorNodes.openings) {
         if (!opening.wallId) continue
         const siblings = childIdsByWall.get(opening.wallId) ?? []
         siblings.push(opening.id)
         childIdsByWall.set(opening.wallId, siblings)
-        extraNodes[opening.id] = { ...opening, parentId: opening.wallId }
+        extraNodes[opening.id] = {
+          ...opening,
+          parentId: opening.wallId,
+          metadata: { ...(opening.metadata as Record<string, unknown>), ...tag },
+        }
       }
       for (const wall of vectorNodes.walls) {
         levelChildIds.push(wall.id)
@@ -94,11 +107,16 @@ export function AptTrace({
           ...wall,
           parentId: levelId,
           children: childIdsByWall.get(wall.id) ?? [],
+          metadata: { ...(wall.metadata as Record<string, unknown>), ...tag },
         }
       }
       for (const zone of vectorNodes.zones) {
         levelChildIds.push(zone.id)
-        extraNodes[zone.id] = { ...zone, parentId: levelId }
+        extraNodes[zone.id] = {
+          ...zone,
+          parentId: levelId,
+          metadata: { ...(zone.metadata as Record<string, unknown>), ...tag },
+        }
       }
     }
 
