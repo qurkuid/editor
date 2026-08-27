@@ -68,7 +68,15 @@ export async function GET(
       job.finally(() => inflight.delete(plainPlanId))
     }
     const doc = await job
-    return aptJson(request, { code: 'OK', data: doc }, 200, 'public, max-age=86400')
+    // a refresh response must never be cached: browsers and the CDN would
+    // otherwise pin the ?refresh=1 URL for a day and the debug viewer's
+    // 다시 분석 button silently stops reaching the server after one use
+    return aptJson(
+      request,
+      { code: 'OK', data: doc },
+      200,
+      refresh ? 'no-store' : 'public, max-age=86400',
+    )
   } catch (error) {
     const known = error instanceof PlanImageError ? error : null
     if (!known) {

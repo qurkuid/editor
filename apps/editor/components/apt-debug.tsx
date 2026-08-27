@@ -110,6 +110,7 @@ export function AptDebug({
   const [refreshTick, setRefreshTick] = useState(0)
   const refreshNextRef = useRef(false)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshTick is the 다시 분석 trigger — removing it kills the button
   useEffect(() => {
     if (!selected) return
     let stale = false
@@ -117,10 +118,14 @@ export function AptDebug({
     refreshNextRef.current = false
     setStatus('loading')
     setDoc(null)
+    // no-store: the route serves public/max-age responses for regular
+    // clients, but the debug viewer must always see the live document —
+    // a cached hit would make 다시 분석 look like a dead button
     fetch(
       withBasePath(
         `/api/apartments/${encodeURIComponent(selected.apartmentId)}/plans/${encodeURIComponent(selected.planId)}/vector${force ? '?refresh=1' : ''}`,
       ),
+      { cache: 'no-store' },
     )
       .then(async (response) => {
         if (!response.ok) throw new Error(String(response.status))
