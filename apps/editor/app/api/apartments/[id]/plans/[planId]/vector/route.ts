@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 const execFileAsync = promisify(execFile)
 // bump together with the vectorizer's build_doc docVersion to invalidate
 // disk-cached documents produced by older extraction logic
-const DOC_VERSION = 5
+const DOC_VERSION = 6
 const VECTORIZE_TIMEOUT_MS = 90_000
 const MAX_STDOUT_BYTES = 16 * 1024 * 1024
 const SAFE_ID = /^[0-9A-Za-z_-]+$/
