@@ -1302,6 +1302,13 @@ export const CustomCameraControls = () => {
   return (
     <CameraControls
       makeDefault
+      // Wheel zoom and pointer drags must track the input 1:1 — no smooth-damp
+      // glide (`draggingSmoothTime` governs user-controlled axes only, so
+      // programmatic transitions keep their `smoothTime` animation) — and the
+      // point under the cursor must stay put while zooming (`dollyToCursor`
+      // applies to both perspective DOLLY and orthographic ZOOM).
+      dollyToCursor
+      draggingSmoothTime={0}
       maxDistance={100}
       maxPolarAngle={maxPolarAngle}
       minDistance={minDistance}
