@@ -20,6 +20,13 @@ export const rawpainterDictionary = {
   },
   'rawpainter.loadMore': { ko: '더 보기', en: 'Load more' },
 
+  'rawpainter.nav.back': { ko: '뒤로', en: 'Back' },
+  'rawpainter.drill.productCount': { ko: '{count}개 제품', en: '{count} products' },
+  'rawpainter.drill.brandsEmpty': {
+    ko: '이 카테고리에는 제조사 정보가 없습니다.',
+    en: 'No brands in this category.',
+  },
+
   'rawpainter.search.ariaLabel': {
     ko: 'RawPainter 자재 검색',
     en: 'Search RawPainter materials',

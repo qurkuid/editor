@@ -13,10 +13,13 @@ const INDEX_BATCH_SIZE = 24
 export const dynamic = 'force-dynamic'
 
 const rawPainterQuerySchema = z.object({
-  view: z.enum(['categories']).optional(),
+  view: z.enum(['categories', 'brands']).optional(),
   page: z.coerce.number().int().min(0).catch(0),
   categoryId: z.coerce.number().int().positive().optional(),
   search: z.string().trim().max(80).optional(),
+  // Not trimmed to `undefined` when empty: `brand=` is a real filter — it
+  // selects the unbranded group.
+  brand: z.string().max(80).optional(),
 })
 
 let catalogIndexPromise: Promise<readonly RawPainterProduct[]> | null = null
@@ -74,14 +77,19 @@ function searchableText(product: RawPainterProduct): string {
     .toLocaleLowerCase('ko-KR')
 }
 
-async function searchCatalog(
-  search: string,
+function productBrand(product: RawPainterProduct): string {
+  return typeof product.brand === 'string' ? product.brand.trim() : ''
+}
+
+async function filterCatalog(
+  input: { readonly search?: string; readonly categoryId?: number; readonly brand?: string },
   page: number,
-  categoryId?: number,
 ): Promise<RawPainterCatalogPage> {
-  const words = search.toLocaleLowerCase('ko-KR').split(/\s+/).filter(Boolean)
+  const words = (input.search ?? '').toLocaleLowerCase('ko-KR').split(/\s+/).filter(Boolean)
   const matches = (await loadCatalogIndex()).filter((product) => {
-    if (categoryId && Number(product.categoryId) !== categoryId) return false
+    if (input.categoryId && Number(product.categoryId) !== input.categoryId) return false
+    if (input.brand !== undefined && productBrand(product) !== input.brand) return false
+    if (words.length === 0) return true
     const haystack = searchableText(product)
     return words.every((word) => haystack.includes(word))
   })
@@ -95,6 +103,21 @@ async function searchCatalog(
   }
 }
 
+/** Brand rollup for the drill-down's middle level — the vendor API has no
+ * brand endpoint, so it is aggregated from the same catalog index search
+ * uses. Sorted by product count so the household names surface first. */
+async function listBrands(categoryId?: number) {
+  const counts = new Map<string, number>()
+  for (const product of await loadCatalogIndex()) {
+    if (categoryId && Number(product.categoryId) !== categoryId) continue
+    const brand = productBrand(product)
+    counts.set(brand, (counts.get(brand) ?? 0) + 1)
+  }
+  return [...counts]
+    .map(([name, productCount]) => ({ name, productCount }))
+    .sort((a, b) => b.productCount - a.productCount || a.name.localeCompare(b.name, 'ko'))
+}
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   const query = rawPainterQuerySchema.parse({
@@ -102,10 +125,23 @@ export async function GET(request: NextRequest) {
     page: url.searchParams.get('page') ?? 0,
     categoryId: url.searchParams.get('categoryId') ?? undefined,
     search: url.searchParams.get('search') ?? undefined,
+    brand: url.searchParams.get('brand') ?? undefined,
   })
-  if (query.search) {
+  if (query.view === 'brands') {
     try {
-      return NextResponse.json(await searchCatalog(query.search, query.page, query.categoryId))
+      return NextResponse.json(await listBrands(query.categoryId))
+    } catch {
+      return NextResponse.json({ error: 'rawpainter_unavailable' }, { status: 502 })
+    }
+  }
+  if (query.search || query.brand !== undefined) {
+    try {
+      return NextResponse.json(
+        await filterCatalog(
+          { search: query.search, categoryId: query.categoryId, brand: query.brand },
+          query.page,
+        ),
+      )
     } catch {
       return NextResponse.json({ error: 'rawpainter_unavailable' }, { status: 502 })
     }

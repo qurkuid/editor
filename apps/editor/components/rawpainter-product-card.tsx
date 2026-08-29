@@ -80,17 +80,17 @@ export function RawPainterProductCard({
             {product.category || t('rawpainter.card.otherCategory')}
           </span>
         </div>
-        <div className="space-y-1.5 p-2.5">
-          <p className="line-clamp-2 min-h-8 font-semibold text-xs leading-4">
+        <div className="space-y-1.5 p-3">
+          <p className="line-clamp-2 font-semibold text-sm leading-5">
             {product.name || `RawPainter ${product.id}`}
           </p>
-          <div className="space-y-0.5 text-[10px] text-muted-foreground">
+          <div className="space-y-0.5 text-[11px] text-muted-foreground">
             <p className="truncate">{brand}</p>
             <p className="truncate">{store}</p>
             <p className="truncate">{size}</p>
           </div>
-          <p className="flex items-center gap-1 font-semibold text-[11px] text-foreground">
-            <BadgeDollarSign className="h-3 w-3" />
+          <p className="flex items-center gap-1 font-semibold text-foreground text-xs">
+            <BadgeDollarSign className="h-3.5 w-3.5" />
             {productPrice(product, t('rawpainter.card.priceInquiry'))}
           </p>
         </div>

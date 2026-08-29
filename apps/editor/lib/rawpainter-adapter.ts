@@ -3,9 +3,11 @@ import type { EditorHostIntegrationAdapter, EditorHostMaterialProduct } from '@p
 import { withBasePath } from './base-path'
 import { getOrCreateBookmatchAsset, getOrCreateSeamlessAsset } from './material-seamless-cache'
 import {
+  type RawPainterBrand,
   type RawPainterCatalogPage,
   type RawPainterCategory,
   type RawPainterProduct,
+  rawPainterBrandListSchema,
   rawPainterCatalogPageSchema,
   rawPainterCategoryListSchema,
 } from './rawpainter-contract'
@@ -220,14 +222,37 @@ export async function loadRawPainterCategories(
   return rawPainterCategoryListSchema.parse(await response.json())
 }
 
+export async function loadRawPainterBrands(
+  categoryId: number | null,
+  fetcher: Fetcher = fetch,
+  signal?: AbortSignal,
+): Promise<readonly RawPainterBrand[]> {
+  const searchParams = new URLSearchParams({ view: 'brands' })
+  if (categoryId !== null) searchParams.set('categoryId', String(categoryId))
+  const response = await fetcher(
+    withBasePath(`/api/materials/rawpainter?${searchParams.toString()}`),
+    { signal },
+  )
+  if (!response.ok) throw new RawPainterCatalogError(response.status)
+  return rawPainterBrandListSchema.parse(await response.json())
+}
+
 export async function loadRawPainterPage(
-  input: { readonly page: number; readonly categoryId: number | null; readonly search?: string },
+  input: {
+    readonly page: number
+    readonly categoryId: number | null
+    readonly search?: string
+    // An empty string is a real filter (the unbranded group); null/undefined
+    // means "no brand filter".
+    readonly brand?: string | null
+  },
   fetcher: Fetcher = fetch,
   signal?: AbortSignal,
 ): Promise<RawPainterCatalogPage> {
   const searchParams = new URLSearchParams({ page: String(input.page) })
   if (input.categoryId !== null) searchParams.set('categoryId', String(input.categoryId))
   if (input.search) searchParams.set('search', input.search)
+  if (input.brand !== undefined && input.brand !== null) searchParams.set('brand', input.brand)
   const response = await fetcher(
     withBasePath(`/api/materials/rawpainter?${searchParams.toString()}`),
     { signal },

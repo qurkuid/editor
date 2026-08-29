@@ -23,7 +23,17 @@ import {
   useScene,
   useT,
 } from '@pascal-app/editor'
-import { Bot, ClipboardPaste, ImagePlus, LoaderCircle, Plus, RotateCw, Star } from 'lucide-react'
+import {
+  Bot,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardPaste,
+  ImagePlus,
+  LoaderCircle,
+  Plus,
+  RotateCw,
+  Star,
+} from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { requestAiMaterialApply } from '@/lib/ai-material-request'
 import useMaterialFavorites, {
@@ -36,13 +46,14 @@ import {
   readClipboardImage,
 } from '@/lib/material-import'
 import {
+  loadRawPainterBrands,
   loadRawPainterCategories,
   loadRawPainterPage,
-  matchMaterialCategoryFromText,
   normalizeRawPainterProductSeamless,
   RawPainterCatalogError,
 } from '@/lib/rawpainter-adapter'
 import type {
+  RawPainterBrand,
   RawPainterCatalogPage,
   RawPainterCategory,
   RawPainterProduct,
@@ -53,6 +64,9 @@ import { RawPainterSearch } from './rawpainter-search'
 type CatalogStatus = 'loading' | 'ready' | 'error'
 type CatalogRequest = {
   readonly categoryId: number | null
+  // null = no brand chosen yet (the drill-down's brand level); '' = the
+  // unbranded product group.
+  readonly brand: string | null
   readonly search: string
   readonly revision: number
 }
@@ -200,7 +214,7 @@ function SwatchTile({
             <div className="h-full w-full" style={{ backgroundColor: color ?? '#f3f4f6' }} />
           )}
         </div>
-        <span className="w-full truncate px-0.5 text-left font-medium text-[10px] text-muted-foreground group-hover:text-foreground">
+        <span className="w-full truncate px-0.5 text-left font-medium text-[11px] text-muted-foreground group-hover:text-foreground">
           {label}
         </span>
       </button>
@@ -221,7 +235,53 @@ function SectionLabel({ children, action }: { children: ReactNode; action?: Reac
   )
 }
 
-const SWATCH_GRID_STYLE = { gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))' }
+const SWATCH_GRID_STYLE = { gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }
+
+/** One level of the category → brand drill-down: a large tappable row. */
+function DrillRow({
+  label,
+  count,
+  onClick,
+}: {
+  label: string
+  count: number
+  onClick: () => void
+}) {
+  const t = useT()
+  return (
+    <button
+      className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/70 bg-background/65 px-3.5 py-3 text-left transition-colors hover:border-foreground/35 hover:bg-sidebar-accent"
+      onClick={onClick}
+      type="button"
+    >
+      <span className="min-w-0">
+        <span className="block truncate font-semibold text-sm">{label}</span>
+        <span className="mt-0.5 block text-[11px] text-muted-foreground">
+          {t('rawpainter.drill.productCount').replace('{count}', count.toLocaleString('ko-KR'))}
+        </span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </button>
+  )
+}
+
+function DrillHeader({ trail, onBack }: { trail: string; onBack: () => void }) {
+  const t = useT()
+  return (
+    <div className="mb-2 flex items-center gap-1.5">
+      <button
+        aria-label={t('rawpainter.nav.back')}
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border/70 text-muted-foreground transition-colors hover:text-foreground"
+        onClick={onBack}
+        title={t('rawpainter.nav.back')}
+        type="button"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <span className="truncate font-semibold text-sm">{trail}</span>
+    </div>
+  )
+}
 
 function libraryFavorite(item: MaterialCatalogItem): MaterialFavorite {
   return {
@@ -246,8 +306,10 @@ function libraryFavorite(item: MaterialCatalogItem): MaterialFavorite {
 export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boolean } = {}) {
   const t = useT()
   const [categories, setCategories] = useState<readonly RawPainterCategory[]>([])
+  const [brands, setBrands] = useState<readonly RawPainterBrand[] | null>(null)
   const [catalogRequest, setCatalogRequest] = useState<CatalogRequest>({
     categoryId: null,
+    brand: null,
     search: '',
     revision: 0,
   })
@@ -291,19 +353,14 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
     // libraryVersion invalidates the registry snapshot on host (un)registrations.
   }, [])
 
-  // The category chips and the search box filter the WHOLE catalog: the
-  // selected vendor category maps onto the local taxonomy so the built-in and
-  // my-material sections narrow together with the RawPainter products.
+  // The drill-down position is RawPainter navigation context, not a global
+  // filter — the local sections narrow with the search box only, so 내 자재
+  // never appears to vanish while browsing the vendor catalog.
   const activeVendorCategory = categories.find((category) => category.id === categoryId) ?? null
-  const localCategory = activeVendorCategory
-    ? matchMaterialCategoryFromText(activeVendorCategory.name)
-    : null
   const query = searchInput.trim().toLowerCase()
   const matchesQuery = (label: string) => !query || label.toLowerCase().includes(query)
-  const matchesLocalFilters = (item: MaterialCatalogItem) =>
-    matchesQuery(item.label) && (!localCategory || item.category === localCategory)
-  const visibleBuiltin = builtinItems.filter(matchesLocalFilters)
-  const visibleMyLibrary = myLibraryItems.filter(matchesLocalFilters)
+  const visibleBuiltin = builtinItems.filter((item) => matchesQuery(item.label))
+  const visibleMyLibrary = myLibraryItems.filter((item) => matchesQuery(item.label))
 
   useEffect(() => {
     if (sceneOnly) return
@@ -315,6 +372,22 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
       })
     return () => controller.abort()
   }, [sceneOnly])
+
+  // The drill-down's brand level for the selected category.
+  useEffect(() => {
+    if (sceneOnly || categoryId === null) {
+      setBrands(null)
+      return
+    }
+    const controller = new AbortController()
+    setBrands(null)
+    void loadRawPainterBrands(categoryId, fetch, controller.signal)
+      .then(setBrands)
+      .catch((cause: unknown) => {
+        if (!isAbortError(cause)) setError(errorMessage(cause))
+      })
+    return () => controller.abort()
+  }, [categoryId, sceneOnly])
 
   // Live search: typing narrows the local sections instantly and, after a
   // short pause, re-queries the RawPainter server — no Enter required.
@@ -330,6 +403,17 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
 
   useEffect(() => {
     if (sceneOnly) return
+    // Products load only at the drill-down's leaf (category + brand chosen)
+    // or for a search; the category and brand levels are pure navigation.
+    const wantsProducts =
+      catalogRequest.search !== '' ||
+      (catalogRequest.categoryId !== null && catalogRequest.brand !== null)
+    if (!wantsProducts) {
+      setProducts([])
+      setNextPage(null)
+      setStatus('ready')
+      return
+    }
     const controller = new AbortController()
     setStatus('loading')
     setError(null)
@@ -337,6 +421,7 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
       {
         page: 0,
         categoryId: catalogRequest.categoryId,
+        brand: catalogRequest.brand,
         search: catalogRequest.search,
       },
       fetch,
@@ -365,7 +450,12 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
     setLoadingMore(true)
     try {
       appendPage(
-        await loadRawPainterPage({ page: nextPage, categoryId, search: catalogRequest.search }),
+        await loadRawPainterPage({
+          page: nextPage,
+          categoryId,
+          brand: catalogRequest.brand,
+          search: catalogRequest.search,
+        }),
       )
     } catch (cause) {
       if (cause instanceof Error) setError(errorMessage(cause))
@@ -471,6 +561,28 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
 
   const combinedError = error ?? actionError ?? importError
 
+  // Category → brand → product drill-down. A live search shows products
+  // directly, scoped to wherever the drill-down currently points.
+  const drillPane: 'categories' | 'brands' | 'products' =
+    catalogRequest.search !== ''
+      ? 'products'
+      : categoryId === null
+        ? 'categories'
+        : catalogRequest.brand === null
+          ? 'brands'
+          : 'products'
+  const brandLabel = catalogRequest.brand
+    ? catalogRequest.brand
+    : t('rawpainter.card.unbrandedLabel')
+  const enterCategory = (id: number) =>
+    setCatalogRequest((current) => ({ ...current, categoryId: id, brand: null, revision: 0 }))
+  const enterBrand = (name: string) =>
+    setCatalogRequest((current) => ({ ...current, brand: name, revision: 0 }))
+  const backToCategories = () =>
+    setCatalogRequest((current) => ({ ...current, categoryId: null, brand: null, revision: 0 }))
+  const backToBrands = () =>
+    setCatalogRequest((current) => ({ ...current, brand: null, revision: 0 }))
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       {sceneOnly ? null : (
@@ -481,33 +593,6 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
             onSubmit={submitSearch}
             value={searchInput}
           />
-          <div className="subtle-scrollbar mt-2 flex max-h-24 flex-wrap gap-1 overflow-y-auto">
-            <button
-              className={`rounded-md px-2 py-1 text-[10px] ${categoryId === null ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}`}
-              onClick={() =>
-                setCatalogRequest((current) => ({ ...current, categoryId: null, revision: 0 }))
-              }
-              type="button"
-            >
-              {t('rawpainter.categories.all')}
-            </button>
-            {categories.map((category) => (
-              <button
-                className={`rounded-md px-2 py-1 text-[10px] ${categoryId === category.id ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
-                key={category.id}
-                onClick={() =>
-                  setCatalogRequest((current) => ({
-                    ...current,
-                    categoryId: category.id,
-                    revision: 0,
-                  }))
-                }
-                type="button"
-              >
-                {category.name} {category.productCount.toLocaleString('ko-KR')}
-              </button>
-            ))}
-          </div>
         </div>
       )}
 
@@ -629,61 +714,120 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
           </>
         ) : null}
 
-        {/* RawPainter — the external vendor catalog. */}
+        {/* RawPainter — the external vendor catalog, browsed category →
+            brand → products (or searched directly). */}
         {sceneOnly ? null : (
           <>
             <SectionLabel>{t('painting.catalog.rawpainter')}</SectionLabel>
-            {status === 'loading' ? (
-              <div className="flex h-40 items-center justify-center gap-2 text-muted-foreground text-xs">
-                <LoaderCircle className="h-4 w-4 animate-spin" /> {t('rawpainter.loading')}
-              </div>
-            ) : null}
-            {status === 'error' ? (
-              <button
-                className="mx-auto flex items-center gap-2 rounded-lg border px-3 py-2 text-xs"
-                onClick={() =>
-                  setCatalogRequest((current) => ({ ...current, revision: current.revision + 1 }))
-                }
-                type="button"
-              >
-                <RotateCw className="h-3.5 w-3.5" /> {t('rawpainter.retry')}
-              </button>
-            ) : null}
-            {status === 'ready' ? (
-              products.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2 pb-2">
-                  {products.map((product) => (
-                    <RawPainterProductCard
-                      favorite={`rawpainter:${String(product.id)}` in favorites}
-                      key={String(product.id)}
-                      onAiRequest={(item) => void requestAiApply(item)}
-                      onSelect={(item) => void selectProduct(item)}
-                      onToggleFavorite={(item) =>
-                        toggleFavorite({ kind: 'rawpainter', product: item })
-                      }
-                      processing={processingId === String(product.id)}
-                      product={product}
-                      selected={activePaintMaterialId === `rawpainter:${String(product.id)}`}
+            {drillPane === 'categories' ? (
+              categories.length > 0 ? (
+                <div className="flex flex-col gap-1.5 pb-2">
+                  {categories.map((category) => (
+                    <DrillRow
+                      count={category.productCount}
+                      key={category.id}
+                      label={category.name}
+                      onClick={() => enterCategory(category.id)}
                     />
                   ))}
                 </div>
-              ) : (
-                <div className="flex h-40 flex-col items-center justify-center gap-1 text-center">
-                  <p className="font-medium text-xs">{t('rawpainter.empty.title')}</p>
-                  <p className="text-[10px] text-muted-foreground">{t('rawpainter.empty.desc')}</p>
+              ) : combinedError ? null : (
+                <div className="flex h-40 items-center justify-center gap-2 text-muted-foreground text-xs">
+                  <LoaderCircle className="h-4 w-4 animate-spin" /> {t('rawpainter.loading')}
                 </div>
               )
             ) : null}
-            {status === 'ready' && nextPage !== null ? (
-              <button
-                className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-border/70 bg-background/70 py-2 text-xs hover:bg-sidebar-accent"
-                disabled={loadingMore}
-                onClick={() => void loadMore()}
-                type="button"
-              >
-                {loadingMore ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
-                {t('rawpainter.loadMore')}
-              </button>
+            {drillPane === 'brands' ? (
+              <>
+                <DrillHeader onBack={backToCategories} trail={activeVendorCategory?.name ?? ''} />
+                {brands === null ? (
+                  <div className="flex h-40 items-center justify-center gap-2 text-muted-foreground text-xs">
+                    <LoaderCircle className="h-4 w-4 animate-spin" /> {t('rawpainter.loading')}
+                  </div>
+                ) : brands.length > 0 ? (
+                  <div className="flex flex-col gap-1.5 pb-2">
+                    {brands.map((brand) => (
+                      <DrillRow
+                        count={brand.productCount}
+                        key={brand.name || ' unbranded'}
+                        label={brand.name || t('rawpainter.card.unbrandedLabel')}
+                        onClick={() => enterBrand(brand.name)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="px-0.5 py-1 text-muted-foreground text-xs">
+                    {t('rawpainter.drill.brandsEmpty')}
+                  </p>
+                )}
+              </>
+            ) : null}
+            {drillPane === 'products' ? (
+              <>
+                {catalogRequest.search === '' && catalogRequest.brand !== null ? (
+                  <DrillHeader
+                    onBack={backToBrands}
+                    trail={`${activeVendorCategory?.name ?? ''} · ${brandLabel}`}
+                  />
+                ) : null}
+                {status === 'loading' ? (
+                  <div className="flex h-40 items-center justify-center gap-2 text-muted-foreground text-xs">
+                    <LoaderCircle className="h-4 w-4 animate-spin" /> {t('rawpainter.loading')}
+                  </div>
+                ) : null}
+                {status === 'error' ? (
+                  <button
+                    className="mx-auto flex items-center gap-2 rounded-lg border px-3 py-2 text-xs"
+                    onClick={() =>
+                      setCatalogRequest((current) => ({
+                        ...current,
+                        revision: current.revision + 1,
+                      }))
+                    }
+                    type="button"
+                  >
+                    <RotateCw className="h-3.5 w-3.5" /> {t('rawpainter.retry')}
+                  </button>
+                ) : null}
+                {status === 'ready' ? (
+                  products.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-2.5 pb-2">
+                      {products.map((product) => (
+                        <RawPainterProductCard
+                          favorite={`rawpainter:${String(product.id)}` in favorites}
+                          key={String(product.id)}
+                          onAiRequest={(item) => void requestAiApply(item)}
+                          onSelect={(item) => void selectProduct(item)}
+                          onToggleFavorite={(item) =>
+                            toggleFavorite({ kind: 'rawpainter', product: item })
+                          }
+                          processing={processingId === String(product.id)}
+                          product={product}
+                          selected={activePaintMaterialId === `rawpainter:${String(product.id)}`}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex h-40 flex-col items-center justify-center gap-1 text-center">
+                      <p className="font-medium text-xs">{t('rawpainter.empty.title')}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {t('rawpainter.empty.desc')}
+                      </p>
+                    </div>
+                  )
+                ) : null}
+                {status === 'ready' && nextPage !== null ? (
+                  <button
+                    className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-border/70 bg-background/70 py-2 text-xs hover:bg-sidebar-accent"
+                    disabled={loadingMore}
+                    onClick={() => void loadMore()}
+                    type="button"
+                  >
+                    {loadingMore ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
+                    {t('rawpainter.loadMore')}
+                  </button>
+                ) : null}
+              </>
             ) : null}
           </>
         )}
@@ -782,7 +926,7 @@ export function FavoriteMaterialsGrid() {
         </div>
       ) : null}
       {productFavorites.length > 0 ? (
-        <div className="mt-2 grid grid-cols-2 gap-2 pb-2">
+        <div className="mt-2 grid grid-cols-1 gap-2.5 pb-2">
           {productFavorites.map((favorite) =>
             favorite.kind === 'rawpainter' ? (
               <RawPainterProductCard

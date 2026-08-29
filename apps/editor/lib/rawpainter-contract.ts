@@ -47,6 +47,19 @@ export const rawPainterCategorySchema = z
 
 export type RawPainterCategory = z.infer<typeof rawPainterCategorySchema>
 
+// Brand rows are aggregated by the app's proxy route from its catalog index —
+// the vendor API has no brand endpoint. An empty name is the unbranded group.
+export const rawPainterBrandSchema = z
+  .object({
+    name: z.string(),
+    productCount: z.number(),
+  })
+  .readonly()
+
+export type RawPainterBrand = z.infer<typeof rawPainterBrandSchema>
+
+export const rawPainterBrandListSchema = z.array(rawPainterBrandSchema).readonly()
+
 export const rawPainterCatalogPageSchema = z
   .object({
     products: z.array(rawPainterProductSchema).readonly(),

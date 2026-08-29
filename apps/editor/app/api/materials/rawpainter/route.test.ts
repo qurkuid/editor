@@ -79,4 +79,52 @@ describe('RawPainter material proxy', () => {
       total: 1,
     })
   })
+
+  // The two tests below serve the same two-page catalog the search test
+  // serves, so they pass identically whether the module-level index cache is
+  // warm (full-file run) or cold (isolated run).
+  const serveIndexPages = () => {
+    globalThis.fetch = async (_input, init) => {
+      const request = JSON.parse(String(init?.body)) as { payload: { page: number } }
+      const products =
+        request.payload.page === 0
+          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha' }]
+          : [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta' }]
+      return Response.json({ products, next: null, total: 2, pageNum: 2 })
+    }
+  }
+
+  test('aggregates brands from the catalog index, busiest first', async () => {
+    // Given: the catalog index is reachable.
+    serveIndexPages()
+
+    // When: the drill-down requests the brand rollup.
+    const response = await GET(
+      new NextRequest('http://localhost:3002/api/materials/rawpainter?view=brands'),
+    )
+
+    // Then: one row per brand with counts, ties ordered by name.
+    expect(await response.json()).toEqual([
+      { name: 'Raw Studio', productCount: 1 },
+      { name: 'Woodworks', productCount: 1 },
+    ])
+  })
+
+  test('filters the product list to one brand', async () => {
+    // Given: the catalog index is reachable.
+    serveIndexPages()
+
+    // When: the drill-down's product level asks for a single brand.
+    const response = await GET(
+      new NextRequest('http://localhost:3002/api/materials/rawpainter?page=0&brand=Woodworks'),
+    )
+
+    // Then: only that brand's products come back.
+    expect(await response.json()).toEqual({
+      products: [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha' }],
+      next: null,
+      pageNum: 1,
+      total: 1,
+    })
+  })
 })
