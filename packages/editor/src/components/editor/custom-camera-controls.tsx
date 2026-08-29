@@ -16,9 +16,12 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   Box3,
   type Camera,
+  type Object3D,
   type OrthographicCamera,
   type PerspectiveCamera,
+  Raycaster,
   Spherical,
+  Vector2,
   Vector3,
 } from 'three'
 import {
@@ -32,6 +35,13 @@ import {
 } from '../../lib/camera-pose'
 import { EDITOR_LAYER } from '../../lib/constants'
 import { editorOwnsOneFingerDrag } from '../../lib/touch-gesture-priority'
+import {
+  normalizeWheelZoomNotches,
+  resolveWheelZoomStep,
+  WHEEL_ZOOM_GESTURE_TIMEOUT_MS,
+  WHEEL_ZOOM_MAX_REF_M,
+  WHEEL_ZOOM_OUT_LIMIT_M,
+} from '../../lib/wheel-zoom'
 import { publishCameraPose } from '../../store/camera-pose-store'
 import useEditor from '../../store/use-editor'
 import {
@@ -51,6 +61,15 @@ const tempTarget = new Vector3()
 const transitionFreezePosition = new Vector3()
 const transitionFreezeTarget = new Vector3()
 const keyboardPanSpherical = new Spherical()
+const wheelNdc = new Vector2()
+const wheelPosition = new Vector3()
+const wheelTarget = new Vector3()
+const wheelViewDir = new Vector3()
+const wheelToAnchor = new Vector3()
+const wheelNextPosition = new Vector3()
+/** Orbit-pivot depth clamp — stays inside the control's distance bounds. */
+const WHEEL_PIVOT_MIN_M = 0.5
+const WHEEL_PIVOT_MAX_M = 90
 const DEFAULT_MAX_POLAR_ANGLE = Math.PI / 2 - 0.1
 const DEBUG_MAX_POLAR_ANGLE = Math.PI - 0.05
 const KEYBOARD_PAN_VIEW_WIDTH_PER_SECOND = 0.65
@@ -380,7 +399,13 @@ export const CustomCameraControls = () => {
   const camera = useThree((state) => state.camera)
   const gl = useThree((state) => state.gl)
   const raycaster = useThree((state) => state.raycaster)
+  const scene = useThree((state) => state.scene)
   const viewportSize = useThree((state) => state.size)
+  const wheelGesture = useRef<{
+    anchor: Vector3
+    rayDir: Vector3
+    lastTime: number
+  } | null>(null)
   const cameraDraggingLifecycle = useMemo(
     () =>
       createCameraDraggingLifecycle({
@@ -686,11 +711,13 @@ export const CustomCameraControls = () => {
 
   // Configure mouse buttons based on control mode and camera mode
   const mouseButtons = useMemo(() => {
-    // Use ZOOM for orthographic camera, DOLLY for perspective camera
+    // Orthographic wheel stays on the library's ZOOM (cursor-anchored via
+    // dollyToCursor). Perspective wheel is NONE: the library ignores the event
+    // entirely (pinch included), leaving it to the depth-aware handler below.
     const wheelAction =
       cameraMode === 'orthographic'
         ? CameraControlsImpl.ACTION.ZOOM
-        : CameraControlsImpl.ACTION.DOLLY
+        : CameraControlsImpl.ACTION.NONE
 
     return {
       left: isPreviewMode ? CameraControlsImpl.ACTION.SCREEN_PAN : CameraControlsImpl.ACTION.NONE,
@@ -817,7 +844,7 @@ export const CustomCameraControls = () => {
       const wheelAction =
         cameraMode === 'orthographic'
           ? CameraControlsImpl.ACTION.ZOOM
-          : CameraControlsImpl.ACTION.DOLLY
+          : CameraControlsImpl.ACTION.NONE
       controls.current.mouseButtons.wheel = wheelAction
       controls.current.mouseButtons.middle = CameraControlsImpl.ACTION.SCREEN_PAN
       controls.current.mouseButtons.right = CameraControlsImpl.ACTION.ROTATE
@@ -911,9 +938,121 @@ export const CustomCameraControls = () => {
       updateNavigationCursor()
     }
 
-    const onWheel = () => {
+    const wheelRaycaster = new Raycaster()
+
+    const acquireWheelAnchor = (event: WheelEvent) => {
+      const rect = gl.domElement.getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) return null
+      wheelNdc.set(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        ((event.clientY - rect.top) / rect.height) * -2 + 1,
+      )
+      wheelRaycaster.setFromCamera(wheelNdc, camera)
+      const ray = wheelRaycaster.ray
+
+      // Real geometry under the cursor wins. The default layer mask already
+      // skips grid/editor helper layers; hidden subtrees are filtered here
+      // because Raycaster does not test visibility itself.
+      for (const hit of wheelRaycaster.intersectObjects(scene.children, true)) {
+        let ancestor: Object3D | null = hit.object
+        let visible = true
+        while (ancestor) {
+          if (!ancestor.visible) {
+            visible = false
+            break
+          }
+          ancestor = ancestor.parent
+        }
+        if (visible) {
+          return { anchor: hit.point.clone(), rayDir: ray.direction.clone() }
+        }
+      }
+
+      // Fallback: the active level's ground plane — a floorplan scene always
+      // has a meaningful floor, so empty-space zooms stay scaled to the room
+      // instead of rocketing off a sky-distance reference.
+      const levelId = useViewer.getState().selection.levelId
+      const levelY = levelId ? (sceneRegistry.nodes.get(levelId)?.position.y ?? 0) : 0
+      if (Math.abs(ray.direction.y) > 1e-6) {
+        const t = (levelY - ray.origin.y) / ray.direction.y
+        if (t > 0 && t < WHEEL_ZOOM_OUT_LIMIT_M) {
+          return {
+            anchor: ray.origin.clone().addScaledVector(ray.direction, t),
+            rayDir: ray.direction.clone(),
+          }
+        }
+      }
+
+      // Cursor above the horizon: a capped far anchor.
+      return {
+        anchor: ray.origin.clone().addScaledVector(ray.direction, WHEEL_ZOOM_MAX_REF_M),
+        rayDir: ray.direction.clone(),
+      }
+    }
+
+    // Depth-aware wheel zoom (perspective only): travel scales with the
+    // distance to the anchor under the cursor — SketchUp's law with its
+    // stall/rocket ends clamped away (see lib/wheel-zoom.ts). Orthographic
+    // wheel returns early to the library's cursor-anchored ZOOM action.
+    const onWheel = (event: WheelEvent) => {
       beginLocalCameraInteraction()
       cameraDraggingLifecycle.scheduleEnd()
+      if (cameraMode === 'orthographic') return
+
+      event.preventDefault()
+
+      const control = controls.current
+      if (!control) return
+      const notches = normalizeWheelZoomNotches(event)
+      if (notches === 0) return
+
+      const now = performance.now()
+      let gesture = wheelGesture.current
+      if (!gesture || now - gesture.lastTime > WHEEL_ZOOM_GESTURE_TIMEOUT_MS) {
+        const acquired = acquireWheelAnchor(event)
+        if (!acquired) return
+        gesture = { ...acquired, lastTime: now }
+        wheelGesture.current = gesture
+      }
+      gesture.lastTime = now
+
+      control.getPosition(wheelPosition)
+      control.getTarget(wheelTarget)
+      const signedAnchorDist = wheelToAnchor
+        .copy(gesture.anchor)
+        .sub(wheelPosition)
+        .dot(gesture.rayDir)
+      const travel = resolveWheelZoomStep(signedAnchorDist, notches)
+      if (travel === 0) return
+
+      wheelViewDir.copy(wheelTarget).sub(wheelPosition)
+      const targetDistance = wheelViewDir.length()
+      if (targetDistance < 1e-6) return
+      wheelViewDir.divideScalar(targetDistance)
+
+      // Pure translation along the gesture's fixed cursor ray: with no
+      // rotation, the anchor stays pinned under the cursor by construction.
+      wheelNextPosition.copy(wheelPosition).addScaledVector(gesture.rayDir, travel)
+      // Keep the orbit pivot on the view axis at the anchor's depth so a
+      // subsequent orbit rotates around what was zoomed to. Past the anchor,
+      // hold the previous depth instead of collapsing the pivot onto the
+      // camera (which would make orbiting spin in place).
+      const remaining = signedAnchorDist - travel
+      const pivotDepth = clampFinite(
+        remaining > WHEEL_PIVOT_MIN_M ? remaining : targetDistance,
+        WHEEL_PIVOT_MIN_M,
+        WHEEL_PIVOT_MAX_M,
+      )
+      wheelTarget.copy(wheelNextPosition).addScaledVector(wheelViewDir, pivotDepth)
+      void control.setLookAt(
+        wheelNextPosition.x,
+        wheelNextPosition.y,
+        wheelNextPosition.z,
+        wheelTarget.x,
+        wheelTarget.y,
+        wheelTarget.z,
+        false,
+      )
     }
 
     const onPointerUp = (event: PointerEvent) => {
@@ -942,7 +1081,7 @@ export const CustomCameraControls = () => {
     window.addEventListener('pointerup', onPointerUp, true)
     window.addEventListener('pointercancel', onPointerUp, true)
     window.addEventListener('blur', onBlur)
-    gl.domElement.addEventListener('wheel', onWheel, { capture: true, passive: true })
+    gl.domElement.addEventListener('wheel', onWheel, { capture: true, passive: false })
     updateConfig()
 
     return () => {
@@ -959,11 +1098,13 @@ export const CustomCameraControls = () => {
     }
   }, [
     beginLocalCameraInteraction,
+    camera,
     cameraDraggingLifecycle,
     cameraMode,
     gl,
     isPreviewMode,
     isFirstPersonMode,
+    scene,
   ])
 
   // `controlstart` fires only for user pointer interactions. Pointerdowns
@@ -1287,13 +1428,9 @@ export const CustomCameraControls = () => {
     }
   }, [cameraDraggingLifecycle])
 
-  // Preset capture mode frames a single subtree (often a 0.3–2m preset),
-  // so the default 2m minDistance prevents the user from getting close
-  // enough to compose a good thumbnail. Relax the clamp to 0.5m while
-  // capturing presets; reset on exit so general editing keeps the looser
-  // navigation guardrails.
-  const isPresetCapture = captureMode.mode === 'preset'
-  const minDistance = isPresetCapture ? 0.5 : 2
+  // The wheel zoom's approach floor replaced the old 2m navigation clamp;
+  // 0.3m still leaves room for close-up inspection and preset thumbnails.
+  const minDistance = 0.3
 
   if (isFirstPersonMode) {
     return null
@@ -1302,11 +1439,12 @@ export const CustomCameraControls = () => {
   return (
     <CameraControls
       makeDefault
-      // Wheel zoom and pointer drags must track the input 1:1 — no smooth-damp
-      // glide (`draggingSmoothTime` governs user-controlled axes only, so
-      // programmatic transitions keep their `smoothTime` animation) — and the
-      // point under the cursor must stay put while zooming (`dollyToCursor`
-      // applies to both perspective DOLLY and orthographic ZOOM).
+      // User input must track 1:1 — no smooth-damp glide (`draggingSmoothTime`
+      // governs user-controlled axes only; programmatic transitions keep their
+      // `smoothTime` animation). `dollyToCursor` pins the cursor point for the
+      // interactions the library still owns: orthographic wheel ZOOM and touch
+      // pinch. The perspective wheel bypasses the library entirely (see the
+      // depth-aware wheel handler above).
       dollyToCursor
       draggingSmoothTime={0}
       maxDistance={100}
