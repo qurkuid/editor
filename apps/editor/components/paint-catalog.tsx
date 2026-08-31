@@ -311,9 +311,10 @@ function libraryFavorite(item: MaterialCatalogItem): MaterialFavorite {
  * pinned 기본 자재 pseudo-brand inside matching categories (synthetic
  * categories cover the rest), so nothing lives beside the drill-down anymore.
  *
- * `sceneOnly` (the tab bar's house view) keeps just the 내 자재 section —
- * the materials this scene actually uses — and skips the search header and
- * every RawPainter request.
+ * `sceneOnly` (the tab bar's house view) is the ONLY home of the 내 자재
+ * section — the materials this scene actually uses plus imports — and skips
+ * the search header and every RawPainter request. The default view carries
+ * no local sections at all.
  */
 export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boolean } = {}) {
   const t = useT()
@@ -648,105 +649,111 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
       ) : null}
 
       <div className="subtle-scrollbar min-h-0 flex-1 overflow-y-auto">
-        {/* 내 자재 — scene materials (managed rows) + registered host/library materials. */}
-        <SectionLabel
-          action={
-            <div className="flex items-center gap-1">
-              <input
-                accept={MATERIAL_IMPORT_MIME_TYPES.join(',')}
-                className="sr-only"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  event.target.value = ''
-                  if (!file) return
-                  void importMaterialImage(file, file.name.replace(/\.[^.]+$/, '') || file.name)
-                }}
-                ref={importFileInputRef}
-                type="file"
-              />
-              <button
-                aria-label={t('painting.importFile')}
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground"
-                onClick={() => importFileInputRef.current?.click()}
-                title={t('painting.importFile')}
-                type="button"
-              >
-                <ImagePlus className="h-3.5 w-3.5" />
-              </button>
-              <button
-                aria-label={t('painting.importClipboard')}
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground"
-                onClick={() => void importFromClipboard()}
-                title={t('painting.importClipboard')}
-                type="button"
-              >
-                <ClipboardPaste className="h-3.5 w-3.5" />
-              </button>
-              <button
-                aria-label={t('painting.addMaterial')}
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground"
-                onClick={createCustomMaterial}
-                title={t('painting.addMaterial')}
-                type="button"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          }
-        >
-          {t('painting.section.myMaterials')}
-        </SectionLabel>
-        {sceneMaterialCount > 0 ? (
-          <SceneMaterialList
-            autoEditId={autoEditMaterialId}
-            filter={(_, sceneMaterial) => matchesQuery(sceneMaterial.name)}
-            rowActions={(id, sceneMaterial) => (
-              <>
-                <button
-                  aria-label={
-                    `scene:${id}` in favorites
-                      ? t('painting.favorites.remove')
-                      : t('painting.favorites.add')
-                  }
-                  aria-pressed={`scene:${id}` in favorites}
-                  className={`flex h-7 w-7 items-center justify-center rounded-md border border-border/70 transition-colors ${
-                    `scene:${id}` in favorites
-                      ? 'bg-amber-400/20 text-amber-500'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                  onClick={() => toggleFavorite({ kind: 'scene', id })}
-                  type="button"
-                >
-                  <Star
-                    className={`h-3.5 w-3.5 ${`scene:${id}` in favorites ? 'fill-current' : ''}`}
+        {/* 내 자재 — scene materials (managed rows) + registered host/library
+            materials. Lives ONLY in the house view; the default 자재 view is
+            purely the unified drill-down catalog. */}
+        {sceneOnly ? (
+          <>
+            <SectionLabel
+              action={
+                <div className="flex items-center gap-1">
+                  <input
+                    accept={MATERIAL_IMPORT_MIME_TYPES.join(',')}
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      event.target.value = ''
+                      if (!file) return
+                      void importMaterialImage(file, file.name.replace(/\.[^.]+$/, '') || file.name)
+                    }}
+                    ref={importFileInputRef}
+                    type="file"
                   />
-                </button>
-                <button
-                  aria-label={t('painting.ai.request')}
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border/70 text-emerald-600 hover:text-emerald-500"
-                  onClick={() =>
-                    requestAiMaterialApply({
-                      name: sceneMaterial.name,
-                      ref: toSceneMaterialRef(id),
-                    })
-                  }
-                  title={t('painting.ai.request')}
-                  type="button"
-                >
-                  <Bot className="h-3.5 w-3.5" />
-                </button>
-              </>
+                  <button
+                    aria-label={t('painting.importFile')}
+                    className="flex h-6 w-6 items-center justify-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground"
+                    onClick={() => importFileInputRef.current?.click()}
+                    title={t('painting.importFile')}
+                    type="button"
+                  >
+                    <ImagePlus className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    aria-label={t('painting.importClipboard')}
+                    className="flex h-6 w-6 items-center justify-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground"
+                    onClick={() => void importFromClipboard()}
+                    title={t('painting.importClipboard')}
+                    type="button"
+                  >
+                    <ClipboardPaste className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    aria-label={t('painting.addMaterial')}
+                    className="flex h-6 w-6 items-center justify-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground"
+                    onClick={createCustomMaterial}
+                    title={t('painting.addMaterial')}
+                    type="button"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              }
+            >
+              {t('painting.section.myMaterials')}
+            </SectionLabel>
+            {sceneMaterialCount > 0 ? (
+              <SceneMaterialList
+                autoEditId={autoEditMaterialId}
+                filter={(_, sceneMaterial) => matchesQuery(sceneMaterial.name)}
+                rowActions={(id, sceneMaterial) => (
+                  <>
+                    <button
+                      aria-label={
+                        `scene:${id}` in favorites
+                          ? t('painting.favorites.remove')
+                          : t('painting.favorites.add')
+                      }
+                      aria-pressed={`scene:${id}` in favorites}
+                      className={`flex h-7 w-7 items-center justify-center rounded-md border border-border/70 transition-colors ${
+                        `scene:${id}` in favorites
+                          ? 'bg-amber-400/20 text-amber-500'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                      onClick={() => toggleFavorite({ kind: 'scene', id })}
+                      type="button"
+                    >
+                      <Star
+                        className={`h-3.5 w-3.5 ${`scene:${id}` in favorites ? 'fill-current' : ''}`}
+                      />
+                    </button>
+                    <button
+                      aria-label={t('painting.ai.request')}
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border/70 text-emerald-600 hover:text-emerald-500"
+                      onClick={() =>
+                        requestAiMaterialApply({
+                          name: sceneMaterial.name,
+                          ref: toSceneMaterialRef(id),
+                        })
+                      }
+                      title={t('painting.ai.request')}
+                      type="button"
+                    >
+                      <Bot className="h-3.5 w-3.5" />
+                    </button>
+                  </>
+                )}
+              />
+            ) : (
+              <p className="px-0.5 py-1 text-muted-foreground text-xs">
+                {t('painting.noSceneMaterials')}
+              </p>
             )}
-          />
-        ) : (
-          <p className="px-0.5 py-1 text-muted-foreground text-xs">
-            {t('painting.noSceneMaterials')}
-          </p>
-        )}
-        {visibleMyLibrary.length > 0 ? (
-          <div className="mt-2 grid gap-2" style={SWATCH_GRID_STYLE}>
-            {visibleMyLibrary.map(libraryTile)}
-          </div>
+            {visibleMyLibrary.length > 0 ? (
+              <div className="mt-2 grid gap-2" style={SWATCH_GRID_STYLE}>
+                {visibleMyLibrary.map(libraryTile)}
+              </div>
+            ) : null}
+          </>
         ) : null}
 
         {/* 자재 카탈로그 — built-in and RawPainter materials as one system,
