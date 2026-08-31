@@ -15,6 +15,25 @@ export const paintingDictionary = {
   'painting.resetAll': { ko: '원래대로', en: 'Reset all' },
   'painting.section.myMaterials': { ko: '내 자재', en: 'My materials' },
   'painting.section.builtin': { ko: '기본 자재', en: 'Built-in materials' },
+
+  // Local material-taxonomy labels — synthetic drill-down categories for
+  // built-ins no vendor category hosts.
+  'materialCategory.colors': { ko: '컬러·페인트', en: 'Colors & paint' },
+  'materialCategory.wood': { ko: '목재', en: 'Wood' },
+  'materialCategory.stone': { ko: '석재', en: 'Stone' },
+  'materialCategory.brick': { ko: '벽돌', en: 'Brick' },
+  'materialCategory.tile': { ko: '타일', en: 'Tile' },
+  'materialCategory.wallpaper': { ko: '벽지', en: 'Wallpaper' },
+  'materialCategory.concrete': { ko: '콘크리트', en: 'Concrete' },
+  'materialCategory.metal': { ko: '금속', en: 'Metal' },
+  'materialCategory.plastic': { ko: '플라스틱', en: 'Plastic' },
+  'materialCategory.fabric': { ko: '패브릭', en: 'Fabric' },
+  'materialCategory.carpet': { ko: '카펫', en: 'Carpet' },
+  'materialCategory.leather': { ko: '가죽', en: 'Leather' },
+  'materialCategory.roofing': { ko: '지붕재', en: 'Roofing' },
+  'materialCategory.ground': { ko: '지면·조경', en: 'Ground' },
+  'materialCategory.glass': { ko: '유리', en: 'Glass' },
+  'materialCategory.other': { ko: '기타 자재', en: 'Other materials' },
   'painting.addMaterial': { ko: '자재 추가', en: 'Add material' },
   'painting.importFile': { ko: '이미지 파일에서 자재 추가', en: 'Add material from image file' },
   'painting.importClipboard': {

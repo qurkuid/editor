@@ -58,14 +58,21 @@ import type {
   RawPainterCategory,
   RawPainterProduct,
 } from '@/lib/rawpainter-contract'
+import {
+  BUILTIN_BRAND,
+  buildUnifiedCategories,
+  builtinItemsForUnifiedCategory,
+  type UnifiedCategory,
+} from '@/lib/unified-material-catalog'
 import { RawPainterProductCard } from './rawpainter-product-card'
 import { RawPainterSearch } from './rawpainter-search'
 
 type CatalogStatus = 'loading' | 'ready' | 'error'
 type CatalogRequest = {
+  // A vendor category id, or a negative synthetic id (builtin-only category).
   readonly categoryId: number | null
   // null = no brand chosen yet (the drill-down's brand level); '' = the
-  // unbranded product group.
+  // unbranded vendor group; BUILTIN_BRAND = the built-in pseudo-brand.
   readonly brand: string | null
   readonly search: string
   readonly revision: number
@@ -297,11 +304,16 @@ function libraryFavorite(item: MaterialCatalogItem): MaterialFavorite {
  * The Painting tab's single material surface: scene + registered library
  * materials and the RawPainter vendor catalog in one searchable scroll.
  * One search box filters the local sections live and queries RawPainter on
- * submit; the category chips narrow the RawPainter section.
+ * submit.
+ *
+ * Built-in Pascal materials and the RawPainter vendor catalog are ONE browsing
+ * system: the category → brand → product drill-down hosts the built-ins as a
+ * pinned 기본 자재 pseudo-brand inside matching categories (synthetic
+ * categories cover the rest), so nothing lives beside the drill-down anymore.
  *
  * `sceneOnly` (the tab bar's house view) keeps just the 내 자재 section —
- * the materials this scene actually uses — and skips the search header,
- * built-in catalog, and every RawPainter request.
+ * the materials this scene actually uses — and skips the search header and
+ * every RawPainter request.
  */
 export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boolean } = {}) {
   const t = useT()
@@ -353,13 +365,24 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
     // libraryVersion invalidates the registry snapshot on host (un)registrations.
   }, [])
 
-  // The drill-down position is RawPainter navigation context, not a global
-  // filter — the local sections narrow with the search box only, so 내 자재
-  // never appears to vanish while browsing the vendor catalog.
-  const activeVendorCategory = categories.find((category) => category.id === categoryId) ?? null
+  // One unified catalog: vendor categories host the built-ins their names map
+  // onto (surfaced as a pinned 기본 자재 pseudo-brand at the brand level), and
+  // local buckets no vendor category covers appear as synthetic categories.
+  const unifiedCategories = useMemo(
+    () =>
+      buildUnifiedCategories(categories, builtinItems, (local) => t(`materialCategory.${local}`)),
+    [categories, builtinItems, t],
+  )
+  const activeUnifiedCategory =
+    unifiedCategories.find((category) => category.id === categoryId) ?? null
   const query = searchInput.trim().toLowerCase()
   const matchesQuery = (label: string) => !query || label.toLowerCase().includes(query)
-  const visibleBuiltin = builtinItems.filter((item) => matchesQuery(item.label))
+  // Built-ins in scope at the current drill position: the hosted set inside a
+  // category, everything at the root.
+  const builtinScope = activeUnifiedCategory
+    ? builtinItemsForUnifiedCategory(activeUnifiedCategory, builtinItems)
+    : builtinItems
+  const visibleBuiltin = builtinScope.filter((item) => matchesQuery(item.label))
   const visibleMyLibrary = myLibraryItems.filter((item) => matchesQuery(item.label))
 
   useEffect(() => {
@@ -373,9 +396,10 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
     return () => controller.abort()
   }, [sceneOnly])
 
-  // The drill-down's brand level for the selected category.
+  // The drill-down's brand level for the selected category. Synthetic
+  // (builtin-only, negative-id) categories have no vendor brands to fetch.
   useEffect(() => {
-    if (sceneOnly || categoryId === null) {
+    if (sceneOnly || categoryId === null || categoryId < 0) {
       setBrands(null)
       return
     }
@@ -403,12 +427,17 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
 
   useEffect(() => {
     if (sceneOnly) return
-    // Products load only at the drill-down's leaf (category + brand chosen)
-    // or for a search; the category and brand levels are pure navigation.
-    const wantsProducts =
-      catalogRequest.search !== '' ||
-      (catalogRequest.categoryId !== null && catalogRequest.brand !== null)
-    if (!wantsProducts) {
+    // Vendor products load only at a vendor leaf (category + real brand) or
+    // for a search outside the builtin pseudo-brand; the category and brand
+    // levels are pure navigation, and builtin leaves render client-side.
+    const isBuiltinLeaf = catalogRequest.brand === BUILTIN_BRAND
+    const wantsVendorProducts =
+      !isBuiltinLeaf &&
+      (catalogRequest.search !== '' ||
+        (catalogRequest.categoryId !== null &&
+          catalogRequest.categoryId > 0 &&
+          catalogRequest.brand !== null))
+    if (!wantsVendorProducts) {
       setProducts([])
       setNextPage(null)
       setStatus('ready')
@@ -420,7 +449,11 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
     void loadRawPainterPage(
       {
         page: 0,
-        categoryId: catalogRequest.categoryId,
+        // Synthetic categories are client-side only — never a server filter.
+        categoryId:
+          catalogRequest.categoryId !== null && catalogRequest.categoryId > 0
+            ? catalogRequest.categoryId
+            : null,
         brand: catalogRequest.brand,
         search: catalogRequest.search,
       },
@@ -452,8 +485,8 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
       appendPage(
         await loadRawPainterPage({
           page: nextPage,
-          categoryId,
-          brand: catalogRequest.brand,
+          categoryId: categoryId !== null && categoryId > 0 ? categoryId : null,
+          brand: catalogRequest.brand === BUILTIN_BRAND ? null : catalogRequest.brand,
           search: catalogRequest.search,
         }),
       )
@@ -571,17 +604,29 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
         : catalogRequest.brand === null
           ? 'brands'
           : 'products'
-  const brandLabel = catalogRequest.brand
-    ? catalogRequest.brand
-    : t('rawpainter.card.unbrandedLabel')
-  const enterCategory = (id: number) =>
-    setCatalogRequest((current) => ({ ...current, categoryId: id, brand: null, revision: 0 }))
+  const isBuiltinLeaf = catalogRequest.brand === BUILTIN_BRAND
+  const brandLabel = isBuiltinLeaf
+    ? t('painting.section.builtin')
+    : catalogRequest.brand
+      ? catalogRequest.brand
+      : t('rawpainter.card.unbrandedLabel')
+  // A synthetic category has exactly one "brand" (the built-ins), so entering
+  // it skips the brand level and lands on its products directly.
+  const enterCategory = (entry: UnifiedCategory) =>
+    setCatalogRequest((current) => ({
+      ...current,
+      categoryId: entry.id,
+      brand: entry.synthetic ? BUILTIN_BRAND : null,
+      revision: 0,
+    }))
   const enterBrand = (name: string) =>
     setCatalogRequest((current) => ({ ...current, brand: name, revision: 0 }))
   const backToCategories = () =>
     setCatalogRequest((current) => ({ ...current, categoryId: null, brand: null, revision: 0 }))
-  const backToBrands = () =>
-    setCatalogRequest((current) => ({ ...current, brand: null, revision: 0 }))
+  const backFromProducts = () =>
+    activeUnifiedCategory?.synthetic
+      ? backToCategories()
+      : setCatalogRequest((current) => ({ ...current, brand: null, revision: 0 }))
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
@@ -704,30 +749,21 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
           </div>
         ) : null}
 
-        {/* 기본 자재 — the built-in Pascal catalog. */}
-        {!sceneOnly && visibleBuiltin.length > 0 ? (
-          <>
-            <SectionLabel>{t('painting.section.builtin')}</SectionLabel>
-            <div className="grid gap-2" style={SWATCH_GRID_STYLE}>
-              {visibleBuiltin.map(libraryTile)}
-            </div>
-          </>
-        ) : null}
-
-        {/* RawPainter — the external vendor catalog, browsed category →
-            brand → products (or searched directly). */}
+        {/* 자재 카탈로그 — built-in and RawPainter materials as one system,
+            browsed category → brand → products (or searched directly).
+            Built-ins live inside the categories as a 기본 자재 pseudo-brand. */}
         {sceneOnly ? null : (
           <>
             <SectionLabel>{t('painting.catalog.rawpainter')}</SectionLabel>
             {drillPane === 'categories' ? (
               categories.length > 0 ? (
                 <div className="flex flex-col gap-1.5 pb-2">
-                  {categories.map((category) => (
+                  {unifiedCategories.map((category) => (
                     <DrillRow
                       count={category.productCount}
                       key={category.id}
                       label={category.name}
-                      onClick={() => enterCategory(category.id)}
+                      onClick={() => enterCategory(category)}
                     />
                   ))}
                 </div>
@@ -739,7 +775,16 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
             ) : null}
             {drillPane === 'brands' ? (
               <>
-                <DrillHeader onBack={backToCategories} trail={activeVendorCategory?.name ?? ''} />
+                <DrillHeader onBack={backToCategories} trail={activeUnifiedCategory?.name ?? ''} />
+                {activeUnifiedCategory && activeUnifiedCategory.builtinCount > 0 ? (
+                  <div className="mb-1.5">
+                    <DrillRow
+                      count={activeUnifiedCategory.builtinCount}
+                      label={t('painting.section.builtin')}
+                      onClick={() => enterBrand(BUILTIN_BRAND)}
+                    />
+                  </div>
+                ) : null}
                 {brands === null ? (
                   <div className="flex h-40 items-center justify-center gap-2 text-muted-foreground text-xs">
                     <LoaderCircle className="h-4 w-4 animate-spin" /> {t('rawpainter.loading')}
@@ -749,13 +794,13 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
                     {brands.map((brand) => (
                       <DrillRow
                         count={brand.productCount}
-                        key={brand.name || ' unbranded'}
+                        key={brand.name || '\u0000unbranded'}
                         label={brand.name || t('rawpainter.card.unbrandedLabel')}
                         onClick={() => enterBrand(brand.name)}
                       />
                     ))}
                   </div>
-                ) : (
+                ) : activeUnifiedCategory && activeUnifiedCategory.builtinCount > 0 ? null : (
                   <p className="px-0.5 py-1 text-muted-foreground text-xs">
                     {t('rawpainter.drill.brandsEmpty')}
                   </p>
@@ -766,16 +811,34 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
               <>
                 {catalogRequest.search === '' && catalogRequest.brand !== null ? (
                   <DrillHeader
-                    onBack={backToBrands}
-                    trail={`${activeVendorCategory?.name ?? ''} · ${brandLabel}`}
+                    onBack={backFromProducts}
+                    trail={
+                      activeUnifiedCategory?.synthetic
+                        ? (activeUnifiedCategory?.name ?? '')
+                        : `${activeUnifiedCategory?.name ?? ''} · ${brandLabel}`
+                    }
                   />
                 ) : null}
-                {status === 'loading' ? (
+                {/* Built-ins in scope: the whole builtin leaf, or the hosted
+                    matches alongside vendor results while searching. */}
+                {isBuiltinLeaf ||
+                (catalogRequest.search !== '' && catalogRequest.brand === null) ? (
+                  visibleBuiltin.length > 0 ? (
+                    <div className="mb-2.5 grid gap-2" style={SWATCH_GRID_STYLE}>
+                      {visibleBuiltin.map(libraryTile)}
+                    </div>
+                  ) : isBuiltinLeaf ? (
+                    <div className="flex h-40 flex-col items-center justify-center gap-1 text-center">
+                      <p className="font-medium text-xs">{t('rawpainter.empty.title')}</p>
+                    </div>
+                  ) : null
+                ) : null}
+                {!isBuiltinLeaf && status === 'loading' ? (
                   <div className="flex h-40 items-center justify-center gap-2 text-muted-foreground text-xs">
                     <LoaderCircle className="h-4 w-4 animate-spin" /> {t('rawpainter.loading')}
                   </div>
                 ) : null}
-                {status === 'error' ? (
+                {!isBuiltinLeaf && status === 'error' ? (
                   <button
                     className="mx-auto flex items-center gap-2 rounded-lg border px-3 py-2 text-xs"
                     onClick={() =>
@@ -789,7 +852,7 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
                     <RotateCw className="h-3.5 w-3.5" /> {t('rawpainter.retry')}
                   </button>
                 ) : null}
-                {status === 'ready' ? (
+                {!isBuiltinLeaf && status === 'ready' ? (
                   products.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2.5 pb-2">
                       {products.map((product) => (
@@ -807,7 +870,9 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
                         />
                       ))}
                     </div>
-                  ) : (
+                  ) : visibleBuiltin.length > 0 &&
+                    catalogRequest.search !== '' &&
+                    catalogRequest.brand === null ? null : (
                     <div className="flex h-40 flex-col items-center justify-center gap-1 text-center">
                       <p className="font-medium text-xs">{t('rawpainter.empty.title')}</p>
                       <p className="text-[10px] text-muted-foreground">
@@ -816,7 +881,7 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
                     </div>
                   )
                 ) : null}
-                {status === 'ready' && nextPage !== null ? (
+                {!isBuiltinLeaf && status === 'ready' && nextPage !== null ? (
                   <button
                     className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-border/70 bg-background/70 py-2 text-xs hover:bg-sidebar-accent"
                     disabled={loadingMore}

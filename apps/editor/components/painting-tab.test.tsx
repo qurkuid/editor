@@ -18,12 +18,12 @@ test('presents one merged material catalog with a favorites tab', () => {
   expect(markup).toContain('지우개')
   expect(markup).toContain('즐겨찾기')
 
-  // And: the merged catalog leads with the local sections and the RawPainter
-  // section inside one surface — no separate RawPainter/library toggle.
+  // And: the catalog is one system — 내 자재 plus the drill-down. Built-ins
+  // live INSIDE the drill-down (as a per-category pseudo-brand), so no
+  // standalone 기본 자재 section renders beside it.
   expect(markup).toContain('내 자재')
-  expect(markup).toContain('기본 자재')
   expect(markup).toContain('RawPainter')
-  expect(markup).not.toContain('기본 자재 · 내 자재')
+  expect(markup).not.toContain('기본 자재')
 })
 
 test('the house view keeps only the scene-used materials section', () => {
