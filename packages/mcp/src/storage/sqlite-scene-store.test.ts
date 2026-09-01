@@ -621,6 +621,26 @@ describe('wipe guard and rotating backups', () => {
     expect(kept?.version).toBe(1)
   })
 
+  test('blocks a zero-node overwrite of a small scene too (the trace bootstrap)', async () => {
+    // 4 nodes sits below the 20-node threshold rule; the zero-overwrite guard
+    // must still hold, and allowWipe stays the intentional escape hatch.
+    await store.save({ id: 'small', name: 'S', graph: populatedGraph(4) })
+
+    await expect(
+      store.save({ id: 'small', name: 'S', graph: emptyGraph(), expectedVersion: 1 }),
+    ).rejects.toBeInstanceOf(SceneWipeBlockedError)
+
+    await store.save({
+      id: 'small',
+      name: 'S',
+      graph: emptyGraph(),
+      expectedVersion: 1,
+      allowWipe: true,
+    })
+    const wiped = await store.load('small')
+    expect(wiped?.nodeCount).toBe(0)
+  })
+
   test('allowWipe overrides the guard for intentional clears', async () => {
     await store.save({ id: 's', name: 'S', graph: populatedGraph(30) })
     const cleared = await store.save({
@@ -634,15 +654,17 @@ describe('wipe guard and rotating backups', () => {
     expect(cleared.nodeCount).toBe(0)
   })
 
-  test('small scenes and gradual shrinks stay unguarded', async () => {
+  test('small shrinks-to-few and gradual shrinks stay unguarded', async () => {
+    // Shrinking a small scene to a few nodes is an ordinary edit; only the
+    // zero-node collapse is treated as a wipe signature.
     await store.save({ id: 'small', name: 'Small', graph: populatedGraph(10) })
-    const clearedSmall = await store.save({
+    const shrunkSmall = await store.save({
       id: 'small',
       name: 'Small',
-      graph: emptyGraph(),
+      graph: populatedGraph(2),
       expectedVersion: 1,
     })
-    expect(clearedSmall.nodeCount).toBe(0)
+    expect(shrunkSmall.nodeCount).toBe(2)
 
     await store.save({ id: 'big', name: 'Big', graph: populatedGraph(30) })
     const shrunk = await store.save({

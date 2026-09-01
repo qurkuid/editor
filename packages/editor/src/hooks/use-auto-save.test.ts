@@ -7,9 +7,17 @@ describe('isSuspiciousNodeDrop', () => {
     expect(isSuspiciousNodeDrop(12, 3)).toBe(true)
   })
 
-  test('allows ordinary edits and intentionally empty starting scenes', () => {
+  test('blocks small scenes from collapsing to zero (the trace-bootstrap wipe)', () => {
+    // The 4-node /apt/trace scene was wiped through the old `> 4 → < 4` gap
+    // when an unloadScene() transient reached autosave via soft navigation.
+    expect(isSuspiciousNodeDrop(4, 0)).toBe(true)
+    expect(isSuspiciousNodeDrop(1, 0)).toBe(true)
+  })
+
+  test('allows ordinary edits, small-scene edits, and empty starting scenes', () => {
     expect(isSuspiciousNodeDrop(12, 11)).toBe(false)
     expect(isSuspiciousNodeDrop(12, 4)).toBe(false)
-    expect(isSuspiciousNodeDrop(4, 0)).toBe(false)
+    expect(isSuspiciousNodeDrop(3, 1)).toBe(false)
+    expect(isSuspiciousNodeDrop(0, 0)).toBe(false)
   })
 })

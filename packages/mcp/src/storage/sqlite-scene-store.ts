@@ -409,8 +409,12 @@ export class SqliteSceneStore implements SceneStore {
       if (
         existing &&
         !opts.allowWipe &&
-        existing.node_count >= WIPE_GUARD_MIN_STORED_NODES &&
-        nodeCount < Math.max(WIPE_GUARD_FLOOR_NODES, existing.node_count * WIPE_GUARD_RATIO)
+        // A populated scene refuses a zero-node overwrite outright — the
+        // threshold rule below left small scenes (the 4-node /apt/trace
+        // bootstrap) unprotected against client-side unload transients.
+        ((existing.node_count > 0 && nodeCount === 0) ||
+          (existing.node_count >= WIPE_GUARD_MIN_STORED_NODES &&
+            nodeCount < Math.max(WIPE_GUARD_FLOOR_NODES, existing.node_count * WIPE_GUARD_RATIO)))
       ) {
         throw new SceneWipeBlockedError(
           `Scene "${id}" has ${existing.node_count} stored nodes; saving ${nodeCount} would wipe it. Pass allowWipe to overwrite intentionally.`,

@@ -8,6 +8,13 @@ const AUTOSAVE_DEBOUNCE_MS = 1000
 const STRUCTURAL_NODE_COUNT = 4
 
 export function isSuspiciousNodeDrop(previousNodeCount: number, currentNodeCount: number) {
+  if (previousNodeCount === 0) return false
+  // Any populated scene collapsing to zero is a wipe signature, never an
+  // ordinary edit — `unloadScene()` transients observed through soft
+  // navigation look exactly like this, and the old `> 4 → < 4` rule left
+  // small scenes (the 4-node /apt/trace bootstrap) unprotected. A genuine
+  // clear-everything resumes autosaving on the next change.
+  if (currentNodeCount === 0) return true
   return previousNodeCount > STRUCTURAL_NODE_COUNT && currentNodeCount < STRUCTURAL_NODE_COUNT
 }
 
@@ -193,6 +200,9 @@ export function useAutoSave({
     // (mobile Safari, bfcache) where `beforeunload` does not.
     function flushOnExit() {
       if (!hasDirtyChangesRef.current) return
+      // Mid-load the store holds an `unloadScene()` transient, not the scene —
+      // flushing it would persist an empty graph over the real document.
+      if (isLoadingSceneRef.current) return
       const { nodes, rootNodeIds, collections, materials, installedPlugins, savedViews } =
         useScene.getState()
       const currentNodeCount = Object.keys(nodes).length
