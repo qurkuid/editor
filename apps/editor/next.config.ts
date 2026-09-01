@@ -22,6 +22,17 @@ const nextConfig: NextConfig = {
       destination: '/apt',
       permanent: false,
     },
+    // Root-serving deployments absorb links from the retired /floorplan
+    // sub-path era (and old dev bookmarks) instead of 404ing them.
+    ...(basePath
+      ? []
+      : [
+          {
+            source: '/floorplan/:path*',
+            destination: '/:path*',
+            permanent: false,
+          },
+        ]),
   ],
   ...(componentApiOrigin
     ? {
