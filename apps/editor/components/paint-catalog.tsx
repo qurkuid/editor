@@ -78,6 +78,18 @@ type CatalogRequest = {
   readonly revision: number
 }
 
+// The drill-down position survives unmounts — switching to 즐겨찾기/내 자재
+// or to another sidebar tab and back lands on the same category/brand/search
+// instead of the root. Data refetches (the server index keeps that fast);
+// only the position is kept.
+let lastCatalogRequest: CatalogRequest = {
+  categoryId: null,
+  brand: null,
+  search: '',
+  revision: 0,
+}
+let lastSearchInput = ''
+
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
 }
@@ -320,13 +332,8 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
   const t = useT()
   const [categories, setCategories] = useState<readonly RawPainterCategory[]>([])
   const [brands, setBrands] = useState<readonly RawPainterBrand[] | null>(null)
-  const [catalogRequest, setCatalogRequest] = useState<CatalogRequest>({
-    categoryId: null,
-    brand: null,
-    search: '',
-    revision: 0,
-  })
-  const [searchInput, setSearchInput] = useState('')
+  const [catalogRequest, setCatalogRequest] = useState<CatalogRequest>(() => lastCatalogRequest)
+  const [searchInput, setSearchInput] = useState(() => lastSearchInput)
   const [products, setProducts] = useState<readonly RawPainterProduct[]>([])
   const [nextPage, setNextPage] = useState<number | null>(null)
   const [status, setStatus] = useState<CatalogStatus>('loading')
@@ -345,11 +352,19 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
   const activePaintMaterialId = useEditor((state) => state.activePaintMaterial?.material?.id)
   const sceneMaterialCount = useScene((state) => Object.keys(state.materials).length)
 
+  useEffect(() => {
+    lastCatalogRequest = catalogRequest
+  }, [catalogRequest])
+  useEffect(() => {
+    lastSearchInput = searchInput
+  }, [searchInput])
+
   const libraryVersion = useSyncExternalStore(
     subscribeLibraryMaterials,
     getLibraryMaterialsVersion,
     getLibraryMaterialsVersion,
   )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: libraryVersion is a version counter whose only job is to invalidate this registry snapshot.
   const { builtinItems, myLibraryItems } = useMemo(() => {
     const seen = new Set<string>()
     const builtin: MaterialCatalogItem[] = []
@@ -363,8 +378,10 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
       }
     }
     return { builtinItems: builtin, myLibraryItems: mine }
-    // libraryVersion invalidates the registry snapshot on host (un)registrations.
-  }, [])
+    // libraryVersion invalidates the registry snapshot on host
+    // (un)registrations — without it, newly registered materials only
+    // appeared after a remount.
+  }, [libraryVersion])
 
   // One unified catalog: vendor categories host the built-ins their names map
   // onto (surfaced as a pinned 기본 자재 pseudo-brand at the brand level), and
@@ -820,9 +837,13 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
                   <DrillHeader
                     onBack={backFromProducts}
                     trail={
-                      activeUnifiedCategory?.synthetic
-                        ? (activeUnifiedCategory?.name ?? '')
-                        : `${activeUnifiedCategory?.name ?? ''} · ${brandLabel}`
+                      // Until the restored position's category list arrives
+                      // (a remount refetches it), show just the brand.
+                      activeUnifiedCategory === null
+                        ? brandLabel
+                        : activeUnifiedCategory.synthetic
+                          ? activeUnifiedCategory.name
+                          : `${activeUnifiedCategory.name} · ${brandLabel}`
                     }
                   />
                 ) : null}
