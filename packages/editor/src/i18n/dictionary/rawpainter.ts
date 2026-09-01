@@ -36,6 +36,10 @@ export const rawpainterDictionary = {
     en: 'Search product, brand, or store',
   },
   'rawpainter.search.clearAriaLabel': { ko: '검색 초기화', en: 'Clear search' },
+  'rawpainter.search.everywhere': {
+    ko: '전체 카탈로그에서 검색',
+    en: 'Search the whole catalog',
+  },
   'rawpainter.search.submit': { ko: '검색', en: 'Search' },
 
   'rawpainter.card.priceInquiry': { ko: '가격 문의', en: 'Price on request' },

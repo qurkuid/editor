@@ -858,6 +858,15 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
                   ) : isBuiltinLeaf ? (
                     <div className="flex h-40 flex-col items-center justify-center gap-1 text-center">
                       <p className="font-medium text-xs">{t('rawpainter.empty.title')}</p>
+                      {catalogRequest.search !== '' ? (
+                        <button
+                          className="mt-1.5 rounded-lg border border-border/70 px-3 py-1.5 text-xs hover:bg-sidebar-accent"
+                          onClick={backToCategories}
+                          type="button"
+                        >
+                          {t('rawpainter.search.everywhere')}
+                        </button>
+                      ) : null}
                     </div>
                   ) : null
                 ) : null}
@@ -906,6 +915,16 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
                       <p className="text-[10px] text-muted-foreground">
                         {t('rawpainter.empty.desc')}
                       </p>
+                      {catalogRequest.search !== '' &&
+                      (catalogRequest.categoryId !== null || catalogRequest.brand !== null) ? (
+                        <button
+                          className="mt-1.5 rounded-lg border border-border/70 px-3 py-1.5 text-xs hover:bg-sidebar-accent"
+                          onClick={backToCategories}
+                          type="button"
+                        >
+                          {t('rawpainter.search.everywhere')}
+                        </button>
+                      ) : null}
                     </div>
                   )
                 ) : null}
