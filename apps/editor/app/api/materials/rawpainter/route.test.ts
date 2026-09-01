@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { GET } from './route'
+
+// bun test auto-loads .env.local; without this the route's disk-cached index
+// would read from and write into the real APT_DATA_DIR.
+delete process.env.APT_DATA_DIR
+
+const { GET } = await import('./route')
 
 const originalFetch = globalThis.fetch
 
@@ -9,12 +14,20 @@ afterEach(() => {
 })
 
 describe('RawPainter material proxy', () => {
-  test('requests the complete RawPainter category list', async () => {
-    // Given: the editor requests the provider-native category view.
-    const cloneRequests: unknown[] = []
+  test('serves the category list and pre-warms the catalog index', async () => {
+    // Given: the clone answers both the category view and product pages.
+    const cloneRequests: { endpoint: string; payload: { page?: number } }[] = []
     globalThis.fetch = async (_input, init) => {
-      cloneRequests.push(JSON.parse(String(init?.body)))
-      return Response.json([{ id: 127, name: '가구재', productCount: 63 }])
+      const request = JSON.parse(String(init?.body)) as (typeof cloneRequests)[number]
+      cloneRequests.push(request)
+      if (request.endpoint === '/category/filter') {
+        return Response.json([{ id: 127, name: '가구재', productCount: 63 }])
+      }
+      const products =
+        request.payload.page === 0
+          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha' }]
+          : [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta' }]
+      return Response.json({ products, next: null, total: 2, pageNum: 2 })
     }
 
     // When: the category proxy route is called.
@@ -22,9 +35,15 @@ describe('RawPainter material proxy', () => {
       new NextRequest('http://localhost:3002/api/materials/rawpainter?view=categories'),
     )
 
-    // Then: the clone receives its category endpoint rather than a product-page request.
-    expect(cloneRequests).toEqual([{ endpoint: '/category/filter', payload: {} }])
+    // Then: the category endpoint is proxied, and the same request kicks off
+    // the background index build the drill-down's brand level will need.
     expect(await response.json()).toEqual([{ id: 127, name: '가구재', productCount: 63 }])
+    expect(cloneRequests).toContainEqual({ endpoint: '/category/filter', payload: {} })
+    // Let the background build settle so it cannot leak into later tests.
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(
+      cloneRequests.filter((request) => request.endpoint === '/product').length,
+    ).toBeGreaterThanOrEqual(1)
   })
 
   test('forwards the selected RawPainter category to product paging', async () => {
@@ -67,11 +86,12 @@ describe('RawPainter material proxy', () => {
       new NextRequest('http://localhost:3002/api/materials/rawpainter?page=0&search=raw'),
     )
 
-    // Then: the full catalog is indexed and only the matching product is returned.
-    expect(cloneRequests).toEqual([
-      { endpoint: '/product', payload: { page: 0 } },
-      { endpoint: '/product', payload: { page: 1 } },
-    ])
+    // Then: only the matching product is returned. (The index may already be
+    // warm from the categories pre-warm, so the clone request count is not
+    // asserted — a cold run pages the whole catalog, a warm run pages none.)
+    expect(
+      cloneRequests.every((request) => (request as { endpoint: string }).endpoint === '/product'),
+    ).toBe(true)
     expect(await response.json()).toEqual({
       products: [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta' }],
       next: null,
@@ -108,6 +128,27 @@ describe('RawPainter material proxy', () => {
       { name: 'Raw Studio', productCount: 1 },
       { name: 'Woodworks', productCount: 1 },
     ])
+  })
+
+  test('an empty brand parameter selects the unbranded group', async () => {
+    // Given: the catalog index is reachable and one product has no brand.
+    globalThis.fetch = async (_input, init) => {
+      const request = JSON.parse(String(init?.body)) as { payload: { page: number } }
+      const products =
+        request.payload.page === 0
+          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha' }]
+          : [{ id: 3, name: 'No Name Slab', store: 'Gamma' }]
+      return Response.json({ products, next: null, total: 2, pageNum: 2 })
+    }
+
+    // When: the drill-down asks for the unbranded group via `brand=`.
+    const response = await GET(
+      new NextRequest('http://localhost:3002/api/materials/rawpainter?page=0&brand='),
+    )
+
+    // Then: only the brandless product comes back.
+    const payload = (await response.json()) as { products: { id: number }[] }
+    expect(payload.products.every((product) => !('brand' in product && product.brand))).toBe(true)
   })
 
   test('filters the product list to one brand', async () => {

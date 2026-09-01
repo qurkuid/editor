@@ -1,3 +1,5 @@
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import {
@@ -9,6 +11,11 @@ import {
 const RAWPAINTER_CLONE_URL = 'https://intm.kr/api/studio/material-clone'
 const SEARCH_PAGE_SIZE = 60
 const INDEX_BATCH_SIZE = 24
+// The index is rebuilt in the background once it is older than this —
+// without it a built index served vendor catalog changes only after the
+// next pm2 restart.
+const INDEX_TTL_MS = 12 * 60 * 60 * 1000
+const INDEX_DISK_FILE = 'rawpainter-index.json'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +29,13 @@ const rawPainterQuerySchema = z.object({
   brand: z.string().max(80).optional(),
 })
 
-let catalogIndexPromise: Promise<readonly RawPainterProduct[]> | null = null
+type CatalogIndex = {
+  readonly builtAt: number
+  readonly products: readonly RawPainterProduct[]
+}
+
+let catalogIndex: CatalogIndex | null = null
+let catalogIndexBuild: Promise<CatalogIndex> | null = null
 
 async function fetchClone(endpoint: string, payload: Readonly<Record<string, unknown>>) {
   const response = await fetch(RAWPAINTER_CLONE_URL, {
@@ -62,12 +75,56 @@ async function createCatalogIndex(): Promise<readonly RawPainterProduct[]> {
   return products
 }
 
+// The index survives restarts on disk (deploys restart pm2, and a cold
+// rebuild crawls the whole vendor catalog). Absent APT_DATA_DIR the index is
+// memory-only, which also keeps tests off the real data directory.
+function indexDiskPath(): string | null {
+  const dir = process.env.APT_DATA_DIR
+  return dir ? path.join(dir, INDEX_DISK_FILE) : null
+}
+
+async function readDiskIndex(): Promise<CatalogIndex | null> {
+  const diskPath = indexDiskPath()
+  if (!diskPath) return null
+  try {
+    const parsed = JSON.parse(await fs.readFile(diskPath, 'utf8')) as CatalogIndex
+    if (typeof parsed.builtAt !== 'number' || !Array.isArray(parsed.products)) return null
+    if (parsed.products.length === 0) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function startIndexBuild(): Promise<CatalogIndex> {
+  catalogIndexBuild ??= createCatalogIndex()
+    .then((products) => {
+      const index: CatalogIndex = { builtAt: Date.now(), products }
+      catalogIndex = index
+      const diskPath = indexDiskPath()
+      if (diskPath) void fs.writeFile(diskPath, JSON.stringify(index)).catch(() => {})
+      return index
+    })
+    .finally(() => {
+      catalogIndexBuild = null
+    })
+  return catalogIndexBuild
+}
+
 async function loadCatalogIndex(): Promise<readonly RawPainterProduct[]> {
-  catalogIndexPromise ??= createCatalogIndex().catch((error: unknown) => {
-    catalogIndexPromise = null
-    throw error
-  })
-  return catalogIndexPromise
+  if (!catalogIndex) {
+    const disk = await readDiskIndex()
+    if (disk) catalogIndex = disk
+  }
+  if (catalogIndex) {
+    // Stale-while-revalidate: keep serving the old index and refresh behind
+    // the request; a failed refresh keeps the old index in place.
+    if (Date.now() - catalogIndex.builtAt > INDEX_TTL_MS) {
+      void startIndexBuild().catch(() => {})
+    }
+    return catalogIndex.products
+  }
+  return (await startIndexBuild()).products
 }
 
 function searchableText(product: RawPainterProduct): string {
@@ -145,6 +202,11 @@ export async function GET(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'rawpainter_unavailable' }, { status: 502 })
     }
+  }
+  if (query.view === 'categories') {
+    // Pre-warm: the drill-down's brand level and search both need the index —
+    // start building it while the user is still reading the category list.
+    void loadCatalogIndex().catch(() => {})
   }
   const cloneRequest =
     query.view === 'categories'
