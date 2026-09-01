@@ -7,7 +7,8 @@ export const paintingDictionary = {
   'painting.scope.ariaLabel': { ko: '재질 적용 범위', en: 'Material apply scope' },
   'painting.scope.single': { ko: '이 면', en: 'This face' },
   'painting.scope.object': { ko: '전체 요소', en: 'Whole element' },
-  'painting.catalog.rawpainter': { ko: 'RawPainter', en: 'RawPainter' },
+  // The key predates the unified catalog; the label covers built-ins too now.
+  'painting.catalog.rawpainter': { ko: '자재 카탈로그', en: 'Material catalog' },
   'painting.catalog.library': { ko: '기본 자재 · 내 자재', en: 'Built-in · My materials' },
   'painting.catalog.materials': { ko: '자재', en: 'Materials' },
   'painting.catalog.favorites': { ko: '즐겨찾기', en: 'Favorites' },

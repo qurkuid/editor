@@ -21,7 +21,7 @@ test('presents one merged material catalog with a favorites tab', () => {
   // And: the default view is purely the unified drill-down. Built-ins live
   // INSIDE it (as a per-category pseudo-brand) and 내 자재 lives only behind
   // the house toggle — neither renders as a standalone section here.
-  expect(markup).toContain('RawPainter')
+  expect(markup).toContain('자재 카탈로그')
   expect(markup).not.toContain('기본 자재')
   expect(markup).not.toContain('아직 만든 자재가 없습니다')
 })
