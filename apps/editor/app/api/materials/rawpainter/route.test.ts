@@ -25,8 +25,8 @@ describe('RawPainter material proxy', () => {
       }
       const products =
         request.payload.page === 0
-          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha' }]
-          : [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta' }]
+          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha', categoryId: 127 }]
+          : [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta', categoryId: 127 }]
       return Response.json({ products, next: null, total: 2, pageNum: 2 })
     }
 
@@ -76,8 +76,8 @@ describe('RawPainter material proxy', () => {
       cloneRequests.push(request)
       const products =
         request.payload.page === 0
-          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha' }]
-          : [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta' }]
+          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha', categoryId: 127 }]
+          : [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta', categoryId: 127 }]
       return Response.json({ products, next: null, total: 2, pageNum: 2 })
     }
 
@@ -93,7 +93,9 @@ describe('RawPainter material proxy', () => {
       cloneRequests.every((request) => (request as { endpoint: string }).endpoint === '/product'),
     ).toBe(true)
     expect(await response.json()).toEqual({
-      products: [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta' }],
+      products: [
+        { id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta', categoryId: 127 },
+      ],
       next: null,
       pageNum: 1,
       total: 1,
@@ -108,8 +110,8 @@ describe('RawPainter material proxy', () => {
       const request = JSON.parse(String(init?.body)) as { payload: { page: number } }
       const products =
         request.payload.page === 0
-          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha' }]
-          : [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta' }]
+          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha', categoryId: 127 }]
+          : [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta', categoryId: 127 }]
       return Response.json({ products, next: null, total: 2, pageNum: 2 })
     }
   }
@@ -136,8 +138,8 @@ describe('RawPainter material proxy', () => {
       const request = JSON.parse(String(init?.body)) as { payload: { page: number } }
       const products =
         request.payload.page === 0
-          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha' }]
-          : [{ id: 3, name: 'No Name Slab', store: 'Gamma' }]
+          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha', categoryId: 127 }]
+          : [{ id: 3, name: 'No Name Slab', store: 'Gamma', categoryId: 127 }]
       return Response.json({ products, next: null, total: 2, pageNum: 2 })
     }
 
@@ -162,10 +164,45 @@ describe('RawPainter material proxy', () => {
 
     // Then: only that brand's products come back.
     expect(await response.json()).toEqual({
-      products: [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha' }],
+      products: [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha', categoryId: 127 }],
       next: null,
       pageNum: 1,
       total: 1,
     })
+  })
+  test('category counts come from the index once it is warm', async () => {
+    // Given: the clone serves both views, and a brands request has already
+    // forced the index warm (so this test is order-independent).
+    globalThis.fetch = async (_input, init) => {
+      const request = JSON.parse(String(init?.body)) as {
+        endpoint: string
+        payload: { page?: number }
+      }
+      if (request.endpoint === '/category/filter') {
+        return Response.json([
+          { id: 127, name: '가구재', productCount: 63 },
+          { id: 999, name: '유령', productCount: 5 },
+        ])
+      }
+      const products =
+        request.payload.page === 0
+          ? [{ id: 1, name: 'White Oak', brand: 'Woodworks', store: 'Alpha', categoryId: 127 }]
+          : [{ id: 2, name: 'Stone Grey', brand: 'Raw Studio', store: 'Beta', categoryId: 127 }]
+      return Response.json({ products, next: null, total: 2, pageNum: 2 })
+    }
+    await GET(new NextRequest('http://localhost:3002/api/materials/rawpainter?view=brands'))
+
+    // When: the category list is requested with a warm index.
+    const response = await GET(
+      new NextRequest('http://localhost:3002/api/materials/rawpainter?view=categories'),
+    )
+
+    // Then: counts reflect what drilling in will actually list — the vendor's
+    // inflated 63 becomes the indexed 2, and a category the feed never
+    // returns products for shows 0.
+    expect(await response.json()).toEqual([
+      { id: 127, name: '가구재', productCount: 2 },
+      { id: 999, name: '유령', productCount: 0 },
+    ])
   })
 })

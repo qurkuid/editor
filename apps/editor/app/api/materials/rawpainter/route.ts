@@ -207,17 +207,42 @@ export async function GET(request: NextRequest) {
     // Pre-warm: the drill-down's brand level and search both need the index —
     // start building it while the user is still reading the category list.
     void loadCatalogIndex().catch(() => {})
-  }
-  const cloneRequest =
-    query.view === 'categories'
-      ? { endpoint: '/category/filter', payload: {} }
-      : {
-          endpoint: '/product',
-          payload: {
-            page: query.page,
-            ...(query.categoryId ? { categories: [query.categoryId] } : {}),
-          },
+    try {
+      const response = await fetchClone('/category/filter', {})
+      const categories = (await response.json()) as {
+        id?: unknown
+        productCount?: unknown
+      }[]
+      // The vendor's own counts overshoot what its product feed actually
+      // returns (가구재 says 63, lists 33). Once the index is warm, count from
+      // the same source the drill-down lists so rows match reality; until
+      // then the vendor counts stand.
+      if (catalogIndex && Array.isArray(categories)) {
+        const counts = new Map<number, number>()
+        for (const product of catalogIndex.products) {
+          const categoryId = Number(product.categoryId)
+          if (Number.isFinite(categoryId)) {
+            counts.set(categoryId, (counts.get(categoryId) ?? 0) + 1)
+          }
         }
+        for (const category of categories) {
+          if (typeof category.id === 'number' && typeof category.productCount === 'number') {
+            category.productCount = counts.get(category.id) ?? 0
+          }
+        }
+      }
+      return NextResponse.json(categories)
+    } catch {
+      return NextResponse.json({ error: 'rawpainter_unavailable' }, { status: 502 })
+    }
+  }
+  const cloneRequest = {
+    endpoint: '/product',
+    payload: {
+      page: query.page,
+      ...(query.categoryId ? { categories: [query.categoryId] } : {}),
+    },
+  }
 
   try {
     const response = await fetchClone(cloneRequest.endpoint, cloneRequest.payload)
