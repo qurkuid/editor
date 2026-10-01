@@ -70,7 +70,13 @@ function unitLabel(unit: string): string {
 }
 
 export type SubmitResult =
-  | { ok: true; estimateId: string; itemCount: number; failedItems: number }
+  | {
+      ok: true
+      estimateId: string
+      estimateUrl: string
+      itemCount: number
+      failedItems: number
+    }
   | { ok: false; error: string }
 
 /**
@@ -143,5 +149,11 @@ export async function submitEstimate(
     }
   }
 
-  return { ok: true, estimateId, itemCount: added, failedItems: failed }
+  return {
+    ok: true,
+    estimateId,
+    estimateUrl: `${base}/newportal/estimates/${encodeURIComponent(estimateId)}/edit`,
+    itemCount: added,
+    failedItems: failed,
+  }
 }

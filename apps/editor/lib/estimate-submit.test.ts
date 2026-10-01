@@ -79,7 +79,7 @@ describe('submission', () => {
     withIntm()
     let seen: { url: string; init: RequestInit } | null = null
     const result = await submitEstimate(
-      draft(line()),
+      draft(line(), line(), line()),
       { projectId: 'prj_1', title: '방배동 견적' },
       'session_token=abc',
       (async (url: string, init: RequestInit) => {
@@ -90,7 +90,13 @@ describe('submission', () => {
 
     expect(seen!.url).toBe('https://intm.kr/api/estimates/est_1/items')
     expect((seen!.init.headers as Record<string, string>).cookie).toBe('session_token=abc')
-    expect(result).toEqual({ ok: true, estimateId: 'est_1', itemCount: 1, failedItems: 0 })
+    expect(result).toEqual({
+      ok: true,
+      estimateId: 'est_1',
+      itemCount: 3,
+      failedItems: 0,
+      estimateUrl: 'https://intm.kr/newportal/estimates/est_1/edit',
+    })
   })
 
   // Two calls, because that is INTM's shape: the document, then each item.
@@ -131,7 +137,60 @@ describe('submission', () => {
       }) as unknown as typeof fetch,
     )
 
-    expect(result).toEqual({ ok: true, estimateId: 'est_1', itemCount: 1, failedItems: 1 })
+    expect(result).toEqual({
+      ok: true,
+      estimateId: 'est_1',
+      itemCount: 1,
+      failedItems: 1,
+      estimateUrl: 'https://intm.kr/newportal/estimates/est_1/edit',
+    })
+  })
+
+  test('keeps a link when every item fails after the document is created', async () => {
+    withIntm()
+    let call = 0
+    const result = await submitEstimate(
+      draft(line(), line(), line()),
+      { projectId: 'prj_1', title: 't' },
+      'session_token=abc',
+      (async () => {
+        call += 1
+        if (call === 1) return new Response(JSON.stringify({ id: 'est_1' }), { status: 200 })
+        return new Response('nope', { status: 500 })
+      }) as unknown as typeof fetch,
+    )
+
+    expect(result).toEqual({
+      ok: true,
+      estimateId: 'est_1',
+      itemCount: 0,
+      failedItems: 3,
+      estimateUrl: 'https://intm.kr/newportal/estimates/est_1/edit',
+    })
+  })
+
+  test('normalizes the configured base and encodes the estimate id in the link', async () => {
+    process.env.INTM_BASE_URL = 'https://intm.example.test///'
+    let call = 0
+    const result = await submitEstimate(
+      draft(line()),
+      { projectId: 'prj_1', title: 't' },
+      'session_token=abc',
+      (async () => {
+        call += 1
+        if (call === 1)
+          return new Response(JSON.stringify({ id: 'quote/2026 final' }), { status: 200 })
+        return new Response('{}', { status: 200 })
+      }) as unknown as typeof fetch,
+    )
+
+    expect(result).toEqual({
+      ok: true,
+      estimateId: 'quote/2026 final',
+      itemCount: 1,
+      failedItems: 0,
+      estimateUrl: 'https://intm.example.test/newportal/estimates/quote%2F2026%20final/edit',
+    })
   })
 
   test.each([

@@ -161,6 +161,18 @@ export const statsDictionary = {
     ko: '견적서를 만들었습니다 ({n}개 항목).',
     en: 'Estimate created ({n} items).',
   },
+  'stats.submitted.partial': {
+    ko: '{added}개 항목이 추가됐고 {failed}개가 실패했습니다 (전체 {total}개). INTM에서 확인하고 완성하세요.',
+    en: '{added} of {total} items were added and {failed} failed. Review and finish it in INTM.',
+  },
+  'stats.submitted.allFailed': {
+    ko: '빈 견적서는 생성됐지만 항목 추가에 전부 실패했습니다 ({added}개 성공, {failed}개 실패 / 전체 {total}개).',
+    en: 'An empty estimate was created, but all item additions failed ({added} added, {failed} failed / {total} total).',
+  },
+  'stats.submitted.open': {
+    ko: 'INTM에서 견적서 열기',
+    en: 'Open estimate in INTM',
+  },
   'stats.sharedReadOnly': {
     ko: '공용 자재는 INTM에서 관리자만 수정할 수 있습니다.',
     en: 'Shared materials are admin-only in INTM.',

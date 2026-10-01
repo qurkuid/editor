@@ -14,7 +14,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { withBasePath } from '@/lib/base-path'
 import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
-import { toEstimateItems } from '@/lib/estimate-submit'
+import { type SubmitResult, toEstimateItems } from '@/lib/estimate-submit'
 import { constructionKindsFor } from '@/lib/intm-construction-materials'
 import { canEditCoverage, type IntmMaterial, type IntmMaterialCategory } from '@/lib/intm-materials'
 import { type IntmProject, projectSubtitle, searchProjects } from '@/lib/intm-projects'
@@ -95,7 +95,7 @@ export function StatsTab() {
   const projectId = projectIdDraft ?? linkedProjectId ?? ''
   const [projectName, setProjectName] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [submitResult, setSubmitResult] = useState<string | null>(null)
+  const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -249,18 +249,35 @@ export function StatsTab() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ draft, projectId, title: projectName }),
       })
-      const result = (await response.json()) as
-        | { ok: true; estimateId: string; itemCount: number }
-        | { ok: false; error: string }
-      setSubmitResult(
-        result.ok ? t('stats.submitted').replace('{n}', String(result.itemCount)) : result.error,
-      )
+      const result = (await response.json()) as SubmitResult
+      setSubmitResult(result)
     } catch (error) {
-      setSubmitResult(error instanceof Error ? error.message : '견적 생성 실패')
+      setSubmitResult({
+        ok: false,
+        error: error instanceof Error ? error.message : '견적 생성 실패',
+      })
     } finally {
       setSubmitting(false)
     }
-  }, [draft, projectId, projectName, linkedProjectId, rootNodeIds, t])
+  }, [draft, projectId, projectName, linkedProjectId, rootNodeIds])
+
+  const successfulSubmit = submitResult?.ok ? submitResult : null
+  const attemptedItems = successfulSubmit
+    ? successfulSubmit.itemCount + successfulSubmit.failedItems
+    : 0
+  const submitMessage = successfulSubmit
+    ? successfulSubmit.failedItems === 0
+      ? t('stats.submitted').replace('{n}', String(successfulSubmit.itemCount))
+      : successfulSubmit.itemCount > 0
+        ? t('stats.submitted.partial')
+            .replace('{added}', String(successfulSubmit.itemCount))
+            .replace('{failed}', String(successfulSubmit.failedItems))
+            .replace('{total}', String(attemptedItems))
+        : t('stats.submitted.allFailed')
+            .replace('{added}', String(successfulSubmit.itemCount))
+            .replace('{failed}', String(successfulSubmit.failedItems))
+            .replace('{total}', String(attemptedItems))
+    : null
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto p-3 text-sm">
@@ -372,9 +389,28 @@ export function StatsTab() {
               {submitting ? t('stats.estimate.creating') : t('stats.estimate.create')}
             </button>
             {submitResult && (
-              <p className="rounded border border-border/50 bg-[#252527] p-2 text-[11px] text-foreground">
-                {submitResult}
-              </p>
+              <div
+                aria-live="polite"
+                className={`space-y-1.5 rounded border p-2 text-[11px] ${
+                  successfulSubmit
+                    ? successfulSubmit.failedItems > 0
+                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+                      : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+                    : 'border-red-500/40 bg-red-500/10 text-red-200'
+                }`}
+              >
+                <p>{submitResult.ok ? submitMessage : submitResult.error}</p>
+                {successfulSubmit && (
+                  <a
+                    className="inline-block underline underline-offset-2 hover:no-underline"
+                    href={successfulSubmit.estimateUrl}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {t('stats.submitted.open')}
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </section>
