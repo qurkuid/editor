@@ -73,6 +73,71 @@ export const actionMenuDictionary = {
     ko: '가이드 늘이기에 실패했습니다.',
     en: 'Guide stretch failed.',
   },
+  'actionMenu.dimensionEditTitle': { ko: '치수 편집', en: 'Edit dimension' },
+  'actionMenu.dimensionEditCurrent': { ko: '현재 치수', en: 'Current dimension' },
+  'actionMenu.dimensionEditTarget': { ko: '목표 치수', en: 'Target dimension' },
+  'actionMenu.dimensionEditFixedEnd': { ko: '고정할 끝', en: 'Fixed end' },
+  'actionMenu.dimensionEditStart': { ko: '시작점 고정', en: 'Fix start' },
+  'actionMenu.dimensionEditEnd': { ko: '끝점 고정', en: 'Fix end' },
+  'actionMenu.dimensionEditLeaf': { ko: '변경 구간', en: 'Segment to change' },
+  'actionMenu.dimensionEditApply': { ko: '적용', en: 'Apply' },
+  'actionMenu.dimensionEditCancel': { ko: '취소', en: 'Cancel' },
+  'actionMenu.dimensionEditInvalid': {
+    ko: '0보다 큰 유효한 치수를 입력하세요.',
+    en: 'Enter a valid dimension greater than zero.',
+  },
+  'actionMenu.dimensionEditReadOnly': {
+    ko: '이 치수는 편집할 수 없습니다.',
+    en: 'This dimension is read-only.',
+  },
+  'actionMenu.dimensionEditReadOnlyAmbiguous': {
+    ko: '여러 경계가 가능해 이동할 벽을 하나로 정할 수 없습니다.',
+    en: 'Multiple boundaries are possible, so no single wall move can be chosen.',
+  },
+  'actionMenu.dimensionEditReadOnlyThickness': {
+    ko: '벽과 벽 사이의 두께 치수는 직접 수정할 수 없습니다.',
+    en: 'Wall-to-wall thickness dimensions cannot be edited directly.',
+  },
+  'actionMenu.dimensionEditReadOnlyCurved': {
+    ko: '곡선 벽 치수는 직접 수정할 수 없습니다.',
+    en: 'Curved-wall dimensions cannot be edited directly.',
+  },
+  'actionMenu.dimensionEditReadOnlyDatum': {
+    ko: '구조 기준선에는 고유한 벽 이동 경로가 없습니다.',
+    en: 'Structural datums have no unique wall move path.',
+  },
+  'actionMenu.dimensionEditReadOnlyMissing': {
+    ko: '이 치수의 편집 근거를 찾을 수 없습니다.',
+    en: 'The edit provenance for this dimension is unavailable.',
+  },
+  'actionMenu.dimensionEditReadOnlyUnsupported': {
+    ko: '이 치수에는 지원되는 고유한 이동 경로가 없습니다.',
+    en: 'This dimension has no supported unique move path.',
+  },
+  'actionMenu.dimensionEditPreservation': {
+    ko: '같은 치수열의 다른 구간은 유지됩니다. 같은 벽을 공유하는 다른 치수열은 함께 변할 수 있습니다.',
+    en: 'Other intervals in this dimension chain stay unchanged. Other chains sharing a wall may change too.',
+  },
+  'actionMenu.dimensionEditFailed': {
+    ko: '치수 편집을 적용할 수 없습니다.',
+    en: 'The dimension edit could not be applied.',
+  },
+  'actionMenu.dimensionEditConflict': {
+    ko: '벽·개구부·영역이 겹치거나 유효한 경계를 벗어납니다.',
+    en: 'Walls, openings, or zones would overlap or leave a valid boundary.',
+  },
+  'actionMenu.dimensionEditTopology': {
+    ko: '벽 접점이나 형상이 유지되지 않아 적용할 수 없습니다.',
+    en: 'The edit would break wall contacts or geometry.',
+  },
+  'actionMenu.dimensionEditTotalMismatch': {
+    ko: '선택한 구간만 변경하는 조건으로 목표 총치수를 만들 수 없습니다.',
+    en: 'The target total cannot be reached while changing only the selected segment.',
+  },
+  'actionMenu.dimensionEditOpening': {
+    ko: '개구부의 문서 치수 근거를 확인할 수 없습니다.',
+    en: 'The opening documentation provenance could not be verified.',
+  },
   'actionMenu.eyedropper': { ko: '스포이드', en: 'Eyedropper' },
 
   'actionMenu.dimLinear': { ko: '선형 치수', en: 'Linear dimension' },

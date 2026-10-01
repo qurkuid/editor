@@ -2,6 +2,8 @@ import type {
   AnyNode,
   AnyNodeId,
   ConstructionDrawingType,
+  DimensionStretchPlan,
+  DimensionStretchRequest,
   FloorplanGeometry,
   GeometryContext,
   NodeDefinition,
@@ -55,12 +57,37 @@ export type FloorplanToolContext = {
   finishTool: () => void
 }
 
+/**
+ * A node kind owns the semantic preflight for an Expert dimension edit. The
+ * editor supplies a render-time descriptor and an immutable node snapshot;
+ * the callback may build and validate a complete plan, but it must not write
+ * to the scene. This keeps node regeneration and peer-leaf checks outside the
+ * editor while leaving the final history transaction in the editor.
+ */
+export type FloorplanDimensionEditPreflightArgs<N extends AnyNode = AnyNode> = {
+  node: N
+  nodes: Readonly<Record<AnyNodeId, AnyNode>>
+  request: DimensionStretchRequest
+}
+
+export type FloorplanDimensionEditPreflightResult = Pick<
+  DimensionStretchPlan,
+  'descriptorId' | 'updates'
+>
+
 export type FloorplanNodeExtension<N extends AnyNode = AnyNode> = {
   tool?: () => Promise<{ default: ComponentType<FloorplanToolContext> }>
   availableModes?: readonly FloorplanToolMode[]
   preferredView?: '2d' | '3d'
   referencedSelectionAnnotationRole?: FloorplanAnnotationRole
   contextualDimensions?: (node: N, ctx: GeometryContext) => FloorplanGeometry | null
+  /**
+   * Validate an Expert dimension edit against the node kind's regenerated
+   * geometry and return the complete scene update list without mutating it.
+   */
+  dimensionEditPreflight?: (
+    args: FloorplanDimensionEditPreflightArgs<N>,
+  ) => FloorplanDimensionEditPreflightResult
   actionMenu?: {
     canCurve?: (args: { node: N; nodes: Readonly<Record<AnyNodeId, AnyNode>> }) => boolean
   }

@@ -111,6 +111,8 @@ describe('AI modeling operation contract', () => {
     )
     expect(prompt).toContain('opening guards are applied before clustering')
     expect(prompt).toContain('Axis-guide stretch is a direct 2D authoring workflow')
+    expect(prompt).toContain('Expert 2D dimensions are generated from exact model-space provenance')
+    expect(prompt).toContain('A total requires an explicit leaf choice')
     expect(prompt).toContain('classify an opening by its world center')
     expect(prompt).toContain('no AI/MCP mutation operation')
     expect(prompt).not.toContain('For Body face finishes')

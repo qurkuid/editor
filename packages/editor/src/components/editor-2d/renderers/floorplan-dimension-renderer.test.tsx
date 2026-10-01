@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test'
-import type { FloorplanGeometry } from '@pascal-app/core'
+import type {
+  AnyNodeId,
+  FloorplanDimensionEditDescriptor,
+  FloorplanGeometry,
+} from '@pascal-app/core'
 import { renderToStaticMarkup } from 'react-dom/server'
 import {
   computeArchitecturalDimensionLayout,
@@ -17,6 +21,25 @@ const dimension = {
   extensionOvershoot: 0.12,
   text: `13'-1 1/2"`,
 } satisfies Extract<FloorplanGeometry, { kind: 'dimension' }>
+
+const editDescriptor = {
+  id: 'dimension:wall_test:leaf',
+  status: 'editable',
+  levelId: 'level_test' as AnyNodeId,
+  kind: 'leaf',
+  measuredStart: [0, 0],
+  measuredEnd: [4, 0],
+  fixedEndOptions: ['start', 'end'],
+  leaves: [
+    {
+      id: 'dimension:wall_test:leaf',
+      measuredStart: [0, 0],
+      measuredEnd: [4, 0],
+      currentLength: 4,
+      wallIds: ['wall_test' as AnyNodeId],
+    },
+  ],
+} satisfies FloorplanDimensionEditDescriptor
 
 describe('architectural floor-plan dimensions', () => {
   test('leaves a paper-space gap before solid extension lines', () => {
@@ -177,6 +200,35 @@ describe('architectural floor-plan dimensions', () => {
     expect(markup).not.toContain('stroke="#ffffff"')
   })
 
+  test('adds an exact screen hit area and leaves PDF dimensions inert', () => {
+    const screenMarkup = renderToStaticMarkup(
+      <svg>
+        <FloorplanDimensionRenderer geometry={{ ...dimension, editDescriptor }} onEdit={() => {}} />
+      </svg>,
+    )
+    expect(screenMarkup).toContain('data-floorplan-dimension-edit-active=""')
+    expect(screenMarkup).toContain('data-floorplan-dimension-edit-hit=""')
+    expect(screenMarkup).toContain('pointer-events="fill"')
+    expect(screenMarkup).toContain('data-floorplan-dimension-edit-id="dimension:wall_test:leaf"')
+    expect(screenMarkup).toContain('aria-label="13&#x27;-1 1/2&quot;"')
+    expect(screenMarkup).toContain('role="button"')
+    expect(screenMarkup).toContain('tabindex="0"')
+    expect(screenMarkup).not.toContain('data-floorplan-dimension-edit-selected')
+
+    const pdfMarkup = renderToStaticMarkup(
+      <svg>
+        <FloorplanDimensionRenderer
+          geometry={{ ...dimension, editDescriptor }}
+          onEdit={() => {}}
+          renderMode="pdf"
+          selectedEditId={editDescriptor.id}
+        />
+      </svg>,
+    )
+    expect(pdfMarkup).not.toContain('data-floorplan-dimension-edit-hit')
+    expect(pdfMarkup).not.toContain('data-floorplan-dimension-edit-selected')
+  })
+
   test('renders a dimension string with shared witness extension lines and ticks', () => {
     const stringGeometry = {
       kind: 'dimension-string',
@@ -212,6 +264,46 @@ describe('architectural floor-plan dimensions', () => {
     expect(markup.match(/<line/g)).toHaveLength(8)
     expect(markup).toContain('2m')
     expect(markup).toContain('3m')
+  })
+
+  test('keeps each dimension-string segment tied to its own edit descriptor', () => {
+    const secondDescriptor = {
+      ...editDescriptor,
+      id: 'dimension:wall_test:second-leaf',
+      measuredStart: [2, 0] as [number, number],
+      measuredEnd: [5, 0] as [number, number],
+      leaves: [
+        {
+          ...editDescriptor.leaves[0]!,
+          id: 'dimension:wall_test:second-leaf',
+          measuredStart: [2, 0] as [number, number],
+          measuredEnd: [5, 0] as [number, number],
+          currentLength: 3,
+        },
+      ],
+    } satisfies FloorplanDimensionEditDescriptor
+    const stringGeometry = {
+      kind: 'dimension-string',
+      segments: [
+        { start: [0, 0], end: [2, 0], text: '2m', editDescriptor },
+        { start: [2, 0], end: [5, 0], text: '3m', editDescriptor: secondDescriptor },
+      ],
+      offsetNormal: [0, 1],
+      offsetDistance: 1,
+      extensionOvershoot: 0.12,
+      textPosition: 'above',
+    } satisfies Extract<FloorplanGeometry, { kind: 'dimension-string' }>
+
+    const markup = renderToStaticMarkup(
+      <svg>
+        <FloorplanDimensionStringRenderer geometry={stringGeometry} onEdit={() => {}} />
+      </svg>,
+    )
+    expect(markup.match(/data-floorplan-dimension-edit-hit/g)).toHaveLength(2)
+    expect(markup.match(/pointer-events="fill"/g)).toHaveLength(2)
+    expect(markup).not.toContain('data-floorplan-dimension-edit-selected')
+    expect(markup).toContain('data-floorplan-dimension-edit-id="dimension:wall_test:leaf"')
+    expect(markup).toContain('data-floorplan-dimension-edit-id="dimension:wall_test:second-leaf"')
   })
 
   test('offsets automatic dimension-string lines when no explicit baseline is supplied', () => {

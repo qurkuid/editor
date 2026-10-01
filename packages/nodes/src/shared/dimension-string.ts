@@ -1,6 +1,7 @@
 import type {
   DimensionTerminator,
   DimensionTextPosition,
+  FloorplanDimensionEditDescriptor,
   FloorplanGeometry,
   FloorplanPoint,
 } from '@pascal-app/core'
@@ -11,6 +12,7 @@ export type DimensionStringSegment = {
   dimensionStart?: FloorplanPoint
   dimensionEnd?: FloorplanPoint
   text: string
+  editDescriptor?: FloorplanDimensionEditDescriptor
 }
 
 export type DimensionStringGeometryInput = {
@@ -35,6 +37,7 @@ export function buildDimensionStringGeometry(
       dimensionStart: segment.dimensionStart,
       dimensionEnd: segment.dimensionEnd,
       text: segment.text,
+      editDescriptor: segment.editDescriptor,
     })),
     offsetNormal: input.offsetNormal,
     offsetDistance: input.offsetDistance ?? 0,

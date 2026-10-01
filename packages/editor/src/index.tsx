@@ -407,6 +407,8 @@ export {
   FLOORPLAN_GEOMETRY_METADATA_KEY,
   FLOORPLAN_NODE_EXTENSION_KEY,
   type FloorplanAnnotationRole,
+  type FloorplanDimensionEditPreflightArgs,
+  type FloorplanDimensionEditPreflightResult,
   type FloorplanMetricNotation,
   type FloorplanNodeExtension,
   type FloorplanRenderPurpose,

@@ -6,6 +6,7 @@ import {
   type AxisGuideStretchPlan,
   buildAxisGuideStretchPlan,
   type ConstructionGuideNode,
+  type DimensionStretchPlan,
   detectSpacesForLevel,
   pauseSpaceDetection,
   resumeSpaceDetection,
@@ -78,16 +79,33 @@ export function applyConstructionGuideStretchPlan(
   plan: AxisGuideStretchPlan,
   levelId: string,
 ): void {
-  if (plan.updates.length === 0) return
+  applyStretchUpdates(plan.updates, levelId)
+}
+
+/**
+ * Apply any validated planar stretch through the same scene transaction used
+ * by construction guides. Dimension edits also move/reconcile spaces, so
+ * keeping the pause, batched update, and refresh in one helper prevents a
+ * second history or reactive-space path from being introduced.
+ */
+function applyStretchUpdates(updates: AxisGuideStretchPlan['updates'], levelId: string): void {
+  if (updates.length === 0) return
   runAsSingleSceneHistoryStep(useScene, () => {
     pauseSpaceDetection()
     try {
-      useScene.getState().updateNodes(plan.updates)
+      useScene.getState().updateNodes(updates)
     } finally {
       resumeSpaceDetection()
     }
   })
   refreshSelectedLevelSpaces(levelId)
+}
+
+export function applyDimensionStretchPlan(
+  plan: Pick<DimensionStretchPlan, 'updates'>,
+  levelId: string,
+): void {
+  applyStretchUpdates(plan.updates, levelId)
 }
 
 export function ConstructionGuideStretchControls({ guide }: { guide: ConstructionGuideNode }) {

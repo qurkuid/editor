@@ -4,9 +4,11 @@ import {
   type AnyNode,
   type AnyNodeDefinition,
   type AnyNodeId,
+  AxisGuideStretchError,
   createSceneApi,
   emitter,
   type FloorplanAffordanceSession,
+  type FloorplanDimensionEditDescriptor,
   type FloorplanGeometry,
   type FloorplanPalette,
   type FloorplanPoint,
@@ -40,6 +42,7 @@ import {
   useState,
 } from 'react'
 import { markToolCancelConsumed } from '../../../hooks/use-keyboard'
+import { useT } from '../../../i18n/use-t'
 import { ROTATE_HANDLE_DRAG_LABEL } from '../../../lib/contextual-help'
 import {
   canDirectRotateNode,
@@ -93,6 +96,11 @@ import useInteractionScope, {
 } from '../../../store/use-interaction-scope'
 import { classifyParticipant } from '../../editor/group-transform-shared'
 import { suppressBoxSelectForPointer } from '../../tools/select/box-select-state'
+import { applyDimensionStretchPlan } from '../construction-guide-stretch-controls'
+import {
+  type ExpertDimensionEditApply,
+  ExpertDimensionEditPopover,
+} from '../expert-dimension-edit-popover'
 import {
   FloorplanGroupSelectionBox,
   startFloorplanGroupMove,
@@ -109,7 +117,10 @@ import {
   resolveSvgAnnotationCollisions,
   svgAnnotationLabelId,
 } from './floorplan-annotation-layout'
-import { FloorplanDimensionRenderer } from './floorplan-dimension-renderer'
+import {
+  FloorplanDimensionRenderer,
+  FloorplanDimensionStringRenderer,
+} from './floorplan-dimension-renderer'
 import { FloorplanGeometryRenderer } from './floorplan-geometry-renderer'
 import {
   resolveFloorplanAnnotationUpdate,
@@ -156,6 +167,104 @@ const DIRECT_DRAG_THRESHOLD_PX = 4
 const DIRECT_ROTATE_EPSILON = 1e-6
 const DIRECT_ROTATE_RADIANS_PER_PIXEL = Math.PI / 180
 const MAX_HANDLE_UNITS_PER_PIXEL = 0.015
+
+type DimensionEditPosition = { left: number; top: number }
+
+type DimensionEditSession = {
+  descriptor: FloorplanDimensionEditDescriptor
+  position: DimensionEditPosition
+  openedNodes: Readonly<Record<AnyNodeId, AnyNode>>
+}
+
+const DIMENSION_READ_ONLY_REASON = '이 치수에는 현재 고유한 벽 이동 경로가 없어 읽기 전용입니다.'
+
+function readOnlyDimensionDescriptor(
+  nodeId: AnyNodeId,
+  levelId: AnyNodeId,
+  start: FloorplanPoint,
+  end: FloorplanPoint,
+  keyHint: number,
+  kind: 'dimension' | 'dimension-string',
+): FloorplanDimensionEditDescriptor {
+  return {
+    id: `${nodeId}:dimension:${kind}:${keyHint}:${start[0]}:${start[1]}:${end[0]}:${end[1]}`,
+    status: 'read-only',
+    readOnlyReason: DIMENSION_READ_ONLY_REASON,
+    levelId,
+    kind: 'leaf',
+    measuredStart: start,
+    measuredEnd: end,
+    fixedEndOptions: ['start', 'end'],
+    leaves: [],
+  }
+}
+
+function dimensionStretchErrorMessage(
+  error: AxisGuideStretchError,
+  t: ReturnType<typeof useT>,
+): string {
+  switch (error.code) {
+    case 'dimension-not-editable':
+      return t('actionMenu.dimensionEditReadOnly')
+    case 'dimension-level-missing':
+    case 'dimension-leaf-not-found':
+    case 'invalid-target':
+      return t('actionMenu.dimensionEditInvalid')
+    case 'unsupported-dimension':
+      return t('actionMenu.dimensionEditReadOnlyUnsupported')
+    case 'invalid-opening-documentation':
+      return t('actionMenu.dimensionEditOpening')
+    case 'dimension-total-mismatch':
+      return t('actionMenu.dimensionEditTotalMismatch')
+    case 'unsupported-crossing-wall':
+    case 'attachment-outside-wall':
+    case 'attachment-collision':
+    case 'invalid-zone':
+      return t('actionMenu.dimensionEditConflict')
+    case 'invalid-wall':
+    case 'wall-collapse':
+    case 'wall-reversal':
+    case 'broken-wall-junction':
+      return t('actionMenu.dimensionEditTopology')
+    default:
+      return t('actionMenu.dimensionEditFailed')
+  }
+}
+
+function buildDimensionEditPlan(
+  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
+  descriptor: FloorplanDimensionEditDescriptor,
+  request: ExpertDimensionEditApply,
+) {
+  const sourceNodeId = descriptor.sourceNodeId
+  const sourceNode = sourceNodeId ? nodes[sourceNodeId] : undefined
+  const preflight = sourceNode
+    ? getFloorplanNodeExtension(nodeRegistry.get(sourceNode.type))?.dimensionEditPreflight
+    : undefined
+  if (!sourceNode || !preflight) {
+    throw new AxisGuideStretchError(
+      'unsupported-dimension',
+      'This dimension has no node-owned preflight handler',
+    )
+  }
+  const plan = preflight({
+    node: sourceNode,
+    nodes,
+    request: {
+      descriptor,
+      fixedEnd: request.fixedEnd,
+      selectedLeafId: request.selectedLeafId,
+      targetDistance: request.targetDistance,
+    },
+  })
+  if (plan.descriptorId !== descriptor.id) {
+    throw new AxisGuideStretchError(
+      'unsupported-dimension',
+      'The dimension preflight did not match the selected descriptor',
+    )
+  }
+  return plan
+}
 
 export function resolveFloorplanHandleUnitsPerPixel(unitsPerPixel: number): number {
   return Math.min(unitsPerPixel, MAX_HANDLE_UNITS_PER_PIXEL)
@@ -435,6 +544,7 @@ function snapshotsToUpdates(snapshots: NodeSnapshot[]) {
 const EMPTY_LIVE_OVERRIDES: Map<string, LiveNodeOverrides> = new Map()
 
 export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+  const t = useT()
   const selectedLevelId = useViewer((s) => s.selection.levelId)
   const selectedBuildingId = useViewer((s) => s.selection.buildingId)
   const selectedIds = useViewer((s) => s.selection.selectedIds)
@@ -497,6 +607,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
   const editorMode = useEditor((s) => s.mode)
   const structureLayer = useEditor((s) => s.structureLayer)
   const floorplanSelectionTool = useEditor((s) => s.floorplanSelectionTool)
+  const interactionIdle = useInteractionScope((state) => isIdle(state.scope))
   const endpointReshape = useEndpointReshape()
   const isMarqueeSelectionActive =
     editorMode === 'select' &&
@@ -512,6 +623,12 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
   const annotationVisibility = useFloorplanAnnotationVisibility((s) => s.visibility)
   const wallDimensionReference = useFloorplanAnnotationVisibility((s) => s.wallDimensionReference)
   const floorplanMode = useFloorplanMode((s) => s.mode)
+  const dimensionEditEnabled =
+    floorplanVisible &&
+    floorplanMode === 'expert' &&
+    editorMode === 'select' &&
+    floorplanSelectionTool === 'click' &&
+    interactionIdle
   const effectiveWallDimensionReference = resolveFloorplanWallDimensionReference(
     floorplanMode,
     wallDimensionReference,
@@ -526,6 +643,9 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
   const [hoveredHandleId, setHoveredHandleId] = useState<string | null>(null)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [rotationOverlay, setRotationOverlay] = useState<RotationOverlayState | null>(null)
+  const [dimensionEdit, setDimensionEdit] = useState<DimensionEditSession | null>(null)
+  const [dimensionEditError, setDimensionEditError] = useState<string | null>(null)
+  const [selectedDimensionId, setSelectedDimensionId] = useState<string | null>(null)
   const geometryCacheRef = useRef<Map<string, CacheEntry>>(new Map())
   const levelDataCacheRef = useRef<Map<string, LevelDataCacheEntry>>(new Map())
   const nodesRef = useRef(nodes)
@@ -539,6 +659,23 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
   // override in their own deps.
   const nodeSiblingEpochRef = useRef<Map<AnyNodeId, number>>(new Map())
   const prevLiveFlaggedIdsRef = useRef<AnyNodeId[]>([])
+
+  const closeDimensionEdit = useCallback(() => {
+    setDimensionEdit(null)
+    setDimensionEditError(null)
+    setSelectedDimensionId(null)
+  }, [])
+
+  useEffect(() => {
+    if (!dimensionEdit) return
+    if (
+      !dimensionEditEnabled ||
+      dimensionEdit.openedNodes !== nodes ||
+      dimensionEdit.descriptor.levelId !== levelId
+    ) {
+      closeDimensionEdit()
+    }
+  }, [closeDimensionEdit, dimensionEdit, dimensionEditEnabled, levelId, nodes])
 
   useEffect(() => {
     nodesRef.current = nodes
@@ -642,6 +779,59 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
       applyEntrySelection(id, event.metaKey || event.ctrlKey || event.shiftKey)
     },
     [applyEntrySelection],
+  )
+
+  const handleDimensionEdit = useCallback(
+    (descriptor: FloorplanDimensionEditDescriptor, event: React.SyntheticEvent<SVGElement>) => {
+      if (!dimensionEditEnabled) return
+      event.preventDefault()
+      event.stopPropagation()
+      const rect = event.currentTarget.getBoundingClientRect()
+      setDimensionEdit({
+        descriptor,
+        openedNodes: nodes,
+        position: {
+          left: rect.left + rect.width / 2,
+          top: rect.bottom,
+        },
+      })
+      setDimensionEditError(null)
+      setSelectedDimensionId(descriptor.id)
+    },
+    [dimensionEditEnabled, nodes],
+  )
+
+  const applyDimensionEdit = useCallback(
+    (request: ExpertDimensionEditApply) => {
+      if (!dimensionEdit) return
+      const currentNodes = useScene.getState().nodes
+      // A descriptor is a render-time snapshot. If the graph changed while
+      // the popover was open, close it and require a fresh click rather than
+      // applying old measured endpoints to a newer graph.
+      if (currentNodes !== dimensionEdit.openedNodes) {
+        closeDimensionEdit()
+        return
+      }
+      try {
+        const plan = buildDimensionEditPlan(currentNodes, dimensionEdit.descriptor, request)
+        if (plan.updates.length === 0) {
+          throw new AxisGuideStretchError(
+            'invalid-target',
+            'Dimension target does not change the model',
+          )
+        }
+        applyDimensionStretchPlan(plan, dimensionEdit.descriptor.levelId)
+        sfxEmitter.emit('sfx:structure-build')
+        closeDimensionEdit()
+      } catch (caught) {
+        setDimensionEditError(
+          caught instanceof AxisGuideStretchError
+            ? dimensionStretchErrorMessage(caught, t)
+            : t('actionMenu.dimensionEditFailed'),
+        )
+      }
+    },
+    [closeDimensionEdit, dimensionEdit, t],
   )
 
   const handleClickStop = useCallback((event: React.MouseEvent<SVGGElement>) => {
@@ -1401,6 +1591,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
           <FloorplanRegistryEntry
             activeDragId={handleIdForNode(activeDragId, entry.id)}
             annotationVisibility={annotationVisibility}
+            dimensionEditEnabled={dimensionEditEnabled}
             floorplanMode={floorplanMode}
             floorplanVisible={floorplanVisible}
             geometryCacheRef={geometryCacheRef}
@@ -1416,6 +1607,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
             nodeId={entry.id}
             nodes={nodes}
             onClickStop={handleClickStop}
+            onDimensionEdit={handleDimensionEdit}
             onEntryPointerDown={handleEntryPointerDown}
             onGroupMovePointerDown={handleGroupMoveHandlePointerDown}
             onHandleHoverChange={setHoveredHandleId}
@@ -1424,6 +1616,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
             palette={palette}
             pass="base"
             sceneRotationDeg={sceneRotationDeg}
+            selectedDimensionId={selectedDimensionId}
             setMovingNode={setMovingNode}
             setMovingNodeOrigin={setMovingNodeOrigin}
             siblingEpoch={entry.dependsOnSiblingInputs ? (siblingEpochs.get(entry.id) ?? 0) : 0}
@@ -1447,6 +1640,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
           <FloorplanRegistryEntry
             activeDragId={handleIdForNode(activeDragId, entry.id)}
             annotationVisibility={annotationVisibility}
+            dimensionEditEnabled={dimensionEditEnabled}
             floorplanMode={floorplanMode}
             floorplanVisible={floorplanVisible}
             geometryCacheRef={geometryCacheRef}
@@ -1462,6 +1656,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
             nodeId={entry.id}
             nodes={nodes}
             onClickStop={handleClickStop}
+            onDimensionEdit={handleDimensionEdit}
             onEntryPointerDown={handleEntryPointerDown}
             onGroupMovePointerDown={handleGroupMoveHandlePointerDown}
             onHandleHoverChange={setHoveredHandleId}
@@ -1470,6 +1665,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
             palette={palette}
             pass="overlay"
             sceneRotationDeg={sceneRotationDeg}
+            selectedDimensionId={selectedDimensionId}
             setMovingNode={setMovingNode}
             setMovingNodeOrigin={setMovingNodeOrigin}
             siblingEpoch={entry.dependsOnSiblingInputs ? (siblingEpochs.get(entry.id) ?? 0) : 0}
@@ -1497,6 +1693,15 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
           overlay={rotationOverlay}
           palette={palette}
           sceneRotationDeg={sceneRotationDeg}
+        />
+      ) : null}
+      {dimensionEdit ? (
+        <ExpertDimensionEditPopover
+          descriptor={dimensionEdit.descriptor}
+          error={dimensionEditError}
+          onApply={applyDimensionEdit}
+          onClose={closeDimensionEdit}
+          position={dimensionEdit.position}
         />
       ) : null}
     </g>
@@ -1623,7 +1828,12 @@ function FloorplanAnnotationLayoutResolver({ active }: { active: boolean }) {
     for (const [index, label] of registryLabelElementsRef.current.entries()) {
       const id = svgAnnotationLabelId(label, index)
       label.dataset.floorplanAnnotationId = id
-      label.style.pointerEvents = 'all'
+      // The exact dimension hit rect owns the active label. Keep the label
+      // group itself inert so painted text cannot win hit testing over that
+      // rect after collision layout assigns pointer-events to annotations.
+      label.style.pointerEvents = label.hasAttribute('data-floorplan-dimension-edit-active')
+        ? 'none'
+        : 'all'
       label.style.cursor = annotationLayoutOverrides[id]?.pinned ? 'grab' : 'move'
     }
   }, [active, annotationLayoutOverrides, interactionIdle, layoutInputs, sceneRotationDeg])
@@ -1649,6 +1859,14 @@ function FloorplanAnnotationLayoutResolver({ active }: { active: boolean }) {
     const onPointerDown = (event: PointerEvent) => {
       const label = findLabel(event.target)
       if (!(label && event.button === 0)) return
+      // Dimension labels own their hit rect and open the exact descriptor
+      // popover. Do not let the generic annotation drag capture those clicks.
+      if (
+        label.hasAttribute('data-floorplan-dimension-edit-active') ||
+        (event.target instanceof Element &&
+          event.target.closest('[data-floorplan-dimension-edit-hit]'))
+      )
+        return
       const matrix = label.getScreenCTM()
       if (!matrix) return
       event.preventDefault()
@@ -1722,6 +1940,7 @@ function FloorplanAnnotationLayoutResolver({ active }: { active: boolean }) {
     const onDoubleClick = (event: MouseEvent) => {
       const label = findLabel(event.target)
       if (!label) return
+      if (label.hasAttribute('data-floorplan-dimension-edit-active')) return
       event.preventDefault()
       event.stopPropagation()
       label.style.cursor = 'move'
@@ -1764,6 +1983,7 @@ function readFloorplanAnnotationLayoutOffset(label: SVGGElement) {
 type FloorplanRegistryEntryProps = {
   activeDragId: string | null
   annotationVisibility: FloorplanAnnotationVisibility
+  dimensionEditEnabled: boolean
   floorplanMode: FloorplanMode
   ctxOverrides: FloorplanContextOverrides | undefined
   floorplanVisible: boolean
@@ -1779,6 +1999,10 @@ type FloorplanRegistryEntryProps = {
   nodeId: AnyNodeId
   nodes: Record<string, AnyNode>
   onClickStop: (event: React.MouseEvent<SVGGElement>) => void
+  onDimensionEdit: (
+    descriptor: FloorplanDimensionEditDescriptor,
+    event: React.SyntheticEvent<SVGElement>,
+  ) => void
   onEntryPointerDown: (id: AnyNodeId, event: ReactPointerEvent<SVGGElement>) => void
   onGroupMovePointerDown: (id: AnyNodeId, event: ReactPointerEvent<SVGGElement>) => boolean
   onHandleHoverChange: (id: string | null) => void
@@ -1806,6 +2030,7 @@ type FloorplanRegistryEntryProps = {
   metricNotation: 'meters' | 'millimeters'
   wallDimensionReference: FloorplanWallDimensionReference
   visibilityRootId: AnyNodeId | undefined
+  selectedDimensionId: string | null
 }
 
 const FloorplanRegistryEntry = memo(function FloorplanRegistryEntry({
@@ -1841,6 +2066,9 @@ const FloorplanRegistryEntry = memo(function FloorplanRegistryEntry({
   metricNotation,
   wallDimensionReference,
   visibilityRootId,
+  dimensionEditEnabled,
+  onDimensionEdit,
+  selectedDimensionId,
 }: FloorplanRegistryEntryProps): React.ReactElement | null {
   const selected = useViewer((state) => state.selection.selectedIds.includes(nodeId))
   const highlighted = useViewer((state) => state.previewSelectedIds.includes(nodeId))
@@ -2014,12 +2242,16 @@ const FloorplanRegistryEntry = memo(function FloorplanRegistryEntry({
         hoveredHandleId={hoveredHandleId}
         isMarqueeSelectionActive={isMarqueeSelectionActive}
         nodeId={nodeId}
+        dimensionEditEnabled={dimensionEditEnabled}
+        levelId={(node.parentId ?? nodeId) as AnyNodeId}
+        onDimensionEdit={onDimensionEdit}
         onHandleDoubleClick={handleHandleDoubleClick}
         onHandleHoverChange={onHandleHoverChange}
         onHandlePointerDown={handleHandlePointerDown}
         onMoveHandlePointerDown={handleMoveHandlePointerDown}
         palette={palette}
         sceneRotationDeg={sceneRotationDeg}
+        selectedDimensionId={selectedDimensionId}
       />
     </g>
   )
@@ -2319,6 +2551,8 @@ export function getFloorplanLevelData(
 
 type InteractiveGeometryProps = {
   geometry: FloorplanGeometry
+  dimensionEditEnabled?: boolean
+  levelId?: AnyNodeId
   unitsPerPixel?: number
   palette: FloorplanPalette | undefined
   hatchPatternId: string | undefined
@@ -2328,6 +2562,11 @@ type InteractiveGeometryProps = {
   isMarqueeSelectionActive: boolean
   nodeId: AnyNodeId
   sceneRotationDeg: number
+  selectedDimensionId?: string | null
+  onDimensionEdit?: (
+    descriptor: FloorplanDimensionEditDescriptor,
+    event: React.SyntheticEvent<SVGElement>,
+  ) => void
   onHandleHoverChange: (id: string | null) => void
   onHandleDoubleClick: (
     affordance: string,
@@ -2347,6 +2586,8 @@ type InteractiveGeometryProps = {
 
 export const InteractiveGeometry = memo(function InteractiveGeometry({
   geometry,
+  dimensionEditEnabled = false,
+  levelId,
   unitsPerPixel: unitsPerPixelOverride,
   palette,
   hatchPatternId,
@@ -2356,11 +2597,14 @@ export const InteractiveGeometry = memo(function InteractiveGeometry({
   isMarqueeSelectionActive,
   nodeId,
   sceneRotationDeg,
+  selectedDimensionId = null,
+  onDimensionEdit,
   onHandleDoubleClick,
   onHandleHoverChange,
   onHandlePointerDown,
   onMoveHandlePointerDown,
 }: InteractiveGeometryProps): React.ReactElement {
+  const resolvedLevelId = levelId ?? nodeId
   const liveUnitsPerPixel = useFloorplanStaticUnitsPerPixel()
   const unitsPerPixel = unitsPerPixelOverride ?? liveUnitsPerPixel
   // Keep handles pixel-sized through normal navigation, then let them shrink
@@ -3040,13 +3284,46 @@ export const InteractiveGeometry = memo(function InteractiveGeometry({
         )
       }
       case 'dimension': {
-        if (!palette) return <></>
+        const editDescriptor =
+          g.editDescriptor ??
+          readOnlyDimensionDescriptor(nodeId, resolvedLevelId, g.start, g.end, keyHint, 'dimension')
+        const editableGeometry = g.editDescriptor ? g : { ...g, editDescriptor }
         return (
           <FloorplanDimensionRenderer
-            geometry={g}
+            geometry={editableGeometry}
             key={keyHint}
+            onEdit={dimensionEditEnabled ? onDimensionEdit : undefined}
             sceneRotationDeg={sceneRotationDeg}
-            stroke={g.stroke ?? palette.measurementStroke}
+            selectedEditId={selectedDimensionId}
+            stroke={g.stroke ?? palette?.measurementStroke}
+          />
+        )
+      }
+      case 'dimension-string': {
+        const editableGeometry = {
+          ...g,
+          segments: g.segments.map((segment, index) => ({
+            ...segment,
+            editDescriptor:
+              segment.editDescriptor ??
+              readOnlyDimensionDescriptor(
+                nodeId,
+                resolvedLevelId,
+                segment.start,
+                segment.end,
+                keyHint * 1000 + index,
+                'dimension-string',
+              ),
+          })),
+        }
+        return (
+          <FloorplanDimensionStringRenderer
+            geometry={editableGeometry}
+            key={keyHint}
+            onEdit={dimensionEditEnabled ? onDimensionEdit : undefined}
+            sceneRotationDeg={sceneRotationDeg}
+            selectedEditId={selectedDimensionId}
+            stroke={g.stroke ?? palette?.measurementStroke}
           />
         )
       }

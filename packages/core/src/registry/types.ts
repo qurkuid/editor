@@ -215,6 +215,72 @@ export type FloorplanPalette = {
 
 export type FloorplanPoint = readonly [x: number, y: number]
 
+/**
+ * Render-only provenance for a generated dimension label.  The descriptor is
+ * rebuilt with floor-plan geometry and is deliberately not persisted on scene
+ * nodes; editors may use it to offer an exact, model-space edit affordance.
+ */
+export type FloorplanDimensionEditStatus = 'editable' | 'read-only'
+export type FloorplanDimensionEditKind = 'leaf' | 'total' | 'opening-width' | 'room-clear'
+export type FloorplanDimensionEditFixedEnd = 'start' | 'end'
+
+export type FloorplanDimensionEditLeaf = {
+  id: string
+  /** Stable semantic key that survives regenerated coordinates. */
+  semanticKey?: string
+  measuredStart: FloorplanPoint
+  measuredEnd: FloorplanPoint
+  currentLength: number
+  /** Semantic nodes that can move to realize this leaf. */
+  wallIds: readonly AnyNodeId[]
+  /** Optional face provenance for room-clear dimensions. */
+  faces?: readonly {
+    wallId: AnyNodeId
+    side: 'front' | 'back'
+  }[]
+  opening?: {
+    openingId: AnyNodeId
+    reference: 'nominal' | 'rough-opening' | 'masonry-opening' | 'finish-opening'
+    displayedField: 'width' | 'roughOpeningWidth' | 'masonryOpeningWidth' | 'finishOpeningWidth'
+    documentedOffset?: number
+  }
+}
+
+export type FloorplanDimensionEditDescriptor = {
+  id: string
+  /** Stable owner node for regeneration preflight. */
+  sourceNodeId?: AnyNodeId
+  /** Stable generated chain family for matching regenerated leaves. */
+  chainId?: string
+  /** Generator and dimension options used to rebuild this exact chain. */
+  generatorKey?: string
+  semanticKey?: string
+  status: FloorplanDimensionEditStatus
+  readOnlyReason?: string
+  /** Stable UI mapping key; `readOnlyReason` remains useful for diagnostics. */
+  readOnlyReasonCode?:
+    | 'ambiguous-face'
+    | 'room-to-room-thickness'
+    | 'curved-wall'
+    | 'structural-datum'
+    | 'missing-provenance'
+    | 'unsupported-dimension'
+  levelId: AnyNodeId
+  kind: FloorplanDimensionEditKind
+  measuredStart: FloorplanPoint
+  measuredEnd: FloorplanPoint
+  fixedEndOptions: readonly [FloorplanDimensionEditFixedEnd, FloorplanDimensionEditFixedEnd]
+  leaves: readonly FloorplanDimensionEditLeaf[]
+  defaultLeafId?: string
+  opening?: {
+    openingId: AnyNodeId
+    reference: 'nominal' | 'rough-opening' | 'masonry-opening' | 'finish-opening'
+    displayedField: 'width' | 'roughOpeningWidth' | 'masonryOpeningWidth' | 'finishOpeningWidth'
+    /** Exact displayed-minus-physical offset for documented spans. */
+    documentedOffset?: number
+  }
+}
+
 export type DimensionTerminator = 'architectural-tick' | 'filled-arrow' | 'open-arrow' | 'dot'
 
 export type DimensionTextPosition = 'above' | 'centered'
@@ -666,6 +732,8 @@ export type FloorplanGeometry =
       text: string
       /** Optional override for the line/text colour. Defaults to the palette accent. */
       stroke?: string
+      /** Optional exact provenance for Expert-mode dimension editing. */
+      editDescriptor?: FloorplanDimensionEditDescriptor
     }
   | {
       kind: 'dimension-string'
@@ -682,6 +750,8 @@ export type FloorplanGeometry =
         dimensionStart?: FloorplanPoint
         dimensionEnd?: FloorplanPoint
         text: string
+        /** Optional exact provenance for Expert-mode dimension editing. */
+        editDescriptor?: FloorplanDimensionEditDescriptor
       }[]
       /** Outward-pointing unit normal shared by every segment in the string. */
       offsetNormal: FloorplanPoint

@@ -1,5 +1,8 @@
 import {
+  type AnyNodeId,
   detectSpacesForLevel,
+  type FloorplanDimensionEditDescriptor,
+  type FloorplanDimensionEditLeaf,
   type FloorplanGeometry,
   type FloorplanPoint,
   type GeometryContext,
@@ -26,6 +29,8 @@ const EXTENSION_OVERSHOOT = 0.08
 type FaceLine = {
   start: FloorplanPoint
   end: FloorplanPoint
+  wallIds: readonly AnyNodeId[]
+  face: 'front' | 'back'
 }
 
 type DimensionGeometry = Extract<FloorplanGeometry, { kind: 'dimension' }>
@@ -77,8 +82,27 @@ export function buildRoomClearDimensions(
   const stroke = ctx.viewState?.palette.measurementStroke ?? '#475569'
   const rectangle = resolveClearFaceRectangle(faceLines)
   const dimensions = rectangle
-    ? buildRectangleClearDimensions(rectangle, unit, profile, metricNotation, stroke)
-    : buildRectilinearClearDimensions(faceLines, unit, profile, metricNotation, stroke)
+    ? buildRectangleClearDimensions(
+        faceLines,
+        rectangle,
+        node.parentId as AnyNodeId,
+        node.id,
+        `room-clear:${node.clearDimensionPolicy}`,
+        unit,
+        profile,
+        metricNotation,
+        stroke,
+      )
+    : buildRectilinearClearDimensions(
+        faceLines,
+        node.parentId as AnyNodeId,
+        node.id,
+        `room-clear:${node.clearDimensionPolicy}`,
+        unit,
+        profile,
+        metricNotation,
+        stroke,
+      )
   if (dimensions.length === 0) return []
   return [
     ...dimensions,
@@ -87,6 +111,8 @@ export function buildRoomClearDimensions(
       ctx,
       space.boundaryFaces,
       wallsById,
+      node.parentId as AnyNodeId,
+      `room-clear:finish-faces`,
       unit,
       profile,
       metricNotation,
@@ -147,17 +173,22 @@ function resolveClearFaceRectangle(
 }
 
 function buildRectangleClearDimensions(
+  faceLines: readonly FaceLine[],
   rectangle: [FloorplanPoint, FloorplanPoint, FloorplanPoint, FloorplanPoint],
+  levelId: AnyNodeId,
+  nodeId: AnyNodeId,
+  generatorKey: string,
   unit: 'metric' | 'imperial',
   profile: ConstructionLengthProfile,
   metricNotation: ConstructionMetricNotation,
   stroke: string,
 ): FloorplanGeometry[] {
   const first = dimensionAcrossOppositeFaces(
-    rectangle[0],
-    rectangle[1],
-    rectangle[3],
-    rectangle[2],
+    { ...faceLines[0]!, start: rectangle[0]!, end: rectangle[1]! },
+    { ...faceLines[2]!, start: rectangle[3]!, end: rectangle[2]! },
+    levelId,
+    nodeId,
+    generatorKey,
     FIRST_DIMENSION_POSITION,
     unit,
     profile,
@@ -165,10 +196,11 @@ function buildRectangleClearDimensions(
     stroke,
   )
   const second = dimensionAcrossOppositeFaces(
-    rectangle[1],
-    rectangle[2],
-    rectangle[0],
-    rectangle[3],
+    { ...faceLines[1]!, start: rectangle[1]!, end: rectangle[2]! },
+    { ...faceLines[3]!, start: rectangle[0]!, end: rectangle[3]! },
+    levelId,
+    nodeId,
+    generatorKey,
     SECOND_DIMENSION_POSITION,
     unit,
     profile,
@@ -180,6 +212,9 @@ function buildRectangleClearDimensions(
 
 function buildRectilinearClearDimensions(
   faceLines: readonly FaceLine[],
+  levelId: AnyNodeId,
+  nodeId: AnyNodeId,
+  generatorKey: string,
   unit: 'metric' | 'imperial',
   profile: ConstructionLengthProfile,
   metricNotation: ConstructionMetricNotation,
@@ -206,6 +241,9 @@ function buildRectilinearClearDimensions(
         second,
         firstDirection,
         vertices,
+        levelId,
+        nodeId,
+        generatorKey,
         unit,
         profile,
         metricNotation,
@@ -234,6 +272,8 @@ function offsetBoundaryFace(boundary: SpaceBoundaryFace, wall: WallNode): FaceLi
   return {
     start: [first[0] + normal[0] * offset, first[1] + normal[1] * offset],
     end: [last[0] + normal[0] * offset, last[1] + normal[1] * offset],
+    wallIds: [wall.id],
+    face: boundary.face,
   }
 }
 
@@ -264,6 +304,9 @@ function dimensionBetweenOverlappingParallelFaces(
   second: FaceLine,
   direction: FloorplanPoint,
   polygon: readonly FloorplanPoint[],
+  levelId: AnyNodeId,
+  nodeId: AnyNodeId,
+  generatorKey: string,
   unit: 'metric' | 'imperial',
   profile: ConstructionLengthProfile,
   metricNotation: ConstructionMetricNotation,
@@ -288,6 +331,24 @@ function dimensionBetweenOverlappingParallelFaces(
   const length = distance(start, end)
   if (length < MIN_CLEAR_SPAN) return null
 
+  const wallIds = [...new Set([...first.wallIds, ...second.wallIds])].sort((left, right) =>
+    String(left).localeCompare(String(right)),
+  )
+  const chainId = `${levelId}:room-clear:${nodeId}`
+  const semanticKey = `${chainId}:span:${faceSemanticKey(first, second)}`
+  const leaf: FloorplanDimensionEditLeaf = {
+    id: `${levelId}:room-clear:${wallIds.join(',')}:${roundKey(start[0])}:${roundKey(start[1])}:${roundKey(end[0])}:${roundKey(end[1])}`,
+    measuredStart: start,
+    measuredEnd: end,
+    currentLength: length,
+    wallIds,
+    semanticKey,
+    faces: [
+      ...first.wallIds.map((wallId) => ({ wallId, side: first.face })),
+      ...second.wallIds.map((wallId) => ({ wallId, side: second.face })),
+    ],
+  }
+
   return {
     kind: 'dimension',
     start,
@@ -297,6 +358,26 @@ function dimensionBetweenOverlappingParallelFaces(
     extensionOvershoot: EXTENSION_OVERSHOOT,
     text: formatConstructionLength(length, unit, profile, { metricNotation }),
     stroke,
+    editDescriptor: {
+      id: leaf.id,
+      sourceNodeId: nodeId,
+      chainId,
+      generatorKey,
+      semanticKey,
+      status: wallIds.length === 2 ? 'editable' : 'read-only',
+      readOnlyReasonCode: wallIds.length === 2 ? undefined : 'ambiguous-face',
+      readOnlyReason:
+        wallIds.length === 2
+          ? undefined
+          : '여러 벽이 하나의 실내 면을 이루어 이동 경계를 정할 수 없습니다.',
+      levelId,
+      kind: 'room-clear',
+      measuredStart: start,
+      measuredEnd: end,
+      fixedEndOptions: ['start', 'end'],
+      leaves: [leaf],
+      defaultLeafId: leaf.id,
+    },
   }
 }
 
@@ -329,11 +410,23 @@ function roundKey(value: number): number {
   return Math.round(value / LINE_TOLERANCE)
 }
 
+function faceSemanticKey(...lines: readonly FaceLine[]): string {
+  return [
+    ...new Set(
+      lines.flatMap((line) => line.wallIds.map((wallId) => `${String(wallId)}:${line.face}`)),
+    ),
+  ]
+    .sort()
+    .join('|')
+}
+
 function buildRoomToRoomClearDimensions(
   node: ZoneNode,
   ctx: GeometryContext,
   boundaryFaces: readonly SpaceBoundaryFace[],
   wallsById: ReadonlyMap<string, WallNode>,
+  levelId: AnyNodeId,
+  generatorKey: string,
   unit: 'metric' | 'imperial',
   profile: ConstructionLengthProfile,
   metricNotation: ConstructionMetricNotation,
@@ -397,6 +490,9 @@ function buildRoomToRoomClearDimensions(
       const dimension = dimensionAcrossSharedRoomWall(
         currentLine,
         neighborLine,
+        levelId,
+        node.id,
+        generatorKey,
         unit,
         profile,
         metricNotation,
@@ -412,6 +508,9 @@ function buildRoomToRoomClearDimensions(
 function dimensionAcrossSharedRoomWall(
   currentLine: FaceLine,
   neighborLine: FaceLine,
+  levelId: AnyNodeId,
+  nodeId: AnyNodeId,
+  generatorKey: string,
   unit: 'metric' | 'imperial',
   profile: ConstructionLengthProfile,
   metricNotation: ConstructionMetricNotation,
@@ -446,6 +545,24 @@ function dimensionAcrossSharedRoomWall(
   const axis = normalizedDirection(start, end)
   if (!axis) return null
 
+  const wallIds = [...new Set([...currentLine.wallIds, ...neighborLine.wallIds])].sort(
+    (left, right) => String(left).localeCompare(String(right)),
+  )
+  const chainId = `${levelId}:room-clear:${nodeId}:room-to-room`
+  const semanticKey = `${chainId}:span:${faceSemanticKey(currentLine, neighborLine)}`
+  const leaf: FloorplanDimensionEditLeaf = {
+    id: `${levelId}:room-clear:rr:${wallIds.join(',')}:${roundKey(start[0])}:${roundKey(end[0])}`,
+    measuredStart: start,
+    measuredEnd: end,
+    currentLength: clear,
+    wallIds,
+    semanticKey,
+    faces: [
+      ...currentLine.wallIds.map((wallId) => ({ wallId, side: currentLine.face })),
+      ...neighborLine.wallIds.map((wallId) => ({ wallId, side: neighborLine.face })),
+    ],
+  }
+
   return {
     kind: 'dimension',
     start,
@@ -455,6 +572,23 @@ function dimensionAcrossSharedRoomWall(
     extensionOvershoot: EXTENSION_OVERSHOOT,
     text: `R-R ${formatConstructionLength(clear, unit, profile, { metricNotation })}`,
     stroke,
+    editDescriptor: {
+      id: leaf.id,
+      sourceNodeId: nodeId,
+      chainId,
+      generatorKey,
+      semanticKey,
+      status: 'read-only',
+      readOnlyReason: 'R-R 벽 두께 치수는 직접 수정할 수 없습니다.',
+      readOnlyReasonCode: 'room-to-room-thickness',
+      levelId,
+      kind: 'room-clear',
+      measuredStart: start,
+      measuredEnd: end,
+      fixedEndOptions: ['start', 'end'],
+      leaves: [leaf],
+      defaultLeafId: leaf.id,
+    },
   }
 }
 
@@ -474,8 +608,10 @@ function mergeCollinearFaces(lines: readonly FaceLine[]): FaceLine[] {
   const merged: FaceLine[] = []
   for (const line of lines) {
     const previous = merged[merged.length - 1]
-    if (previous && canMerge(previous, line)) previous.end = line.end
-    else merged.push({ ...line })
+    if (previous && canMerge(previous, line)) {
+      previous.end = line.end
+      previous.wallIds = [...new Set([...previous.wallIds, ...line.wallIds])]
+    } else merged.push({ ...line })
   }
 
   while (merged.length > 1) {
@@ -483,6 +619,7 @@ function mergeCollinearFaces(lines: readonly FaceLine[]): FaceLine[] {
     const last = merged[merged.length - 1]!
     if (!canMerge(last, first)) break
     first.start = last.start
+    first.wallIds = [...new Set([...first.wallIds, ...last.wallIds])]
     merged.pop()
   }
   return merged
@@ -518,22 +655,69 @@ function intersectLines(first: FaceLine, second: FaceLine): FloorplanPoint | nul
 }
 
 function dimensionAcrossOppositeFaces(
-  firstStart: FloorplanPoint,
-  firstEnd: FloorplanPoint,
-  oppositeStart: FloorplanPoint,
-  oppositeEnd: FloorplanPoint,
+  first: FaceLine,
+  opposite: FaceLine,
+  levelId: AnyNodeId,
+  nodeId: AnyNodeId,
+  generatorKey: string,
   position: number,
   unit: 'metric' | 'imperial',
   profile: ConstructionLengthProfile,
   metricNotation: ConstructionMetricNotation,
   stroke: string,
 ): FloorplanGeometry | null {
-  const start = interpolate(firstStart, firstEnd, position)
-  const end = interpolate(oppositeStart, oppositeEnd, position)
+  const firstDirection = normalizedDirection(first.start, first.end)
+  const oppositeDirection = normalizedDirection(opposite.start, opposite.end)
+  if (!(firstDirection && oppositeDirection)) return null
+  const orientedOpposite =
+    dot(firstDirection, oppositeDirection) < 0
+      ? { ...opposite, start: opposite.end, end: opposite.start }
+      : opposite
+  const start = interpolate(first.start, first.end, position)
+  const end = interpolate(orientedOpposite.start, orientedOpposite.end, position)
   const direction = normalizedDirection(start, end)
   if (!direction) return null
   const length = distance(start, end)
   if (length < MIN_CLEAR_SPAN) return null
+  const wallIds = [...new Set([...first.wallIds, ...opposite.wallIds])].sort((left, right) =>
+    String(left).localeCompare(String(right)),
+  )
+  const chainId = `${levelId}:room-clear:${nodeId}`
+  const semanticKey = `${chainId}:span:${faceSemanticKey(first, opposite)}`
+  const leaves: FloorplanDimensionEditLeaf[] = [
+    {
+      id: `${levelId}:room-clear:${wallIds.join(',')}:${roundKey(start[0])}:${roundKey(start[1])}:${roundKey(end[0])}:${roundKey(end[1])}`,
+      measuredStart: start,
+      measuredEnd: end,
+      currentLength: length,
+      wallIds,
+      semanticKey,
+      faces: [
+        ...first.wallIds.map((wallId) => ({ wallId, side: first.face })),
+        ...opposite.wallIds.map((wallId) => ({ wallId, side: opposite.face })),
+      ],
+    },
+  ]
+  const editDescriptor: FloorplanDimensionEditDescriptor = {
+    id: leaves[0]!.id,
+    sourceNodeId: nodeId,
+    chainId,
+    generatorKey,
+    semanticKey,
+    status: wallIds.length === 2 ? 'editable' : 'read-only',
+    readOnlyReasonCode: wallIds.length === 2 ? undefined : 'ambiguous-face',
+    readOnlyReason:
+      wallIds.length === 2
+        ? undefined
+        : '여러 벽이 하나의 실내 면을 이루어 이동 경계를 정할 수 없습니다.',
+    levelId,
+    kind: 'room-clear',
+    measuredStart: start,
+    measuredEnd: end,
+    fixedEndOptions: ['start', 'end'],
+    leaves,
+    defaultLeafId: leaves[0]!.id,
+  }
   return {
     kind: 'dimension',
     start,
@@ -543,6 +727,7 @@ function dimensionAcrossOppositeFaces(
     extensionOvershoot: EXTENSION_OVERSHOOT,
     text: formatConstructionLength(length, unit, profile, { metricNotation }),
     stroke,
+    editDescriptor,
   }
 }
 

@@ -419,6 +419,49 @@ describe('floorplan annotation overlay routing', () => {
     expect(renderAt180Degrees(dimensionString([0, 2], [1, 0]))).toContain('rotate(-90)')
   })
 
+  test('keeps generated dimensions clickable with a read-only fallback in Expert mode', () => {
+    const geometry = {
+      kind: 'dimension',
+      start: [0, 0],
+      end: [2, 0],
+      offsetNormal: [0, 1],
+      offsetDistance: 0.4,
+      extensionOvershoot: 0.1,
+      text: '2m',
+    } satisfies FloorplanGeometry
+    const noOp = () => {}
+    const render = (dimensionEditEnabled: boolean) =>
+      renderToStaticMarkup(
+        createElement(
+          'svg',
+          null,
+          createElement(InteractiveGeometry, {
+            activeDragId: null,
+            activeRotateNodeId: null,
+            dimensionEditEnabled,
+            geometry,
+            hatchPatternId: undefined,
+            hoveredHandleId: null,
+            isMarqueeSelectionActive: false,
+            levelId: 'level_test' as AnyNodeId,
+            nodeId: 'wall_test' as AnyNodeId,
+            onDimensionEdit: () => {},
+            onHandleDoubleClick: noOp,
+            onHandleHoverChange: noOp,
+            onHandlePointerDown: noOp,
+            onMoveHandlePointerDown: noOp,
+            palette: undefined,
+            sceneRotationDeg: 0,
+            unitsPerPixel: 0.01,
+          }),
+        ),
+      )
+
+    expect(render(true)).toContain('data-floorplan-dimension-edit-hit=""')
+    expect(render(true)).toContain('data-floorplan-dimension-edit-active=""')
+    expect(render(false)).not.toContain('data-floorplan-dimension-edit-hit')
+  })
+
   test('keeps a fixed mark pill together in the overlay pass', () => {
     const mark = {
       kind: 'group',

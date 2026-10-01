@@ -804,6 +804,37 @@ describe('buildLevelWallConstructionDimensionPlan', () => {
     ])
   })
 
+  test('does not attach opening provenance to a clipped total leaf', () => {
+    const partition = wall({
+      id: 'wall_clipped_partition',
+      start: [0, 4],
+      end: [10, 4],
+      frontSide: 'interior',
+      backSide: 'interior',
+    })
+    const lowerBoundary = wall({ id: 'wall_clipped_lower', start: [0, 0], end: [10, 0] })
+    const upperBoundary = wall({ id: 'wall_clipped_upper', start: [10, 10], end: [0, 10] })
+    const opening = DoorNode.parse({
+      id: 'door_clipped',
+      parentId: partition.id,
+      position: [0.3, 1.05, 0],
+      width: 1,
+    })
+    const planned =
+      buildLevelWallConstructionDimensionPlan([partition, lowerBoundary, upperBoundary], {
+        [opening.id]: opening,
+      }).get(partition.id) ?? []
+    const total = planned.find((entry) => entry.tier === 'interior-overall')?.editDescriptor
+    if (!total) throw new Error('interior total descriptor not found')
+
+    expect(total.leaves.some((leaf) => leaf.opening?.openingId === opening.id)).toBe(false)
+    const totalLength = Math.hypot(
+      total.measuredEnd[0] - total.measuredStart[0],
+      total.measuredEnd[1] - total.measuredStart[1],
+    )
+    expect(total.leaves.reduce((sum, leaf) => sum + leaf.currentLength, 0)).toBeCloseTo(totalLength)
+  })
+
   test('dimensions hosted openings on a bounded partition with incomplete side metadata', () => {
     const partition = wall({
       id: 'wall_unclassified_partition',

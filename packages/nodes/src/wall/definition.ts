@@ -6,6 +6,7 @@ import {
   withDefaultConstructionMaterials,
 } from '@pascal-app/core'
 import type { FloorplanNodeExtension } from '@pascal-app/editor'
+import { preflightWallDimensionEdit } from '../shared/dimension-edit-preflight'
 import { buildWallContextualDimensions } from './contextual-dimensions'
 import { buildWallFloorplan, computeWallFloorplanLevelData } from './floorplan'
 import { wallCurveAffordance, wallMoveEndpointAffordance } from './floorplan-affordances'
@@ -48,6 +49,7 @@ export const wallDefinition: NodeDefinition<typeof WallNode> = {
   extensions: {
     'pascal:editor/floorplan': {
       contextualDimensions: buildWallContextualDimensions,
+      dimensionEditPreflight: preflightWallDimensionEdit,
       actionMenu: {
         canCurve: ({ node, nodes }) =>
           !node.children.some((childId) => {

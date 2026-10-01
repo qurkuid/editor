@@ -1,4 +1,8 @@
-import type { FloorplanGeometry, FloorplanPoint } from '@pascal-app/core'
+import type {
+  FloorplanDimensionEditDescriptor,
+  FloorplanGeometry,
+  FloorplanPoint,
+} from '@pascal-app/core'
 import { resolveFloorplanLabelAngle } from './floorplan-label-angle'
 
 const EXTENSION_START_GAP = 0.075
@@ -24,6 +28,10 @@ type FloorplanDimensionRenderMode = 'screen' | 'pdf'
 type DimensionGeometry = Extract<FloorplanGeometry, { kind: 'dimension' }>
 type DimensionStringGeometry = Extract<FloorplanGeometry, { kind: 'dimension-string' }>
 type DimensionTerminator = NonNullable<DimensionGeometry['terminator']>
+type DimensionEditHandler = (
+  descriptor: FloorplanDimensionEditDescriptor,
+  event: React.SyntheticEvent<SVGElement>,
+) => void
 
 export type ArchitecturalDimensionLayout = {
   dimensionStart: FloorplanPoint
@@ -161,12 +169,16 @@ export function FloorplanDimensionRenderer({
   stroke = geometry.stroke ?? '#334155',
   annotationUnitsPerPoint,
   renderMode = 'screen',
+  onEdit,
+  selectedEditId,
 }: {
   geometry: DimensionGeometry
   sceneRotationDeg?: number
   stroke?: string
   annotationUnitsPerPoint?: number
   renderMode?: FloorplanDimensionRenderMode
+  onEdit?: DimensionEditHandler
+  selectedEditId?: string | null
 }): React.ReactElement | null {
   const layout = computeArchitecturalDimensionLayout(
     geometry,
@@ -192,6 +204,17 @@ export function FloorplanDimensionRenderer({
   const tickStrokeWidth = renderMode === 'pdf' ? PDF_TICK_STROKE_WIDTH_PT : TICK_STROKE_WIDTH_PX
   const terminator = geometry.terminator ?? 'architectural-tick'
   const labelTransform = `translate(${layout.labelPoint[0]} ${layout.labelPoint[1]}) rotate(${layout.labelAngleDeg})`
+  const editDescriptor = geometry.editDescriptor
+  const editable = renderMode === 'screen' && !!editDescriptor && !!onEdit
+  const selected = editable && selectedEditId != null && editDescriptor?.id === selectedEditId
+  const labelWidth = Math.max(
+    labelFontSize,
+    geometry.text.length * labelFontSize * LABEL_CHARACTER_WIDTH_RATIO,
+  )
+  const labelPlateWidth = labelWidth + labelFontSize * 0.5
+  const labelPlateHeight = labelFontSize * 1.2
+  const hitPadding =
+    annotationUnitsPerPoint === undefined ? Math.max(labelFontSize * 0.35, 0.04) : 0
   const outsideStartLocalShift = layout.outsideStartLabelPoint
     ? rotateVector(
         subtract(layout.outsideStartLabelPoint, layout.labelPoint),
@@ -200,7 +223,11 @@ export function FloorplanDimensionRenderer({
     : undefined
 
   return (
-    <g data-floorplan-dimension="" pointerEvents="none">
+    <g
+      data-floorplan-dimension=""
+      data-floorplan-dimension-edit-id={editDescriptor?.id}
+      pointerEvents="none"
+    >
       <line
         {...lineProps}
         x1={layout.extensionStart[0]}
@@ -264,6 +291,7 @@ export function FloorplanDimensionRenderer({
           geometry.end[0] - geometry.start[0],
         )}
         data-floorplan-annotation-default-transform={labelTransform}
+        data-floorplan-dimension-edit-active={editable ? '' : undefined}
         data-floorplan-annotation-label=""
         data-floorplan-annotation-priority={floorplanDimensionAnnotationPriority(
           geometry.offsetDistance,
@@ -276,12 +304,65 @@ export function FloorplanDimensionRenderer({
         data-floorplan-dimension-start-y={layout.dimensionStart[1]}
         data-floorplan-dimension-end-x={layout.dimensionEnd[0]}
         data-floorplan-dimension-end-y={layout.dimensionEnd[1]}
+        style={editable ? { pointerEvents: 'none' } : undefined}
         transform={labelTransform}
       >
+        {selected ? (
+          <rect
+            data-floorplan-dimension-edit-selected=""
+            fill="#eef2ff"
+            height={labelPlateHeight + hitPadding * 2}
+            opacity={0.95}
+            pointerEvents="none"
+            rx={labelFontSize * 0.12}
+            ry={labelFontSize * 0.12}
+            stroke="#4f46e5"
+            strokeWidth={annotationUnitsPerPoint === undefined ? 1.2 : undefined}
+            vectorEffect={annotationUnitsPerPoint === undefined ? 'non-scaling-stroke' : undefined}
+            width={labelPlateWidth + hitPadding * 2}
+            x={-(labelPlateWidth + hitPadding * 2) / 2}
+            y={labelY - labelFontSize * 0.82 - hitPadding}
+          />
+        ) : null}
+        {editable && editDescriptor ? (
+          <rect
+            aria-label={geometry.text}
+            aria-pressed={selected}
+            data-floorplan-dimension-edit-hit=""
+            data-floorplan-dimension-edit-id={editDescriptor.id}
+            fill="transparent"
+            height={labelPlateHeight + hitPadding * 2}
+            onClick={(event) => {
+              if (event.button !== 0) return
+              event.preventDefault()
+              event.stopPropagation()
+              onEdit?.(editDescriptor, event)
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return
+              event.preventDefault()
+              event.stopPropagation()
+              onEdit?.(editDescriptor, event)
+            }}
+            onPointerDown={(event) => {
+              if (event.button !== 0) return
+              onEdit?.(editDescriptor, event)
+            }}
+            pointerEvents="fill"
+            role="button"
+            rx={labelFontSize * 0.12}
+            ry={labelFontSize * 0.12}
+            style={{ cursor: 'pointer' }}
+            tabIndex={0}
+            width={labelPlateWidth + hitPadding * 2}
+            x={-(labelPlateWidth + hitPadding * 2) / 2}
+            y={labelY - labelFontSize * 0.82 - hitPadding}
+          />
+        ) : null}
         <DimensionLabel
           fontSize={labelFontSize}
           renderMode={renderMode}
-          stroke={stroke}
+          stroke={selected ? '#4f46e5' : stroke}
           text={geometry.text}
           y={labelY}
         />
@@ -296,12 +377,16 @@ export function FloorplanDimensionStringRenderer({
   stroke = geometry.stroke ?? '#334155',
   annotationUnitsPerPoint,
   renderMode = 'screen',
+  onEdit,
+  selectedEditId,
 }: {
   geometry: DimensionStringGeometry
   sceneRotationDeg?: number
   stroke?: string
   annotationUnitsPerPoint?: number
   renderMode?: FloorplanDimensionRenderMode
+  onEdit?: DimensionEditHandler
+  selectedEditId?: string | null
 }): React.ReactElement | null {
   const segmentLayouts = geometry.segments.flatMap((segment, index) => {
     const segmentGeometry: DimensionGeometry = {
@@ -318,13 +403,23 @@ export function FloorplanDimensionStringRenderer({
       textPosition: geometry.textPosition,
       text: segment.text,
       stroke: geometry.stroke,
+      editDescriptor: segment.editDescriptor,
     }
     const layout = computeArchitecturalDimensionLayout(
       segmentGeometry,
       sceneRotationDeg,
       annotationUnitsPerPoint,
     )
-    return layout ? [{ index, layout, segment: segmentGeometry }] : []
+    return layout
+      ? [
+          {
+            index,
+            layout,
+            segment: segmentGeometry,
+            editDescriptor: segment.editDescriptor,
+          },
+        ]
+      : []
   })
   if (segmentLayouts.length === 0) return null
 
@@ -342,6 +437,7 @@ export function FloorplanDimensionStringRenderer({
     vectorEffect: 'non-scaling-stroke' as const,
   }
   const tickStrokeWidth = renderMode === 'pdf' ? PDF_TICK_STROKE_WIDTH_PT : TICK_STROKE_WIDTH_PX
+  const hitPadding = annotationUnitsPerPoint === undefined ? 0.04 : 0
 
   const extensionLines = new Map<string, { start: FloorplanPoint; tip: FloorplanPoint }>()
   const ticks = new Map<
@@ -412,8 +508,17 @@ export function FloorplanDimensionStringRenderer({
           `tick-${index}`,
         ),
       )}
-      {segmentLayouts.map(({ index, layout, segment }) => {
+      {segmentLayouts.map(({ index, layout, segment, editDescriptor }) => {
         const labelTransform = `translate(${layout.labelPoint[0]} ${layout.labelPoint[1]}) rotate(${layout.labelAngleDeg})`
+        const editable = renderMode === 'screen' && !!editDescriptor && !!onEdit
+        const selected = editable && selectedEditId != null && editDescriptor?.id === selectedEditId
+        const segmentLabelFontSize = labelFontSize
+        const segmentLabelWidth = Math.max(
+          segmentLabelFontSize,
+          segment.text.length * segmentLabelFontSize * LABEL_CHARACTER_WIDTH_RATIO,
+        )
+        const segmentPlateWidth = segmentLabelWidth + segmentLabelFontSize * 0.5
+        const segmentPlateHeight = segmentLabelFontSize * 1.2
         const outsideStartLocalShift = layout.outsideStartLabelPoint
           ? rotateVector(
               subtract(layout.outsideStartLabelPoint, layout.labelPoint),
@@ -451,12 +556,69 @@ export function FloorplanDimensionStringRenderer({
               data-floorplan-dimension-start-y={layout.dimensionStart[1]}
               data-floorplan-dimension-end-x={layout.dimensionEnd[0]}
               data-floorplan-dimension-end-y={layout.dimensionEnd[1]}
+              data-floorplan-dimension-edit-id={editDescriptor?.id}
+              data-floorplan-dimension-edit-active={editable ? '' : undefined}
+              style={editable ? { pointerEvents: 'none' } : undefined}
               transform={labelTransform}
             >
+              {selected ? (
+                <rect
+                  data-floorplan-dimension-edit-selected=""
+                  fill="#eef2ff"
+                  height={segmentPlateHeight + hitPadding * 2}
+                  opacity={0.95}
+                  pointerEvents="none"
+                  rx={segmentLabelFontSize * 0.12}
+                  ry={segmentLabelFontSize * 0.12}
+                  stroke="#4f46e5"
+                  strokeWidth={annotationUnitsPerPoint === undefined ? 1.2 : undefined}
+                  vectorEffect={
+                    annotationUnitsPerPoint === undefined ? 'non-scaling-stroke' : undefined
+                  }
+                  width={segmentPlateWidth + hitPadding * 2}
+                  x={-(segmentPlateWidth + hitPadding * 2) / 2}
+                  y={labelY - segmentLabelFontSize * 0.82 - hitPadding}
+                />
+              ) : null}
+              {editable && editDescriptor ? (
+                <rect
+                  aria-label={segment.text}
+                  aria-pressed={selected}
+                  data-floorplan-dimension-edit-hit=""
+                  data-floorplan-dimension-edit-id={editDescriptor.id}
+                  fill="transparent"
+                  height={segmentPlateHeight + hitPadding * 2}
+                  onClick={(event) => {
+                    if (event.button !== 0) return
+                    event.preventDefault()
+                    event.stopPropagation()
+                    onEdit?.(editDescriptor, event)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return
+                    event.preventDefault()
+                    event.stopPropagation()
+                    onEdit?.(editDescriptor, event)
+                  }}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) return
+                    onEdit?.(editDescriptor, event)
+                  }}
+                  pointerEvents="fill"
+                  role="button"
+                  rx={segmentLabelFontSize * 0.12}
+                  ry={segmentLabelFontSize * 0.12}
+                  style={{ cursor: 'pointer' }}
+                  tabIndex={0}
+                  width={segmentPlateWidth + hitPadding * 2}
+                  x={-(segmentPlateWidth + hitPadding * 2) / 2}
+                  y={labelY - segmentLabelFontSize * 0.82 - hitPadding}
+                />
+              ) : null}
               <DimensionLabel
                 fontSize={labelFontSize}
                 renderMode={renderMode}
-                stroke={stroke}
+                stroke={selected ? '#4f46e5' : stroke}
                 text={segment.text}
                 y={labelY}
               />

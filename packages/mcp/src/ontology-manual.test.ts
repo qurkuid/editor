@@ -30,6 +30,17 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('no AI/MCP mutation operation')
     expect(MODELING_AGENT_MANUAL).toContain('Guide Line for the existing reference-offset flow')
   })
+
+  test('documents exact Expert dimension editing without adding an AI mutation command', () => {
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Expert 2D dimensions are generated from exact model-space provenance',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('A total requires an explicit leaf choice')
+    expect(MODELING_AGENT_MANUAL).toContain('near an axis')
+    expect(MODELING_AGENT_MANUAL).toContain('room-to-room wall-thickness (R-R)')
+    expect(MODELING_AGENT_MANUAL).toContain('one undo step')
+    expect(MODELING_AGENT_MANUAL).toContain('no AI/MCP mutation operation')
+  })
   test('documents ontology discovery and evidence requirements', () => {
     expect(MODELING_AGENT_MANUAL).toContain('pascal://ontology/manifest')
     expect(MODELING_AGENT_MANUAL).toContain('query_design_ontology')

@@ -1,7 +1,10 @@
 import {
   type AnyNode,
+  type AnyNodeId,
   type ColumnNode,
   type DoorNode,
+  type FloorplanDimensionEditDescriptor,
+  type FloorplanDimensionEditLeaf,
   type FloorplanGeometry,
   type FloorplanPoint,
   type GeometryContext,
@@ -66,6 +69,7 @@ export type PlannedConstructionDimension = {
   offsetNormal: FloorplanPoint
   offsetDistance: number
   textPrefix?: string
+  editDescriptor?: FloorplanDimensionEditDescriptor
 }
 
 export type WallConstructionDimensionPlan = ReadonlyMap<
@@ -86,7 +90,32 @@ type PendingConstructionDimension = {
   startProjection: number
   endProjection: number
   textPrefix?: string
+  wallIds?: readonly AnyNodeId[]
+  opening?: {
+    openingId: AnyNodeId
+    reference: 'nominal' | 'rough-opening' | 'masonry-opening' | 'finish-opening'
+    displayedField: 'width' | 'roughOpeningWidth' | 'masonryOpeningWidth' | 'finishOpeningWidth'
+    documentedOffset?: number
+  }
+  openingLength?: number
+  openingFullyContained?: boolean
 }
+
+type PhysicalOpeningSpan = {
+  start: number
+  end: number
+  opening: OpeningNode
+  fullyContained: boolean
+}
+
+const CHAIN_PROJECTION_EPSILON = 1e-8
+const CANONICAL_CHAIN_TIER_ORDER: readonly ConstructionDimensionTier[] = [
+  'openings',
+  'partitions',
+  'jogs',
+  'structure',
+  'opening-widths',
+]
 
 export function buildLevelWallConstructionDimensionPlan(
   walls: ReadonlyArray<WallNode>,
@@ -170,14 +199,19 @@ export function buildLevelWallConstructionDimensionPlan(
 
       if (lineGroups.size > 1 || facadeRunCount > lineGroups.size) {
         const jogProjections = uniqueSorted(wallProjections)
-        appendProjectedChain(pending, jogProjections, 'jogs', (projection) =>
-          exteriorOriginAtProjection(
-            directionMembers,
-            projection,
-            tangent,
-            normal,
-            EXTERIOR_CORNER_DATUM_POLICY,
-          ),
+        appendProjectedChain(
+          pending,
+          jogProjections,
+          'jogs',
+          (projection) =>
+            exteriorOriginAtProjection(
+              directionMembers,
+              projection,
+              tangent,
+              normal,
+              EXTERIOR_CORNER_DATUM_POLICY,
+            ),
+          directionMembers.map(({ wall }) => wall.id),
         )
       }
 
@@ -191,8 +225,12 @@ export function buildLevelWallConstructionDimensionPlan(
         const projections = uniqueSorted(
           structureRow.map((column) => dot(columnPlanPoint(column), tangent)),
         )
-        appendProjectedChain(pending, projections, 'structure', (projection) =>
-          columnOriginAtProjection(structureRow, projection, tangent),
+        appendProjectedChain(
+          pending,
+          projections,
+          'structure',
+          (projection) => columnOriginAtProjection(structureRow, projection, tangent),
+          [],
         )
       }
 
@@ -214,6 +252,7 @@ export function buildLevelWallConstructionDimensionPlan(
         ),
         startProjection: extentStart,
         endProjection: extentEnd,
+        wallIds: directionMembers.map(({ wall }) => wall.id),
       })
 
       const structuralProjections = structureRow.map((column) =>
@@ -250,6 +289,7 @@ export function buildLevelWallConstructionDimensionPlan(
                 ),
           startProjection: structuralStart,
           endProjection: structuralEnd,
+          wallIds: [],
         })
       }
 
@@ -259,9 +299,21 @@ export function buildLevelWallConstructionDimensionPlan(
           (column) => dot(columnPlanPoint(column), normal) + columnNormalHalfExtent(column, normal),
         ),
       )
+      const directionWallIds = directionMembers
+        .map(({ wall }) => wall.id)
+        .sort((left, right) => String(left).localeCompare(String(right)))
       dimensionsByWallId.set(
         representative.wall.id,
-        finalizeDimensionTiers(pending, tangent, normal, structuralFaceCoordinate, standard),
+        finalizeDimensionTiers(
+          pending,
+          tangent,
+          normal,
+          structuralFaceCoordinate,
+          standard,
+          (representative.wall.parentId ?? representative.wall.id) as AnyNodeId,
+          directionWallIds,
+          constructionGeneratorKey(standard, 'facade'),
+        ),
       )
     }
   }
@@ -290,6 +342,7 @@ function buildInteriorWallDimensions(
   standard: ConstructionDimensionDrawingStandard,
   normalOverride?: FloorplanPoint | null,
 ): PlannedConstructionDimension[] {
+  const levelId = (wall.parentId ?? wall.id) as AnyNodeId
   const dx = wall.end[0] - wall.start[0]
   const dz = wall.end[1] - wall.start[1]
   const wallLength = Math.hypot(dx, dz)
@@ -310,38 +363,170 @@ function buildInteriorWallDimensions(
     wall.start[0] + tangent[0] * along + normal[0] * datumDistance,
     wall.start[1] + tangent[1] * along + normal[1] * datumDistance,
   ]
-  const openingSpans = openings.flatMap((opening): Array<readonly [number, number]> => {
+  const openingSpans: PhysicalOpeningSpan[] = openings.flatMap((opening) => {
     const halfWidth = Math.max(0, opening.width) / 2
-    const start = clamp(opening.position[0] - halfWidth, spanStart, spanEnd)
-    const end = clamp(opening.position[0] + halfWidth, spanStart, spanEnd)
-    return end - start >= MIN_SEGMENT_LENGTH ? [[start, end]] : []
+    const rawStart = opening.position[0] - halfWidth
+    const rawEnd = opening.position[0] + halfWidth
+    const start = clamp(rawStart, spanStart, spanEnd)
+    const end = clamp(rawEnd, spanStart, spanEnd)
+    return end - start >= MIN_SEGMENT_LENGTH
+      ? [
+          {
+            start,
+            end,
+            opening,
+            fullyContained:
+              rawStart >= spanStart - CHAIN_PROJECTION_EPSILON &&
+              rawEnd <= spanEnd + CHAIN_PROJECTION_EPSILON,
+          },
+        ]
+      : []
   })
 
   const planned: PlannedConstructionDimension[] = []
   if (openingSpans.length > 0) {
-    const breakpoints = uniqueSorted([spanStart, spanEnd, ...openingSpans.flat()])
+    const breakpoints = uniqueSorted([
+      spanStart,
+      spanEnd,
+      ...openingSpans.flatMap(({ start, end }) => [start, end]),
+    ])
     for (let index = 0; index < breakpoints.length - 1; index++) {
       const start = breakpoints[index]
       const end = breakpoints[index + 1]
       if (start === undefined || end === undefined || end - start < MIN_SEGMENT_LENGTH) continue
+      const openingSpan = openingSpans.find(
+        (span) => Math.abs(span.start - start) <= 1e-6 && Math.abs(span.end - end) <= 1e-6,
+      )
+      const measuredStart = pointAt(start)
+      const measuredEnd = pointAt(end)
+      const openingProvenance = openingSpan?.fullyContained
+        ? nominalOpeningProvenance(openingSpan.opening)
+        : undefined
+      const leaf = makeDimensionLeaf(
+        `${levelId}:wall:${wall.id}:interior:${start}:${end}`,
+        measuredStart,
+        measuredEnd,
+        [wall.id],
+        openingProvenance,
+        openingProvenance
+          ? `${levelId}:wall:${wall.id}:interior:opening:${openingProvenance.openingId}`
+          : `${levelId}:wall:${wall.id}:interior:leaf:${index}`,
+      )
       planned.push({
         tier: 'interior',
-        start: pointAt(start),
-        end: pointAt(end),
+        start: measuredStart,
+        end: measuredEnd,
         offsetNormal: normal,
         offsetDistance: standard.openingChainOffset,
+        editDescriptor: makeDimensionDescriptor({
+          id: leaf.id,
+          sourceNodeId: wall.id,
+          chainId: `${levelId}:wall:${wall.id}:interior`,
+          semanticKey: openingProvenance
+            ? `${levelId}:wall:${wall.id}:interior:opening:${openingProvenance.openingId}`
+            : `${levelId}:wall:${wall.id}:interior:leaf:${index}`,
+          generatorKey: constructionGeneratorKey(standard, 'interior-wall'),
+          levelId,
+          kind: openingProvenance ? 'opening-width' : 'leaf',
+          measuredStart,
+          measuredEnd,
+          leaves: [leaf],
+          wallIds: [wall.id],
+          opening: openingProvenance,
+        }),
       })
     }
   }
 
+  const overallStart = pointAt(spanStart)
+  const overallEnd = pointAt(spanEnd)
+  const overallLeaves = buildPhysicalTotalLeaves(
+    levelId,
+    wall.id,
+    spanStart,
+    spanEnd,
+    pointAt,
+    openingSpans,
+    `${levelId}:wall:${wall.id}:interior`,
+  )
   planned.push({
     tier: 'interior-overall',
-    start: pointAt(spanStart),
-    end: pointAt(spanEnd),
+    start: overallStart,
+    end: overallEnd,
     offsetNormal: normal,
     offsetDistance: openingSpans.length > 0 ? standard.wallSpanOffset : standard.openingChainOffset,
+    editDescriptor: makeDimensionDescriptor({
+      id: `${levelId}:wall:${wall.id}:interior-overall:${spanStart}:${spanEnd}`,
+      sourceNodeId: wall.id,
+      chainId: `${levelId}:wall:${wall.id}:interior`,
+      semanticKey: `${levelId}:wall:${wall.id}:interior:total`,
+      generatorKey: constructionGeneratorKey(standard, 'interior-wall'),
+      levelId,
+      kind: 'total',
+      measuredStart: overallStart,
+      measuredEnd: overallEnd,
+      leaves:
+        overallLeaves.length > 0
+          ? overallLeaves
+          : [
+              makeDimensionLeaf(
+                `${levelId}:wall:${wall.id}:interior-overall:leaf`,
+                overallStart,
+                overallEnd,
+                [wall.id],
+                undefined,
+                `${levelId}:wall:${wall.id}:interior:leaf:0`,
+              ),
+            ],
+      wallIds: [wall.id],
+    }),
   })
   return planned
+}
+
+function buildPhysicalTotalLeaves(
+  levelId: AnyNodeId,
+  wallId: AnyNodeId,
+  spanStart: number,
+  spanEnd: number,
+  pointAt: (along: number) => FloorplanPoint,
+  openingSpans: readonly PhysicalOpeningSpan[],
+  chainId: string,
+): FloorplanDimensionEditLeaf[] {
+  const breakpoints = uniqueSorted([
+    spanStart,
+    spanEnd,
+    ...openingSpans.flatMap(({ start, end }) => [start, end]),
+  ])
+  const leaves: FloorplanDimensionEditLeaf[] = []
+  for (let index = 0; index < breakpoints.length - 1; index += 1) {
+    const start = breakpoints[index]
+    const end = breakpoints[index + 1]
+    if (start === undefined || end === undefined || end - start <= CHAIN_PROJECTION_EPSILON) {
+      continue
+    }
+    const openingSpan = openingSpans.find(
+      (span) =>
+        Math.abs(span.start - start) <= CHAIN_PROJECTION_EPSILON &&
+        Math.abs(span.end - end) <= CHAIN_PROJECTION_EPSILON,
+    )
+    const opening = openingSpan?.fullyContained
+      ? nominalOpeningProvenance(openingSpan.opening)
+      : undefined
+    const measuredStart = pointAt(start)
+    const measuredEnd = pointAt(end)
+    leaves.push(
+      makeDimensionLeaf(
+        `${levelId}:wall:${wallId}:${chainId.endsWith(':exterior') ? 'exterior' : 'interior'}-overall:${start}:${end}`,
+        measuredStart,
+        measuredEnd,
+        [wallId],
+        opening,
+        opening ? `${chainId}:opening:${opening.openingId}` : `${chainId}:leaf:${index}`,
+      ),
+    )
+  }
+  return leaves
 }
 
 function interiorWallClearSpan(
@@ -395,6 +580,7 @@ export function renderPlannedConstructionDimensions(
         witnessEnd: entry.end,
         dimensionStart: entry.dimensionStart,
         dimensionEnd: entry.dimensionEnd,
+        editDescriptor: entry.editDescriptor,
         text: constructionDimensionText(
           entry.dimensionStart ?? entry.start,
           entry.dimensionEnd ?? entry.end,
@@ -464,6 +650,7 @@ export function buildCurvedWallConstructionDimensions(
     siblings?: ReadonlyArray<WallNode>
   },
 ): FloorplanGeometry[] {
+  const levelId = (wall.parentId ?? wall.id) as AnyNodeId
   const chord = getWallChordFrame(wall)
   const midpoint = getWallMidpointHandlePoint(wall)
   const curveVector: FloorplanPoint = [midpoint.x - chord.midpoint.x, midpoint.y - chord.midpoint.y]
@@ -508,6 +695,28 @@ export function buildCurvedWallConstructionDimensions(
       dimensionEnd,
       profile,
       standard,
+      undefined,
+      makeDimensionDescriptor({
+        id: `${levelId}:wall:${wall.id}:curved-depth`,
+        sourceNodeId: wall.id,
+        chainId: `${levelId}:wall:${wall.id}:curved-depth`,
+        generatorKey: 'curved-wall-depth',
+        levelId,
+        kind: 'leaf',
+        measuredStart: curveWitness,
+        measuredEnd: chordWitness,
+        leaves: [
+          makeDimensionLeaf(
+            `${levelId}:wall:${wall.id}:curved-depth:leaf`,
+            curveWitness,
+            chordWitness,
+            [wall.id],
+          ),
+        ],
+        wallIds: [wall.id],
+        readOnlyReason: '곡선 벽의 호 깊이는 직접 수정할 수 없습니다.',
+        readOnlyReasonCode: 'curved-wall',
+      }),
     ),
   ]
 }
@@ -527,6 +736,7 @@ export function buildWallConstructionDimensions(
     standard?: ConstructionDimensionDrawingStandard
   },
 ): FloorplanGeometry[] {
+  const levelId = (wall.parentId ?? wall.id) as AnyNodeId
   if (isCurvedWall(wall)) return []
 
   const dx = wall.end[0] - wall.start[0]
@@ -547,26 +757,61 @@ export function buildWallConstructionDimensions(
     wall.start[1] + dirZ * along + outwardNormal[1] * datumDistance,
   ]
 
-  const openings = ctx.children
+  const openings: PhysicalOpeningSpan[] = ctx.children
     .filter((child): child is OpeningNode => child.type === 'door' || child.type === 'window')
     .flatMap((opening) => {
       const halfWidth = Math.max(0, opening.width) / 2
-      const start = clamp(opening.position[0] - halfWidth, 0, wallLength)
-      const end = clamp(opening.position[0] + halfWidth, 0, wallLength)
-      return end - start >= MIN_SEGMENT_LENGTH ? ([start, end] as const) : []
+      const rawStart = opening.position[0] - halfWidth
+      const rawEnd = opening.position[0] + halfWidth
+      const start = clamp(rawStart, 0, wallLength)
+      const end = clamp(rawEnd, 0, wallLength)
+      return end - start >= MIN_SEGMENT_LENGTH
+        ? [
+            {
+              start,
+              end,
+              opening,
+              fullyContained:
+                rawStart >= -CHAIN_PROJECTION_EPSILON &&
+                rawEnd <= wallLength + CHAIN_PROJECTION_EPSILON,
+            },
+          ]
+        : []
     })
 
   const dimensions: FloorplanGeometry[] = []
   if (openings.length > 0) {
-    const breakpoints = uniqueSorted([0, wallLength, ...openings.flat()])
+    const breakpoints = uniqueSorted([
+      0,
+      wallLength,
+      ...openings.flatMap(({ start, end }) => [start, end]),
+    ])
     for (let index = 0; index < breakpoints.length - 1; index++) {
       const start = breakpoints[index]!
       const end = breakpoints[index + 1]!
       if (end - start < MIN_SEGMENT_LENGTH) continue
+      const measuredStart = pointAt(start)
+      const measuredEnd = pointAt(end)
+      const openingSpan = openings.find(
+        (span) => Math.abs(span.start - start) <= 1e-6 && Math.abs(span.end - end) <= 1e-6,
+      )
+      const openingProvenance = openingSpan?.fullyContained
+        ? nominalOpeningProvenance(openingSpan.opening)
+        : undefined
+      const leaf = makeDimensionLeaf(
+        `${levelId}:wall:${wall.id}:exterior:${start}:${end}`,
+        measuredStart,
+        measuredEnd,
+        [wall.id],
+        openingProvenance,
+        openingProvenance
+          ? `${levelId}:wall:${wall.id}:exterior:opening:${openingProvenance.openingId}`
+          : `${levelId}:wall:${wall.id}:exterior:leaf:${index}`,
+      )
       dimensions.push(
         dimension(
-          pointAt(start),
-          pointAt(end),
+          measuredStart,
+          measuredEnd,
           outwardNormal,
           standard.openingChainOffset,
           unit,
@@ -575,15 +820,41 @@ export function buildWallConstructionDimensions(
           undefined,
           profile,
           standard,
+          undefined,
+          makeDimensionDescriptor({
+            id: leaf.id,
+            sourceNodeId: wall.id,
+            chainId: `${levelId}:wall:${wall.id}:exterior`,
+            generatorKey: constructionGeneratorKey(standard, 'exterior-wall'),
+            semanticKey: leaf.semanticKey,
+            levelId,
+            kind: openingProvenance ? 'opening-width' : 'leaf',
+            measuredStart,
+            measuredEnd,
+            leaves: [leaf],
+            wallIds: [wall.id],
+            opening: openingProvenance,
+          }),
         ),
       )
     }
   }
 
+  const totalStart = pointAt(0)
+  const totalEnd = pointAt(wallLength)
+  const totalLeaves = buildPhysicalTotalLeaves(
+    levelId,
+    wall.id,
+    0,
+    wallLength,
+    pointAt,
+    openings,
+    `${levelId}:wall:${wall.id}:exterior`,
+  )
   dimensions.push(
     dimension(
-      pointAt(0),
-      pointAt(wallLength),
+      totalStart,
+      totalEnd,
       outwardNormal,
       openings.length > 0 ? standard.wallSpanOffset : standard.openingChainOffset,
       unit,
@@ -592,6 +863,32 @@ export function buildWallConstructionDimensions(
       undefined,
       profile,
       standard,
+      undefined,
+      makeDimensionDescriptor({
+        id: `${levelId}:wall:${wall.id}:exterior-total:0:${wallLength}`,
+        sourceNodeId: wall.id,
+        chainId: `${levelId}:wall:${wall.id}:exterior`,
+        semanticKey: `${levelId}:wall:${wall.id}:exterior:total`,
+        generatorKey: constructionGeneratorKey(standard, 'exterior-wall'),
+        levelId,
+        kind: 'total',
+        measuredStart: totalStart,
+        measuredEnd: totalEnd,
+        leaves:
+          totalLeaves.length > 0
+            ? totalLeaves
+            : [
+                makeDimensionLeaf(
+                  `${levelId}:wall:${wall.id}:exterior-total:leaf`,
+                  totalStart,
+                  totalEnd,
+                  [wall.id],
+                  undefined,
+                  `${levelId}:wall:${wall.id}:exterior:leaf:0`,
+                ),
+              ],
+        wallIds: [wall.id],
+      }),
     ),
   )
 
@@ -610,6 +907,7 @@ function dimension(
   profile: ConstructionLengthProfile = 'editor',
   standard: ConstructionDimensionDrawingStandard = DEFAULT_CONSTRUCTION_DIMENSION_STANDARD,
   textPrefix?: string,
+  editDescriptor?: FloorplanDimensionEditDescriptor,
 ): FloorplanGeometry {
   const measurementStart = dimensionStart ?? start
   const measurementEnd = dimensionEnd ?? end
@@ -628,6 +926,7 @@ function dimension(
           standard,
           textPrefix,
         ),
+        editDescriptor,
       },
     ],
     offsetNormal,
@@ -1031,7 +1330,14 @@ function appendFacadeRunDimensions(
   const pointAt = (projection: number): FloorplanPoint =>
     pointFromCoordinates(projection, faceCoordinate, tangent, normal)
   const openingCenters: number[] = []
-  const openingSpans: Array<readonly [number, number, string]> = []
+  const openingSpans: Array<{
+    start: number
+    end: number
+    textPrefix: string
+    opening: OpeningNode
+    fullyContained: boolean
+    displayedLength: number
+  }> = []
 
   for (const { wall } of members) {
     const dx = wall.end[0] - wall.start[0]
@@ -1042,7 +1348,8 @@ function appendFacadeRunDimensions(
       if (opening.type !== 'door' && opening.type !== 'window') continue
       if (opening.visible === false) continue
       if ((opening.wallId ?? opening.parentId) !== wall.id) continue
-      const along = clamp(opening.position[0], 0, length)
+      const rawAlong = opening.position[0]
+      const along = clamp(rawAlong, 0, length)
       const center: FloorplanPoint = [
         wall.start[0] + (dx / length) * along,
         wall.start[1] + (dz / length) * along,
@@ -1051,6 +1358,8 @@ function appendFacadeRunDimensions(
       if (documentation.locationPolicy === 'centerline') openingCenters.push(dot(center, tangent))
       if (documentation.width === null) continue
       const halfWidth = Math.max(0, documentation.width) / 2
+      const rawStart = rawAlong - halfWidth
+      const rawEnd = rawAlong + halfWidth
       const startProjection = dot(
         [
           wall.start[0] + (dx / length) * clamp(along - halfWidth, 0, length),
@@ -1066,18 +1375,28 @@ function appendFacadeRunDimensions(
         tangent,
       )
       if (Math.abs(endProjection - startProjection) >= MIN_SEGMENT_LENGTH) {
-        openingSpans.push([
-          Math.min(startProjection, endProjection),
-          Math.max(startProjection, endProjection),
-          documentation.prefix,
-        ])
+        openingSpans.push({
+          start: Math.min(startProjection, endProjection),
+          end: Math.max(startProjection, endProjection),
+          textPrefix: documentation.prefix,
+          opening,
+          fullyContained:
+            rawStart >= -CHAIN_PROJECTION_EPSILON && rawEnd <= length + CHAIN_PROJECTION_EPSILON,
+          displayedLength: documentation.width,
+        })
       }
     }
   }
 
-  for (const [startProjection, endProjection, textPrefix] of openingSpans.sort(
-    (left, right) => left[0] - right[0],
-  )) {
+  for (const {
+    start: startProjection,
+    end: endProjection,
+    textPrefix,
+    opening,
+    fullyContained,
+    displayedLength,
+  } of openingSpans.sort((left, right) => left.start - right.start)) {
+    const openingProvenance = openingDimensionProvenance(opening)
     pending.push({
       tier: 'opening-widths',
       start: pointAt(startProjection),
@@ -1085,6 +1404,17 @@ function appendFacadeRunDimensions(
       startProjection,
       endProjection,
       textPrefix,
+      wallIds: [(opening.wallId ?? opening.parentId ?? members[0]?.wall.id) as AnyNodeId],
+      opening: openingProvenance
+        ? {
+            openingId: openingProvenance.openingId,
+            reference: openingProvenance.reference,
+            displayedField: openingProvenance.displayedField,
+            documentedOffset: openingProvenance.documentedOffset,
+          }
+        : undefined,
+      openingLength: displayedLength,
+      openingFullyContained: fullyContained,
     })
   }
   appendReferenceTier(pending, openingCenters, extentStart, extentEnd, pointAt, 'openings')
@@ -1167,6 +1497,7 @@ function appendProjectedChain(
   projections: number[],
   tier: ConstructionDimensionTier,
   originAt: (projection: number) => FloorplanPoint,
+  wallIds: readonly AnyNodeId[] = [],
 ): void {
   const breakpoints = uniqueSorted(projections)
   for (let index = 0; index < breakpoints.length - 1; index++) {
@@ -1185,8 +1516,171 @@ function appendProjectedChain(
       end: originAt(endProjection),
       startProjection,
       endProjection,
+      wallIds,
     })
   }
+}
+
+function buildCanonicalTotalLeaves(
+  pending: readonly PendingConstructionDimension[],
+  overall: PendingConstructionDimension,
+  levelId: AnyNodeId,
+  componentWallIds: readonly AnyNodeId[],
+  chainId: string,
+): FloorplanDimensionEditLeaf[] {
+  const lower = Math.min(overall.startProjection, overall.endProjection)
+  const upper = Math.max(overall.startProjection, overall.endProjection)
+  if (
+    !Number.isFinite(lower) ||
+    !Number.isFinite(upper) ||
+    upper - lower <= CHAIN_PROJECTION_EPSILON
+  ) {
+    return []
+  }
+
+  const candidatesByTier = new Map<ConstructionDimensionTier, PendingConstructionDimension[]>()
+  for (const entry of pending) {
+    if (entry.tier === 'overall' || entry.tier === 'structural-overall') continue
+    const list = candidatesByTier.get(entry.tier) ?? []
+    list.push(entry)
+    candidatesByTier.set(entry.tier, list)
+  }
+
+  const chainForTier = (tier: ConstructionDimensionTier): PendingConstructionDimension[] => {
+    const entries = [...(candidatesByTier.get(tier) ?? [])].sort(
+      (left, right) => left.startProjection - right.startProjection,
+    )
+    if (entries.length === 0) return []
+    const first = entries[0]!
+    const last = entries.at(-1)!
+    if (
+      first.startProjection > lower + CHAIN_PROJECTION_EPSILON ||
+      last.endProjection < upper - CHAIN_PROJECTION_EPSILON
+    ) {
+      return []
+    }
+    let cursor = lower
+    for (const entry of entries) {
+      if (entry.endProjection <= lower + CHAIN_PROJECTION_EPSILON) continue
+      if (entry.startProjection > cursor + CHAIN_PROJECTION_EPSILON) return []
+      cursor = Math.max(cursor, entry.endProjection)
+    }
+    return cursor >= upper - CHAIN_PROJECTION_EPSILON ? entries : []
+  }
+
+  let baseChain: PendingConstructionDimension[] = []
+  for (const tier of CANONICAL_CHAIN_TIER_ORDER) {
+    const candidate = chainForTier(tier)
+    if (candidate.length > 0) {
+      baseChain = candidate
+      break
+    }
+  }
+
+  const openingEntries = candidatesByTier.get('opening-widths') ?? []
+  const componentWallSet = new Set(componentWallIds)
+  const baseWallSet = new Set(baseChain.flatMap((entry) => entry.wallIds ?? []))
+  const containedOpeningRanges = openingEntries
+    .filter(
+      (entry) =>
+        entry.openingFullyContained === true &&
+        Number.isFinite(entry.openingLength) &&
+        entry.endProjection - entry.startProjection > CHAIN_PROJECTION_EPSILON,
+    )
+    .map((entry) => [entry.startProjection, entry.endProjection] as const)
+  // Centerline opening references can add a breakpoint through the middle of
+  // an otherwise exact opening span. Keep those spans atomic so total leaves
+  // retain the documented opening provenance and physical-width edit path.
+  const baseBreakpoints = baseChain
+    .flatMap((entry) => [entry.startProjection, entry.endProjection])
+    .filter(
+      (projection) =>
+        !containedOpeningRanges.some(
+          ([start, end]) =>
+            projection > start + CHAIN_PROJECTION_EPSILON &&
+            projection < end - CHAIN_PROJECTION_EPSILON,
+        ),
+    )
+  const breakpoints = uniqueSorted([
+    lower,
+    upper,
+    ...baseBreakpoints,
+    ...openingEntries.flatMap((entry) => [entry.startProjection, entry.endProjection]),
+  ]).filter(
+    (value) =>
+      value >= lower - CHAIN_PROJECTION_EPSILON && value <= upper + CHAIN_PROJECTION_EPSILON,
+  )
+
+  const pointAt = (projection: number): FloorplanPoint => {
+    const fraction =
+      (projection - overall.startProjection) / (overall.endProjection - overall.startProjection)
+    return [
+      overall.start[0] + (overall.end[0] - overall.start[0]) * fraction,
+      overall.start[1] + (overall.end[1] - overall.start[1]) * fraction,
+    ]
+  }
+  const entriesAt = (projection: number): PendingConstructionDimension[] =>
+    baseChain.filter(
+      (entry) =>
+        projection >= entry.startProjection - CHAIN_PROJECTION_EPSILON &&
+        projection <= entry.endProjection + CHAIN_PROJECTION_EPSILON,
+    )
+  const openingAt = (start: number, end: number): PendingConstructionDimension | undefined =>
+    openingEntries.find((entry) => {
+      if (
+        Math.abs(entry.startProjection - start) > CHAIN_PROJECTION_EPSILON ||
+        Math.abs(entry.endProjection - end) > CHAIN_PROJECTION_EPSILON ||
+        entry.openingFullyContained !== true ||
+        !Number.isFinite(entry.openingLength) ||
+        Math.abs(end - start - (entry.openingLength ?? 0)) > CHAIN_PROJECTION_EPSILON
+      ) {
+        return false
+      }
+      const openingWallIds = entry.wallIds ?? []
+      if (!openingWallIds.some((wallId) => componentWallSet.has(wallId))) return false
+      return baseWallSet.size === 0 || openingWallIds.some((wallId) => baseWallSet.has(wallId))
+    })
+
+  const leaves: FloorplanDimensionEditLeaf[] = []
+  for (let index = 0; index < breakpoints.length - 1; index += 1) {
+    const startProjection = breakpoints[index]!
+    const endProjection = breakpoints[index + 1]!
+    if (endProjection - startProjection <= CHAIN_PROJECTION_EPSILON) continue
+    const opening = openingAt(startProjection, endProjection)
+    const coveringEntry = entriesAt((startProjection + endProjection) / 2)[0]
+    const wallIds = opening?.wallIds?.length
+      ? [...opening.wallIds].sort((left, right) => String(left).localeCompare(String(right)))
+      : coveringEntry?.wallIds?.length
+        ? [...coveringEntry.wallIds].sort((left, right) =>
+            String(left).localeCompare(String(right)),
+          )
+        : [...componentWallIds]
+    const start = pointAt(startProjection)
+    const end = pointAt(endProjection)
+    const orderedStart = overall.endProjection >= overall.startProjection ? start : end
+    const orderedEnd = overall.endProjection >= overall.startProjection ? end : start
+    const openingProvenance = opening?.opening
+      ? {
+          openingId: opening.opening.openingId,
+          reference: opening.opening.reference,
+          displayedField: opening.opening.displayedField,
+          documentedOffset: opening.opening.documentedOffset,
+        }
+      : undefined
+    leaves.push(
+      makeDimensionLeaf(
+        `${levelId}:construction:total:${wallIds.join(',')}:${startProjection}:${endProjection}`,
+        orderedStart,
+        orderedEnd,
+        wallIds,
+        openingProvenance,
+        openingProvenance
+          ? `${chainId}:opening:${openingProvenance.openingId}`
+          : `${chainId}:leaf:${index}`,
+      ),
+    )
+  }
+  return leaves
 }
 
 function finalizeDimensionTiers(
@@ -1195,7 +1689,14 @@ function finalizeDimensionTiers(
   normal: FloorplanPoint,
   outerCoordinate: number,
   standard: ConstructionDimensionDrawingStandard,
+  levelId: AnyNodeId,
+  componentWallIds: readonly AnyNodeId[],
+  generatorKey: string,
 ): PlannedConstructionDimension[] {
+  const sortedComponentWallIds = [...componentWallIds].sort((left, right) =>
+    String(left).localeCompare(String(right)),
+  )
+  const totalChainId = `${levelId}:construction:${sortedComponentWallIds.join(',')}:total`
   const activeTiers = TIER_ORDER.filter((tier) => pending.some((entry) => entry.tier === tier))
   const offsets = new Map<ConstructionDimensionTier, number>()
   activeTiers.forEach((tier, index) => {
@@ -1206,37 +1707,119 @@ function finalizeDimensionTiers(
     offsets.set(tier, firstOffset + index * standard.tierSpacing)
   })
 
-  return [...pending]
-    .sort((left, right) => {
-      const tierDelta = TIER_ORDER.indexOf(left.tier) - TIER_ORDER.indexOf(right.tier)
-      return tierDelta || left.startProjection - right.startProjection
-    })
-    .map((entry) => {
-      const offset = offsets.get(entry.tier) ?? standard.firstGeneralTierOffset
-      const baselineCoordinate = outerCoordinate + offset
-      const dimensionStart = pointFromCoordinates(
-        entry.startProjection,
-        baselineCoordinate,
-        tangent,
-        normal,
-      )
-      const dimensionEnd = pointFromCoordinates(
-        entry.endProjection,
-        baselineCoordinate,
-        tangent,
-        normal,
-      )
-      return {
-        tier: entry.tier,
-        start: entry.start,
-        end: entry.end,
-        dimensionStart,
-        dimensionEnd,
-        offsetNormal: normal,
-        offsetDistance: Math.max(0, dot(subtract(dimensionStart, entry.start), normal)),
-        textPrefix: entry.textPrefix,
-      }
-    })
+  const overall = pending.find((entry) => entry.tier === 'overall')
+  const leaves = overall
+    ? buildCanonicalTotalLeaves(pending, overall, levelId, sortedComponentWallIds, totalChainId)
+    : []
+
+  const sortedPending = [...pending].sort((left, right) => {
+    const tierDelta = TIER_ORDER.indexOf(left.tier) - TIER_ORDER.indexOf(right.tier)
+    return tierDelta || left.startProjection - right.startProjection
+  })
+  const tierLeafIndexes = new Map<ConstructionDimensionTier, number>()
+
+  return sortedPending.map((entry) => {
+    const tierLeafIndex = tierLeafIndexes.get(entry.tier) ?? 0
+    tierLeafIndexes.set(entry.tier, tierLeafIndex + 1)
+    const offset = offsets.get(entry.tier) ?? standard.firstGeneralTierOffset
+    const baselineCoordinate = outerCoordinate + offset
+    const dimensionStart = pointFromCoordinates(
+      entry.startProjection,
+      baselineCoordinate,
+      tangent,
+      normal,
+    )
+    const dimensionEnd = pointFromCoordinates(
+      entry.endProjection,
+      baselineCoordinate,
+      tangent,
+      normal,
+    )
+    const entryWallIds = entry.wallIds?.length
+      ? [...entry.wallIds].sort((left, right) => String(left).localeCompare(String(right)))
+      : sortedComponentWallIds
+    const opening = entry.opening
+      ? {
+          openingId: entry.opening.openingId,
+          reference: entry.opening.reference,
+          displayedField: entry.opening.displayedField,
+          documentedOffset: entry.opening.documentedOffset,
+        }
+      : undefined
+    const leaf = makeDimensionLeaf(
+      `${levelId}:construction:${entry.tier}:${entryWallIds.join(',')}:${entry.startProjection}:${entry.endProjection}`,
+      entry.start,
+      entry.end,
+      entryWallIds,
+      opening,
+      entry.opening
+        ? `${levelId}:construction:${sortedComponentWallIds.join(',')}:${entry.tier}:opening:${entry.opening.openingId}`
+        : `${levelId}:construction:${sortedComponentWallIds.join(',')}:${entry.tier}:leaf:${tierLeafIndex}`,
+    )
+    const isTotal = entry.tier === 'overall' || entry.tier === 'structural-overall'
+    const descriptorLeaves = isTotal ? leaves : [leaf]
+    const missingOpeningDocumentation =
+      (entry.opening !== undefined && entry.opening.documentedOffset === undefined) ||
+      (isTotal &&
+        descriptorLeaves.some(
+          (candidate) =>
+            candidate.opening !== undefined && candidate.opening.documentedOffset === undefined,
+        ))
+    const readOnlyReason =
+      entry.tier === 'structural-overall'
+        ? '구조 기준선은 이동할 벽이 하나로 정해지지 않습니다.'
+        : missingOpeningDocumentation
+          ? '개구부 문서 치수 출처가 없어 수정할 수 없습니다.'
+          : descriptorLeaves.length === 0
+            ? '이 치수에는 편집 가능한 구간이 없습니다.'
+            : undefined
+    const descriptorChainId = isTotal
+      ? totalChainId
+      : `${levelId}:construction:${sortedComponentWallIds.join(',')}:${entry.tier}`
+    const descriptor: FloorplanDimensionEditDescriptor = {
+      id: `${levelId}:construction:${entry.tier}:${entry.wallIds?.join(',') ?? componentWallIds.join(',')}:${entry.startProjection}:${entry.endProjection}`,
+      sourceNodeId: sortedComponentWallIds[0],
+      chainId: descriptorChainId,
+      generatorKey,
+      semanticKey: entry.opening
+        ? `${descriptorChainId}:opening:${entry.opening.openingId}`
+        : `${descriptorChainId}:leaf:${entry.startProjection}:${entry.endProjection}`,
+      status: readOnlyReason ? 'read-only' : 'editable',
+      readOnlyReason,
+      readOnlyReasonCode:
+        entry.tier === 'structural-overall'
+          ? 'structural-datum'
+          : missingOpeningDocumentation
+            ? 'missing-provenance'
+            : descriptorLeaves.length === 0
+              ? 'unsupported-dimension'
+              : undefined,
+      levelId: levelId as FloorplanDimensionEditDescriptor['levelId'],
+      kind: entry.opening ? 'opening-width' : isTotal ? 'total' : 'leaf',
+      measuredStart: entry.start,
+      measuredEnd: entry.end,
+      fixedEndOptions: ['start', 'end'],
+      leaves: descriptorLeaves,
+      defaultLeafId: descriptorLeaves.at(-1)?.id,
+      opening,
+    }
+    descriptor.semanticKey = isTotal
+      ? `${descriptorChainId}:descriptor`
+      : entry.opening
+        ? `${descriptorChainId}:opening:${entry.opening.openingId}`
+        : `${descriptorChainId}:leaf:${tierLeafIndex}`
+    return {
+      tier: entry.tier,
+      start: entry.start,
+      end: entry.end,
+      dimensionStart,
+      dimensionEnd,
+      offsetNormal: normal,
+      offsetDistance: Math.max(0, dot(subtract(dimensionStart, entry.start), normal)),
+      textPrefix: entry.textPrefix,
+      editDescriptor: descriptor,
+    }
+  })
 }
 
 function facadeStructuralExtents(
@@ -1573,6 +2156,107 @@ function pointSegmentDistance(
 
 function distance(left: FloorplanPoint, right: FloorplanPoint): number {
   return Math.hypot(left[0] - right[0], left[1] - right[1])
+}
+
+function makeDimensionLeaf(
+  id: string,
+  measuredStart: FloorplanPoint,
+  measuredEnd: FloorplanPoint,
+  wallIds: readonly AnyNodeId[],
+  opening?: FloorplanDimensionEditLeaf['opening'],
+  semanticKey?: string,
+): FloorplanDimensionEditLeaf {
+  return {
+    id,
+    semanticKey: semanticKey ?? id,
+    measuredStart,
+    measuredEnd,
+    currentLength: distance(measuredStart, measuredEnd),
+    wallIds: [...new Set(wallIds)],
+    opening,
+  }
+}
+
+function openingDimensionProvenance(
+  opening: OpeningNode,
+): NonNullable<FloorplanDimensionEditDescriptor['opening']> | undefined {
+  const documentation = resolveOpeningDimensionDocumentation(opening)
+  const displayedField =
+    documentation.reference === 'rough-opening'
+      ? 'roughOpeningWidth'
+      : documentation.reference === 'masonry-opening'
+        ? 'masonryOpeningWidth'
+        : documentation.reference === 'finish-opening'
+          ? 'finishOpeningWidth'
+          : 'width'
+  return {
+    openingId: opening.id,
+    reference: documentation.reference,
+    displayedField,
+    documentedOffset:
+      documentation.width === null ? undefined : documentation.width - opening.width,
+  }
+}
+
+function nominalOpeningProvenance(
+  opening: OpeningNode,
+): NonNullable<FloorplanDimensionEditDescriptor['opening']> {
+  return {
+    openingId: opening.id,
+    reference: 'nominal',
+    displayedField: 'width',
+    documentedOffset: 0,
+  }
+}
+
+function constructionGeneratorKey(
+  standard: ConstructionDimensionDrawingStandard,
+  family: string,
+): string {
+  return `${family}:datum=${standard.datumPolicy}:intersections=${standard.intersectionReferencePolicy}`
+}
+
+function makeDimensionDescriptor(args: {
+  id: string
+  sourceNodeId?: AnyNodeId
+  chainId?: string
+  generatorKey?: string
+  semanticKey?: string
+  levelId: AnyNodeId
+  kind: FloorplanDimensionEditDescriptor['kind']
+  measuredStart: FloorplanPoint
+  measuredEnd: FloorplanPoint
+  leaves: readonly FloorplanDimensionEditLeaf[]
+  wallIds: readonly AnyNodeId[]
+  opening?: NonNullable<FloorplanDimensionEditDescriptor['opening']>
+  readOnlyReason?: string
+  readOnlyReasonCode?: FloorplanDimensionEditDescriptor['readOnlyReasonCode']
+}): FloorplanDimensionEditDescriptor {
+  const missingOpeningDocumentation =
+    args.opening !== undefined && args.opening.documentedOffset === undefined
+  const readOnlyReason =
+    args.readOnlyReason ??
+    (missingOpeningDocumentation ? '개구부 문서 치수 출처가 없어 수정할 수 없습니다.' : undefined)
+  const readOnlyReasonCode =
+    args.readOnlyReasonCode ?? (missingOpeningDocumentation ? 'missing-provenance' : undefined)
+  return {
+    id: args.id,
+    sourceNodeId: args.sourceNodeId,
+    chainId: args.chainId,
+    generatorKey: args.generatorKey,
+    semanticKey: args.semanticKey ?? args.id,
+    status: readOnlyReason ? 'read-only' : 'editable',
+    readOnlyReason,
+    readOnlyReasonCode,
+    levelId: args.levelId,
+    kind: args.kind,
+    measuredStart: args.measuredStart,
+    measuredEnd: args.measuredEnd,
+    fixedEndOptions: ['start', 'end'],
+    leaves: args.leaves,
+    defaultLeafId: args.leaves.at(-1)?.id,
+    opening: args.opening,
+  }
 }
 
 function subtract(left: FloorplanPoint, right: FloorplanPoint): FloorplanPoint {

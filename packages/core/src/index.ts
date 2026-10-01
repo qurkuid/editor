@@ -96,6 +96,9 @@ export {
   type AxisGuideStretchPlan,
   type AxisGuideStretchRequest,
   buildAxisGuideStretchPlan,
+  buildDimensionStretchPlan,
+  type DimensionStretchPlan,
+  type DimensionStretchRequest,
 } from './lib/axis-guide-stretch'
 export {
   type BodyArrayPoint,
