@@ -407,6 +407,7 @@ export {
   buildWallLengthUpdates,
   buildWallMerge,
   buildWallSplit,
+  buildWallSplitAtContacts,
   type WallMutation,
   WallOperationError,
   type WallSceneState,

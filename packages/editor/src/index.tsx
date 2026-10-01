@@ -200,6 +200,7 @@ export {
   getSegmentGridStep,
   isSegmentLongEnough,
   resolveEndpointWallSplit,
+  resolveWallEndpointPoint,
   snapPointToGrid,
   snapScalarToGrid,
   snapWallDraftPoint,
@@ -209,6 +210,8 @@ export {
   WALL_JOIN_SNAP_RADIUS,
   type WallDraftSnapKind,
   type WallDraftSnapResult,
+  type WallEndpointSnapResult,
+  type WallJunctionReference,
   type WallPlanPoint,
   type WallSnapRadii,
 } from './components/tools/wall/wall-drafting'

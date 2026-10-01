@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { calculateLevelMiters, getWallPlanFootprint } from '@pascal-app/core'
+import { calculateLevelMiters, detectSpacesForLevel, getWallPlanFootprint } from '@pascal-app/core'
 import { unionPolygons } from '../../../packages/viewer/src/lib/polygon-union'
 import { type AptVectorDoc, buildVectorNodes } from './apt-vector-scene'
 
@@ -80,7 +80,7 @@ describe('buildVectorNodes', () => {
     const built = buildVectorNodes(crossing)!
     const miters = calculateLevelMiters(built.walls)
     expect(miters.junctions.get('0,0')?.connectedWalls).toHaveLength(4)
-    expect(miters.junctions.get('2000,0')?.connectedWalls).toHaveLength(2)
+    expect(miters.junctions.get('2000,0')?.connectedWalls).toHaveLength(3)
     const polygons = built.walls.map((wall) =>
       getWallPlanFootprint(wall, miters).map((p) => [p.x, p.y] as [number, number]),
     )
@@ -148,8 +148,8 @@ describe('buildVectorNodes', () => {
     const built = buildVectorNodes(doc)
     expect(built).not.toBeNull()
     const { walls, guideScale } = built!
-    expect(walls).toHaveLength(3)
-    expect(walls.filter((wall) => wall.start[0] === 4 && wall.end[0] === 4)).toHaveLength(1)
+    expect(walls).toHaveLength(4)
+    expect(walls.filter((wall) => wall.start[0] === 4 && wall.end[0] === 4)).toHaveLength(2)
     const north = walls.find((wall) => wall.start[1] === -3 && wall.end[1] === -3)!
     const [lo, hi] = [north.start[0], north.end[0]].sort((p, q) => p - q)
     expect(lo).toBeCloseTo(-4)
@@ -389,6 +389,42 @@ describe('buildVectorNodes', () => {
     expect(living.polygon[0]![1]).toBeCloseTo(-2.8)
     // unlabeled room falls back to the class name in Korean
     expect(zones.some((zone) => zone.name === '욕실')).toBe(true)
+  })
+
+  test('reconciles an apartment zone to the finalized T-split wall space', () => {
+    const sourceRoom: AptVectorDoc['rooms'][number] = {
+      id: 'r-finalized',
+      name: '거실',
+      cls: 'living',
+      areaM2: 48,
+      polygon: [
+        [1100, 1100],
+        [8900, 1100],
+        [8900, 6900],
+        [1100, 6900],
+      ],
+    }
+    const built = buildVectorNodes({
+      ...doc,
+      rooms: [sourceRoom],
+      openings: [],
+      walls: [
+        { id: 'south', kind: 'exterior', start: [1000, 1000], end: [9000, 1000], thickness: 200 },
+        { id: 'east', kind: 'exterior', start: [9000, 1000], end: [9000, 7000], thickness: 200 },
+        { id: 'north', kind: 'exterior', start: [9000, 7000], end: [1000, 7000], thickness: 200 },
+        { id: 'west', kind: 'exterior', start: [1000, 7000], end: [1000, 1000], thickness: 200 },
+        { id: 'branch', kind: 'interior', start: [5000, 1000], end: [5000, 4000], thickness: 100 },
+      ],
+    })!
+    const expected = detectSpacesForLevel('apt-vector-import', built.walls).spaces.find(
+      (space) => !space.isExterior,
+    )!
+    const zone = built.zones[0]!
+    expect(zone.autoFromWalls).toBe(true)
+    expect(zone.polygon).toEqual(expected.polygon)
+    expect(new Set(zone.boundaryWallIds)).toEqual(new Set(expected.wallIds))
+    expect(zone.metadata).toMatchObject({ source: 'apt-vector', sourceRoomId: 'r-finalized' })
+    expect(zone.name).toBe('거실')
   })
 
   test('snaps corner and tee gaps closed along each wall axis', () => {

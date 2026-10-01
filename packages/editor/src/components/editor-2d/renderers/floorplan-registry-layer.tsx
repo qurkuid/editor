@@ -324,6 +324,17 @@ type FloorplanEntryDescriptor = {
   ctxOverrides?: FloorplanContextOverrides
 }
 
+export function orderFloorplanOverlayEntries(
+  entries: readonly FloorplanEntryDescriptor[],
+  selectedIds: readonly string[],
+): FloorplanEntryDescriptor[] {
+  const selected = new Set(selectedIds)
+  return [
+    ...entries.filter((entry) => !selected.has(entry.id)),
+    ...entries.filter((entry) => selected.has(entry.id)),
+  ]
+}
+
 type NodeDeps = {
   automaticDimensions: boolean
   node: AnyNode
@@ -426,6 +437,7 @@ const EMPTY_LIVE_OVERRIDES: Map<string, LiveNodeOverrides> = new Map()
 export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
   const selectedLevelId = useViewer((s) => s.selection.levelId)
   const selectedBuildingId = useViewer((s) => s.selection.buildingId)
+  const selectedIds = useViewer((s) => s.selection.selectedIds)
   const unit = useViewer((s) => s.unit)
   const metricNotation = useViewer((s) => s.metricNotation)
   const setSelection = useViewer((s) => s.setSelection)
@@ -1355,6 +1367,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
 
   const entries = floorplanData.entries
   if (entries.length === 0) return null
+  const overlayEntries = orderFloorplanOverlayEntries(entries, selectedIds)
 
   const palette = renderCtx?.palette
 
@@ -1430,7 +1443,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
           still routes through the same selection-handling `<g>` so a
           click on a zone's name selects the zone. */}
       <g className="floorplan-registry-overlay">
-        {entries.map((entry) => (
+        {overlayEntries.map((entry) => (
           <FloorplanRegistryEntry
             activeDragId={handleIdForNode(activeDragId, entry.id)}
             annotationVisibility={annotationVisibility}

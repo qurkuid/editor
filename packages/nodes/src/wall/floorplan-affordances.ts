@@ -20,10 +20,11 @@ import {
   isMagneticSnapActive,
   isSegmentLongEnough,
   resolveEndpointWallSplit,
+  resolveWallEndpointPoint,
   snapBuildingLocalToWorldGrid,
   snapScalarToGrid,
-  snapWallDraftPointDetailed,
   useAlignmentGuides,
+  type WallJunctionReference,
   type WallPlanPoint,
 } from '@pascal-app/editor'
 
@@ -53,6 +54,14 @@ import {
 
 type WallEndpointPayload = { wallId: AnyNodeId; endpoint: 'start' | 'end' }
 
+type LinkedWallSnapshot = {
+  id: AnyNodeId
+  start: WallPlanPoint
+  end: WallPlanPoint
+  parentId: string | null
+  curveOffset?: number
+}
+
 function pointsEqual(a: readonly number[], b: readonly number[]) {
   return a[0] === b[0] && a[1] === b[1]
 }
@@ -60,10 +69,16 @@ function pointsEqual(a: readonly number[], b: readonly number[]) {
 function collectLevelWalls(
   nodes: Record<AnyNodeId, AnyNode>,
   excludeWallId?: AnyNodeId,
+  parentId?: string | null,
 ): WallNode[] {
   const out: WallNode[] = []
   for (const node of Object.values(nodes)) {
-    if (node?.type === 'wall' && node.id !== excludeWallId) out.push(node as WallNode)
+    if (
+      node?.type === 'wall' &&
+      node.id !== excludeWallId &&
+      (parentId === undefined || (node.parentId ?? null) === (parentId ?? null))
+    )
+      out.push(node as WallNode)
   }
   return out
 }
@@ -73,12 +88,14 @@ function collectLinkedWalls(
   draggedWallId: AnyNodeId,
   originalStart: WallPlanPoint,
   originalEnd: WallPlanPoint,
-): Array<{ id: AnyNodeId; start: WallPlanPoint; end: WallPlanPoint }> {
-  const linked: Array<{ id: AnyNodeId; start: WallPlanPoint; end: WallPlanPoint }> = []
+  parentId?: string | null,
+): LinkedWallSnapshot[] {
+  const linked: LinkedWallSnapshot[] = []
   for (const node of Object.values(nodes)) {
     if (node?.type !== 'wall') continue
     if (node.id === draggedWallId) continue
     const wall = node as WallNode
+    if (parentId !== undefined && (wall.parentId ?? null) !== (parentId ?? null)) continue
     if (
       pointsEqual(wall.start, originalStart) ||
       pointsEqual(wall.start, originalEnd) ||
@@ -89,10 +106,35 @@ function collectLinkedWalls(
         id: wall.id,
         start: [...wall.start] as WallPlanPoint,
         end: [...wall.end] as WallPlanPoint,
+        parentId: (wall.parentId ?? null) as string | null,
+        curveOffset: wall.curveOffset,
       })
     }
   }
   return linked
+}
+
+function getLinkedJunctionReference(
+  linkedWalls: LinkedWallSnapshot[],
+  movingOriginal: WallPlanPoint,
+  parentId: string | null | undefined,
+): WallJunctionReference | undefined {
+  const oppositeEndpoints: WallPlanPoint[] = []
+  for (const wall of linkedWalls) {
+    if ((wall.parentId ?? null) !== (parentId ?? null)) continue
+    if (Math.abs(wall.curveOffset ?? 0) > 1e-6) continue
+    const opposite = pointsEqual(wall.start, movingOriginal)
+      ? wall.end
+      : pointsEqual(wall.end, movingOriginal)
+        ? wall.start
+        : null
+    if (opposite) oppositeEndpoints.push([...opposite] as WallPlanPoint)
+  }
+  if (oppositeEndpoints.length < 2) return undefined
+  return {
+    sharedPoint: [...movingOriginal] as WallPlanPoint,
+    oppositeEndpoints,
+  }
 }
 
 /**
@@ -168,7 +210,13 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
       endpoint === 'start' ? ([...node.end] as WallPlanPoint) : ([...node.start] as WallPlanPoint)
     const originalStart: WallPlanPoint = [...node.start] as WallPlanPoint
     const originalEnd: WallPlanPoint = [...node.end] as WallPlanPoint
-    const linkedWalls = collectLinkedWalls(nodes, node.id, originalStart, originalEnd)
+    const linkedWalls = collectLinkedWalls(
+      nodes,
+      node.id,
+      originalStart,
+      originalEnd,
+      node.parentId ?? null,
+    )
     const affectedIds: AnyNodeId[] = [node.id, ...linkedWalls.map((w) => w.id)]
     const movingOriginal: WallPlanPoint = endpoint === 'start' ? originalStart : originalEnd
     // Walls attached to the MOVING corner cascade with the drag, but the snap
@@ -197,7 +245,7 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
           key,
           fixedPoint,
           endpoint === 'start' ? lastPrimaryStart : lastPrimaryEnd,
-          collectLevelWalls(useScene.getState().nodes, node.id).filter(
+          collectLevelWalls(useScene.getState().nodes, node.id, node.parentId ?? null).filter(
             (w) => w.parentId === node.parentId && !movingLinkedWallIds.includes(w.id),
           ),
         )
@@ -215,7 +263,7 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
         // the moving corner are excluded (stale coordinates); under
         // Alt-detach they stay put, so they rejoin the candidate pool.
         const sceneNodes = useScene.getState().nodes
-        const walls = collectLevelWalls(sceneNodes, node.id)
+        const walls = collectLevelWalls(sceneNodes, node.id, node.parentId ?? null)
         const staleWallIds = modifiers.altKey ? [node.id] : [node.id, ...movingLinkedWallIds]
         // The grid step follows the active snapping mode (`getSegmentGridStep()`
         // is 0 outside grid mode), so `'lines' / 'angles' / 'off'` no longer
@@ -223,7 +271,13 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
         // the endpoint angle-locks off the fixed corner (free length), matching
         // the draft tool — the angle path ignores the `gridSnap` override.
         const angleLocked = isAngleSnapActive()
-        const snapResult = snapWallDraftPointDetailed({
+        const lockedThrough = directionLock.active
+          ? directionLock.project(planPoint as WallPlanPoint, getSegmentGridStep())
+          : null
+        const junctionReference = modifiers.altKey
+          ? undefined
+          : getLinkedJunctionReference(linkedWalls, movingOriginal, node.parentId)
+        const snapResult = resolveWallEndpointPoint({
           point: planPoint as WallPlanPoint,
           walls,
           ignoreWallIds: staleWallIds,
@@ -232,6 +286,8 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
           angleSnap: angleLocked,
           magnetic: isMagneticSnapActive(),
           gridSnap: (p) => snapBuildingLocalToWorldGrid(p, getSegmentGridStep()),
+          constraintRay: lockedThrough ? { origin: fixedPoint, through: lockedThrough } : undefined,
+          junctionReference,
         })
         const snapped = snapResult.point
         // Figma-style alignment on the dragged corner — snaps it onto another
@@ -243,13 +299,21 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
         // from the candidate pool — walls linked at the FIXED corner don't
         // move, and their anchors are what let the dragged corner align back
         // onto a true axis. Alt is detach, NOT bypass.
-        let aligned = alignFloorplanDraftPoint(snapped, {
-          applySnap: isMagneticSnapActive(),
-          bypass: !isAlignmentGuideActive(),
-          excludeIds: staleWallIds,
-        }) as WallPlanPoint
-        directionInferred = !!snapResult.directionInferred && pointsEqual(aligned, snapped)
-        if (directionLock.active) {
+        let aligned =
+          snapResult.constraintOwned || snapResult.targetCaptured
+            ? snapped
+            : (alignFloorplanDraftPoint(snapped, {
+                applySnap: isMagneticSnapActive(),
+                bypass: !isAlignmentGuideActive(),
+                excludeIds: staleWallIds,
+              }) as WallPlanPoint)
+        directionInferred =
+          (Boolean(snapResult.directionInferred) || Boolean(snapResult.targetCaptured)) &&
+          (Boolean(snapResult.constraintOwned) ||
+            Boolean(snapResult.targetCaptured) ||
+            pointsEqual(aligned, snapped))
+        if (snapResult.constraintOwned) useAlignmentGuides.getState().clear()
+        if (directionLock.active && !snapResult.targetCaptured && !snapResult.constraintOwned) {
           aligned = directionLock.project(planPoint, getSegmentGridStep())
           useAlignmentGuides.getState().clear()
         }

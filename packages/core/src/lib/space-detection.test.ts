@@ -711,6 +711,103 @@ describe('procedural zones', () => {
 
     expect(planAutoZonesForLevel(spaces, [zone]).update).toHaveLength(0)
   })
+
+  test('adopts one inset apartment zone to the exact detected space footprint', () => {
+    const walls = squareWalls()
+    const { spaces } = detectSpacesForLevel('level-1', walls)
+    const zone = ZoneNode.parse({
+      id: 'zone_apartment_inset',
+      name: '거실',
+      color: '#8f8878',
+      spaceRole: 'room',
+      polygon: [
+        [0.4, 0.4],
+        [3.6, 0.4],
+        [3.6, 2.6],
+        [0.4, 2.6],
+      ],
+      metadata: { source: 'apt-vector', sourceRoomId: 'r1', cls: 'living' },
+    })
+
+    const plan = planAutoZonesForLevel(spaces, [zone], {
+      adoptContainedApartmentZones: true,
+    })
+
+    expect(plan.update).toHaveLength(1)
+    expect(plan.update[0]?.id).toBe(zone.id)
+    expect(plan.update[0]?.data).toMatchObject({
+      autoFromWalls: true,
+      polygon: spaces[0]?.polygon,
+      boundaryWallIds: spaces[0]?.wallIds,
+    })
+    expect(plan.update[0]?.data.name).toBeUndefined()
+    expect(plan.update[0]?.data.metadata).toBeUndefined()
+  })
+
+  test('keeps ambiguous apartment subdivisions when an exact and inset zone claim one space', () => {
+    const { spaces } = detectSpacesForLevel('level-1', squareWalls())
+    const zones = [
+      ZoneNode.parse({
+        id: 'zone_open_living',
+        name: '거실',
+        spaceRole: 'room',
+        polygon: [
+          [0, 0],
+          [4, 0],
+          [4, 3],
+          [0, 3],
+        ],
+        metadata: { source: 'apt-vector', sourceRoomId: 'living' },
+      }),
+      ZoneNode.parse({
+        id: 'zone_open_entry',
+        name: '현관',
+        spaceRole: 'room',
+        polygon: [
+          [0.4, 0.4],
+          [3.6, 0.4],
+          [3.6, 2.6],
+          [0.4, 2.6],
+        ],
+        metadata: { source: 'apt-vector', sourceRoomId: 'entry' },
+      }),
+    ]
+
+    const plan = planAutoZonesForLevel(spaces, zones, {
+      adoptContainedApartmentZones: true,
+    })
+
+    expect(plan.update).toHaveLength(0)
+  })
+
+  test('requires the import flag and apt-vector provenance before contained adoption', () => {
+    const { spaces } = detectSpacesForLevel('level-1', squareWalls())
+    const inset = [
+      [0.4, 0.4],
+      [3.6, 0.4],
+      [3.6, 2.6],
+      [0.4, 2.6],
+    ] as Array<[number, number]>
+    const aptZone = ZoneNode.parse({
+      id: 'zone_flagged',
+      name: '거실',
+      spaceRole: 'room',
+      polygon: inset,
+      metadata: { source: 'apt-vector', sourceRoomId: 'r1' },
+    })
+    const manualZone = ZoneNode.parse({
+      id: 'zone_manual',
+      name: '기록',
+      spaceRole: 'room',
+      polygon: inset,
+      metadata: { source: 'survey' },
+    })
+
+    expect(planAutoZonesForLevel(spaces, [aptZone]).update).toHaveLength(0)
+    expect(
+      planAutoZonesForLevel(spaces, [manualZone], { adoptContainedApartmentZones: true }).update,
+    ).toHaveLength(0)
+  })
 })
 
 describe('wallClosesRoom', () => {

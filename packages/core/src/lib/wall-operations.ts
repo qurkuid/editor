@@ -727,3 +727,72 @@ export function buildWallSplit(
     changedIds,
   )
 }
+
+/**
+ * Split a straight wall at every interior T/X contact with a sibling wall.
+ *
+ * The individual split builder is deliberately reused on an in-memory
+ * snapshot. This keeps attachment, parent, and collection bookkeeping in one
+ * place while ensuring a failed later split never leaks a partial mutation to
+ * the caller.
+ */
+export function buildWallSplitAtContacts(scene: WallSceneState, wallId: AnyNodeId): WallMutation {
+  const wall = requireWall(scene.nodes, wallId)
+  const wallLength = distance(wall.start, wall.end)
+  if (wallLength <= EPSILON) {
+    throw new WallOperationError('zero-length-wall', 'Zero-length walls cannot be split')
+  }
+  if (Math.abs(wall.curveOffset ?? 0) > EPSILON) {
+    throw new WallOperationError('curved-wall', 'Only straight walls can be split')
+  }
+
+  const hostAxis: Vec2 = [wall.end[0] - wall.start[0], wall.end[1] - wall.start[1]]
+  const contacts: number[] = []
+  for (const node of Object.values(scene.nodes)) {
+    if (!isWall(node) || node.id === wall.id || node.parentId !== wall.parentId) continue
+    if (Math.abs(node.curveOffset ?? 0) > EPSILON) continue
+    const otherLength = distance(node.start, node.end)
+    if (otherLength <= EPSILON) continue
+    const otherAxis: Vec2 = [node.end[0] - node.start[0], node.end[1] - node.start[1]]
+    const denominator = cross(hostAxis, otherAxis)
+    if (Math.abs(denominator) <= EPSILON * wallLength * otherLength) continue
+
+    const offset: Vec2 = [node.start[0] - wall.start[0], node.start[1] - wall.start[1]]
+    const hostT = cross(offset, otherAxis) / denominator
+    const otherT = cross(offset, hostAxis) / denominator
+    // The selected wall must be split in its interior. The contact may be an
+    // endpoint or interior point of the other wall (T and X junctions).
+    if (hostT <= EPSILON / wallLength || hostT >= 1 - EPSILON / wallLength) continue
+    if (otherT < -EPSILON / otherLength || otherT > 1 + EPSILON / otherLength) continue
+    const distanceFromStart = hostT * wallLength
+    if (contacts.some((existing) => Math.abs(existing - distanceFromStart) <= EPSILON)) continue
+    contacts.push(distanceFromStart)
+  }
+
+  if (contacts.length === 0) {
+    throw new WallOperationError(
+      'no-wall-contacts',
+      'No interior T or X wall contacts were found for this wall',
+    )
+  }
+
+  // Descending distances keep the retained wall id as the prefix segment for
+  // each subsequent split. All builders operate on snapshots until every
+  // contact has validated successfully, making the operation atomic.
+  contacts.sort((a, b) => b - a)
+  let snapshot: WallSceneState = scene
+  const createdNodeIds: AnyNodeId[] = []
+  const changedNodeIds = new Set<AnyNodeId>()
+  for (const distanceFromStart of contacts) {
+    const mutation = buildWallSplit(snapshot, wallId, distanceFromStart)
+    snapshot = {
+      nodes: mutation.nodes,
+      rootNodeIds: mutation.rootNodeIds,
+      collections: mutation.collections,
+    }
+    createdNodeIds.push(...mutation.createdNodeIds)
+    for (const id of mutation.changedNodeIds) changedNodeIds.add(id)
+  }
+
+  return makeMutation(snapshot, wallId, createdNodeIds, [], changedNodeIds)
+}

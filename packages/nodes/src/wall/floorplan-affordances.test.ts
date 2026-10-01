@@ -94,6 +94,71 @@ describe('wall center curve handle release', () => {
     expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual(destination.start)
   })
 
+  test('uses same-level linked straight outer endpoints as a collinear junction datum', () => {
+    const levelId = 'level_junction'
+    const wall = WallNode.parse({
+      id: 'wall_junction_main',
+      parentId: levelId,
+      start: [0, 4],
+      end: [1.999, 4],
+    })
+    const lower = WallNode.parse({
+      id: 'wall_junction_lower',
+      parentId: levelId,
+      start: wall.end,
+      end: [2, 2],
+    })
+    const upper = WallNode.parse({
+      id: 'wall_junction_upper',
+      parentId: levelId,
+      start: [2, 7],
+      end: wall.end,
+    })
+    const otherLevel = WallNode.parse({
+      id: 'wall_junction_other_level',
+      parentId: 'level_other',
+      start: wall.end,
+      end: [2, 12],
+    })
+    useScene.setState({
+      nodes: {
+        [wall.id]: wall,
+        [lower.id]: lower,
+        [upper.id]: upper,
+        [otherLevel.id]: otherLevel,
+      },
+    })
+    useEditor.getState().setSnappingMode('wall', 'grid')
+    useEditor.setState({ gridSnapStep: 0.001 })
+    useInteractionScope.getState().begin({
+      kind: 'reshaping',
+      nodeId: wall.id,
+      reshape: 'endpoint',
+      driver: 'tool',
+    })
+    const session = wallMoveEndpointAffordance.start({
+      node: wall,
+      nodes: useScene.getState().nodes,
+      payload: { wallId: wall.id, endpoint: 'end' },
+      initialPlanPoint: wall.end,
+      gridSnapStep: 0.001,
+    })
+
+    session.apply({ planPoint: [2.048, 4.421], modifiers })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([2, 4.421])
+    expect(useLiveNodeOverrides.getState().get(lower.id)?.start).toEqual([2, 4.421])
+    expect(useLiveNodeOverrides.getState().get(upper.id)?.end).toEqual([2, 4.421])
+    expect(useLiveNodeOverrides.getState().get(otherLevel.id)).toBeUndefined()
+
+    session.apply({ planPoint: [2.048, 4.02], modifiers })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([2, 4])
+
+    session.apply({ planPoint: [2.12, 4.421], modifiers: { ...modifiers, altKey: true } })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([2.12, 4.421])
+    expect(useLiveNodeOverrides.getState().get(lower.id)).toBeUndefined()
+    expect(useLiveNodeOverrides.getState().get(upper.id)).toBeUndefined()
+  })
+
   test('Shift preserves endpoint direction through preview, commit and undo', () => {
     const wall = WallNode.parse({ id: 'wall_shift', start: [2, 3], end: [2, 5] })
     useScene.setState({ nodes: { [wall.id]: wall } })

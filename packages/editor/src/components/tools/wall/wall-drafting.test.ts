@@ -22,6 +22,7 @@ import {
   type GuideSnapLine,
   resolveEndpointWallSplit,
   resolveTerrainWallConstructionOptions,
+  resolveWallEndpointPoint,
   snapPointToGuides,
   snapWallDraftPointDetailed,
 } from './wall-drafting'
@@ -587,4 +588,489 @@ test('shared wall inference keeps guides and corners ahead of weak angles and re
 
   const angled = snapWallDraftPointDetailed({ ...args, point: [4, 1.1], angleSnap: true })
   expect((Math.atan2(angled.point[1], angled.point[0]) * 180) / Math.PI).toBeCloseTo(15, 12)
+})
+
+describe('resolveWallEndpointPoint', () => {
+  test('fixed-corner right-angle inference wins over an off-ray endpoint', () => {
+    const target = { ...makeWall([2, 0.03], [2, 4], 'wall_corner'), thickness: 0.4 }
+    const result = resolveWallEndpointPoint({
+      point: [1.8, 0.03],
+      walls: [target],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+    })
+
+    expect(result.point).toEqual([1.8, 0])
+    expect(result.snap).toBeNull()
+    expect(result.constraintOwned).toBe(true)
+  })
+
+  test('captures a thick target face at the inferred-ray intersection', () => {
+    const target = { ...makeWall([2, -2], [2, 4], 'wall_face'), thickness: 0.4 }
+    const result = resolveWallEndpointPoint({
+      point: [1.796, 1.02],
+      walls: [target],
+      start: [0, 1],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+    })
+
+    expect(result.point[0]).toBeCloseTo(2, 12)
+    expect(result.point[1]).toBeCloseTo(1, 12)
+    expect(result.snap).toBe('wall')
+    expect(result.targetWallIds).toEqual(['wall_face'])
+    expect(result.directionInferred).toBe(true)
+  })
+
+  test('keeps an outside-envelope cursor free on the inferred ray', () => {
+    const target = { ...makeWall([2, -2], [2, 4], 'wall_face'), thickness: 0.4 }
+    const result = resolveWallEndpointPoint({
+      point: [1.69, 1.02],
+      walls: [target],
+      start: [0, 1],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+    })
+
+    expect(result.point).toEqual([1.69, 1])
+    expect(result.snap).toBeNull()
+    expect(result.targetWallIds).toEqual([])
+    expect(result.directionInferred).toBe(true)
+  })
+
+  test('captures a physical face for an arbitrary-angle endpoint approach', () => {
+    const target = { ...makeWall([2, -2], [2, 4], 'wall_face'), thickness: 0.4 }
+    const result = resolveWallEndpointPoint({
+      point: [1.8, 0.5],
+      walls: [target],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+    })
+
+    expect(result.point[0]).toBeCloseTo(2, 12)
+    expect(result.point[1]).toBeCloseTo(0.5555555555555556, 12)
+    expect(result.snap).toBe('wall')
+    expect(result.targetWallIds).toEqual(['wall_face'])
+    expect(result.directionInferred).toBeUndefined()
+  })
+
+  test('preserves an exact endpoint hit before direction inference', () => {
+    const target = { ...makeWall([2, 0.03], [2, 4], 'wall_corner'), thickness: 0.4 }
+    const result = resolveWallEndpointPoint({
+      point: [2.00005, 0.03],
+      walls: [target],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+    })
+
+    expect(result.point).toEqual([2, 0.03])
+    expect(result.snap).toBe('endpoint')
+    expect(result.constraintOwned).toBeUndefined()
+  })
+
+  test('keeps an explicit construction guide ahead of weak direction inference', () => {
+    const result = resolveWallEndpointPoint({
+      point: [4, 0.1],
+      walls: [],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: false,
+      step: 0.001,
+      guides: [{ origin: [0, 0.12], direction: [1, 0] }],
+    })
+
+    expect(result.point).toEqual([4, 0.12])
+    expect(result.constraintOwned).toBe(true)
+  })
+
+  test('keeps an explicit construction guide on a locked ray', () => {
+    const result = resolveWallEndpointPoint({
+      point: [4, 0.1],
+      walls: [],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: false,
+      step: 0,
+      guides: [{ origin: [3.95, -2], direction: [0, 1] }],
+      constraintRay: { origin: [0, 0], through: [4, 0] },
+    })
+
+    expect(result.point).toEqual([3.95, 0])
+    expect(result.constraintOwned).toBe(true)
+    expect(result.targetCaptured).toBeUndefined()
+  })
+
+  test('does not infer a weak ray in Off mode', () => {
+    const result = resolveWallEndpointPoint({
+      point: [4, 0.1],
+      walls: [],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: false,
+      step: 0,
+      guides: [],
+    })
+
+    expect(result.point).toEqual([4, 0.1])
+    expect(result.directionInferred).toBeUndefined()
+  })
+
+  test('does not capture a distant on-ray endpoint outside the physical envelope', () => {
+    const result = resolveWallEndpointPoint({
+      point: [1.3, 0],
+      walls: [{ ...makeWall([2, 0], [2, 4], 'wall_distant_corner'), thickness: 0.4 }],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: false,
+      step: 0,
+      guides: [],
+    })
+
+    expect(result.point).toEqual([1.3, 0])
+    expect(result.targetCaptured).toBeUndefined()
+  })
+
+  test('captures a target corner only when the inferred ray reaches that corner', () => {
+    const onRay = resolveWallEndpointPoint({
+      point: [1.8, 0.03],
+      walls: [{ ...makeWall([2, 0], [2, 4], 'wall_corner_capture'), thickness: 0.4 }],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+    })
+    expect(onRay.point).toEqual([2, 0])
+    expect(onRay.targetCaptured).toBe(true)
+
+    const offRay = resolveWallEndpointPoint({
+      point: [1.8, 0.03],
+      walls: [{ ...makeWall([2, 0.03], [2, 4], 'wall_off_ray_corner'), thickness: 0.4 }],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+    })
+    expect(offRay.point).toEqual([1.8, 0])
+    expect(offRay.targetCaptured).toBeUndefined()
+  })
+
+  test('uses an explicit locked ray for thick-face capture', () => {
+    const result = resolveWallEndpointPoint({
+      point: [1.8, 1.02],
+      walls: [{ ...makeWall([2, -2], [2, 4], 'wall_locked_face'), thickness: 0.4 }],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      constraintRay: { origin: [0, 0], through: [1.8, 0] },
+    })
+
+    expect(result.point).toEqual([2, 0])
+    expect(result.targetCaptured).toBe(true)
+    expect(result.directionInferred).toBe(true)
+  })
+
+  test('captures a thick face on the explicit 15 degree angle ray', () => {
+    const result = resolveWallEndpointPoint({
+      point: [1.8, 1.02],
+      walls: [{ ...makeWall([2, -2], [2, 4], 'wall_angle_face'), thickness: 0.4 }],
+      start: [0, 0],
+      inferDirection: true,
+      angleSnap: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+    })
+
+    expect(result.point[0]).toBeCloseTo(2, 12)
+    expect(result.point[1]).toBeCloseTo(2 * Math.tan(Math.PI / 6), 12)
+    expect(result.targetCaptured).toBe(true)
+    expect(result.directionInferred).toBe(true)
+  })
+
+  test('captures a linked straight-junction datum without moving the inferred ray', () => {
+    const junctionReference = {
+      sharedPoint: [1.999, 4] as WallPlanPoint,
+      oppositeEndpoints: [
+        [2, 2],
+        [2, 7],
+      ] as [WallPlanPoint, WallPlanPoint],
+    }
+
+    const free = resolveWallEndpointPoint({
+      point: [2.048, 4.421],
+      walls: [],
+      start: [-4, 4],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference,
+    })
+    expect(free.point).toEqual([2, 4.421])
+    expect(free.constraintOwned).toBe(true)
+    expect(free.directionInferred).toBe(true)
+
+    const onPrimaryRay = resolveWallEndpointPoint({
+      point: [2.048, 4.02],
+      walls: [],
+      start: [-4, 4],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference,
+    })
+    expect(onPrimaryRay.point).toEqual([2, 4])
+    expect(onPrimaryRay.constraintOwned).toBe(true)
+    expect(onPrimaryRay.directionInferred).toBe(true)
+  })
+
+  test('uses the outer endpoint datum regardless of order and ignores invalid captures', () => {
+    const base = {
+      walls: [] as WallNode[],
+      start: [-4, 4] as WallPlanPoint,
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [] as GuideSnapLine[],
+    }
+    const reversed = resolveWallEndpointPoint({
+      ...base,
+      point: [2.048, 4.421],
+      junctionReference: {
+        sharedPoint: [1.999, 4],
+        oppositeEndpoints: [
+          [2, 7],
+          [2, 2],
+        ],
+      },
+    })
+    expect(reversed.point).toEqual([2, 4.421])
+
+    const nonCollinear = resolveWallEndpointPoint({
+      ...base,
+      point: [2.048, 4.421],
+      junctionReference: {
+        sharedPoint: [1.999, 4],
+        oppositeEndpoints: [
+          [2, 2],
+          [3, 7],
+        ],
+      },
+    })
+    expect(nonCollinear.point).toEqual([2.048, 4.421])
+
+    const outsideCapture = resolveWallEndpointPoint({
+      ...base,
+      point: [2.3, 4.421],
+      junctionReference: {
+        sharedPoint: [1.999, 4],
+        oppositeEndpoints: [
+          [2, 2],
+          [2, 7],
+        ],
+      },
+    })
+    expect(outsideCapture.point).toEqual([2.3, 4.421])
+  })
+
+  test('keeps guide, Off, and Angles precedence over a linked datum', () => {
+    const junctionReference = {
+      sharedPoint: [1.999, 4] as WallPlanPoint,
+      oppositeEndpoints: [
+        [2, 2],
+        [2, 7],
+      ] as [WallPlanPoint, WallPlanPoint],
+    }
+    const guided = resolveWallEndpointPoint({
+      point: [2.048, 4.12],
+      walls: [],
+      start: [-4, 4],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [{ origin: [0, 4.12], direction: [1, 0] }],
+      junctionReference,
+    })
+    expect(guided.point).toEqual([2.048, 4.12])
+    expect(guided.constraintOwned).toBe(true)
+
+    const off = resolveWallEndpointPoint({
+      point: [2.048, 4.421],
+      walls: [],
+      start: [-4, 4],
+      inferDirection: true,
+      magnetic: false,
+      step: 0,
+      guides: [],
+      junctionReference,
+    })
+    expect(off.point).toEqual([2.048, 4.421])
+    expect(off.constraintOwned).toBeUndefined()
+
+    const angles = resolveWallEndpointPoint({
+      point: [2.048, 4.421],
+      walls: [],
+      start: [-4, 4],
+      inferDirection: true,
+      angleSnap: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference,
+    })
+    expect(angles.point[0]).not.toBeCloseTo(2, 12)
+  })
+
+  test('combines a locked ray with a linked datum only inside the capture radius', () => {
+    const junctionReference = {
+      sharedPoint: [1.999, 4] as WallPlanPoint,
+      oppositeEndpoints: [
+        [2, 2],
+        [2, 7],
+      ] as [WallPlanPoint, WallPlanPoint],
+    }
+    const captured = resolveWallEndpointPoint({
+      point: [2.048, 4.02],
+      walls: [],
+      start: [-4, 4],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      constraintRay: { origin: [-4, 4], through: [2.048, 4] },
+      junctionReference,
+    })
+    expect(captured.point).toEqual([2, 4])
+    expect(captured.constraintOwned).toBe(true)
+    expect(captured.directionInferred).toBe(true)
+
+    const released = resolveWallEndpointPoint({
+      point: [2.5, 4.3],
+      walls: [],
+      start: [-4, 4],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      constraintRay: { origin: [-4, 4], through: [2.5, 4] },
+      junctionReference,
+    })
+    expect(released.point).toEqual([2.5, 4])
+    expect(released.constraintOwned).toBe(true)
+  })
+
+  test('uses the linked datum ray for a competing face only when no primary ray exists', () => {
+    const junctionReference = {
+      sharedPoint: [1.999, 4] as WallPlanPoint,
+      oppositeEndpoints: [
+        [2, 2],
+        [2, 7],
+      ] as WallPlanPoint[],
+    }
+    const horizontalFace = {
+      ...makeWall([1, 4.5], [4, 4.5], 'wall_external_horizontal'),
+      thickness: 0.4,
+    }
+    const datumOnly = resolveWallEndpointPoint({
+      point: [2.048, 4.421],
+      walls: [horizontalFace],
+      start: [-4, 4],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference,
+    })
+    expect(datumOnly.point).toEqual([2, 4.5])
+    expect(datumOnly.snap).toBe('wall')
+    expect(datumOnly.targetWallIds).toContain('wall_external_horizontal')
+    expect(datumOnly.targetCaptured).toBe(true)
+    expect(datumOnly.constraintOwned).toBe(true)
+    expect(datumOnly.directionInferred).toBe(true)
+
+    const verticalFace = {
+      ...makeWall([2.2, 2], [2.2, 7], 'wall_external_vertical'),
+      thickness: 0.4,
+    }
+    const alignedVerticalFace = {
+      ...makeWall([2, 2], [2, 7], 'wall_external_aligned'),
+      thickness: 0.4,
+    }
+    const primary = resolveWallEndpointPoint({
+      point: [2.048, 4.02],
+      walls: [verticalFace, alignedVerticalFace],
+      start: [-4, 4],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference,
+    })
+    expect(primary.point).toEqual([2, 4])
+    expect(primary.targetCaptured).toBe(true)
+    expect(primary.targetWallIds).toEqual(['wall_external_aligned'])
+
+    const reverseHorizontalFace = {
+      ...makeWall([1, 1.8], [4, 1.8], 'wall_external_reverse'),
+      thickness: 0.4,
+    }
+    const reverse = resolveWallEndpointPoint({
+      point: [2.048, 1.9],
+      walls: [reverseHorizontalFace],
+      start: [-4, 4],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference,
+    })
+    expect(reverse.point).toEqual([2, 1.8])
+    expect(reverse.targetWallIds).toContain('wall_external_reverse')
+  })
+
+  test('accepts a linked pair inside the 2 degree window and rejects one outside it', () => {
+    const nearTwoDegrees = (degrees: number) =>
+      resolveWallEndpointPoint({
+        point: [0.05, 0.08],
+        walls: [],
+        start: [-2, 0],
+        inferDirection: true,
+        magnetic: true,
+        step: 0,
+        guides: [],
+        junctionReference: {
+          sharedPoint: [0, 0],
+          oppositeEndpoints: [
+            [-1, 0],
+            [1, Math.tan((degrees * Math.PI) / 180)],
+          ],
+        },
+      })
+
+    const inside = nearTwoDegrees(1.9)
+    expect(inside.point).not.toEqual([0.05, 0.08])
+    expect(inside.constraintOwned).toBe(true)
+
+    const outside = nearTwoDegrees(2.1)
+    expect(outside.point).toEqual([0.05, 0.08])
+    expect(outside.constraintOwned).toBeUndefined()
+  })
 })

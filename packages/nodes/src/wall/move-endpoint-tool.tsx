@@ -31,12 +31,13 @@ import {
   MeasurementPill,
   markToolCancelConsumed,
   resolveEndpointWallSplit,
-  snapWallDraftPointDetailed,
+  resolveWallEndpointPoint,
   triggerSFX,
   useAlignmentGuides,
   useInteractionScope,
   useWallSnapIndicator,
   WALL_CONNECT_SNAP_RADIUS,
+  type WallJunctionReference,
   type WallPlanPoint,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
@@ -160,6 +161,27 @@ function getLinkedWallSnapshots(args: {
   }
 
   return snapshots
+}
+
+function getLinkedJunctionReference(
+  linkedWalls: LinkedWallSnapshot[],
+  movingOriginal: WallPlanPoint,
+): WallJunctionReference | undefined {
+  const oppositeEndpoints: WallPlanPoint[] = []
+  for (const wall of linkedWalls) {
+    if (Math.abs(wall.curveOffset ?? 0) > 1e-6) continue
+    const opposite = samePoint(wall.start, movingOriginal)
+      ? wall.end
+      : samePoint(wall.end, movingOriginal)
+        ? wall.start
+        : null
+    if (opposite) oppositeEndpoints.push([...opposite] as WallPlanPoint)
+  }
+  if (oppositeEndpoints.length < 2) return undefined
+  return {
+    sharedPoint: [...movingOriginal] as WallPlanPoint,
+    oppositeEndpoints,
+  }
 }
 
 function getLinkedWallUpdates(
@@ -396,7 +418,13 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
     // lattice; lines → magnetic corner/alignment snap; angles → lock the
     // segment to 15° rays from the FIXED corner; off → raw.
     const resolveDragPoint = (planPoint: WallPlanPoint): WallPlanPoint => {
-      const snapResult = snapWallDraftPointDetailed({
+      const lockedThrough = directionLock.active
+        ? directionLock.project(planPoint, getSegmentGridStep())
+        : null
+      const junctionReference = altPressedRef.current
+        ? undefined
+        : getLinkedJunctionReference(linkedOriginalsRef.current, movingOriginalPoint)
+      const snapResult = resolveWallEndpointPoint({
         point: planPoint,
         walls: levelWalls,
         ignoreWallIds: altPressedRef.current ? [nodeId] : [nodeId, ...movingLinkedWallIds],
@@ -404,6 +432,8 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
         inferDirection: !target.wall.curveOffset,
         angleSnap: isAngleSnapActive(),
         magnetic: isMagneticSnapActive(),
+        constraintRay: lockedThrough ? { origin: fixedPoint, through: lockedThrough } : undefined,
+        junctionReference,
       })
       const snappedPoint = snapResult.point
 
@@ -420,7 +450,12 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
       const alignmentCandidates = altPressedRef.current
         ? wallAlignmentCandidates
         : attachedAlignmentCandidates
-      if (isAlignmentGuideActive() && alignmentCandidates.length > 0) {
+      if (
+        !snapResult.constraintOwned &&
+        !snapResult.targetCaptured &&
+        isAlignmentGuideActive() &&
+        alignmentCandidates.length > 0
+      ) {
         const ar = resolveAlignment({
           moving: [{ nodeId, kind: 'corner', x: snappedPoint[0], z: snappedPoint[1] }],
           candidates: alignmentCandidates,
@@ -450,8 +485,12 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
         useAlignmentGuides.getState().clear()
       }
 
-      directionInferred = !!snapResult.directionInferred && samePoint(alignedPoint, snappedPoint)
-      if (directionLock.active) {
+      directionInferred =
+        (Boolean(snapResult.directionInferred) || Boolean(snapResult.targetCaptured)) &&
+        (Boolean(snapResult.constraintOwned) ||
+          Boolean(snapResult.targetCaptured) ||
+          samePoint(alignedPoint, snappedPoint))
+      if (directionLock.active && !snapResult.targetCaptured && !snapResult.constraintOwned) {
         alignedPoint = directionLock.project(planPoint, getSegmentGridStep())
         useAlignmentGuides.getState().clear()
       }

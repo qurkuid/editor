@@ -390,6 +390,7 @@ function WallCornerLeaderHandle({ wall, endpoint }: { wall: WallNode; endpoint: 
               document.body.style.cursor = ''
             }
           }}
+          prioritizeHit
           scale={1}
         />
         <group scale={visualScale}>

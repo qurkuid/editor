@@ -29,9 +29,33 @@ import useEditor from '../../../store/use-editor'
 // (`wall:move` for openings, `grid:move` for free movers), freezing the drag.
 // Make every handle hit area inert for the duration; the indicator mesh still
 // renders (it's already NO_RAYCAST + depthTest off) so the grip stays visible.
-function hitAreaRaycast(this: Mesh, raycaster: Raycaster, intersects: Intersection[]): void {
+function raycastHandleHitArea(
+  this: Mesh,
+  raycaster: Raycaster,
+  intersects: Intersection[],
+  prioritizeHit: boolean,
+): void {
   if (useEditor.getState().placementDragMode) return
+  const firstNewIntersection = intersects.length
   Mesh.prototype.raycast.call(this, raycaster, intersects)
+  if (prioritizeHit) {
+    for (let index = firstNewIntersection; index < intersects.length; index += 1) {
+      const intersection = intersects[index]
+      if (intersection) intersection.distance = 0
+    }
+  }
+}
+
+export function hitAreaRaycast(this: Mesh, raycaster: Raycaster, intersects: Intersection[]): void {
+  raycastHandleHitArea.call(this, raycaster, intersects, false)
+}
+
+export function prioritizedHitAreaRaycast(
+  this: Mesh,
+  raycaster: Raycaster,
+  intersects: Intersection[],
+): void {
+  raycastHandleHitArea.call(this, raycaster, intersects, true)
 }
 
 export const ARROW_SCALE = 0.65
@@ -413,6 +437,7 @@ export function InvisibleHandleHitArea({
   onPointerDown,
   onPointerEnter,
   onPointerLeave,
+  prioritizeHit = false,
   scale,
 }: {
   geometry: BufferGeometry
@@ -420,6 +445,7 @@ export function InvisibleHandleHitArea({
   onPointerDown: PointerHandler
   onPointerEnter: PointerHandler
   onPointerLeave: PointerHandler
+  prioritizeHit?: boolean
   scale: number
 }) {
   return (
@@ -431,7 +457,7 @@ export function InvisibleHandleHitArea({
       onPointerDown={onPointerDown}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
-      raycast={hitAreaRaycast}
+      raycast={prioritizeHit ? prioritizedHitAreaRaycast : hitAreaRaycast}
       renderOrder={HIT_AREA_RENDER_ORDER}
       scale={scale}
     />

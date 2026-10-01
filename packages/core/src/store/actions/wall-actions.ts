@@ -1,4 +1,9 @@
-import { buildWallMerge, buildWallSplit, type WallMutation } from '../../lib/wall-operations'
+import {
+  buildWallMerge,
+  buildWallSplit,
+  buildWallSplitAtContacts,
+  type WallMutation,
+} from '../../lib/wall-operations'
 import type { AnyNodeId } from '../../schema/types'
 import type { SceneState } from '../use-scene'
 
@@ -41,6 +46,15 @@ export function splitWallAction(
     wallId,
     distanceFromStart,
     requestedSecondWallId,
+  )
+  return applyWallMutation(set, get, mutation)
+}
+
+export function splitWallAtContactsAction(set: SceneSet, get: SceneGet, wallId: AnyNodeId) {
+  if (get().readOnly) return undefined
+  const mutation = buildWallSplitAtContacts(
+    { nodes: get().nodes, rootNodeIds: get().rootNodeIds, collections: get().collections },
+    wallId,
   )
   return applyWallMutation(set, get, mutation)
 }

@@ -1267,6 +1267,7 @@ export type SceneState = {
     distanceFromStart: number,
     requestedSecondWallId?: AnyNodeId,
   ) => WallMutation | undefined
+  splitWallAtContacts: (wallId: AnyNodeId) => WallMutation | undefined
 
   // Collection actions
   createCollection: (name: string, nodeIds?: AnyNodeId[]) => CollectionId
@@ -1487,6 +1488,7 @@ const useScene: UseSceneStore = create<SceneState>()(
       mergeWalls: (wallIds) => wallActions.mergeWallsAction(set, get, wallIds),
       splitWall: (wallId, distanceFromStart, requestedSecondWallId) =>
         wallActions.splitWallAction(set, get, wallId, distanceFromStart, requestedSecondWallId),
+      splitWallAtContacts: (wallId) => wallActions.splitWallAtContactsAction(set, get, wallId),
 
       // --- COLLECTIONS ---
 

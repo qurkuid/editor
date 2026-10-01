@@ -118,16 +118,37 @@ export function WallEditControls({ multiOnly = false }: { multiOnly?: boolean })
   }, [selectedWallIds, setSelection])
 
   const handleSplit = useCallback(() => {
+    setError(null)
+    if (!wall) return
+
+    const scene = useScene.getState()
+    try {
+      const contactMutation = scene.splitWallAtContacts(wall.id)
+      if (contactMutation) {
+        setSelection({
+          selectedIds: [contactMutation.primaryWallId, ...contactMutation.createdNodeIds],
+        })
+        return
+      }
+      if (scene.readOnly) {
+        setError('읽기 전용 장면에서는 벽을 분리할 수 없습니다.')
+        return
+      }
+    } catch (operationError) {
+      if (!(operationError instanceof WallOperationError && operationError.code === 'no-wall-contacts')) {
+        setError(wallOperationErrorMessage(operationError))
+        return
+      }
+    }
+
     const parsed = parseDistance(inputValue)
     if (parsed === null || !Number.isFinite(parsed)) {
       setError('벽 분리 거리를 입력하세요.')
       return
     }
 
-    setError(null)
     try {
-      if (!wall) return
-      const mutation = useScene.getState().splitWall(wall.id, parsed)
+      const mutation = scene.splitWall(wall.id, parsed)
       if (!mutation) {
         setError('읽기 전용 장면에서는 벽을 분리할 수 없습니다.')
         return
@@ -147,7 +168,10 @@ export function WallEditControls({ multiOnly = false }: { multiOnly?: boolean })
     return (
       <div className="pointer-events-auto col-span-2 mt-1 border-border/40 border-t pt-2">
         <label className="mb-1 block text-muted-foreground text-[11px]" htmlFor={inputId}>
-          벽 분리 거리
+          벽 분리 거리{' '}
+          <span className="text-[10px] text-muted-foreground/70">
+            (접점 우선 · 접점 없을 때 입력 거리)
+          </span>
         </label>
         <div className="flex items-center gap-1.5">
           <div className="flex min-w-0 flex-1 items-center rounded-md border border-border/50 bg-background/70 px-2">

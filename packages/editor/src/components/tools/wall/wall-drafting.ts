@@ -7,6 +7,7 @@ import {
   type DoorNode,
   GROUND_SUPPORT_ID,
   getScaledDimensions,
+  getWallConstructionEnvelopeThickness,
   type ItemNode,
   resolveWallSupportSlabPatch,
   runAsSingleSceneHistoryStep,
@@ -22,10 +23,11 @@ import {
 import { useViewer } from '@pascal-app/viewer'
 import { sfxEmitter } from '../../../lib/sfx-bus'
 import { resolveSnapFlags } from '../../../lib/snapping-mode'
-import { inferWallDirection } from '../../../lib/wall-direction-lock'
+import { INFERENCE_TOLERANCE, inferWallDirection } from '../../../lib/wall-direction-lock'
 import useEditor, { getActiveSnappingMode, isMagneticSnapActive } from '../../../store/use-editor'
 import {
   distanceSquared,
+  findWallEndpointFromRaw,
   findWallSnapTarget,
   findWallSpecialPointSnap,
   projectPointOntoWall,
@@ -483,6 +485,11 @@ export function snapPointToGuides(
   return best ? [...best.point] : null
 }
 
+export type WallJunctionReference = {
+  sharedPoint: WallPlanPoint
+  oppositeEndpoints: readonly WallPlanPoint[]
+}
+
 type SnapWallDraftArgs = {
   point: WallPlanPoint
   walls: WallNode[]
@@ -515,6 +522,24 @@ type SnapWallDraftArgs = {
    * default for every drafting path. Pass [] to disable.
    */
   guides?: readonly GuideSnapLine[]
+  /**
+   * A caller-owned ray, used while an axis/arrow lock is active. The raw
+   * cursor still decides whether a wall face is captured; this ray decides
+   * the exact centerline intersection returned by that capture.
+   */
+  constraintRay?: { origin: WallPlanPoint; through: WallPlanPoint }
+  /**
+   * Optional datum from the two stationary outer endpoints at a linked
+   * junction. The datum is used only by endpoint moves in grid/lines mode.
+   */
+  junctionReference?: WallJunctionReference
+}
+
+export type WallEndpointSnapResult = WallDraftSnapResult & {
+  /** True when a fixed-corner direction constraint owns the resolved point. */
+  constraintOwned?: boolean
+  /** True when an existing wall endpoint or face supplied the resolved point. */
+  targetCaptured?: boolean
 }
 
 export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSnapResult {
@@ -652,6 +677,308 @@ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSn
     snap: null,
     targetWallIds: [],
     ...(inferred ? { directionInferred: true } : {}),
+  }
+}
+
+const ENDPOINT_EXACT_SNAP_RADIUS = 1e-4
+const ENDPOINT_FACE_CAPTURE_TOLERANCE = 0.005
+
+function cross2(a: WallPlanPoint, b: WallPlanPoint) {
+  return a[0] * b[1] - a[1] * b[0]
+}
+
+function intersectInferredRayWithWall(
+  origin: WallPlanPoint,
+  through: WallPlanPoint,
+  wall: WallNode,
+  allowReverseRay = false,
+): WallPlanPoint | null {
+  const ray: WallPlanPoint = [through[0] - origin[0], through[1] - origin[1]]
+  const rayLength = Math.hypot(ray[0], ray[1])
+  const target: WallPlanPoint = [wall.end[0] - wall.start[0], wall.end[1] - wall.start[1]]
+  const targetLength = Math.hypot(target[0], target[1])
+  if (rayLength <= 1e-9 || targetLength <= 1e-9) return null
+
+  const rayDirection: WallPlanPoint = [ray[0] / rayLength, ray[1] / rayLength]
+  const denominator = cross2(rayDirection, target)
+  if (Math.abs(denominator) <= 1e-9) return null
+  const offset: WallPlanPoint = [wall.start[0] - origin[0], wall.start[1] - origin[1]]
+  const rayDistance = cross2(offset, target) / denominator
+  const wallT = cross2(offset, rayDirection) / denominator
+  if ((!allowReverseRay && rayDistance <= 1e-6) || wallT < -1e-6 || wallT > 1 + 1e-6) return null
+  const clampedWallT = Math.max(0, Math.min(1, wallT))
+  return [wall.start[0] + target[0] * clampedWallT, wall.start[1] + target[1] * clampedWallT]
+}
+
+function findEndpointFaceCapture(args: {
+  point: WallPlanPoint
+  origin: WallPlanPoint
+  inferredPoint: WallPlanPoint
+  walls: WallNode[]
+  ignoreWallIds?: string[]
+  allowReverseRay?: boolean
+  acceptPoint?: (point: WallPlanPoint) => boolean
+}): { point: WallPlanPoint; wallId: WallNode['id'] } | null {
+  const ignored = new Set(args.ignoreWallIds ?? [])
+  const candidates: Array<{ wall: WallNode; distance: number }> = []
+  for (const wall of args.walls) {
+    if (ignored.has(wall.id) || Math.abs(wall.curveOffset ?? 0) > 1e-6) continue
+    const dx = wall.end[0] - wall.start[0]
+    const dz = wall.end[1] - wall.start[1]
+    const lengthSquared = dx * dx + dz * dz
+    if (lengthSquared <= 1e-12) continue
+    const t =
+      ((args.point[0] - wall.start[0]) * dx + (args.point[1] - wall.start[1]) * dz) / lengthSquared
+    const projected: WallPlanPoint = [
+      wall.start[0] + dx * Math.max(0, Math.min(1, t)),
+      wall.start[1] + dz * Math.max(0, Math.min(1, t)),
+    ]
+    const distance = Math.hypot(args.point[0] - projected[0], args.point[1] - projected[1])
+    const halfThickness = getWallConstructionEnvelopeThickness(wall) / 2
+    const endpointDistance = Math.min(
+      Math.hypot(args.point[0] - wall.start[0], args.point[1] - wall.start[1]),
+      Math.hypot(args.point[0] - wall.end[0], args.point[1] - wall.end[1]),
+    )
+    const interior = t > 1e-6 && t < 1 - 1e-6
+    const withinCaptureRadius = distance <= halfThickness + ENDPOINT_FACE_CAPTURE_TOLERANCE
+    if (withinCaptureRadius) candidates.push({ wall, distance })
+  }
+
+  candidates.sort((a, b) => a.distance - b.distance)
+  for (const candidate of candidates) {
+    const captured = intersectInferredRayWithWall(
+      args.origin,
+      args.inferredPoint,
+      candidate.wall,
+      args.allowReverseRay,
+    )
+    if (captured && (!args.acceptPoint || args.acceptPoint(captured))) {
+      return { point: captured, wallId: candidate.wall.id }
+    }
+  }
+  return null
+}
+
+type LinkedJunctionDatumSnap = {
+  point: WallPlanPoint
+  ray: { origin: WallPlanPoint; through: WallPlanPoint }
+}
+
+function snapLinkedJunctionDatum(args: {
+  point: WallPlanPoint
+  primaryRay?: { origin: WallPlanPoint; through: WallPlanPoint }
+  allowReverseRay: boolean
+  junctionReference?: WallJunctionReference
+}): LinkedJunctionDatumSnap | null {
+  const reference = args.junctionReference
+  if (!reference) return null
+
+  let best: (LinkedJunctionDatumSnap & { distance: number }) | null = null
+  const endpoints = reference.oppositeEndpoints
+  for (let i = 0; i < endpoints.length; i++) {
+    const first = endpoints[i]
+    if (!first) continue
+    const firstFromShared: WallPlanPoint = [
+      first[0] - reference.sharedPoint[0],
+      first[1] - reference.sharedPoint[1],
+    ]
+    const firstLength = Math.hypot(firstFromShared[0], firstFromShared[1])
+    if (firstLength <= 1e-9) continue
+
+    for (let j = i + 1; j < endpoints.length; j++) {
+      const second = endpoints[j]
+      if (!second) continue
+      const secondFromShared: WallPlanPoint = [
+        second[0] - reference.sharedPoint[0],
+        second[1] - reference.sharedPoint[1],
+      ]
+      const secondLength = Math.hypot(secondFromShared[0], secondFromShared[1])
+      const datumDirection: WallPlanPoint = [second[0] - first[0], second[1] - first[1]]
+      const datumLength = Math.hypot(datumDirection[0], datumDirection[1])
+      if (secondLength <= 1e-9 || datumLength <= 1e-9) continue
+
+      // The two stationary rays must describe one straight continuation through
+      // the shared corner. Use the existing 2° inference window so a near-straight
+      // scan-imported junction is accepted without making arbitrary pairs datums.
+      const parallelError =
+        Math.abs(cross2(firstFromShared, secondFromShared)) / (firstLength * secondLength)
+      const continuation =
+        firstFromShared[0] * secondFromShared[0] + firstFromShared[1] * secondFromShared[1]
+      if (continuation >= 0 || parallelError > Math.sin(INFERENCE_TOLERANCE) + 1e-12) continue
+
+      const datum: GuideSnapLine = {
+        origin: [...first] as WallPlanPoint,
+        direction: [datumDirection[0] / datumLength, datumDirection[1] / datumLength],
+      }
+      const candidate = snapPointToGuides(args.point, [datum], args.primaryRay)
+      if (!candidate) continue
+
+      if (args.primaryRay) {
+        const rayDirection: WallPlanPoint = [
+          args.primaryRay.through[0] - args.primaryRay.origin[0],
+          args.primaryRay.through[1] - args.primaryRay.origin[1],
+        ]
+        const rayLength = Math.hypot(rayDirection[0], rayDirection[1])
+        if (rayLength <= 1e-9) continue
+        const fromOrigin: WallPlanPoint = [
+          candidate[0] - args.primaryRay.origin[0],
+          candidate[1] - args.primaryRay.origin[1],
+        ]
+        const rayDistance =
+          (fromOrigin[0] * rayDirection[0] + fromOrigin[1] * rayDirection[1]) / rayLength
+        const rayOffset = Math.abs(cross2(fromOrigin, rayDirection)) / rayLength
+        if (rayOffset > 1e-7 || (!args.allowReverseRay && rayDistance < -1e-7)) continue
+      }
+
+      const distance = Math.hypot(candidate[0] - args.point[0], candidate[1] - args.point[1])
+      if (!best || distance < best.distance) {
+        best = {
+          point: candidate,
+          ray: { origin: [...first] as WallPlanPoint, through: [...second] as WallPlanPoint },
+          distance,
+        }
+      }
+    }
+  }
+
+  return best
+}
+
+/**
+ * Endpoint-specific snap resolution. A fixed-corner direction inference is
+ * established before broad face/alignment snapping so a square, 45°, or
+ * parallel/perpendicular intent owns the point. A raw cursor over a target's
+ * physical construction envelope can still capture that target, but the
+ * committed point is the intersection of the inferred ray and its centerline.
+ */
+export function resolveWallEndpointPoint(args: SnapWallDraftArgs): WallEndpointSnapResult {
+  const { point, walls, start, ignoreWallIds, bypassSnap = false } = args
+  if (bypassSnap || !start || !args.inferDirection) {
+    return snapWallDraftPointDetailed(args)
+  }
+
+  const exactEndpoint = findWallEndpointFromRaw(
+    point,
+    walls,
+    ignoreWallIds,
+    ENDPOINT_EXACT_SNAP_RADIUS,
+  )
+  if (exactEndpoint) {
+    return {
+      point: exactEndpoint,
+      snap: 'endpoint',
+      targetWallIds: wallIdsAtSnapPoint(exactEndpoint, walls, ignoreWallIds),
+      targetCaptured: true,
+    }
+  }
+
+  const step = args.step ?? getSegmentGridStep()
+  const magnetic = args.magnetic ?? true
+  const anglePoint = args.angleSnap
+    ? ([...snapPointAlongAngleRay(start, point, DEFAULT_ANGLE_STEP, step)] as WallPlanPoint)
+    : null
+  const modePoint =
+    args.constraintRay?.through ??
+    anglePoint ??
+    (args.gridSnap ? args.gridSnap(point) : snapPointToGrid(point, step))
+  const guideLines =
+    args.guides ??
+    collectGuideSnapLines(useScene.getState().nodes, useViewer.getState().selection.levelId)
+  const guideStick =
+    guideLines.length > 0
+      ? snapPointToGuides(
+          modePoint,
+          guideLines,
+          args.constraintRay
+            ? args.constraintRay
+            : anglePoint
+              ? { origin: start, through: anglePoint }
+              : undefined,
+        )
+      : null
+  if (guideStick) {
+    return {
+      point: guideStick,
+      snap: null,
+      targetWallIds: [],
+      constraintOwned: true,
+    }
+  }
+
+  const references = walls.filter((wall) => !ignoreWallIds?.includes(wall.id))
+  const inferredPoint =
+    args.constraintRay?.through ??
+    anglePoint ??
+    (step > 0 || magnetic ? inferWallDirection(start, point, step, references) : null)
+  const captureOrigin = args.constraintRay?.origin ?? start
+  const captureThrough = inferredPoint ?? point
+  const primaryRay = inferredPoint ? { origin: captureOrigin, through: inferredPoint } : undefined
+  const junction =
+    !args.angleSnap && (step > 0 || magnetic)
+      ? snapLinkedJunctionDatum({
+          point,
+          primaryRay,
+          allowReverseRay: Boolean(args.constraintRay),
+          junctionReference: args.junctionReference,
+        })
+      : null
+
+  const faceCapture = findEndpointFaceCapture({
+    point,
+    origin: junction && !primaryRay ? junction.ray.origin : captureOrigin,
+    inferredPoint: junction && !primaryRay ? junction.ray.through : captureThrough,
+    walls,
+    ignoreWallIds,
+    allowReverseRay: Boolean(args.constraintRay) || Boolean(junction && !primaryRay),
+    acceptPoint:
+      junction && primaryRay
+        ? (candidate) =>
+            Math.hypot(candidate[0] - junction.point[0], candidate[1] - junction.point[1]) <= 1e-7
+        : undefined,
+  })
+  if (faceCapture) {
+    const targetWallIds = wallIdsAtSnapPoint(faceCapture.point, walls, ignoreWallIds)
+    if (!targetWallIds.includes(faceCapture.wallId)) targetWallIds.push(faceCapture.wallId)
+    return {
+      point: faceCapture.point,
+      snap: 'wall',
+      targetWallIds,
+      ...(inferredPoint || junction ? { directionInferred: true, constraintOwned: true } : {}),
+      targetCaptured: true,
+    }
+  }
+
+  if (junction) {
+    return {
+      point: junction.point,
+      snap: null,
+      targetWallIds: [],
+      constraintOwned: true,
+      directionInferred: true,
+    }
+  }
+
+  if (args.constraintRay) {
+    return {
+      point: [...args.constraintRay.through],
+      snap: null,
+      targetWallIds: [],
+      directionInferred: true,
+      constraintOwned: true,
+    }
+  }
+
+  if (!inferredPoint) return snapWallDraftPointDetailed(args)
+
+  // Keep the inferred ray exact when no physical target captures the raw
+  // cursor. This prevents a nearby endpoint, midpoint, edge, or alignment
+  // anchor from pulling the endpoint off the user's fixed-corner constraint.
+  return {
+    point: inferredPoint,
+    snap: null,
+    targetWallIds: [],
+    directionInferred: true,
+    constraintOwned: true,
   }
 }
 

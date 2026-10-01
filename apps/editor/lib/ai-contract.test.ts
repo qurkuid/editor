@@ -103,6 +103,8 @@ describe('AI modeling operation contract', () => {
     const prompt = buildAiModelingPrompt(request)
     expect(prompt).toContain('paintBodyFace')
     expect(prompt).toContain('"material"')
+    expect(prompt).toContain('adoptContainedApartmentZones')
+    expect(prompt).toContain('covers at least 90% of exactly one current enclosed space')
     expect(prompt).not.toContain('For Body face finishes')
   })
 })

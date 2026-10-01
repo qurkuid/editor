@@ -968,7 +968,12 @@ export function zoneNeedsBoundaryReview(zone: Pick<ZoneNodeType, 'metadata'>): b
 export function planAutoZonesForLevel(
   spaces: readonly Space[],
   existingZones: readonly ZoneNodeType[],
-  context: { previousSpaces?: readonly Space[]; changedWalls?: readonly WallNode[] } = {},
+  context: {
+    previousSpaces?: readonly Space[]
+    changedWalls?: readonly WallNode[]
+    /** Adopt source apartment zones only during explicit import reconciliation. */
+    adoptContainedApartmentZones?: boolean
+  } = {},
 ): AutoZoneSyncPlan {
   const update: AutoZoneSyncPlan['update'] = []
   // ponytail: reuse the existing sampled overlap; ambiguous semantic subdivisions stay manual.
@@ -981,11 +986,54 @@ export function planAutoZonesForLevel(
     )
   }
 
+  const adoptedApartmentSpaces = new Map<ZoneNodeType['id'], Space>()
+  const ambiguousApartmentZoneIds = new Set<ZoneNodeType['id']>()
+  if (context.adoptContainedApartmentZones) {
+    // Space ids are intentionally compact signatures and can collide for
+    // distinct loops with the same leading points. Keep the object identity
+    // from this `spaces` array so claimant counts remain per detected loop.
+    const claimsBySpace = new Map<Space, number>()
+    const candidatesByZone = new Map<ZoneNodeType['id'], Space>()
+
+    for (const zone of existingZones) {
+      const metadata =
+        zone.metadata !== null && typeof zone.metadata === 'object' && !Array.isArray(zone.metadata)
+          ? zone.metadata
+          : {}
+      if (metadata.source !== 'apt-vector') continue
+
+      const candidates = spaces.filter(
+        (space) =>
+          polygonCoverageRatio(zone.polygon.map(pointFromTuple), [
+            space.polygon.map(pointFromTuple),
+          ]) >= 0.9,
+      )
+      if (candidates.length !== 1) continue
+
+      const candidate = candidates[0]!
+      candidatesByZone.set(zone.id, candidate)
+      claimsBySpace.set(candidate, (claimsBySpace.get(candidate) ?? 0) + 1)
+    }
+
+    for (const [zoneId, space] of candidatesByZone) {
+      const claimCount = claimsBySpace.get(space) ?? 0
+      if (claimCount === 1) adoptedApartmentSpaces.set(zoneId, space)
+      if (claimCount > 1) ambiguousApartmentZoneIds.add(zoneId)
+    }
+  }
+
   for (const zone of existingZones) {
     const metadata =
       zone.metadata !== null && typeof zone.metadata === 'object' && !Array.isArray(zone.metadata)
         ? zone.metadata
         : {}
+    if (
+      context.adoptContainedApartmentZones &&
+      metadata.source === 'apt-vector' &&
+      ambiguousApartmentZoneIds.has(zone.id)
+    ) {
+      continue
+    }
     const storedSignature = polygonSignature(
       simplifyClosedPolygon(zone.polygon, 1e-6).map(pointFromTuple),
     )
@@ -999,12 +1047,14 @@ export function planAutoZonesForLevel(
         ? previousMatches[0]
         : undefined
     const boundaryWallIds = zone.autoFromWalls ? zone.boundaryWallIds : previousSpace?.wallIds
-    const matchingSpace = spaces.find(
-      (space) =>
-        (boundaryWallIds && sameStringSet(space.wallIds, boundaryWallIds)) ||
-        polygonSignature(simplifyClosedPolygon(space.polygon, 1e-6).map(pointFromTuple)) ===
-          storedSignature,
-    )
+    const matchingSpace =
+      adoptedApartmentSpaces.get(zone.id) ??
+      spaces.find(
+        (space) =>
+          (boundaryWallIds && sameStringSet(space.wallIds, boundaryWallIds)) ||
+          polygonSignature(simplifyClosedPolygon(space.polygon, 1e-6).map(pointFromTuple)) ===
+            storedSignature,
+      )
     if (!matchingSpace) {
       const affected =
         zone.autoFromWalls ||

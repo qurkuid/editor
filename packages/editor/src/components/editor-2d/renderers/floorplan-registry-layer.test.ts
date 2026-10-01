@@ -24,6 +24,7 @@ import {
   floorplanHandleDoubleClickAffordance,
   InteractiveGeometry,
   isFloorplanOpeningPlacementState,
+  orderFloorplanOverlayEntries,
   resolveFloorplanHandleUnitsPerPixel,
   splitFloorplanOverlay,
   subscribeFloorplanAffordanceToolCancel,
@@ -443,6 +444,22 @@ describe('floorplan annotation overlay routing', () => {
     } satisfies FloorplanGeometry
 
     expect(splitFloorplanOverlay(columnCenter)).toEqual({ base: null, overlay: columnCenter })
+  })
+})
+
+describe('floorplan registry overlay ordering', () => {
+  test('renders a selected wall entry after unselected wall entries', () => {
+    const entries = ['wall_back', 'wall_selected', 'wall_front'].map((id) => ({
+      id: id as AnyNodeId,
+      node: { id, type: 'wall' } as AnyNode,
+      dependsOnSiblingInputs: false,
+    }))
+
+    expect(
+      orderFloorplanOverlayEntries(entries, ['wall_selected' as AnyNodeId]).map(
+        (entry) => entry.id,
+      ),
+    ).toEqual(['wall_back', 'wall_front', 'wall_selected'])
   })
 })
 

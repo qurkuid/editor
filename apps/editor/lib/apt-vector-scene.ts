@@ -1,6 +1,8 @@
 import {
   createDefaultWallFaceBands,
   DoorNode,
+  detectSpacesForLevel,
+  planAutoZonesForLevel,
   WallNode,
   WindowNode,
   ZoneNode,
@@ -513,9 +515,20 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
     )
   }
 
+  const connected = connectWallJunctions(walls, openings)
+  const detectedSpaces = detectSpacesForLevel('apt-vector-import', connected.walls).spaces
+  const zonePlan = planAutoZonesForLevel(detectedSpaces, zones, {
+    adoptContainedApartmentZones: true,
+  })
+  const zoneUpdates = new Map(zonePlan.update.map((entry) => [entry.id, entry.data]))
+  const reconciledZones = zones.map((zone) => {
+    const update = zoneUpdates.get(zone.id)
+    return update ? ZoneNode.parse({ ...zone, ...update }) : zone
+  })
+
   return {
-    ...connectWallJunctions(walls, openings),
-    zones,
+    ...connected,
+    zones: reconciledZones,
     guideScale: (imageW * doc.mmPerPx) / 10000,
     diagnostics: { unhostedOpeningIds, dedupedOpeningIds, droppedWallIds },
   }
@@ -533,12 +546,6 @@ function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNod
       const ta = along(point, a.start, segDir(a))
       const tb = along(point, b.start, segDir(b))
       if (ta < -1e-6 || ta > segLen(a) + 1e-6 || tb < -1e-6 || tb > segLen(b) + 1e-6) continue
-      // An endpoint tee is already represented by the two source walls. Keep
-      // the main run continuous so its mitering system can render the
-      // passthrough junction without manufacturing extra wall pieces.
-      const aAtEndpoint = ta < 0.001 || ta > segLen(a) - 0.001
-      const bAtEndpoint = tb < 0.001 || tb > segLen(b) - 0.001
-      if (aAtEndpoint !== bAtEndpoint) continue
       for (const [index, at, otherThickness] of [
         [i, ta, b.th],
         [j, tb, a.th],

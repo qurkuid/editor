@@ -9,7 +9,11 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('survive Shift release')
     expect(MODELING_AGENT_MANUAL).toContain('wall drawing and endpoint dragging')
     expect(MODELING_AGENT_MANUAL).toContain('within 2 degrees')
-    expect(MODELING_AGENT_MANUAL).toContain('Existing endpoint/edge snaps take priority')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Existing endpoint/edge snaps take priority for exact cursor endpoint hits',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('physical construction-envelope face capture')
+    expect(MODELING_AGENT_MANUAL).toContain('`targetWallIds`')
     expect(MODELING_AGENT_MANUAL).toContain('Off disables weak inference')
     expect(MODELING_AGENT_MANUAL).toContain('not a documented SketchUp tolerance')
   })
@@ -39,8 +43,9 @@ describe('Phase 2 ontology manual contract', () => {
   })
 
   test('documents apartment wall extraction and junction continuity', () => {
-    expect(MODELING_AGENT_MANUAL).toContain('keeps a straight T main run continuous')
-    expect(MODELING_AGENT_MANUAL).toContain('an X crossing remains split')
+    expect(MODELING_AGENT_MANUAL).toContain('splits a straight host at every interior T/X contact')
+    expect(MODELING_AGENT_MANUAL).toContain('`buildWallSplitAtContacts`')
+    expect(MODELING_AGENT_MANUAL).toContain('`no-wall-contacts`')
     expect(MODELING_AGENT_MANUAL).toContain('retains source-backed thin wall runs')
     expect(MODELING_AGENT_MANUAL).toContain(
       'maximal connected, non-branching source-gray wall chains',

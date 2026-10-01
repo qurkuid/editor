@@ -3,7 +3,7 @@ import { snapAngleToList, snapScalar } from '@pascal-app/core'
 type Point = readonly [number, number]
 const AXIS_ANGLES = Array.from({ length: 8 }, (_, index) => (index * Math.PI) / 4)
 // This editor's capture window; SketchUp does not document a degree tolerance.
-const INFERENCE_TOLERANCE = (2 * Math.PI) / 180
+export const INFERENCE_TOLERANCE = (2 * Math.PI) / 180
 
 export function inferWallDirection(
   origin: Point,
