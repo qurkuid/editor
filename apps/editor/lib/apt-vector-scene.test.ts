@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { calculateLevelMiters, detectSpacesForLevel, getWallPlanFootprint } from '@pascal-app/core'
+import {
+  calculateLevelMiters,
+  detectSpacesForLevel,
+  getWallPlanFootprint,
+  WallNode,
+} from '@pascal-app/core'
 import { unionPolygons } from '../../../packages/viewer/src/lib/polygon-union'
-import { type AptVectorDoc, buildVectorNodes } from './apt-vector-scene'
+import { type AptVectorDoc, buildVectorNodes, connectWallJunctions } from './apt-vector-scene'
 
 // 10000 x 8000 mm plan on a 1000 x 800 px image (10 mm/px), centre (5000, 4000).
 // The vectorizer emits openings as GAPS between wall segments, so the north
@@ -106,6 +111,113 @@ describe('buildVectorNodes', () => {
       expect(host.start[0] + opening.position[0]).toBeCloseTo(opening.type === 'door' ? -2.55 : 3)
       expect(host.faceBands?.construction?.upper?.layers[0]?.kind).toBe('concrete')
     }
+  })
+
+  test('clusters overlapping physical corner contacts while keeping disjoint cuts', () => {
+    const cornerContacts: AptVectorDoc = {
+      ...doc,
+      rooms: [],
+      walls: [
+        { id: 'host', kind: 'exterior', start: [1000, 4000], end: [9000, 4000], thickness: 200 },
+        { id: 'near-a', kind: 'interior', start: [5000, 3000], end: [5000, 5000], thickness: 200 },
+        { id: 'near-b', kind: 'interior', start: [5070, 3000], end: [5070, 5000], thickness: 100 },
+        { id: 'far', kind: 'interior', start: [8000, 3000], end: [8000, 5000], thickness: 100 },
+        {
+          id: 'authored-short-a',
+          kind: 'interior',
+          start: [1000, 7000],
+          end: [1133.913, 7000],
+          thickness: 100,
+        },
+        {
+          id: 'authored-short-b',
+          kind: 'interior',
+          start: [2000, 7300],
+          end: [2214.082, 7300],
+          thickness: 100,
+        },
+        {
+          id: 'authored-short-c',
+          kind: 'interior',
+          start: [3000, 7600],
+          end: [3252.661, 7600],
+          thickness: 100,
+        },
+      ],
+      openings: [],
+    }
+    const built = buildVectorNodes(cornerContacts)!
+    const horizontal = built.walls
+      .filter(
+        (wall) =>
+          wall.thickness === 0.2 &&
+          Math.abs(wall.start[1]) < 1e-7 &&
+          Math.abs(wall.end[1] - wall.start[1]) < 1e-7,
+      )
+      .sort((a, b) => a.start[0] - b.start[0])
+
+    expect(horizontal).toHaveLength(3)
+    expect(segLenOf(horizontal[0]!)).toBeCloseTo(4)
+    expect(segLenOf(horizontal[1]!)).toBeCloseTo(3)
+    expect(segLenOf(horizontal[2]!)).toBeCloseTo(1)
+    expect(built.walls.every((wall) => segLenOf(wall) >= 0.12)).toBe(true)
+    expect(horizontal[1]?.start[0]).toBeCloseTo(0)
+    expect(horizontal[1]?.end[0]).toBeCloseTo(3)
+    const authoredShorts = built.walls
+      .filter((wall) => wall.thickness === 0.1 && segLenOf(wall) < 0.3)
+      .map(segLenOf)
+      .sort((a, b) => a - b)
+    expect(authoredShorts).toHaveLength(3)
+    expect(authoredShorts[0]).toBeCloseTo(0.133913, 5)
+    expect(authoredShorts[1]).toBeCloseTo(0.214082, 5)
+    expect(authoredShorts[2]).toBeCloseTo(0.252661, 5)
+  })
+
+  test('keeps a short host whole when one corner band touches both endpoints', () => {
+    const host = WallNode.parse({ start: [-0.25, 0], end: [0.25, 0], thickness: 0.2 })
+    const vertical = WallNode.parse({ start: [-0.1, -0.15], end: [-0.1, 0.15], thickness: 0.3 })
+    const diagonal = WallNode.parse({ start: [0.025, -0.075], end: [0.175, 0.075], thickness: 0.3 })
+    const connected = connectWallJunctions([host, vertical, diagonal], [])
+    const hostSegments = connected.walls.filter((wall) => wall.thickness === 0.2)
+    expect(hostSegments).toHaveLength(1)
+    expect(hostSegments[0]!.start[0]).toBeCloseTo(-0.25)
+    expect(hostSegments[0]!.end[0]).toBeCloseTo(0.25)
+    expect(segLenOf(hostSegments[0]!)).toBeCloseTo(0.5)
+  })
+
+  test('keeps an opening guard local to the affected contact cluster', () => {
+    const built = buildVectorNodes({
+      ...doc,
+      rooms: [],
+      walls: [
+        { id: 'host', kind: 'exterior', start: [1000, 4000], end: [9000, 4000], thickness: 200 },
+        { id: 'near-a', kind: 'interior', start: [5000, 3000], end: [5000, 5000], thickness: 200 },
+        { id: 'near-b', kind: 'interior', start: [5070, 3000], end: [5070, 5000], thickness: 100 },
+        { id: 'far', kind: 'interior', start: [8000, 3000], end: [8000, 5000], thickness: 100 },
+      ],
+      openings: [
+        { id: 'door', type: 'door', a: [4600, 4000], b: [5400, 4000], wallThickness: 200 },
+      ],
+    })!
+    const host = built.walls.find(
+      (wall) => wall.thickness === 0.2 && Math.abs(wall.start[1]) < 1e-7,
+    )!
+    const horizontal = built.walls
+      .filter(
+        (wall) =>
+          wall.thickness === 0.2 &&
+          Math.abs(wall.start[1]) < 1e-7 &&
+          Math.abs(wall.end[1] - wall.start[1]) < 1e-7,
+      )
+      .sort((a, b) => a.start[0] - b.start[0])
+    expect(horizontal).toHaveLength(2)
+    expect(segLenOf(horizontal[0]!)).toBeCloseTo(7)
+    expect(segLenOf(horizontal[1]!)).toBeCloseTo(1)
+    expect(segLenOf(host)).toBeCloseTo(7)
+    expect(host.children).toHaveLength(1)
+    const opening = built.openings[0]!
+    expect(opening.parentId).toBe(host.id)
+    expect(opening.wallId).toBe(host.id)
   })
 
   test('uses solid concrete for apartment walls while preserving detected thickness', () => {

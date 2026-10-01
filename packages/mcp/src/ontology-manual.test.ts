@@ -44,6 +44,9 @@ describe('Phase 2 ontology manual contract', () => {
 
   test('documents apartment wall extraction and junction continuity', () => {
     expect(MODELING_AGENT_MANUAL).toContain('splits a straight host at every interior T/X contact')
+    expect(MODELING_AGENT_MANUAL).toContain('overlapping projected thickness bands')
+    expect(MODELING_AGENT_MANUAL).toContain('clusters touching both endpoints')
+    expect(MODELING_AGENT_MANUAL).toContain('opening guards are applied before clustering')
     expect(MODELING_AGENT_MANUAL).toContain('`buildWallSplitAtContacts`')
     expect(MODELING_AGENT_MANUAL).toContain('`no-wall-contacts`')
     expect(MODELING_AGENT_MANUAL).toContain('retains source-backed thin wall runs')

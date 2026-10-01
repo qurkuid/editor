@@ -105,6 +105,11 @@ describe('AI modeling operation contract', () => {
     expect(prompt).toContain('"material"')
     expect(prompt).toContain('adoptContainedApartmentZones')
     expect(prompt).toContain('covers at least 90% of exactly one current enclosed space')
+    expect(prompt).toContain('overlapping projected thickness bands')
+    expect(prompt).toContain(
+      'endpoint-touching clusters trim to their nearest actual contact when safe',
+    )
+    expect(prompt).toContain('opening guards are applied before clustering')
     expect(prompt).not.toContain('For Body face finishes')
   })
 })

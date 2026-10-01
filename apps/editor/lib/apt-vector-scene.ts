@@ -2,6 +2,7 @@ import {
   createDefaultWallFaceBands,
   DoorNode,
   detectSpacesForLevel,
+  getWallConstructionEnvelopeThickness,
   planAutoZonesForLevel,
   WallNode,
   WindowNode,
@@ -534,9 +535,16 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   }
 }
 
-function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNode)[]) {
+export function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNode)[]) {
   const segments = walls.map((wall) => ({ ...wall, th: wall.thickness ?? 0.1 }))
-  const cuts = segments.map(() => [] as { at: number; point: Vec2 }[])
+  type JunctionCut = {
+    at: number
+    point: Vec2
+    band: number
+    order: number
+  }
+  const candidates = segments.map(() => [] as JunctionCut[])
+  let cutOrder = 0
   for (let i = 0; i < segments.length; i++) {
     const a = segments[i]!
     for (let j = i + 1; j < segments.length; j++) {
@@ -546,23 +554,132 @@ function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNod
       const ta = along(point, a.start, segDir(a))
       const tb = along(point, b.start, segDir(b))
       if (ta < -1e-6 || ta > segLen(a) + 1e-6 || tb < -1e-6 || tb > segLen(b) + 1e-6) continue
-      for (const [index, at, otherThickness] of [
-        [i, ta, b.th],
-        [j, tb, a.th],
+      for (const [index, at] of [
+        [i, ta],
+        [j, tb],
       ] as const) {
         const wall = segments[index]!
-        if (at < 0.001 || at > segLen(wall) - 0.001) continue
+        const hostDir = segDir(wall)
+        const otherDir = segDir(index === i ? b : a)
+        const cross = Math.abs(hostDir[0] * otherDir[1] - hostDir[1] * otherDir[0])
+        if (cross <= 1e-6) continue
+        const constructionThickness = getWallConstructionEnvelopeThickness(index === i ? b : a)
         if (
           openings.some(
             (opening) =>
               opening.wallId === wall.id &&
-              Math.abs(opening.position[0] - at) < (opening.width + otherThickness) / 2 + 0.001,
+              Math.abs(opening.position[0] - at) <
+                (opening.width + constructionThickness) / 2 + 0.001,
           )
-        )
+        ) {
           continue
-        if (!cuts[index]!.some((cut) => Math.abs(cut.at - at) < 0.001))
-          cuts[index]!.push({ at, point })
+        }
+        candidates[index]!.push({
+          at,
+          point,
+          band: constructionThickness / (2 * cross),
+          order: cutOrder++,
+        })
       }
+    }
+  }
+
+  const cuts = segments.map(() => [] as { at: number; point: Vec2 }[])
+  const endpointBounds = segments.map((segment) => ({
+    start: { at: 0, point: segment.start },
+    end: { at: segLen(segment), point: segment.end },
+  }))
+  for (let index = 0; index < segments.length; index += 1) {
+    const wall = segments[index]!
+    const length = segLen(wall)
+    const sorted = [...candidates[index]!].sort(
+      (a, b) => a.at - a.band - (b.at - b.band) || a.at - b.at || a.order - b.order,
+    )
+    let cluster: JunctionCut[] = []
+    let clusterEnd = Number.NEGATIVE_INFINITY
+    let startTrim: JunctionCut | undefined
+    let endTrim: JunctionCut | undefined
+    const flush = () => {
+      if (cluster.length === 0) return
+      const clusterStart = Math.min(...cluster.map((cut) => cut.at - cut.band))
+      const end = Math.max(...cluster.map((cut) => cut.at + cut.band))
+      const touchesStart = clusterStart <= 1e-6
+      const touchesEnd = end >= length - 1e-6
+      if (touchesStart || touchesEnd) {
+        if (touchesStart && touchesEnd) {
+          cluster = []
+          return
+        }
+        if (touchesStart) {
+          startTrim = cluster.reduce(
+            (best, cut) => {
+              if (!best || cut.at < best.at || (cut.at === best.at && cut.order < best.order)) {
+                return cut
+              }
+              return best
+            },
+            undefined as JunctionCut | undefined,
+          )
+        }
+        if (touchesEnd) {
+          endTrim = cluster.reduce(
+            (best, cut) => {
+              if (!best || cut.at > best.at || (cut.at === best.at && cut.order < best.order)) {
+                return cut
+              }
+              return best
+            },
+            undefined as JunctionCut | undefined,
+          )
+        }
+        cluster = []
+        return
+      }
+      const center = (clusterStart + end) / 2
+      const chosen = cluster.reduce((best, cut) => {
+        const distance = Math.abs(cut.at - center)
+        const bestDistance = Math.abs(best.at - center)
+        return distance < bestDistance || (distance === bestDistance && cut.order < best.order)
+          ? cut
+          : best
+      })
+      cuts[index]!.push({ at: chosen.at, point: chosen.point })
+      cluster = []
+    }
+    for (const candidate of sorted) {
+      const start = candidate.at - candidate.band
+      if (cluster.length > 0 && start > clusterEnd + 1e-9) flush()
+      cluster.push(candidate)
+      clusterEnd = Math.max(clusterEnd, candidate.at + candidate.band)
+    }
+    flush()
+
+    const openingSpansTrimmed = (from: number, to: number) =>
+      openings.some((opening) => {
+        if (opening.wallId !== wall.id) return false
+        const openingStart = opening.position[0] - opening.width / 2
+        const openingEnd = opening.position[0] + opening.width / 2
+        return openingStart < to + 0.001 && openingEnd > from - 0.001
+      })
+    const proposedStart = startTrim?.at ?? 0
+    const proposedEnd = endTrim?.at ?? length
+    const canTrimStart =
+      startTrim !== undefined && proposedStart > 1e-6 && !openingSpansTrimmed(0, proposedStart)
+    const canTrimEnd =
+      endTrim !== undefined &&
+      proposedEnd < length - 1e-6 &&
+      !openingSpansTrimmed(proposedEnd, length)
+    const nextStart = canTrimStart ? startTrim!.at : 0
+    const nextEnd = canTrimEnd ? endTrim!.at : length
+    if (nextEnd - nextStart >= MIN_WALL_LENGTH_M) {
+      if (canTrimStart)
+        endpointBounds[index]!.start =
+          startTrim!.at < length
+            ? { at: startTrim!.at, point: startTrim!.point }
+            : endpointBounds[index]!.start
+      if (canTrimEnd)
+        endpointBounds[index]!.end =
+          endTrim!.at > 0 ? { at: endTrim!.at, point: endTrim!.point } : endpointBounds[index]!.end
     }
   }
 
@@ -570,11 +687,8 @@ function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNod
   const hostedOpenings: (DoorNode | WindowNode)[] = []
   for (let i = 0; i < walls.length; i++) {
     const wall = walls[i]!
-    const endpoints = [
-      { at: 0, point: wall.start },
-      ...cuts[i]!.sort((a, b) => a.at - b.at),
-      { at: segLen(segments[i]!), point: wall.end },
-    ]
+    const bounds = endpointBounds[i]!
+    const endpoints = [bounds.start, ...cuts[i]!.sort((a, b) => a.at - b.at), bounds.end]
     for (let k = 0; k < endpoints.length - 1; k++) {
       const start = endpoints[k]!
       const end = endpoints[k + 1]!
