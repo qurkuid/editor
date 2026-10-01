@@ -233,6 +233,10 @@ describe('pascal://agent-guide', () => {
       expect(text).toContain('semantic zones without creating physical walls')
       expect(text).toContain('adoptContainedApartmentZones')
       expect(text).toContain('covers at least 90% of exactly one current enclosed space')
+      expect(text).toContain('overlapping projected thickness bands')
+      expect(text).toContain(
+        'endpoint-touching clusters trim to their nearest actual contact when safe',
+      )
       expect(text).toContain('uncertain internal fixtures remain `opening`')
       expect(text).toContain('full room barrier')
       expect(text).toContain('conflicting OCR labels')
