@@ -34,6 +34,17 @@ test('length input follows shared endpoints and validates all hosts before mutat
   expect(collinear.start).toEqual([4, 0])
 })
 
+test('length input snaps an epsilon-close linked endpoint to the moved endpoint', () => {
+  const wall = WallNode.parse({ id: 'wall_length_epsilon', start: [0, 0], end: [4, 0] })
+  const neighbor = WallNode.parse({
+    id: 'wall_length_epsilon_neighbor',
+    start: [4 + 5e-7, 0],
+    end: [4 + 5e-7, 3],
+  })
+  const updates = buildWallLengthUpdates({ [wall.id]: wall, [neighbor.id]: neighbor }, wall.id, 3)
+  expect(updates.find((update) => update.id === neighbor.id)?.data.start).toEqual([3, 0])
+})
+
 test('length input rejects loss of an interior T junction, collapsed neighbors and curved walls', () => {
   const wall = WallNode.parse({ start: [0, 0], end: [4, 0] })
   const branch = WallNode.parse({ start: [3, 0], end: [3, 3] })

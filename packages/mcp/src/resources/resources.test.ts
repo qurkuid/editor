@@ -233,6 +233,10 @@ describe('pascal://agent-guide', () => {
       expect(text).toContain('semantic zones without creating physical walls')
       expect(text).toContain('adoptContainedApartmentZones')
       expect(text).toContain('covers at least 90% of exactly one current enclosed space')
+      expect(text).toContain(
+        'align one uniquely resolved same-parent straight continuation within 2 degrees',
+      )
+      expect(text).toContain('direct UI capability with no AI/MCP mutation operation')
       expect(text).toContain('overlapping projected thickness bands')
       expect(text).toContain(
         'endpoint-touching clusters trim to their nearest actual contact when safe',

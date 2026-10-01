@@ -3,6 +3,7 @@
 import {
   type AnyNodeId,
   type WallNode,
+  buildWallParallelAlignmentUpdates,
   WallOperationError,
   useScene,
 } from '@pascal-app/core'
@@ -161,6 +162,23 @@ export function WallEditControls({ multiOnly = false }: { multiOnly?: boolean })
     }
   }, [inputValue, parseDistance, setSelection, wall])
 
+  const handleParallelAlign = useCallback(() => {
+    setError(null)
+    if (!wall) return
+
+    const scene = useScene.getState()
+    if (scene.readOnly) {
+      setError('읽기 전용 장면에서는 벽을 평행하게 맞출 수 없습니다.')
+      return
+    }
+    try {
+      const updates = buildWallParallelAlignmentUpdates(scene.nodes, wall.id)
+      scene.updateNodes(updates)
+    } catch (operationError) {
+      setError(wallOperationErrorMessage(operationError))
+    }
+  }, [setError, wall])
+
   if (mode !== 'select' || scopeKind !== 'idle') return null
   if (selectedWalls.length < 1 || selectedWalls.length !== selectedIds.length) return null
   if (multiOnly && selectedWalls.length === 1) return null
@@ -194,6 +212,13 @@ export function WallEditControls({ multiOnly = false }: { multiOnly?: boolean })
             type="button"
           />
         </div>
+        <ActionButton
+          aria-label="인접 벽과 평행 맞춤"
+          className="mt-1.5 w-full"
+          label="인접 벽과 평행 맞춤"
+          onClick={handleParallelAlign}
+          type="button"
+        />
         {hint ? (
           <div className="mt-1 text-[10px] text-muted-foreground/70" id={`${inputId}-hint`}>
             {hint}

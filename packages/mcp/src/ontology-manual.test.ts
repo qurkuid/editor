@@ -23,6 +23,19 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('metadata.boundaryNeedsReview')
   })
 
+  test('documents the shared wall parallel alignment capability', () => {
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'align one uniquely resolved same-parent straight continuation within 2 degrees',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'preserving the shared corner, reference wall, and selected length',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('validating linked walls and hosted spans atomically')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'direct UI capability with no AI/MCP mutation operation',
+    )
+  })
+
   test('documents direct axis-guide stretch without adding an AI mutation command', () => {
     expect(MODELING_AGENT_MANUAL).toContain('Axis-guide stretch is a direct 2D authoring workflow')
     expect(MODELING_AGENT_MANUAL).toContain('classify an opening by its world center')

@@ -395,6 +395,10 @@ describe('AI provider boundary', () => {
     const prompt = buildAiModelingPrompt(request)
 
     expect(prompt).toContain(MODELING_AGENT_MANUAL)
+    expect(prompt).toContain(
+      'align one uniquely resolved same-parent straight continuation within 2 degrees',
+    )
+    expect(prompt).toContain('direct UI capability with no AI/MCP mutation operation')
     expect(prompt).toContain('# Pascal Modeling Agent Manual')
     expect(prompt).toContain('Read this manual before every modeling task')
     expect(prompt).toContain('two-click point-to-point workflow')

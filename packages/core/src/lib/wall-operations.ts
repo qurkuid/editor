@@ -82,6 +82,10 @@ function pointsEqual(a: Vec2, b: Vec2) {
   return distance(a, b) <= EPSILON
 }
 
+function pointsExactlyEqual(a: Vec2, b: Vec2) {
+  return a[0] === b[0] && a[1] === b[1]
+}
+
 function endpointPoint(wall: WallNodeData, end: 'start' | 'end') {
   return end === 'start' ? wall.start : wall.end
 }
@@ -257,49 +261,102 @@ function getAttachmentSpan(node: AnyNode, wall: WallNodeData) {
   return { center, half: 0 }
 }
 
-export function buildWallLengthUpdates(
-  nodes: Record<AnyNodeId, AnyNode>,
-  wallId: AnyNodeId,
-  newLength: number,
-): Array<{ id: AnyNodeId; data: Partial<AnyNode> }> {
-  const wall = requireWall(nodes, wallId)
-  const length = distance(wall.start, wall.end)
-  if (!Number.isFinite(newLength) || newLength <= EPSILON || length <= EPSILON) {
-    throw new WallOperationError('invalid-wall-length', '벽 길이는 0보다 커야 합니다.')
+type WallEndpointUpdate = { id: AnyNodeId; data: Partial<AnyNode> }
+
+function finitePoint(point: Vec2) {
+  return Number.isFinite(point[0]) && Number.isFinite(point[1])
+}
+
+function straightWall(wall: WallNodeData) {
+  return Number.isFinite(wall.curveOffset ?? 0) && Math.abs(wall.curveOffset ?? 0) <= EPSILON
+}
+
+function oppositeContinuation(a: Vec2, b: Vec2) {
+  const aLength = distance([0, 0], a)
+  const bLength = distance([0, 0], b)
+  if (
+    !Number.isFinite(aLength) ||
+    !Number.isFinite(bLength) ||
+    aLength <= EPSILON ||
+    bLength <= EPSILON
+  ) {
+    return false
   }
-  if (Math.abs(wall.curveOffset ?? 0) > EPSILON) {
-    throw new WallOperationError('curved-wall', '곡선 벽은 곡률을 해제한 후 길이를 변경하세요.')
-  }
-  const end = pointAt(wall, newLength)
-  const siblings = Object.values(nodes).filter(
-    (node): node is WallNodeData =>
-      isWall(node) && node.parentId === wall.parentId && node.id !== wallId,
+  const normalizedA: Vec2 = [a[0] / aLength, a[1] / aLength]
+  const normalizedB: Vec2 = [b[0] / bLength, b[1] / bLength]
+  const deviation = Math.atan2(
+    Math.abs(cross(normalizedA, normalizedB)),
+    -dot(normalizedA, normalizedB),
   )
+  return deviation <= (2 * Math.PI) / 180 + 1e-9
+}
+
+function buildWallEndpointUpdates(
+  nodes: Record<AnyNodeId, AnyNode>,
+  wall: WallNodeData,
+  nextStart: Vec2,
+  nextEnd: Vec2,
+  preserveNearEqualUnchangedEndpoints = false,
+): WallEndpointUpdate[] {
+  if (!finitePoint(nextStart) || !finitePoint(nextEnd)) {
+    throw new WallOperationError('invalid-wall-geometry', '벽 끝점은 유한한 좌표여야 합니다.')
+  }
+  if (distance(nextStart, nextEnd) <= EPSILON) {
+    throw new WallOperationError(
+      'zero-length-wall',
+      '연결된 벽이 길이 0으로 줄어드는 변경은 적용할 수 없습니다.',
+    )
+  }
+
+  const siblings = Object.values(nodes)
+    .filter(
+      (node): node is WallNodeData =>
+        isWall(node) && node.parentId === wall.parentId && node.id !== wall.id,
+    )
+    .sort((a, b) => a.id.localeCompare(b.id))
   const linked = getLinkedWallUpdates(
     siblings.map((other) => ({ wall: other })),
     wall.start,
     wall.end,
-    wall.start,
-    end,
-  ).filter((update) => {
-    const other = requireWall(nodes, update.id)
-    return !pointsEqual(other.start, update.start) || !pointsEqual(other.end, update.end)
-  })
-  const updates: Array<{ id: AnyNodeId; data: Partial<AnyNode> }> = [
-    { id: wallId, data: { end } },
+    nextStart,
+    nextEnd,
+  )
+    .map((update) => {
+      if (!preserveNearEqualUnchangedEndpoints) return update
+      const other = requireWall(nodes, update.id)
+      const preserveUnchangedEndpoint = (point: Vec2) =>
+        (pointsEqual(point, wall.start) && pointsEqual(wall.start, nextStart)) ||
+        (pointsEqual(point, wall.end) && pointsEqual(wall.end, nextEnd))
+      return {
+        ...update,
+        start: preserveUnchangedEndpoint(other.start) ? other.start : update.start,
+        end: preserveUnchangedEndpoint(other.end) ? other.end : update.end,
+      }
+    })
+    .filter((update) => {
+      const other = requireWall(nodes, update.id)
+      return (
+        !pointsExactlyEqual(other.start, update.start) || !pointsExactlyEqual(other.end, update.end)
+      )
+    })
+  const selectedData: Partial<WallNodeData> = {}
+  if (nextStart !== wall.start) selectedData.start = nextStart
+  if (nextEnd !== wall.end) selectedData.end = nextEnd
+  const wallUpdates: WallEndpointUpdate[] = [
+    { id: wall.id, data: selectedData },
     ...linked.map(({ id, start, end }) => ({ id, data: { start, end } })),
   ]
-  const nextWalls = new Map([wall, ...siblings].map((other) => [other.id, other]))
-  for (const update of updates) {
-    nextWalls.set(
-      update.id as WallNodeData['id'],
-      { ...requireWall(nodes, update.id), ...update.data } as WallNodeData,
-    )
+  const nextWalls = new Map<AnyNodeId, WallNodeData>(
+    [wall, ...siblings].map((other) => [other.id, other]),
+  )
+  for (const update of wallUpdates) {
+    nextWalls.set(update.id, { ...requireWall(nodes, update.id), ...update.data } as WallNodeData)
   }
   const onSegment = (point: Vec2, host: WallNodeData) => {
     const axis: Vec2 = [host.end[0] - host.start[0], host.end[1] - host.start[1]]
     const delta: Vec2 = [point[0] - host.start[0], point[1] - host.start[1]]
     const lengthSquared = dot(axis, axis)
+    if (lengthSquared <= EPSILON * EPSILON) return false
     const t = dot(delta, axis) / lengthSquared
     return (
       Math.abs(cross(delta, axis)) <= EPSILON * Math.sqrt(lengthSquared) &&
@@ -307,7 +364,10 @@ export function buildWallLengthUpdates(
       t <= 1 + EPSILON
     )
   }
-  for (const update of [...updates]) {
+
+  const childUpdates = new Map<AnyNodeId, WallEndpointUpdate>()
+  const allWalls = [wall, ...siblings]
+  for (const update of wallUpdates) {
     const before = requireWall(nodes, update.id)
     const after = nextWalls.get(before.id)!
     const nextLength = distance(after.start, after.end)
@@ -317,16 +377,19 @@ export function buildWallLengthUpdates(
         '연결된 벽이 길이 0으로 줄어드는 변경은 적용할 수 없습니다.',
       )
     }
+    if (!finitePoint(before.start) || !finitePoint(before.end)) {
+      throw new WallOperationError('invalid-wall-geometry', '벽 끝점은 유한한 좌표여야 합니다.')
+    }
     if (dot(direction(before.start, before.end), direction(after.start, after.end)) <= 0) {
       throw new WallOperationError(
         'reversed-wall',
-        '연결된 벽의 방향이 뒤집히는 길이 변경은 적용할 수 없습니다.',
+        '연결된 벽의 방향이 뒤집히는 벽 변경은 적용할 수 없습니다.',
       )
     }
-    if (Math.abs(before.curveOffset ?? 0) > EPSILON) {
+    if (!straightWall(before)) {
       throw new WallOperationError(
         'curved-wall',
-        '연결된 곡선 벽의 곡률을 해제한 후 길이를 변경하세요.',
+        '연결된 곡선 벽의 곡률을 해제한 후 벽을 변경하세요.',
       )
     }
     for (const child of listWallAttachments(nodes, before)) {
@@ -337,14 +400,15 @@ export function buildWallLengthUpdates(
       ) {
         throw new WallOperationError(
           'attachment-outside-wall',
-          '문·창 또는 부착물이 벽 밖으로 나가는 길이 변경은 적용할 수 없습니다.',
+          '문·창 또는 부착물이 벽 밖으로 나가는 벽 변경은 적용할 수 없습니다.',
         )
       }
       if (span && child.type === 'item') {
-        updates.push({ id: child.id, data: { wallT: span.center / nextLength } })
+        const nextWallT = span.center / nextLength
+        childUpdates.set(child.id, { id: child.id, data: { wallT: nextWallT } })
       }
     }
-    for (const other of [wall, ...siblings]) {
+    for (const other of allWalls) {
       if (other.id === before.id) continue
       const nextOther = nextWalls.get(other.id)!
       for (const endpoint of ['start', 'end'] as const) {
@@ -354,13 +418,128 @@ export function buildWallLengthUpdates(
         ) {
           throw new WallOperationError(
             'detached-wall-junction',
-            'T자 벽 접합을 끊는 길이 변경은 적용할 수 없습니다.',
+            'T자 벽 접합을 끊는 벽 변경은 적용할 수 없습니다.',
           )
         }
       }
     }
   }
-  return updates
+
+  return [
+    ...wallUpdates,
+    ...Array.from(childUpdates.values()).sort((a, b) => a.id.localeCompare(b.id)),
+  ]
+}
+
+export function buildWallParallelAlignmentUpdates(
+  nodes: Record<AnyNodeId, AnyNode>,
+  selectedWallId: AnyNodeId,
+): WallEndpointUpdate[] {
+  const wall = requireWall(nodes, selectedWallId)
+  if (wall.parentId == null) {
+    throw new WallOperationError(
+      'wall-no-parent',
+      '상위 레벨이 없는 벽은 인접 벽과 평행하게 맞출 수 없습니다.',
+    )
+  }
+  if (!finitePoint(wall.start) || !finitePoint(wall.end)) {
+    throw new WallOperationError('invalid-wall-geometry', '벽 끝점은 유한한 좌표여야 합니다.')
+  }
+  const selectedLength = distance(wall.start, wall.end)
+  if (selectedLength <= EPSILON) {
+    throw new WallOperationError('zero-length-wall', '길이 0인 벽은 평행하게 맞출 수 없습니다.')
+  }
+  if (!straightWall(wall)) {
+    throw new WallOperationError(
+      'curved-wall',
+      '곡선 벽은 곡률을 해제한 후 인접 벽과 평행하게 맞출 수 있습니다.',
+    )
+  }
+
+  const siblings = Object.values(nodes)
+    .filter(
+      (node): node is WallNodeData =>
+        isWall(node) && node.id !== wall.id && node.parentId === wall.parentId,
+    )
+    .filter(
+      (candidate) =>
+        finitePoint(candidate.start) &&
+        finitePoint(candidate.end) &&
+        distance(candidate.start, candidate.end) > EPSILON &&
+        straightWall(candidate),
+    )
+    .sort((a, b) => a.id.localeCompare(b.id))
+  const selectedEnds = ['start', 'end'] as const
+  const candidates: Array<{
+    candidate: WallNodeData
+    selectedEnd: (typeof selectedEnds)[number]
+    joint: Vec2
+    candidateJoint: Vec2
+    candidateEnd: 'start' | 'end'
+  }> = []
+  for (const selectedEnd of selectedEnds) {
+    const joint = endpointPoint(wall, selectedEnd)
+    const selectedFree = endpointPoint(wall, oppositeEnd(selectedEnd))
+    const selectedRay: Vec2 = [selectedFree[0] - joint[0], selectedFree[1] - joint[1]]
+    for (const candidate of siblings) {
+      for (const candidateEnd of selectedEnds) {
+        if (!pointsEqual(endpointPoint(candidate, candidateEnd), joint)) continue
+        const candidateJoint = endpointPoint(candidate, candidateEnd)
+        const candidateFree = endpointPoint(candidate, oppositeEnd(candidateEnd))
+        const candidateRay: Vec2 = [
+          candidateFree[0] - candidateJoint[0],
+          candidateFree[1] - candidateJoint[1],
+        ]
+        if (oppositeContinuation(selectedRay, candidateRay)) {
+          candidates.push({ candidate, selectedEnd, joint, candidateJoint, candidateEnd })
+        }
+      }
+    }
+  }
+  if (candidates.length === 0) {
+    throw new WallOperationError(
+      'no-parallel-continuation',
+      '인접한 벽과 평행하게 이어지는 벽을 하나 찾을 수 없습니다.',
+    )
+  }
+  if (candidates.length > 1) {
+    throw new WallOperationError(
+      'ambiguous-parallel-continuation',
+      '평행하게 이어지는 인접 벽이 여러 개라 정렬할 수 없습니다.',
+    )
+  }
+
+  const { candidate, selectedEnd, joint, candidateJoint, candidateEnd } = candidates[0]!
+  const candidateFree = endpointPoint(candidate, oppositeEnd(candidateEnd))
+  const referenceDirection = direction(candidateJoint, candidateFree)
+  const nextFree: Vec2 = [
+    joint[0] - referenceDirection[0] * selectedLength,
+    joint[1] - referenceDirection[1] * selectedLength,
+  ]
+  const selectedFree = endpointPoint(wall, oppositeEnd(selectedEnd))
+  if (pointsEqual(nextFree, selectedFree)) {
+    throw new WallOperationError('already-parallel', '벽이 이미 인접 벽과 평행합니다.')
+  }
+  const nextStart = selectedEnd === 'start' ? joint : nextFree
+  const nextEnd = selectedEnd === 'start' ? nextFree : joint
+  return buildWallEndpointUpdates(nodes, wall, nextStart, nextEnd, true)
+}
+
+export function buildWallLengthUpdates(
+  nodes: Record<AnyNodeId, AnyNode>,
+  wallId: AnyNodeId,
+  newLength: number,
+): WallEndpointUpdate[] {
+  const wall = requireWall(nodes, wallId)
+  const length = distance(wall.start, wall.end)
+  if (!Number.isFinite(newLength) || newLength <= EPSILON || length <= EPSILON) {
+    throw new WallOperationError('invalid-wall-length', '벽 길이는 0보다 커야 합니다.')
+  }
+  if (Math.abs(wall.curveOffset ?? 0) > EPSILON) {
+    throw new WallOperationError('curved-wall', '곡선 벽은 곡률을 해제한 후 길이를 변경하세요.')
+  }
+  const end = pointAt(wall, newLength)
+  return buildWallEndpointUpdates(nodes, wall, wall.start, end)
 }
 
 function uniqueWallId(nodes: Record<AnyNodeId, AnyNode>, requested?: AnyNodeId) {

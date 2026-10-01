@@ -1,9 +1,21 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+import { buildWallParallelAlignmentUpdates } from '../lib/wall-operations'
 import { nodeRegistry } from '../registry/registry'
 import type { AnyNodeDefinition } from '../registry/types'
 import { LevelNode, WallNode } from '../schema'
+import type { WallNode as WallNodeData } from '../schema/nodes/wall'
 import type { AnyNode, AnyNodeId } from '../schema/types'
 import useScene from './use-scene'
+
+type RafFn = (callback: (time: number) => void) => number
+;(globalThis as unknown as { requestAnimationFrame?: RafFn }).requestAnimationFrame ??= ((
+  callback,
+) => {
+  callback(0)
+  return 0
+}) as RafFn
+;(globalThis as unknown as { cancelAnimationFrame?: (id: number) => void }).cancelAnimationFrame ??=
+  () => {}
 
 const untrackedDef = {
   kind: 'test-untracked',
@@ -174,5 +186,87 @@ describe('dirty tracking', () => {
     expect(splitSecondId).toBeDefined()
     expect(useScene.getState().nodes[splitSecondId!]).toBeUndefined()
     expect(useScene.getState().dirtyNodes.has(splitSecondId!)).toBe(false)
+  })
+
+  test('parallel wall alignment is one undo step and restores the exact graph', async () => {
+    const level = LevelNode.parse({
+      id: 'level_parallel_history',
+      children: ['wall_parallel_history_reference', 'wall_parallel_history_selected'],
+    })
+    const reference = WallNode.parse({
+      id: 'wall_parallel_history_reference',
+      parentId: level.id,
+      start: [-2, 0],
+      end: [0, 0],
+    })
+    const selected = WallNode.parse({
+      id: 'wall_parallel_history_selected',
+      parentId: level.id,
+      start: [0, 0],
+      end: [1, 0.01],
+    })
+    const linked = WallNode.parse({
+      id: 'wall_parallel_history_linked',
+      parentId: level.id,
+      start: [1, 0.01],
+      end: [1, 1],
+    })
+    useScene.setState({
+      nodes: {
+        [level.id]: level,
+        [reference.id]: reference,
+        [selected.id]: selected,
+        [linked.id]: linked,
+      },
+      rootNodeIds: [level.id],
+      dirtyNodes: new Set<AnyNodeId>(),
+      collections: {},
+      readOnly: false,
+    })
+    useScene.temporal.getState().clear()
+
+    const before = JSON.stringify(useScene.getState().nodes)
+    const updates = buildWallParallelAlignmentUpdates(useScene.getState().nodes, selected.id)
+    useScene.getState().updateNodes(updates)
+    await Promise.resolve()
+    const aligned = JSON.stringify(useScene.getState().nodes)
+
+    expect(aligned).not.toBe(before)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+    expect(useScene.getState().nodes[linked.id]?.type).toBe('wall')
+    expect((useScene.getState().nodes[linked.id] as WallNodeData).start).toEqual(
+      (useScene.getState().nodes[selected.id] as WallNodeData).end,
+    )
+
+    useScene.temporal.getState().undo()
+    await Promise.resolve()
+    expect(JSON.stringify(useScene.getState().nodes)).toBe(before)
+    expect(useScene.temporal.getState().futureStates).toHaveLength(1)
+
+    useScene.temporal.getState().redo()
+    await Promise.resolve()
+    expect(JSON.stringify(useScene.getState().nodes)).toBe(aligned)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+
+    useScene.temporal.getState().clear()
+    const historyBeforeRejectedPaths = useScene.temporal.getState().pastStates.length
+    useScene.setState({ readOnly: true })
+    useScene.getState().updateNodes(updates)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(historyBeforeRejectedPaths)
+    useScene.setState({ readOnly: false })
+    expect(() =>
+      buildWallParallelAlignmentUpdates(
+        {
+          ...useScene.getState().nodes,
+          [selected.id]: WallNode.parse({
+            ...selected,
+            start: [0, 0],
+            end: [0, 0],
+          }),
+        },
+        selected.id,
+      ),
+    ).toThrow()
+    expect(useScene.temporal.getState().pastStates).toHaveLength(historyBeforeRejectedPaths)
   })
 })

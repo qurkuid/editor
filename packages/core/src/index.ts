@@ -416,6 +416,7 @@ export {
 export {
   buildWallLengthUpdates,
   buildWallMerge,
+  buildWallParallelAlignmentUpdates,
   buildWallSplit,
   buildWallSplitAtContacts,
   type WallMutation,
