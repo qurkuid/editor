@@ -1,4 +1,5 @@
 import type { AnyNode } from '@pascal-app/core'
+import type { EstimateItemPayload } from './estimate-submit'
 
 /**
  * Which INTM project a scene belongs to.
@@ -15,6 +16,20 @@ import type { AnyNode } from '@pascal-app/core'
  */
 
 export const SCENE_PROJECT_KEY = 'intmProjectId'
+export const SCENE_ESTIMATE_SUBMISSIONS_KEY = 'intmEstimateSubmissions'
+const MAX_SCENE_ESTIMATE_SUBMISSIONS = 10
+
+export type SceneEstimateSubmissionV1 = {
+  schemaVersion: 1
+  projectId: string
+  title: string
+  estimateId: string
+  estimateUrl: string
+  submittedAt: string
+  itemCount: number
+  failedItems: number
+  items: EstimateItemPayload[]
+}
 
 /** `metadata` is `JSONType` on the node; narrow it to the record we store. */
 type MetadataRecord = Record<string, unknown>
@@ -24,6 +39,69 @@ function asRecord(value: unknown): MetadataRecord {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? { ...(value as MetadataRecord) }
     : {}
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+function nonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function isIsoTimestamp(value: unknown): value is string {
+  return (
+    nonEmptyString(value) &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) &&
+    !Number.isNaN(Date.parse(value))
+  )
+}
+
+function isEstimateItem(value: unknown): value is EstimateItemPayload {
+  if (!isPlainRecord(value)) return false
+  const item = value
+  if (
+    typeof item.quantity !== 'number' ||
+    !Number.isFinite(item.quantity) ||
+    item.quantity < 0 ||
+    typeof item.unitPrice !== 'number' ||
+    !Number.isFinite(item.unitPrice) ||
+    item.unitPrice < 0 ||
+    !nonEmptyString(item.description)
+  ) {
+    return false
+  }
+  return (
+    (item.materialId === undefined || nonEmptyString(item.materialId)) &&
+    (item.productCategoryId === undefined || nonEmptyString(item.productCategoryId))
+  )
+}
+
+function isSceneEstimateSubmission(value: unknown): value is SceneEstimateSubmissionV1 {
+  if (!isPlainRecord(value)) return false
+  const record = value
+  if (
+    record.schemaVersion !== 1 ||
+    !nonEmptyString(record.projectId) ||
+    !nonEmptyString(record.title) ||
+    !nonEmptyString(record.estimateId) ||
+    !nonEmptyString(record.estimateUrl) ||
+    !isIsoTimestamp(record.submittedAt) ||
+    !Number.isSafeInteger(record.itemCount) ||
+    !Number.isSafeInteger(record.failedItems) ||
+    (record.itemCount as number) < 0 ||
+    (record.failedItems as number) < 0 ||
+    !Array.isArray(record.items)
+  ) {
+    return false
+  }
+  const items = record.items as unknown[]
+  return (
+    items.length === (record.itemCount as number) + (record.failedItems as number) &&
+    items.every(isEstimateItem)
+  )
 }
 
 /** The node that should carry the link, or null for an empty scene. */
@@ -69,4 +147,78 @@ export function sceneProjectPatch(
   else delete metadata[SCENE_PROJECT_KEY]
 
   return { nodeId: host.id, metadata }
+}
+
+export function readSceneEstimateSubmissions(
+  nodes: Readonly<Record<string, AnyNode>>,
+  rootNodeIds: readonly string[] = [],
+): SceneEstimateSubmissionV1[] {
+  const host = projectLinkHost(nodes, rootNodeIds) as NodeWithMetadata | null
+  const value = host?.metadata?.[SCENE_ESTIMATE_SUBMISSIONS_KEY]
+  if (!Array.isArray(value)) return []
+  return value.filter(isSceneEstimateSubmission).slice(0, MAX_SCENE_ESTIMATE_SUBMISSIONS)
+}
+
+/**
+ * The patch that appends a created estimate to the scene's audit history.
+ * Invalid records are ignored so old or hand-edited scene metadata cannot
+ * make the editor throw while opening a scene.
+ */
+export function sceneEstimateSubmissionPatch(
+  nodes: Readonly<Record<string, AnyNode>>,
+  record: SceneEstimateSubmissionV1,
+  rootNodeIds: readonly string[] = [],
+): { nodeId: string; metadata: MetadataRecord } | null {
+  if (!isSceneEstimateSubmission(record)) return null
+  const host = projectLinkHost(nodes, rootNodeIds) as NodeWithMetadata | null
+  if (!host) return null
+
+  const metadata = asRecord(host.metadata)
+  const existing = readSceneEstimateSubmissions(nodes, rootNodeIds)
+  metadata[SCENE_ESTIMATE_SUBMISSIONS_KEY] = [
+    record,
+    ...existing.filter(
+      (item) => !(item.projectId === record.projectId && item.estimateId === record.estimateId),
+    ),
+  ].slice(0, MAX_SCENE_ESTIMATE_SUBMISSIONS)
+
+  return { nodeId: host.id, metadata }
+}
+
+function trustedOrigin(value: string | null | undefined): string | null {
+  if (!nonEmptyString(value)) return null
+  try {
+    const url = new URL(value)
+    if (
+      (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    ) {
+      return null
+    }
+    return url.origin
+  } catch {
+    return null
+  }
+}
+
+export function canonicalSceneEstimateUrl(
+  serverBaseUrl: string | null | undefined,
+  record: Pick<SceneEstimateSubmissionV1, 'estimateId' | 'estimateUrl'>,
+): string | null {
+  const origin = trustedOrigin(serverBaseUrl)
+  if (!origin || !nonEmptyString(record.estimateId) || !nonEmptyString(record.estimateUrl)) {
+    return null
+  }
+
+  const canonical = `${origin}/newportal/estimates/${encodeURIComponent(record.estimateId)}/edit`
+  try {
+    const stored = new URL(record.estimateUrl)
+    if (stored.username || stored.password || stored.search || stored.hash) return null
+    return stored.href === canonical ? canonical : null
+  } catch {
+    return null
+  }
 }

@@ -4,7 +4,7 @@ import {
   fetchIntmMaterials,
   saveIntmMaterialCoverage,
 } from '@/lib/intm-materials'
-import { fetchIntmUser, intmAuthEnabled } from '@/lib/intm-session'
+import { fetchIntmUser, intmAuthEnabled, intmBaseUrl } from '@/lib/intm-session'
 
 /**
  * The browser's window onto INTM's catalogue.
@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       categories: [],
       connected: false,
       reason: 'not-configured',
+      intmBaseUrl: intmBaseUrl(),
     })
   }
 
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
     materials,
     categories,
     connected: materials.length > 0,
+    intmBaseUrl: intmBaseUrl(),
     account: user?.email ?? null,
     ...(materials.length === 0 ? { reason: user ? 'empty' : 'signed-out' } : {}),
   })

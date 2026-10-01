@@ -173,6 +173,18 @@ export const statsDictionary = {
     ko: 'INTM에서 견적서 열기',
     en: 'Open estimate in INTM',
   },
+  'stats.history.title': {
+    ko: '이 프로젝트의 이전 견적서',
+    en: 'Previous estimates for this project',
+  },
+  'stats.history.counts': {
+    ko: '성공 {added} · 실패 {failed} · 전체 {total}',
+    en: '{added} added · {failed} failed · {total} total',
+  },
+  'stats.history.unavailable': {
+    ko: 'INTM 링크를 확인할 수 없습니다.',
+    en: 'INTM link unavailable.',
+  },
   'stats.sharedReadOnly': {
     ko: '공용 자재는 INTM에서 관리자만 수정할 수 있습니다.',
     en: 'Shared materials are admin-only in INTM.',

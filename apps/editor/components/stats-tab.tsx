@@ -1,7 +1,7 @@
 'use client'
 
 import { useScene } from '@pascal-app/core'
-import { useT } from '@pascal-app/editor'
+import { useLocale, useT } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import {
   BarChart3,
@@ -11,7 +11,7 @@ import {
   Loader2,
   TriangleAlert,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { withBasePath } from '@/lib/base-path'
 import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
 import { type SubmitResult, toEstimateItems } from '@/lib/estimate-submit'
@@ -22,7 +22,14 @@ import { layerMaterialPatches } from '@/lib/link-layer-material'
 import { buildCoveragePatch, COVERAGE_UNIT_LABEL } from '@/lib/material-coverage'
 import { deriveTakeoff, type TakeoffCategory } from '@/lib/quantity-takeoff'
 import { intmOverridesFromSceneMaterials } from '@/lib/scene-material-overrides'
-import { readSceneProjectId, sceneProjectPatch } from '@/lib/scene-project-link'
+import {
+  canonicalSceneEstimateUrl,
+  projectLinkHost,
+  readSceneEstimateSubmissions,
+  readSceneProjectId,
+  sceneEstimateSubmissionPatch,
+  sceneProjectPatch,
+} from '@/lib/scene-project-link'
 
 const CATEGORY_LABEL: Record<TakeoffCategory, string> = {
   board: '목자재',
@@ -53,6 +60,13 @@ function formatTakeoff(quantity: number, unit: string): string {
   return `${quantity.toFixed(2)} ${unit === 'm2' ? '㎡' : unit}`
 }
 
+function formatHistoryTimestamp(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale === 'ko' ? 'ko-KR' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
 /**
  * `reason` says why there are no prices, which the panel shows verbatim. A bare
  * "not connected" is the same message whether INTM is unconfigured, the session
@@ -68,6 +82,8 @@ type Catalogue = {
   status?: number
   /** Which INTM account the server resolved the session to, if any. */
   account?: string | null
+  /** Trusted server origin used to validate persisted estimate links. */
+  intmBaseUrl: string | null
 }
 
 /**
@@ -79,6 +95,7 @@ type Catalogue = {
  */
 export function StatsTab() {
   const t = useT()
+  const locale = useLocale((state) => state.locale)
   const nodes = useScene((state) => state.nodes)
   const levelId = useViewer((state) => state.selection.levelId)
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null)
@@ -93,9 +110,18 @@ export function StatsTab() {
   )
   const [projectIdDraft, setProjectIdDraft] = useState<string | null>(null)
   const projectId = projectIdDraft ?? linkedProjectId ?? ''
+  const history = useMemo(
+    () =>
+      readSceneEstimateSubmissions(nodes, rootNodeIds).filter(
+        (record) => record.projectId === projectId,
+      ),
+    [nodes, rootNodeIds, projectId],
+  )
   const [projectName, setProjectName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null)
+  const [submitProjectId, setSubmitProjectId] = useState<string | null>(null)
+  const submitRunRef = useRef(0)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -112,10 +138,17 @@ export function StatsTab() {
           connected: false,
           reason: response.status === 401 ? 'signed-out' : 'error',
           status: response.status,
+          intmBaseUrl: null,
         })
       }
     } catch {
-      setCatalogue({ materials: [], categories: [], connected: false, reason: 'error' })
+      setCatalogue({
+        materials: [],
+        categories: [],
+        connected: false,
+        intmBaseUrl: null,
+        reason: 'error',
+      })
     } finally {
       setLoading(false)
     }
@@ -231,13 +264,24 @@ export function StatsTab() {
 
   /** Hand the resolved lines to INTM, which owns the estimate document. */
   const createEstimate = useCallback(async () => {
+    const runId = submitRunRef.current + 1
+    submitRunRef.current = runId
+    const submittedProjectId = projectId
+    const submissionState = useScene.getState()
+    const submittedHostId = projectLinkHost(submissionState.nodes, submissionState.rootNodeIds)?.id
     setSubmitting(true)
     setSubmitResult(null)
+    setSubmitProjectId(submittedProjectId)
+    const attemptedPayload = toEstimateItems(draft)
     try {
       // Remember the project on the scene before submitting, so the next
       // estimate from this drawing doesn't ask again.
-      if (projectId && projectId !== linkedProjectId) {
-        const patch = sceneProjectPatch(useScene.getState().nodes, projectId, rootNodeIds)
+      if (submittedProjectId && submittedProjectId !== linkedProjectId) {
+        const patch = sceneProjectPatch(
+          submissionState.nodes,
+          submittedProjectId,
+          submissionState.rootNodeIds,
+        )
         if (patch)
           useScene.getState().updateNode(patch.nodeId as never, {
             metadata: patch.metadata as never,
@@ -250,18 +294,46 @@ export function StatsTab() {
         body: JSON.stringify({ draft, projectId, title: projectName }),
       })
       const result = (await response.json()) as SubmitResult
-      setSubmitResult(result)
+      if (submitRunRef.current === runId) setSubmitResult(result)
+      if (result.ok && submittedHostId) {
+        const snapshot = useScene.getState()
+        const currentHost = projectLinkHost(snapshot.nodes, snapshot.rootNodeIds)
+        if (currentHost?.id !== submittedHostId) return
+        const patch = sceneEstimateSubmissionPatch(
+          snapshot.nodes,
+          {
+            estimateId: result.estimateId,
+            estimateUrl: result.estimateUrl,
+            failedItems: result.failedItems,
+            itemCount: result.itemCount,
+            items: attemptedPayload,
+            projectId: submittedProjectId,
+            schemaVersion: 1,
+            submittedAt: new Date().toISOString(),
+            title: projectName,
+          },
+          snapshot.rootNodeIds,
+        )
+        if (patch) {
+          snapshot.updateNode(patch.nodeId as never, {
+            metadata: patch.metadata as never,
+          })
+        }
+      }
     } catch (error) {
-      setSubmitResult({
-        ok: false,
-        error: error instanceof Error ? error.message : '견적 생성 실패',
-      })
+      if (submitRunRef.current === runId) {
+        setSubmitResult({
+          ok: false,
+          error: error instanceof Error ? error.message : '견적 생성 실패',
+        })
+      }
     } finally {
-      setSubmitting(false)
+      if (submitRunRef.current === runId) setSubmitting(false)
     }
-  }, [draft, projectId, projectName, linkedProjectId, rootNodeIds])
+  }, [draft, projectId, projectName, linkedProjectId])
 
-  const successfulSubmit = submitResult?.ok ? submitResult : null
+  const visibleSubmitResult = submitProjectId === projectId ? submitResult : null
+  const successfulSubmit = visibleSubmitResult?.ok ? visibleSubmitResult : null
   const attemptedItems = successfulSubmit
     ? successfulSubmit.itemCount + successfulSubmit.failedItems
     : 0
@@ -370,6 +442,8 @@ export function StatsTab() {
             <ProjectPicker
               onSelect={(project) => {
                 setProjectIdDraft(project.id)
+                setSubmitProjectId(null)
+                setSubmitResult(null)
                 if (!projectName) setProjectName(project.name)
               }}
               selectedId={projectId}
@@ -388,7 +462,7 @@ export function StatsTab() {
             >
               {submitting ? t('stats.estimate.creating') : t('stats.estimate.create')}
             </button>
-            {submitResult && (
+            {visibleSubmitResult && (
               <div
                 aria-live="polite"
                 className={`space-y-1.5 rounded border p-2 text-[11px] ${
@@ -399,7 +473,7 @@ export function StatsTab() {
                     : 'border-red-500/40 bg-red-500/10 text-red-200'
                 }`}
               >
-                <p>{submitResult.ok ? submitMessage : submitResult.error}</p>
+                <p>{visibleSubmitResult.ok ? submitMessage : visibleSubmitResult.error}</p>
                 {successfulSubmit && (
                   <a
                     className="inline-block underline underline-offset-2 hover:no-underline"
@@ -412,6 +486,57 @@ export function StatsTab() {
                 )}
               </div>
             )}
+          </div>
+        </section>
+      )}
+
+      {!loading && projectId && history.length > 0 && (
+        <section className="mt-3 rounded-xl border border-border bg-background/40 p-3">
+          <h2 className="mb-2 text-[11px] font-semibold text-foreground">
+            {t('stats.history.title')}
+          </h2>
+          <div className="space-y-1.5">
+            {history.map((record) => {
+              const href = canonicalSceneEstimateUrl(catalogue?.intmBaseUrl, record)
+              const total = record.itemCount + record.failedItems
+              return (
+                <div
+                  className="rounded border border-border/40 bg-[#252527] px-2 py-1.5"
+                  data-estimate-id={record.estimateId}
+                  key={`${record.projectId}:${record.estimateId}`}
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="min-w-0 truncate text-xs text-foreground">{record.title}</span>
+                    <time
+                      className="shrink-0 text-[10px] text-muted-foreground"
+                      dateTime={record.submittedAt}
+                    >
+                      {formatHistoryTimestamp(record.submittedAt, locale)}
+                    </time>
+                  </div>
+                  <div className="mt-0.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                    <span>
+                      {t('stats.history.counts')
+                        .replace('{added}', String(record.itemCount))
+                        .replace('{failed}', String(record.failedItems))
+                        .replace('{total}', String(total))}
+                    </span>
+                    {href ? (
+                      <a
+                        className="shrink-0 underline underline-offset-2 hover:no-underline"
+                        href={href}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                      >
+                        {t('stats.submitted.open')}
+                      </a>
+                    ) : (
+                      <span className="shrink-0">{t('stats.history.unavailable')}</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </section>
       )}
