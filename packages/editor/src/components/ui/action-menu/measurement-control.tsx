@@ -11,6 +11,8 @@ import {
   CircleIcon,
   Crosshair,
   Grid2X2,
+  MoveHorizontal,
+  MoveVertical,
   Minus,
   PencilRuler,
   Ruler,
@@ -81,6 +83,9 @@ export function MeasurementControl() {
   const constructionDimensionMode = useEditor(
     (state) => state.toolDefaults['construction-dimension']?.mode,
   )
+  const constructionGuideMode = useEditor(
+    (state) => state.toolDefaults['construction-guide']?.mode,
+  )
   const setMode = useEditor((state) => state.setMode)
   const setPhase = useEditor((state) => state.setPhase)
   const setLastMeasurementKind = useEditor((state) => state.setLastMeasurementKind)
@@ -94,12 +99,17 @@ export function MeasurementControl() {
   const isActive = mode === 'build' && tool === 'measurement'
   const isConstructionDimensionActive = mode === 'build' && tool === 'construction-dimension'
   const isGuideLineActive = mode === 'build' && tool === 'construction-guide'
+  const activeGuideMode =
+    isGuideLineActive &&
+    (constructionGuideMode === 'vertical' || constructionGuideMode === 'horizontal')
+      ? constructionGuideMode
+      : 'reference-offset'
   const activeConstructionDimensionOption = constructionDimensionOptions.find(
     (option) =>
       option.mode === (constructionDimensionMode ?? 'linear') &&
       option.chainMode === (constructionDimensionChainMode ?? 'point-to-point'),
   )
-  const isControlActive = isActive || isConstructionDimensionActive
+  const isControlActive = isActive || isConstructionDimensionActive || isGuideLineActive
   const isSmartActive = isActive && activeToolKind === 'smart'
   const SelectedIcon = isConstructionDimensionActive
     ? (activeConstructionDimensionOption?.icon ?? Ruler)
@@ -108,6 +118,14 @@ export function MeasurementControl() {
       : selectedOption.icon
   const selectedLabel = isConstructionDimensionActive
     ? t(activeConstructionDimensionOption?.labelKey ?? 'actionMenu.dimLinear')
+    : isGuideLineActive
+      ? t(
+          activeGuideMode === 'vertical'
+            ? 'actionMenu.verticalGuide'
+            : activeGuideMode === 'horizontal'
+              ? 'actionMenu.horizontalGuide'
+              : 'actionMenu.guideLine',
+        )
     : isSmartActive
       ? t('actionMenu.measureSmart')
       : t(selectedOption.labelKey)
@@ -137,12 +155,16 @@ export function MeasurementControl() {
     setTool('measurement')
   }
 
-  const activateGuideLine = () => {
+  const activateGuide = (guideMode: 'reference-offset' | 'vertical' | 'horizontal') => {
     setPhase('structure')
     setStructureLayer('elements')
     // Guide lines are a floor-plan construct — the tool mounts in the 2D
     // registered-tool layer, so surface the plan view along with it.
     setViewMode('2d')
+    setToolDefaults(
+      'construction-guide',
+      guideMode === 'reference-offset' ? null : { mode: guideMode },
+    )
     setMode('build')
     setTool('construction-guide')
   }
@@ -244,25 +266,38 @@ export function MeasurementControl() {
           })}
 
           <div className="my-1.5 h-px bg-border/60" />
-          <button
-            aria-checked={isGuideLineActive}
-            className={cn(
-              'flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-sm transition-colors',
-              isGuideLineActive
-                ? 'bg-white/10 text-foreground'
-                : 'text-muted-foreground hover:bg-white/8 hover:text-foreground',
-            )}
-            onClick={() => {
-              activateGuideLine()
-              setIsOpen(false)
-            }}
-            role="menuitemradio"
-            type="button"
-          >
-            <PencilRuler aria-hidden="true" className="h-4 w-4" />
-            <span>{t('actionMenu.guideLine')}</span>
-            {isGuideLineActive ? <Check aria-hidden="true" className="ml-auto h-4 w-4" /> : null}
-          </button>
+          {(
+            [
+              { mode: 'reference-offset', labelKey: 'actionMenu.guideLine', icon: PencilRuler },
+              { mode: 'vertical', labelKey: 'actionMenu.verticalGuide', icon: MoveVertical },
+              { mode: 'horizontal', labelKey: 'actionMenu.horizontalGuide', icon: MoveHorizontal },
+            ] as const
+          ).map((option) => {
+            const OptionIcon = option.icon
+            const isSelected = isGuideLineActive && activeGuideMode === option.mode
+            return (
+              <button
+                aria-checked={isSelected}
+                className={cn(
+                  'flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-sm transition-colors',
+                  isSelected
+                    ? 'bg-white/10 text-foreground'
+                    : 'text-muted-foreground hover:bg-white/8 hover:text-foreground',
+                )}
+                key={option.mode}
+                onClick={() => {
+                  activateGuide(option.mode)
+                  setIsOpen(false)
+                }}
+                role="menuitemradio"
+                type="button"
+              >
+                <OptionIcon aria-hidden="true" className="h-4 w-4" />
+                <span>{t(option.labelKey)}</span>
+                {isSelected ? <Check aria-hidden="true" className="ml-auto h-4 w-4" /> : null}
+              </button>
+            )
+          })}
 
           {floorplanMode === 'expert' ? (
             <>

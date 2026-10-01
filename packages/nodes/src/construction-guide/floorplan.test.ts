@@ -3,6 +3,7 @@ import { ConstructionGuideNode, type GeometryContext } from '@pascal-app/core'
 import {
   buildConstructionGuideFloorplan,
   CONSTRUCTION_GUIDE_EXTENT,
+  directConstructionGuidePlacement,
   guideFrame,
   guideLineEndpoints,
 } from './floorplan'
@@ -28,6 +29,26 @@ describe('guideFrame', () => {
     expect(frame.direction[1]).toBeCloseTo(0)
     expect(frame.normal[0]).toBeCloseTo(0)
     expect(frame.normal[1]).toBeCloseTo(1)
+  })
+})
+
+describe('directConstructionGuidePlacement', () => {
+  test('places vertical guides on the snapped X coordinate', () => {
+    expect(directConstructionGuidePlacement('vertical', [1.12, 4.8], true, 0.5)).toEqual({
+      origin: [1, 4.8],
+      direction: [0, 1],
+    })
+  })
+
+  test('places horizontal guides on the snapped Z coordinate', () => {
+    expect(directConstructionGuidePlacement('horizontal', [1.12, 4.8], true, 0.5)).toEqual({
+      origin: [1.12, 5],
+      direction: [1, 0],
+    })
+  })
+
+  test('leaves the reference offset workflow to its existing placement path', () => {
+    expect(directConstructionGuidePlacement('reference-offset', [1, 2], true, 0.5)).toBeNull()
   })
 })
 

@@ -110,6 +110,9 @@ describe('AI modeling operation contract', () => {
       'endpoint-touching clusters trim to their nearest actual contact when safe',
     )
     expect(prompt).toContain('opening guards are applied before clustering')
+    expect(prompt).toContain('Axis-guide stretch is a direct 2D authoring workflow')
+    expect(prompt).toContain('classify an opening by its world center')
+    expect(prompt).toContain('no AI/MCP mutation operation')
     expect(prompt).not.toContain('For Body face finishes')
   })
 })

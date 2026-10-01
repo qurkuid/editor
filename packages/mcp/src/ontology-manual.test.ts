@@ -22,6 +22,14 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('all affected host spans')
     expect(MODELING_AGENT_MANUAL).toContain('metadata.boundaryNeedsReview')
   })
+
+  test('documents direct axis-guide stretch without adding an AI mutation command', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('Axis-guide stretch is a direct 2D authoring workflow')
+    expect(MODELING_AGENT_MANUAL).toContain('classify an opening by its world center')
+    expect(MODELING_AGENT_MANUAL).toContain('Existing unrelated hosted overlap is retained')
+    expect(MODELING_AGENT_MANUAL).toContain('no AI/MCP mutation operation')
+    expect(MODELING_AGENT_MANUAL).toContain('Guide Line for the existing reference-offset flow')
+  })
   test('documents ontology discovery and evidence requirements', () => {
     expect(MODELING_AGENT_MANUAL).toContain('pascal://ontology/manifest')
     expect(MODELING_AGENT_MANUAL).toContain('query_design_ontology')

@@ -40,19 +40,20 @@ export const constructionGuideDefinition: NodeDefinition<typeof ConstructionGuid
     'slide-construction-guide': slideConstructionGuideAffordance,
   },
   toolHints: [
-    { key: 'Left click', label: 'Pick a wall or guide as reference' },
-    { key: 'Move', label: 'Slide the parallel guide' },
-    { key: 'Type + Enter', label: 'Exact offset distance' },
-    { key: 'Left click', label: 'Place the guide' },
+    { key: 'Guide Line', label: 'Pick a wall or guide, then place a parallel offset' },
+    { key: 'Vertical Guide', label: 'One click places a guide parallel to model Z' },
+    { key: 'Horizontal Guide', label: 'One click places a guide parallel to model X' },
+    { key: 'Type + Enter', label: 'Exact reference offset distance' },
     { key: 'Esc', label: 'Step back or exit' },
   ],
 
   presentation: {
     label: 'Guide Line',
-    description: 'Infinite dashed construction guide, parallel-offset from a picked edge.',
+    description:
+      'Infinite dashed construction guide. Guide Line uses a reference offset; Vertical and Horizontal Guide place model-axis references for 2D wall stretch.',
     icon: { kind: 'iconify', name: 'lucide:pencil-ruler' },
     hidden: true,
-    actionMenu: false,
+    actionMenu: true,
   },
 
   mcp: {

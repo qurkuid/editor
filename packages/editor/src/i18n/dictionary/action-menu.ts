@@ -50,6 +50,29 @@ export const actionMenuDictionary = {
   'actionMenu.measureVolume': { ko: '부피', en: 'Volume' },
 
   'actionMenu.guideLine': { ko: '가이드선', en: 'Guide line' },
+  'actionMenu.verticalGuide': { ko: '수직 가이드', en: 'Vertical guide' },
+  'actionMenu.horizontalGuide': { ko: '수평 가이드', en: 'Horizontal guide' },
+  'actionMenu.guideStretchDistance': { ko: '늘이기 거리', en: 'Stretch distance' },
+  'actionMenu.guideStretchLeft': { ko: '왼쪽으로 늘리기', en: 'Stretch left' },
+  'actionMenu.guideStretchRight': { ko: '오른쪽으로 늘리기', en: 'Stretch right' },
+  'actionMenu.guideStretchUp': { ko: '위로 늘리기', en: 'Stretch up' },
+  'actionMenu.guideStretchDown': { ko: '아래로 늘리기', en: 'Stretch down' },
+  'actionMenu.guideStretchInvalid': {
+    ko: '유효한 거리를 입력하세요.',
+    en: 'Enter a valid distance.',
+  },
+  'actionMenu.guideStretchUnsupported': {
+    ko: '사선 또는 곡선 벽이 가이드에 걸쳐 있어 늘릴 수 없습니다.',
+    en: 'A diagonal or curved wall crosses the guide and cannot be stretched.',
+  },
+  'actionMenu.guideStretchConflict': {
+    ko: '거리가 커서 벽·문·창·영역이 겹치거나 경계를 벗어납니다.',
+    en: 'That distance would overlap or move a wall, opening, or zone out of bounds.',
+  },
+  'actionMenu.guideStretchFailed': {
+    ko: '가이드 늘이기에 실패했습니다.',
+    en: 'Guide stretch failed.',
+  },
   'actionMenu.eyedropper': { ko: '스포이드', en: 'Eyedropper' },
 
   'actionMenu.dimLinear': { ko: '선형 치수', en: 'Linear dimension' },

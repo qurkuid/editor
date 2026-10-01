@@ -91,6 +91,13 @@ export {
   saveStoredAsset,
 } from './lib/asset-storage'
 export {
+  AxisGuideStretchError,
+  type AxisGuideStretchErrorCode,
+  type AxisGuideStretchPlan,
+  type AxisGuideStretchRequest,
+  buildAxisGuideStretchPlan,
+} from './lib/axis-guide-stretch'
+export {
   type BodyArrayPoint,
   type BodyCircularArrayInput,
   type BodyLinearArrayInput,

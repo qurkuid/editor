@@ -11,14 +11,18 @@ import {
   formatLinearMeasurement,
   isGridSnapActive,
   markToolCancelConsumed,
+  swallowNextClick,
   triggerSFX,
   useDraftLengthInput,
+  useEditor,
   useFloorplanRender,
 } from '@pascal-app/editor'
 import { useEffect, useRef, useState } from 'react'
+import type { ConstructionGuidePlacementMode } from './floorplan'
 import {
   CONSTRUCTION_GUIDE_COLOR,
   CONSTRUCTION_GUIDE_DASH,
+  directConstructionGuidePlacement,
   type GuideFrame,
   guideFrame,
   guideLineEndpoints,
@@ -52,9 +56,14 @@ export default function ConstructionGuideFloorplanTool({
   unit,
   metricNotation,
   gridSnapStep,
+  toolDefaults,
   selectNode,
   finishTool,
 }: FloorplanToolContext) {
+  const placementMode: ConstructionGuidePlacementMode =
+    toolDefaults?.mode === 'vertical' || toolDefaults?.mode === 'horizontal'
+      ? toolDefaults.mode
+      : 'reference-offset'
   const [draft, setDraft] = useState<Draft>(null)
   const [cursor, setCursor] = useState<[number, number] | null>(null)
   const renderContext = useFloorplanRender()
@@ -110,6 +119,41 @@ export default function ConstructionGuideFloorplanTool({
       setDraft(null)
     }
 
+    const commitDirect = (plan: [number, number]) => {
+      if (!activeLevelId) return
+      const placement = directConstructionGuidePlacement(
+        placementMode,
+        plan,
+        isGridSnapActive(),
+        gridSnapStep,
+      )
+      if (!placement) return
+      const vertical = placementMode === 'vertical'
+      const node = ConstructionGuideNode.parse({
+        parentId: activeLevelId,
+        name: vertical ? 'Vertical Guide' : 'Horizontal Guide',
+        origin: placement.origin,
+        direction: placement.direction,
+      }) satisfies ConstructionGuideNodeType
+      sceneApi.upsert(node, activeLevelId)
+      selectNode(node.id as AnyNodeId)
+      triggerSFX('sfx:structure-build')
+      // The placement pointer is on the floorplan SVG here. A measurement
+      // portal can leave the shared hover flag stale while the pointer is
+      // still over the panel, which would hide the newly selected guide's
+      // action menu until the user re-enters the canvas.
+      useEditor.getState().setFloorplanHovered(true)
+      useEditor.getState().setToolDefaults('construction-guide', null)
+      // Finishing the tool unmounts this capture listener before the browser
+      // dispatches the click that follows pointerup. Swallow that click so
+      // the newly selected guide is not cleared by the floorplan background.
+      swallowNextClick()
+      finishTool()
+      // Re-assert after the mode transition: some selection coordinators run
+      // while the build layer unmounts and may clear the just-created node.
+      selectNode(node.id as AnyNodeId)
+    }
+
     const onPointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return
       consume(event)
@@ -118,10 +162,22 @@ export default function ConstructionGuideFloorplanTool({
       const plan = clientToPlan(group, event.clientX, event.clientY)
       if (plan) setCursor(plan)
     }
+    const onPointerUp = (event: PointerEvent) => {
+      if (event.button !== 0 || placementMode === 'reference-offset') return
+      const plan = clientToPlan(group, event.clientX, event.clientY)
+      if (!plan) return
+      consume(event)
+      commitDirect(plan)
+    }
     const onClick = (event: MouseEvent) => {
       if (event.button !== 0) return
       const plan = clientToPlan(group, event.clientX, event.clientY)
       if (!plan) return
+
+      if (placementMode !== 'reference-offset') {
+        consume(event)
+        return
+      }
 
       const current = draftRef.current
       if (current) {
@@ -167,6 +223,11 @@ export default function ConstructionGuideFloorplanTool({
       event.preventDefault()
       event.stopImmediatePropagation()
       markToolCancelConsumed()
+      if (placementMode !== 'reference-offset') {
+        useEditor.getState().setToolDefaults('construction-guide', null)
+        finishTool()
+        return
+      }
       if (draftRef.current) {
         draftLengthRef.current.clear()
         setDraft(null)
@@ -177,17 +238,19 @@ export default function ConstructionGuideFloorplanTool({
 
     svg.addEventListener('pointerdown', onPointerDown, true)
     svg.addEventListener('pointermove', onPointerMove, true)
+    svg.addEventListener('pointerup', onPointerUp, true)
     svg.addEventListener('click', onClick, true)
     svg.addEventListener('dblclick', consume, true)
     window.addEventListener('keydown', onKeyDown, true)
     return () => {
       svg.removeEventListener('pointerdown', onPointerDown, true)
       svg.removeEventListener('pointermove', onPointerMove, true)
+      svg.removeEventListener('pointerup', onPointerUp, true)
       svg.removeEventListener('click', onClick, true)
       svg.removeEventListener('dblclick', consume, true)
       window.removeEventListener('keydown', onKeyDown, true)
     }
-  }, [activeLevelId, finishTool, gridSnapStep, sceneApi, selectNode])
+  }, [activeLevelId, finishTool, gridSnapStep, placementMode, sceneApi, selectNode])
 
   const unitsPerPixel = renderContext?.unitsPerPixel ?? 0.01
   const sceneRotationDeg = renderContext?.sceneRotationDeg ?? 0
@@ -198,7 +261,19 @@ export default function ConstructionGuideFloorplanTool({
     offset: number
     label: [number, number]
   } | null = null
-  if (draft && cursor) {
+  if (placementMode !== 'reference-offset' && cursor) {
+    const placement = directConstructionGuidePlacement(
+      placementMode,
+      cursor,
+      isGridSnapActive(),
+      gridSnapStep,
+    )
+    if (placement) {
+      const frame = guideFrame(placement.origin, placement.direction)
+      const { a, b } = guideLineEndpoints(frame)
+      preview = { a, b, offset: 0, label: placement.origin }
+    }
+  } else if (draft && cursor) {
     const { reference } = draft
     const raw =
       (cursor[0] - reference.origin[0]) * reference.normal[0] +

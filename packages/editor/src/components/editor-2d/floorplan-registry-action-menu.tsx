@@ -52,6 +52,7 @@ import { BodyArrayPopover } from '../editor/body-array-popover'
 import { BodySolidInspector } from '../editor/body-solid-inspector'
 import { NodeActionMenu } from '../editor/node-action-menu'
 import { IconRefGlyph } from '../ui/icon-ref'
+import { ConstructionGuideStretchControls } from './construction-guide-stretch-controls'
 
 function SideAddGlyph({ direction }: { direction: 'left' | 'right' }) {
   return (
@@ -248,6 +249,20 @@ export function FloorplanRegistryActionMenu() {
         return
       }
 
+      if (selectedKind === 'construction-guide') {
+        const guide = useScene.getState().nodes[selectedId]
+        if (guide?.type !== 'construction-guide') {
+          setPosition(null)
+          return
+        }
+        const origin = svgEl.createSVGPoint()
+        origin.x = guide.origin[0]
+        origin.y = guide.origin[1]
+        const screen = origin.matrixTransform(ctm)
+        setPosition({ left: screen.x, top: screen.y })
+        return
+      }
+
       const el = sceneEl.querySelector(`[data-node-id="${selectedAnchorId}"]`) as SVGGElement | null
       if (el) {
         const rect = el.getBoundingClientRect()
@@ -258,7 +273,7 @@ export function FloorplanRegistryActionMenu() {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [isVisible, selectedAnchorId, selectedId, isWall])
+  }, [isVisible, isWall, selectedAnchorId, selectedId, selectedKind])
 
   if (!(isVisible && selectedId && position && def)) return null
 
@@ -503,6 +518,12 @@ export function FloorplanRegistryActionMenu() {
         onPointerDown={(event) => event.stopPropagation()}
         onPointerUp={(event) => event.stopPropagation()}
       />
+      {node.type === 'construction-guide' ? (
+        <ConstructionGuideStretchControls
+          guide={node}
+          key={`${node.id}:${node.direction.join(',')}`}
+        />
+      ) : null}
       {node.type === 'body' && arrayOpen ? (
         <BodyArrayPopover
           error={arrayError}

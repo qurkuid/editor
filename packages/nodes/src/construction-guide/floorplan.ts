@@ -16,6 +16,28 @@ export type GuideFrame = {
   normal: readonly [number, number]
 }
 
+export type ConstructionGuidePlacementMode = 'reference-offset' | 'vertical' | 'horizontal'
+
+export type DirectConstructionGuidePlacement = {
+  origin: [number, number]
+  direction: [number, number]
+}
+
+export function directConstructionGuidePlacement(
+  mode: ConstructionGuidePlacementMode,
+  cursor: readonly [number, number],
+  snapEnabled: boolean,
+  gridSnapStep: number,
+): DirectConstructionGuidePlacement | null {
+  if (mode === 'reference-offset') return null
+  const snap = (value: number) =>
+    snapEnabled && gridSnapStep > 0 ? Math.round(value / gridSnapStep) * gridSnapStep : value
+  if (mode === 'vertical') {
+    return { origin: [snap(cursor[0]), cursor[1]], direction: [0, 1] }
+  }
+  return { origin: [cursor[0], snap(cursor[1])], direction: [1, 0] }
+}
+
 export function guideFrame(
   origin: readonly [number, number],
   direction: readonly [number, number],
