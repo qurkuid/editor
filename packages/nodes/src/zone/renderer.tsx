@@ -7,6 +7,7 @@ import {
   useRegistry,
   useScene,
   type ZoneNode,
+  zoneNeedsBoundaryReview,
 } from '@pascal-app/core'
 import { useNodeEvents, useViewer, ZONE_LAYER } from '@pascal-app/viewer'
 import { Html } from '@react-three/drei'
@@ -248,7 +249,10 @@ export const ZoneRenderer = ({ node }: { node: ZoneNode }) => {
                   textAlign: 'center',
                 }}
               >
-                <span>{node.name}</span>
+                <span>
+                  {node.name}
+                  {zoneNeedsBoundaryReview(node) ? ' · 구획 확인 필요' : ''}
+                </span>
               </div>
               <div
                 className="label-pin"

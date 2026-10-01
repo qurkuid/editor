@@ -50,6 +50,15 @@ describe('AI provider boundary', () => {
     expect(prompt).toContain('`intersectBodies`')
     expect(prompt).toContain('`toolBodyId`')
     expect(prompt).toContain('Clone node ids are fresh')
+    expect(prompt).toContain('`mergeWalls`')
+    expect(prompt).toContain('`splitWall`')
+    expect(prompt).toContain('semantic zones without creating physical walls')
+    expect(prompt).toContain('bright ridge between darker rails')
+    expect(prompt).toContain('exact contiguous straight collinear chain')
+    expect(prompt).toContain('local swing-arc evidence')
+    expect(prompt).toContain('uncertain internal fixtures remain `opening`')
+    expect(prompt).toContain('full room barrier')
+    expect(prompt).toContain('conflicting OCR labels')
   })
 
   test('uses the authenticated Codex CLI when no API key is configured', () => {

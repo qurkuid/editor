@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { type AnyNodeId, useLiveNodeOverrides, useScene, WallNode } from '@pascal-app/core'
-import { wallCurveAffordance } from './floorplan-affordances'
+import { useEditor, useInteractionScope } from '@pascal-app/editor'
+import { wallCurveAffordance, wallMoveEndpointAffordance } from './floorplan-affordances'
 
 globalThis.requestAnimationFrame ??= (callback) => {
   callback(0)
@@ -18,6 +19,112 @@ const modifiers = {
 describe('wall center curve handle release', () => {
   afterEach(() => {
     useLiveNodeOverrides.getState().clearAll()
+    useInteractionScope.getState().end()
+  })
+
+  test('weak endpoint inference releases freely, keeps connections, and honors Off and Shift', () => {
+    const wall = WallNode.parse({ id: 'wall_weak', start: [0, 0], end: [4, 0.1] })
+    const linked = WallNode.parse({ id: 'wall_linked', start: wall.end, end: [6, 3] })
+    useScene.setState({ nodes: { [wall.id]: wall, [linked.id]: linked } })
+    useScene.temporal.getState().clear()
+    useScene.temporal.getState().resume()
+    useEditor.setState({ gridSnapStep: 0.001 })
+    useEditor.getState().setSnappingMode('wall', 'grid')
+    useInteractionScope.getState().begin({
+      kind: 'reshaping',
+      nodeId: wall.id,
+      reshape: 'endpoint',
+      driver: 'tool',
+    })
+    const session = wallMoveEndpointAffordance.start({
+      node: wall,
+      nodes: useScene.getState().nodes,
+      payload: { wallId: wall.id, endpoint: 'end' },
+      initialPlanPoint: wall.end,
+      gridSnapStep: 0.001,
+    })
+    session.apply({ planPoint: [4, 0.1], modifiers })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([4, 0])
+    expect(useLiveNodeOverrides.getState().get(linked.id)?.start).toEqual([4, 0])
+    expect(useScene.getState().nodes[wall.id]).toEqual(wall)
+    session.apply({ planPoint: [4, 0.2], modifiers: { ...modifiers, shiftKey: true } })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([4, 0])
+    session.apply({ planPoint: [4, 0.2], modifiers })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([4, 0.2])
+    session.apply({ planPoint: [3.9, 4], modifiers })
+    const diagonal = useLiveNodeOverrides.getState().get(wall.id)?.end as number[]
+    expect(diagonal[0]).toBeCloseTo(diagonal[1]!, 12)
+    useEditor.getState().setSnappingMode('wall', 'off')
+    session.apply({ planPoint: [4, 0.1], modifiers })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([4, 0.1])
+    useEditor.getState().setSnappingMode('wall', 'grid')
+    expect(session.keyDown?.('ArrowRight')).toBe(true)
+    session.apply({ planPoint: [-4, 2], modifiers })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([-4, 0])
+    expect(session.keyDown?.('ArrowRight')).toBe(true)
+    session.apply({ planPoint: [4, 0.1], modifiers })
+    expect(session.canCommit()).toBe(true)
+    session.commit?.()
+    expect((useScene.getState().nodes[wall.id] as WallNode).end).toEqual([4, 0])
+    expect((useScene.getState().nodes[linked.id] as WallNode).start).toEqual([4, 0])
+    useScene.temporal.getState().undo()
+    expect(useScene.getState().nodes[wall.id]).toEqual(wall)
+    expect(useScene.getState().nodes[linked.id]).toEqual(linked)
+  })
+
+  test('an existing endpoint wins over weak angle inference', () => {
+    const wall = WallNode.parse({ id: 'wall_target', start: [0, 0], end: [2, 0.5] })
+    const destination = WallNode.parse({ id: 'wall_dest', start: [4, 0.1], end: [5, 2] })
+    useScene.setState({ nodes: { [wall.id]: wall, [destination.id]: destination } })
+    useEditor.getState().setSnappingMode('wall', 'grid')
+    useInteractionScope.getState().begin({
+      kind: 'reshaping',
+      nodeId: wall.id,
+      reshape: 'endpoint',
+      driver: 'tool',
+    })
+    const session = wallMoveEndpointAffordance.start({
+      node: wall,
+      nodes: useScene.getState().nodes,
+      payload: { wallId: wall.id, endpoint: 'end' },
+      initialPlanPoint: wall.end,
+      gridSnapStep: 0.001,
+    })
+    session.apply({ planPoint: [4, 0.1], modifiers })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual(destination.start)
+  })
+
+  test('Shift preserves endpoint direction through preview, commit and undo', () => {
+    const wall = WallNode.parse({ id: 'wall_shift', start: [2, 3], end: [2, 5] })
+    useScene.setState({ nodes: { [wall.id]: wall } })
+    useScene.temporal.getState().clear()
+    useScene.temporal.getState().resume()
+    useEditor.setState({ gridSnapStep: 0.001 })
+    useEditor.getState().setSnappingMode('wall', 'grid')
+    useInteractionScope.getState().begin({
+      kind: 'reshaping',
+      nodeId: wall.id,
+      reshape: 'endpoint',
+      driver: 'tool',
+    })
+    const session = wallMoveEndpointAffordance.start({
+      node: wall,
+      nodes: useScene.getState().nodes,
+      payload: { wallId: wall.id, endpoint: 'end' },
+      initialPlanPoint: wall.end,
+      gridSnapStep: 0.001,
+    })
+    session.apply({ planPoint: [8, 6.1234], modifiers: { ...modifiers, shiftKey: true } })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([2, 6.123])
+    expect(useScene.getState().nodes[wall.id]).toEqual(wall)
+    session.apply({ planPoint: [9, 4.2344], modifiers: { ...modifiers, shiftKey: true } })
+    expect(session.canCommit()).toBe(true)
+    session.commit?.()
+    expect((useScene.getState().nodes[wall.id] as typeof wall).end).toEqual([2, 4.234])
+    useScene.temporal.getState().undo()
+    expect((useScene.getState().nodes[wall.id] as typeof wall).end).toEqual(wall.end)
+    session.apply({ planPoint: [8, 7], modifiers })
+    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([8, 7])
   })
 
   test('persists the previewed curve offset after commit clears the override', () => {

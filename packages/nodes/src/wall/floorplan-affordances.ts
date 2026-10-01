@@ -13,6 +13,7 @@ import {
 } from '@pascal-app/core'
 import {
   alignFloorplanDraftPoint,
+  createWallDirectionLock,
   getSegmentGridStep,
   isAlignmentGuideActive,
   isAngleSnapActive,
@@ -21,7 +22,7 @@ import {
   resolveEndpointWallSplit,
   snapBuildingLocalToWorldGrid,
   snapScalarToGrid,
-  snapWallDraftPoint,
+  snapWallDraftPointDetailed,
   useAlignmentGuides,
   type WallPlanPoint,
 } from '@pascal-app/editor'
@@ -186,10 +187,27 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
     let lastPrimaryStart: WallPlanPoint = originalStart
     let lastPrimaryEnd: WallPlanPoint = originalEnd
     let lastLinkedUpdates: Array<{ id: AnyNodeId; start: WallPlanPoint; end: WallPlanPoint }> = []
+    const directionLock = createWallDirectionLock()
+    let directionInferred = false
 
     return {
       affectedIds,
+      keyDown(key) {
+        return directionLock.toggleAxis(
+          key,
+          fixedPoint,
+          endpoint === 'start' ? lastPrimaryStart : lastPrimaryEnd,
+          collectLevelWalls(useScene.getState().nodes, node.id).filter(
+            (w) => w.parentId === node.parentId && !movingLinkedWallIds.includes(w.id),
+          ),
+        )
+      },
       apply({ planPoint, modifiers }) {
+        directionLock.set(
+          modifiers.shiftKey,
+          fixedPoint,
+          endpoint === 'start' ? lastPrimaryStart : lastPrimaryEnd,
+        )
         // Re-collect walls every tick so the snap pipeline sees fresh
         // positions (matters when the user releases + re-grabs without
         // unmounting the layer). Snap reads from scene — which holds
@@ -205,15 +223,17 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
         // the endpoint angle-locks off the fixed corner (free length), matching
         // the draft tool — the angle path ignores the `gridSnap` override.
         const angleLocked = isAngleSnapActive()
-        const snapped = snapWallDraftPoint({
+        const snapResult = snapWallDraftPointDetailed({
           point: planPoint as WallPlanPoint,
           walls,
           ignoreWallIds: staleWallIds,
-          start: angleLocked ? fixedPoint : undefined,
+          start: fixedPoint,
+          inferDirection: !node.curveOffset,
           angleSnap: angleLocked,
           magnetic: isMagneticSnapActive(),
           gridSnap: (p) => snapBuildingLocalToWorldGrid(p, getSegmentGridStep()),
         })
+        const snapped = snapResult.point
         // Figma-style alignment on the dragged corner — snaps it onto another
         // object's edge / wall face and publishes a guide. The guide is
         // DISPLAYED in every mode except Off (isAlignmentGuideActive); the
@@ -223,11 +243,16 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
         // from the candidate pool — walls linked at the FIXED corner don't
         // move, and their anchors are what let the dragged corner align back
         // onto a true axis. Alt is detach, NOT bypass.
-        const aligned = alignFloorplanDraftPoint(snapped, {
+        let aligned = alignFloorplanDraftPoint(snapped, {
           applySnap: isMagneticSnapActive(),
           bypass: !isAlignmentGuideActive(),
           excludeIds: staleWallIds,
         }) as WallPlanPoint
+        directionInferred = !!snapResult.directionInferred && pointsEqual(aligned, snapped)
+        if (directionLock.active) {
+          aligned = directionLock.project(planPoint, getSegmentGridStep())
+          useAlignmentGuides.getState().clear()
+        }
 
         const primaryStart: WallPlanPoint = endpoint === 'start' ? aligned : fixedPoint
         const primaryEnd: WallPlanPoint = endpoint === 'end' ? aligned : fixedPoint
@@ -305,6 +330,7 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
                 point: movingPoint,
                 levelId: (node.parentId ?? null) as string | null,
                 ignoreWallIds: [node.id, ...lastLinkedUpdates.map((u) => String(u.id))],
+                radius: directionLock.active || directionInferred ? 1e-7 : undefined,
               })
           const finalPoint = resolved ?? movingPoint
           useScene.getState().updateNodes([

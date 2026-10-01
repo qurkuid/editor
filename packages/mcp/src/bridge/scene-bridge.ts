@@ -1,6 +1,7 @@
 // Side-effect import MUST come first: installs RAF polyfill before core loads.
 import './node-shims'
 
+import { buildWallMerge, buildWallSplit } from '@pascal-app/core'
 import type { SceneGraph } from '@pascal-app/core/clone-scene-graph'
 import type { AnyNode } from '@pascal-app/core/schema'
 import {
@@ -23,7 +24,14 @@ export type ValidationResult = { valid: boolean; errors: ValidationError[] }
 export type CreatePatch = { op: 'create'; node: AnyNode; parentId?: AnyNodeId }
 export type UpdatePatch = { op: 'update'; id: AnyNodeId; data: Partial<AnyNode> }
 export type DeletePatch = { op: 'delete'; id: AnyNodeId; cascade?: boolean }
-export type Patch = CreatePatch | UpdatePatch | DeletePatch
+export type MergeWallsPatch = { op: 'mergeWalls'; wallIds: AnyNodeId[] }
+export type SplitWallPatch = {
+  op: 'splitWall'
+  id: AnyNodeId
+  distance: number
+  secondWallId?: AnyNodeId
+}
+export type Patch = CreatePatch | UpdatePatch | DeletePatch | MergeWallsPatch | SplitWallPatch
 export type ActiveSceneMeta = Pick<
   SceneMeta,
   'id' | 'name' | 'projectId' | 'ownerId' | 'thumbnailUrl' | 'version'
@@ -362,14 +370,66 @@ export class SceneBridge {
     const state = useScene.getState()
     const nodes = state.nodes
 
-    // Track synthesized state as we dry-run so later ops can reference
-    // earlier-created ids and reflect earlier-deleted ids.
-    const simAvailable = new Set<string>(Object.keys(nodes))
-    const simDeleted = new Set<string>()
+    // Keep a small shadow scene for the dry-run. Wall operations use the same
+    // pure builders as the store, so a later invalid patch cannot leave an
+    // earlier merge or split committed.
+    let simNodes = { ...state.nodes }
+    let simRootNodeIds = [...state.rootNodeIds]
+    let simCollections = { ...state.collections }
     // Parsed create nodes keyed by patch index — so the apply phase can use the
     // Zod-normalised copy (which has a generated id if the caller omitted one)
     // instead of the unparsed input.
     const parsedCreateNodes = new Map<number, AnyNode>()
+    // A split without an explicit second-wall id mints one during validation.
+    // Reuse that id during the write phase so a later patch in the same plan
+    // observes the exact shadow graph that was validated.
+    const resolvedSplitIds = new Map<number, AnyNodeId>()
+
+    const childIds = (node: AnyNode | undefined): AnyNodeId[] =>
+      node && 'children' in node && Array.isArray(node.children)
+        ? (node.children as AnyNodeId[])
+        : []
+    const descendants = (id: AnyNodeId) => {
+      const out = new Set<AnyNodeId>()
+      const visit = (currentId: AnyNodeId) => {
+        if (out.has(currentId)) return
+        out.add(currentId)
+        for (const childId of childIds(simNodes[currentId])) visit(childId)
+        for (const node of Object.values(simNodes)) {
+          if (node.parentId === currentId) visit(node.id as AnyNodeId)
+        }
+      }
+      visit(id)
+      return out
+    }
+    const removeFromParent = (id: AnyNodeId) => {
+      const node = simNodes[id]
+      if (!node) return
+      const parentId = node.parentId as AnyNodeId | null
+      if (parentId && simNodes[parentId] && 'children' in simNodes[parentId]) {
+        const parent = simNodes[parentId]!
+        if (Array.isArray(parent.children)) {
+          simNodes[parentId] = {
+            ...parent,
+            children: (parent.children as AnyNodeId[]).filter((childId) => childId !== id),
+          } as AnyNode
+        }
+      }
+      simRootNodeIds = simRootNodeIds.filter((rootId) => rootId !== id)
+    }
+    const removeFromParentAndCollections = (id: AnyNodeId) => {
+      const node = simNodes[id]
+      if (!node) return
+      removeFromParent(id)
+      for (const [collectionId, collection] of Object.entries(simCollections)) {
+        if (!collection.nodeIds.includes(id)) continue
+        simCollections[collectionId as keyof typeof simCollections] = {
+          ...collection,
+          nodeIds: collection.nodeIds.filter((nodeId) => nodeId !== id),
+        }
+      }
+      delete simNodes[id]
+    }
 
     for (let i = 0; i < patches.length; i++) {
       const p = patches[i]
@@ -381,36 +441,94 @@ export class SceneBridge {
             `invalid patch: patches[${i}] create node failed schema: ${res.error.message}`,
           )
         }
-        if (p.parentId !== undefined && !simAvailable.has(p.parentId)) {
+        if (p.parentId !== undefined && !simNodes[p.parentId]) {
           throw new Error(`invalid patch: patches[${i}] create parentId "${p.parentId}" not found`)
         }
-        parsedCreateNodes.set(i, res.data)
-        simAvailable.add(res.data.id)
+        const effectiveParentId = (p.parentId ?? res.data.parentId ?? null) as AnyNodeId | null
+        const parsedNode = AnyNodeSchema.parse({ ...res.data, parentId: effectiveParentId })
+        parsedCreateNodes.set(i, parsedNode)
+        simNodes[parsedNode.id] = parsedNode
+        const createParent = effectiveParentId ? simNodes[effectiveParentId] : undefined
+        if (effectiveParentId && createParent && 'children' in createParent) {
+          const parent = createParent
+          simNodes[effectiveParentId] = {
+            ...parent,
+            children: Array.from(new Set([...childIds(parent), parsedNode.id])),
+          } as AnyNode
+        } else if (!effectiveParentId && !simRootNodeIds.includes(parsedNode.id as AnyNodeId)) {
+          simRootNodeIds.push(parsedNode.id as AnyNodeId)
+        }
       } else if (p.op === 'update') {
-        if (!simAvailable.has(p.id) || simDeleted.has(p.id)) {
+        const current = simNodes[p.id]
+        if (!current) {
           throw new Error(`invalid patch: patches[${i}] update id "${p.id}" not found`)
         }
         if (!p.data || typeof p.data !== 'object') {
           throw new Error(`invalid patch: patches[${i}] update data is not an object`)
         }
+        const next = AnyNodeSchema.safeParse({
+          ...current,
+          ...p.data,
+          id: current.id,
+          type: current.type,
+        })
+        if (!next.success) {
+          throw new Error(
+            `invalid patch: patches[${i}] update node failed schema: ${next.error.message}`,
+          )
+        }
+        if (p.data.parentId !== undefined && p.data.parentId !== current.parentId) {
+          removeFromParent(p.id)
+          simNodes[p.id] = next.data
+          const parentId = next.data.parentId as AnyNodeId | null
+          if (parentId && simNodes[parentId] && 'children' in simNodes[parentId]) {
+            const parent = simNodes[parentId]!
+            simNodes[parentId] = {
+              ...parent,
+              children: Array.from(new Set([...childIds(parent), p.id])),
+            } as AnyNode
+          } else if (!parentId) {
+            simRootNodeIds.push(p.id)
+          }
+        } else {
+          simNodes[p.id] = next.data
+        }
       } else if (p.op === 'delete') {
-        if (!simAvailable.has(p.id) || simDeleted.has(p.id)) {
+        if (!simNodes[p.id]) {
           throw new Error(`invalid patch: patches[${i}] delete id "${p.id}" not found`)
         }
+        const idsToDelete = descendants(p.id)
         if (p.cascade === false) {
-          // Only inspect the current store state — we don't simulate
-          // descendant additions during dry-run, because that would require
-          // building a full shadow tree. This matches the semantics of the
-          // single-op deleteNode guard.
-          const desc = this._collectDescendants(p.id)
-          if (desc.length > 1) {
+          if (idsToDelete.size > 1) {
             throw new Error(
               `invalid patch: patches[${i}] delete "${p.id}" has descendants; pass cascade: true`,
             )
           }
         }
-        simAvailable.delete(p.id)
-        simDeleted.add(p.id)
+        for (const id of idsToDelete) removeFromParentAndCollections(id)
+      } else if (p.op === 'mergeWalls') {
+        const mutation = buildWallMerge(
+          { nodes: simNodes, rootNodeIds: simRootNodeIds, collections: simCollections },
+          p.wallIds,
+        )
+        simNodes = mutation.nodes
+        simRootNodeIds = mutation.rootNodeIds
+        simCollections = mutation.collections
+      } else if (p.op === 'splitWall') {
+        const mutation = buildWallSplit(
+          { nodes: simNodes, rootNodeIds: simRootNodeIds, collections: simCollections },
+          p.id,
+          p.distance,
+          p.secondWallId,
+        )
+        const secondWallId = mutation.createdNodeIds[0]
+        if (!secondWallId) {
+          throw new Error(`invalid patch: patches[${i}] splitWall did not create a wall`)
+        }
+        resolvedSplitIds.set(i, secondWallId)
+        simNodes = mutation.nodes
+        simRootNodeIds = mutation.rootNodeIds
+        simCollections = mutation.collections
       } else {
         throw new Error(`invalid patch: patches[${i}] unknown op`)
       }
@@ -426,7 +544,7 @@ export class SceneBridge {
     // Simple approach: queue by type, flush in original order by walking
     // patches and interleaving flushes when the op type changes, so ids
     // created/updated/deleted stay temporally consistent.
-    const flush = (kind: 'create' | 'update' | 'delete' | 'none') => {
+    const flush = (kind: 'create' | 'update' | 'delete' | 'wall' | 'none') => {
       if (kind !== 'create' && createOps.length > 0) {
         useScene.getState().createNodes(createOps)
         createOps.length = 0
@@ -451,9 +569,21 @@ export class SceneBridge {
       } else if (p.op === 'update') {
         flush('update')
         updateOps.push({ id: p.id, data: p.data })
-      } else {
+      } else if (p.op === 'delete') {
         flush('delete')
         deleteIds.push(p.id)
+      } else if (p.op === 'mergeWalls') {
+        flush('wall')
+        const mutation = useScene.getState().mergeWalls(p.wallIds)
+        if (!mutation) throw new Error('scene is read-only')
+        createdIds.push(...mutation.createdNodeIds)
+      } else {
+        flush('wall')
+        const mutation = useScene
+          .getState()
+          .splitWall(p.id, p.distance, resolvedSplitIds.get(i) ?? p.secondWallId)
+        if (!mutation) throw new Error('scene is read-only')
+        createdIds.push(...mutation.createdNodeIds)
       }
     }
     flush('none')

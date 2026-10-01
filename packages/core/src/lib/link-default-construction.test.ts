@@ -5,8 +5,8 @@ import {
   registerLibraryMaterials,
   unregisterLibraryMaterials,
 } from '../material-library'
-import { createDefaultWallFaceBands } from './wall-construction'
 import { withDefaultConstructionMaterials } from './link-default-construction'
+import { createDefaultWallFaceBands, createWallBandConstructionPreset } from './wall-construction'
 
 function product(
   id: string,
@@ -37,10 +37,17 @@ function layersOf(bands: ReturnType<typeof createDefaultWallFaceBands>) {
   return bands.construction?.upper?.layers ?? []
 }
 
+function studWall() {
+  return {
+    ...createDefaultWallFaceBands(),
+    construction: { upper: createWallBandConstructionPreset('stud-gypsum-finish', 0.1) },
+  }
+}
+
 describe('a new wall names its standard products', () => {
   test('the house standards are linked without anyone picking them', () => {
     registerLibraryMaterials(CATALOGUE)
-    const layers = layersOf(withDefaultConstructionMaterials(createDefaultWallFaceBands(0.1)))
+    const layers = layersOf(withDefaultConstructionMaterials(studWall()))
 
     expect(layers.find((l) => l.kind === 'timber-stud')?.productRef).toBe('intm:stud')
     expect(layers.find((l) => l.kind === 'gypsum-board')?.productRef).toBe('intm:board')
@@ -48,13 +55,13 @@ describe('a new wall names its standard products', () => {
 
   test('the price rides along so the wall is priceable as drawn', () => {
     registerLibraryMaterials(CATALOGUE)
-    const layers = layersOf(withDefaultConstructionMaterials(createDefaultWallFaceBands(0.1)))
+    const layers = layersOf(withDefaultConstructionMaterials(studWall()))
     expect(layers.find((l) => l.kind === 'gypsum-board')?.unitPrice).toBe(5200)
   })
 
   test('a cavity is never given a product', () => {
     registerLibraryMaterials(CATALOGUE)
-    const layers = layersOf(withDefaultConstructionMaterials(createDefaultWallFaceBands(0.1)))
+    const layers = layersOf(withDefaultConstructionMaterials(studWall()))
     expect(layers.find((l) => l.kind === 'cavity')?.productRef).toBeUndefined()
   })
 

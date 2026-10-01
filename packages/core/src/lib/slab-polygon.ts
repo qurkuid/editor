@@ -2,6 +2,7 @@ import type { GeometryContext } from '../registry/types'
 import type { AnyNodeId, SlabNode, WallNode } from '../schema'
 import { isCurvedWall, sampleWallCenterline } from '../systems/wall/wall-curve'
 import { getWallThickness } from '../systems/wall/wall-footprint'
+import { segmentsIntersect } from './polygon-relations'
 
 /**
  * Render-time slab polygon rules.
@@ -91,6 +92,7 @@ const DEFAULT_SLAB_THICKNESS = 0.05
 const GROUNDED_SLAB_UNDERSIDE_EPSILON = 0.01
 /** Prevent near-parallel offset lines from producing unbounded corner spikes. */
 const MAX_CORNER_MITER_RATIO = 10
+const WALL_OFFSET_REPAIR_EPSILON = 1e-9
 
 /**
  * Floating deck test — see the module header. Recessed pools are never
@@ -373,6 +375,8 @@ type EdgeSubSpan = {
   end: number
   offset: number
   key: string
+  wallLateral?: number
+  wallHalfThickness?: number
 }
 
 /**
@@ -709,6 +713,8 @@ function classifySpan(
       end,
       offset: s * wallMatch.lateral + wallMatch.halfThickness,
       key: `wall|${wallMatch.wall.id}`,
+      wallLateral: wallMatch.lateral,
+      wallHalfThickness: wallMatch.halfThickness,
     }
   }
   return { start, end, offset: 0, key: 'free' }
@@ -722,7 +728,7 @@ function classifySpan(
  * share the breakpoint param), and corners between different edges
  * intersect the offset lines of the adjoining sub-spans.
  */
-function offsetPolygonPerEdge(
+function buildOffsetPolygon(
   polygon: Array<[number, number]>,
   subSpans: EdgeSubSpan[][],
 ): Array<[number, number]> {
@@ -822,4 +828,128 @@ function offsetPolygonPerEdge(
   }
 
   return result
+}
+
+function properSegmentIntersection(
+  a: [number, number],
+  b: [number, number],
+  c: [number, number],
+  d: [number, number],
+): boolean {
+  const cross = (from: [number, number], to: [number, number], point: [number, number]) =>
+    (to[0] - from[0]) * (point[1] - from[1]) - (to[1] - from[1]) * (point[0] - from[0])
+  const abC = cross(a, b, c)
+  const abD = cross(a, b, d)
+  const cdA = cross(c, d, a)
+  const cdB = cross(c, d, b)
+  const oppositeSigns = (left: number, right: number) =>
+    (left > WALL_OFFSET_REPAIR_EPSILON && right < -WALL_OFFSET_REPAIR_EPSILON) ||
+    (left < -WALL_OFFSET_REPAIR_EPSILON && right > WALL_OFFSET_REPAIR_EPSILON)
+  return oppositeSigns(abC, abD) && oppositeSigns(cdA, cdB)
+}
+
+type RingDefects = {
+  proper: number
+  nonAdjacent: number
+}
+
+function countRingDefects(polygon: Array<[number, number]>): RingDefects {
+  let proper = 0
+  let nonAdjacent = 0
+  for (let index = 0; index < polygon.length; index += 1) {
+    const next = (index + 1) % polygon.length
+    for (let other = index + 1; other < polygon.length; other += 1) {
+      const otherNext = (other + 1) % polygon.length
+      if (next === other || otherNext === index) continue
+      const start = polygon[index]!
+      const end = polygon[next]!
+      const otherStart = polygon[other]!
+      const otherEnd = polygon[otherNext]!
+      if (segmentsIntersect(start, end, otherStart, otherEnd)) {
+        nonAdjacent += 1
+        if (properSegmentIntersection(start, end, otherStart, otherEnd)) {
+          proper += 1
+        }
+      }
+    }
+  }
+  return { proper, nonAdjacent }
+}
+
+function sourceSideWallOffset(span: EdgeSubSpan, winding: 1 | -1): number | null {
+  if (
+    !span.key.startsWith('wall|') ||
+    span.wallLateral === undefined ||
+    span.wallHalfThickness === undefined ||
+    Math.abs(span.wallLateral) <= WALL_OFFSET_REPAIR_EPSILON
+  ) {
+    return null
+  }
+
+  const sourceSide = -span.wallLateral
+  const currentTargetSide = winding * span.offset - span.wallLateral
+  if (sourceSide * currentTargetSide >= -WALL_OFFSET_REPAIR_EPSILON) return null
+
+  const wallFaceLateral = span.wallLateral - Math.sign(span.wallLateral) * span.wallHalfThickness
+  return winding * wallFaceLateral
+}
+
+function offsetPolygonPerEdge(
+  polygon: Array<[number, number]>,
+  subSpans: EdgeSubSpan[][],
+): Array<[number, number]> {
+  const initial = buildOffsetPolygon(polygon, subSpans)
+  let defects = countRingDefects(initial)
+  if (defects.nonAdjacent === 0) return initial
+
+  const winding = polygonWindingSign(polygon)
+  const candidates: Array<{ span: EdgeSubSpan; offsets: number[] }> = []
+  for (const spans of subSpans) {
+    for (const span of spans) {
+      const sourceOffset = sourceSideWallOffset(span, winding)
+      if (sourceOffset === null) continue
+      const offsets = [sourceOffset]
+      if (Math.abs(span.offset) > WALL_OFFSET_REPAIR_EPSILON) offsets.push(0)
+      candidates.push({ span, offsets })
+    }
+  }
+
+  let repaired = initial
+  for (let attempt = 0; attempt < candidates.length * 2 && defects.nonAdjacent > 0; attempt += 1) {
+    let best:
+      | {
+          candidate: (typeof candidates)[number]
+          offset: number
+          ring: Array<[number, number]>
+          defects: RingDefects
+        }
+      | undefined
+    for (const candidate of candidates) {
+      for (const offset of candidate.offsets) {
+        if (Math.abs(candidate.span.offset - offset) <= WALL_OFFSET_REPAIR_EPSILON) continue
+        const previousOffset = candidate.span.offset
+        candidate.span.offset = offset
+        const ring = buildOffsetPolygon(polygon, subSpans)
+        const nextDefects = countRingDefects(ring)
+        candidate.span.offset = previousOffset
+        const improves =
+          nextDefects.proper < defects.proper ||
+          (nextDefects.proper === defects.proper && nextDefects.nonAdjacent < defects.nonAdjacent)
+        const isBetter =
+          !best ||
+          nextDefects.proper < best.defects.proper ||
+          (nextDefects.proper === best.defects.proper &&
+            nextDefects.nonAdjacent < best.defects.nonAdjacent)
+        if (improves && isBetter) {
+          best = { candidate, offset, ring, defects: nextDefects }
+        }
+      }
+    }
+    if (!best) break
+    best.candidate.span.offset = best.offset
+    repaired = best.ring
+    defects = best.defects
+  }
+
+  return repaired
 }

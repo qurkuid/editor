@@ -101,6 +101,14 @@ describe('createWallOnCurrentLevel', () => {
     useScene.temporal.getState().resume()
   })
 
+  test('a direction-locked wall keeps its endpoint near a host corner', () => {
+    const created = createWallOnCurrentLevel([3.99, 2], [3.99, 0], {
+      preserveDirection: true,
+    })
+    expect(created?.start).toEqual([3.99, 2])
+    expect(created?.end).toEqual([3.99, 0])
+  })
+
   test('endpoint near an existing corner attaches to the corner instead of splitting', () => {
     const created = createWallOnCurrentLevel([2, 2], [3.99, 0])
 
@@ -111,14 +119,11 @@ describe('createWallOnCurrentLevel', () => {
     expect(levelWalls()).toHaveLength(2)
   })
 
-  test('new walls start with studs, gypsum, wallpaper, and an explicit cavity', () => {
+  test('new walls start with a single 100 mm concrete layer', () => {
     const created = createWallOnCurrentLevel([2, 2], [3, 2])
 
-    expect(created?.faceBands?.construction?.upper?.layers.map((layer) => layer.kind)).toEqual([
-      'timber-stud',
-      'cavity',
-      'gypsum-board',
-      'finish',
+    expect(created?.faceBands?.construction?.upper?.layers).toEqual([
+      { kind: 'concrete', thickness: 0.1, wasteFactor: 0 },
     ])
     expect(created?.thickness).toBeCloseTo(0.1)
   })
@@ -543,4 +548,43 @@ describe('guide snapping is on by default from the scene store', () => {
     expect(snapped.point[0]).toBeCloseTo(1.03)
     expect(snapped.point[1]).toBeCloseTo(0.5)
   })
+})
+
+test('shared wall inference keeps guides and corners ahead of weak angles and respects modes', () => {
+  const args = {
+    point: [4, 0.1] as WallPlanPoint,
+    start: [0, 0] as WallPlanPoint,
+    walls: [] as WallNode[],
+    magnetic: false,
+    step: 0.001,
+    guides: [] as GuideSnapLine[],
+    inferDirection: true,
+  }
+  expect(snapWallDraftPointDetailed(args).point).toEqual([4, 0])
+  expect(snapWallDraftPointDetailed({ ...args, point: [4, 0.2] }).point).toEqual([4, 0.2])
+  expect(snapWallDraftPointDetailed({ ...args, step: 0 }).point).toEqual([4, 0.1])
+  const guided = snapWallDraftPointDetailed({
+    ...args,
+    guides: [{ origin: [0, 0.12], direction: [1, 0] }],
+  })
+  expect(guided.point[1]).toBeCloseTo(0.12, 12)
+  expect(guided.directionInferred).toBeUndefined()
+  const corner = snapWallDraftPointDetailed({
+    ...args,
+    magnetic: true,
+    walls: [makeWall([4, 0.1], [5, 2], 'wall_priority')],
+  })
+  expect(corner.point).toEqual([4, 0.1])
+  expect(corner.snap).toBe('endpoint')
+  const edge = snapWallDraftPointDetailed({
+    ...args,
+    point: [20, 0.45],
+    walls: [makeWall([20, -4], [20, 6], 'wall_edge_priority')],
+  })
+  expect(edge.point[0]).toBeCloseTo(20, 12)
+  expect(edge.point[1]).toBeCloseTo(0.45, 12)
+  expect(edge.snap).toBe('wall')
+
+  const angled = snapWallDraftPointDetailed({ ...args, point: [4, 1.1], angleSnap: true })
+  expect((Math.atan2(angled.point[1], angled.point[0]) * 180) / Math.PI).toBeCloseTo(15, 12)
 })

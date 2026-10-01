@@ -44,7 +44,7 @@ describe('create_wall', () => {
       created?.type === 'wall'
         ? created.faceBands?.construction?.upper?.layers.map((layer) => layer.kind)
         : [],
-    ).toEqual(['timber-stud', 'cavity', 'gypsum-board', 'finish'])
+    ).toEqual(['concrete'])
   })
 
   test('accepts a natural-language thickness and canonicalizes to meters', async () => {

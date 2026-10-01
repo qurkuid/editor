@@ -247,6 +247,7 @@ export { SliderControl } from './components/ui/controls/slider-control'
 export { TerrainSculptPanel } from './components/ui/controls/terrain-sculpt-panel'
 export { ToggleControl } from './components/ui/controls/toggle-control'
 export { FloatingLevelSelector } from './components/ui/floating-level-selector'
+export { WallEditControls } from './components/ui/helpers/wall-edit-controls'
 export { CATALOG_ITEMS } from './components/ui/item-catalog/catalog-items'
 export { lightingReplacementNode } from './components/ui/item-catalog/item-catalog'
 // Item collections UI — used by the kind-owned ItemPanel in nodes/.
@@ -573,6 +574,7 @@ export {
   default as useWallAlignPick,
   type WallAlignSide,
 } from './lib/wall-align-pick'
+export { createWallDirectionLock } from './lib/wall-direction-lock'
 export {
   getActiveBuildingPose,
   projectAlignmentGuidesWorldToActiveBuildingLocal,

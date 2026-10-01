@@ -14,6 +14,12 @@ describe('isSuspiciousNodeDrop', () => {
     expect(isSuspiciousNodeDrop(1, 0)).toBe(true)
   })
 
+  test('allows explicit undo to restore the pre-import skeleton', () => {
+    expect(isSuspiciousNodeDrop(118, 3, true)).toBe(false)
+    expect(isSuspiciousNodeDrop(118, 4, true)).toBe(false)
+    expect(isSuspiciousNodeDrop(118, 3, false)).toBe(true)
+  })
+
   test('allows ordinary edits, small-scene edits, and empty starting scenes', () => {
     expect(isSuspiciousNodeDrop(12, 11)).toBe(false)
     expect(isSuspiciousNodeDrop(12, 4)).toBe(false)

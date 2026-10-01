@@ -567,6 +567,95 @@ describe('detectSpacesForLevel', () => {
 })
 
 describe('procedural zones', () => {
+  test('reactive wall deletion updates imported zone review state without changing its source identity', () => {
+    const level = LevelNode.parse({ id: 'level_zone_sync' })
+    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
+    const zone = ZoneNode.parse({
+      name: 'Bedroom',
+      parentId: level.id,
+      polygon: square,
+      spaceRole: 'room',
+      metadata: { source: 'apt-vector', sourceRoomId: 'bedroom' },
+    })
+    const original = Object.fromEntries([level, ...walls, zone].map((node) => [node.id, node]))
+    const scene = createSceneStoreStub(original)
+    const stop = initSpaceDetectionSync(scene, createEditorStoreStub())
+    expect(scene.getState().nodes[zone.id]).toEqual(zone)
+    const broken = { ...original }
+    delete broken[walls[0]!.id]
+    scene.setNodes(broken)
+    expect((scene.getState().nodes[zone.id] as typeof zone).metadata).toEqual({
+      ...zone.metadata,
+      boundaryNeedsReview: true,
+    })
+    scene.setNodes(original)
+    expect((scene.getState().nodes[zone.id] as typeof zone).metadata).toEqual(zone.metadata)
+    stop()
+  })
+  test('follows an imported approximate room through a wall edit and marks a removed boundary for review', () => {
+    const walls = squareWalls()
+    const previousSpaces = detectSpacesForLevel('level-1', walls).spaces
+    const zone = ZoneNode.parse({
+      name: 'Bedroom',
+      spaceRole: 'room',
+      floorFinish: 'Timber',
+      polygon: [
+        [0.05, 0.05],
+        [3.95, 0.05],
+        [3.95, 2.95],
+        [0.05, 2.95],
+      ],
+      metadata: { source: 'apt-vector', sourceRoomId: 'room-1' },
+    })
+    const moved = [
+      { ...walls[0]!, end: [5, 0] as [number, number] },
+      { ...walls[1]!, start: [5, 0] as [number, number], end: [5, 3] as [number, number] },
+      { ...walls[2]!, start: [5, 3] as [number, number] },
+      walls[3]!,
+    ]
+    const plan = planAutoZonesForLevel(detectSpacesForLevel('level-1', moved).spaces, [zone], {
+      previousSpaces,
+      changedWalls: walls,
+    })
+    expect(plan.update[0]?.data.polygon).toContainEqual([5, 0])
+    const adopted = ZoneNode.parse({ ...zone, ...plan.update[0]?.data })
+    const broken = planAutoZonesForLevel([], [adopted], { previousSpaces, changedWalls: walls })
+    expect(broken.update[0]?.data.metadata).toEqual({ ...zone.metadata, boundaryNeedsReview: true })
+    expect(adopted.name).toBe('Bedroom')
+    expect(adopted.floorFinish).toBe('Timber')
+  })
+
+  test('split wall IDs with unchanged room geometry update the binding without a false warning', () => {
+    const walls = squareWalls()
+    const zone = ZoneNode.parse({
+      name: 'Kitchen',
+      polygon: square,
+      autoFromWalls: true,
+      boundaryWallIds: walls.map((wall) => wall.id),
+    })
+    const split = WallNode.parse({ start: [2, 0], end: [4, 0] })
+    const nextWalls = [{ ...walls[0]!, end: [2, 0] as [number, number] }, split, ...walls.slice(1)]
+    const plan = planAutoZonesForLevel(detectSpacesForLevel('level-1', nextWalls).spaces, [zone])
+    expect(plan.update[0]?.data.boundaryWallIds).toContain(split.id)
+    expect(plan.update[0]?.data.metadata?.boundaryNeedsReview).not.toBe(true)
+  })
+
+  test('a deleted imported room boundary reports uncertainty without renaming or merging rooms', () => {
+    const walls = squareWalls()
+    const zone = ZoneNode.parse({
+      name: 'Kitchen',
+      spaceRole: 'room',
+      polygon: square,
+      metadata: { source: 'apt-vector' },
+    })
+    const plan = planAutoZonesForLevel([], [zone], {
+      previousSpaces: detectSpacesForLevel('level-1', walls).spaces,
+      changedWalls: [walls[0]!],
+    })
+    expect(plan.update[0]?.data.metadata?.boundaryNeedsReview).toBe(true)
+    expect(plan.update[0]?.data.name).toBeUndefined()
+    expect(plan.update[0]?.data.polygon).toBeUndefined()
+  })
   test('adopts an exact room footprint and records its enclosing walls', () => {
     const walls = squareWalls()
     const { spaces } = detectSpacesForLevel('level-1', walls)

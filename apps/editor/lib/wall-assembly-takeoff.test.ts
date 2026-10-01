@@ -23,8 +23,21 @@ function wall(faceBands: unknown = createDefaultWallFaceBands(0.1)): WallNode {
 const FACE = { area: 20, length: 4, height: 2.5 }
 
 describe('a wall band becomes order lines', () => {
-  test('the default build-up gives 각재 by the metre and 석고보드 by the sheet', () => {
+  test('the default concrete wall produces an area material line', () => {
     const lines = wallAssemblyLines(wall())
+    expect(lines).toHaveLength(1)
+    expect(lines[0]?.layerKind).toBe('concrete')
+    expect(lines[0]?.unit).toBe('m2')
+    expect(lines[0]?.quantity).toBe(10)
+  })
+
+  test('an explicit stud build-up gives 각재 by the metre and 석고보드 by the sheet', () => {
+    const lines = wallAssemblyLines(
+      wall({
+        ...createDefaultWallFaceBands(0.1),
+        construction: { upper: createWallBandConstructionPreset('stud-gypsum-finish', 0.1) },
+      }),
+    )
 
     expect(lines.map((l) => l.unit)).toEqual(['m', 'ea'])
     expect(lines[0]?.label).toBe('각재 33mm (@300mm)')
@@ -36,9 +49,12 @@ describe('a wall band becomes order lines', () => {
   // — and they share a key, so the takeoff sums them into one order line.
   test('a wall boarded both sides counts both skins under one key', () => {
     const lines = wallAssemblyLines(
-      wall({ ...createDefaultWallFaceBands(0.1), construction: {
-        upper: createWallBandConstructionPreset('gypsum-stud-gypsum', 0.1),
-      } }),
+      wall({
+        ...createDefaultWallFaceBands(0.1),
+        construction: {
+          upper: createWallBandConstructionPreset('gypsum-stud-gypsum', 0.1),
+        },
+      }),
     )
     const boards = lines.filter((l) => l.label.includes('석고보드'))
 
@@ -61,7 +77,15 @@ describe('a floor or ceiling build-up', () => {
   test('furring is counted at its spacing and ordered by the metre', () => {
     // 4 m at 450 mm → 8 full bays, plus a closing member = 9 × 2.5 m.
     const [line] = surfaceAssemblyLines(
-      [{ kind: 'furring', thickness: 0.03, memberWidth: 0.03, memberSpacing: 0.45, wasteFactor: 0 }],
+      [
+        {
+          kind: 'furring',
+          thickness: 0.03,
+          memberWidth: 0.03,
+          memberSpacing: 0.45,
+          wasteFactor: 0,
+        },
+      ],
       FACE,
       'ceiling_a',
       'ceiling',

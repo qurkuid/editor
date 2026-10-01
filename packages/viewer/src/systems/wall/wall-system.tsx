@@ -963,7 +963,7 @@ export function generateExtrudedWall(
   const boundaryPoints = getWallMiterBoundaryPoints(wallNode, miterData)
   const polyPoints = isCurvedWall(wallNode)
     ? getWallSurfacePolygon(
-        wallNode,
+        { ...wallNode, thickness },
         24,
         insetCurvedWallBoundaryPointsFor3D(wallNode, boundaryPoints, miterData) ?? undefined,
       )

@@ -63,6 +63,32 @@ describe('wall mitering miter limit', () => {
     expect(startSideX).toBeLessThan(-0.001)
     expect(startSideX).toBeGreaterThan(-0.5)
   })
+
+  test('keeps unequal near-straight continuations at their thickness step', () => {
+    const rad = (8 * Math.PI) / 180
+    const first = { ...wall('A', [0, 0], [0, 1.9]), thickness: 0.17 }
+    const second = {
+      ...wall('B', [0, 0], [-0.55 * Math.sin(rad), -0.55 * Math.cos(rad)]),
+      thickness: 0.26,
+    }
+    const miters = calculateLevelMiters([first, second])
+    for (const node of [first, second]) {
+      const boundary = getWallMiterBoundaryPoints(node, miters)!
+      for (const point of [boundary.startLeft, boundary.startRight]) {
+        expect(Math.hypot(point.x, point.y)).toBeCloseTo(node.thickness / 2)
+      }
+    }
+  })
+
+  test('does not extend a short source fragment beyond its own span', () => {
+    const first = { ...wall('A', [0, 0], [0.192, -0.041]), thickness: 0.26 }
+    const second = { ...wall('B', [0, 0], [-2, 0]), thickness: 0.29 }
+    const miters = calculateLevelMiters([first, second])
+    const boundary = getWallMiterBoundaryPoints(first, miters)!
+    for (const point of [boundary.startLeft, boundary.startRight]) {
+      expect(Math.hypot(point.x, point.y)).toBeLessThanOrEqual(0.13 + 1e-9)
+    }
+  })
 })
 
 describe('wall miter boundary sides', () => {

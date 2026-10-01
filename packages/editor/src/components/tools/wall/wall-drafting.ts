@@ -22,6 +22,7 @@ import {
 import { useViewer } from '@pascal-app/viewer'
 import { sfxEmitter } from '../../../lib/sfx-bus'
 import { resolveSnapFlags } from '../../../lib/snapping-mode'
+import { inferWallDirection } from '../../../lib/wall-direction-lock'
 import useEditor, { getActiveSnappingMode, isMagneticSnapActive } from '../../../store/use-editor'
 import {
   distanceSquared,
@@ -49,7 +50,7 @@ export {
   type WallSnapRadii,
 } from './wall-snap-geometry'
 
-export const WALL_GRID_STEP = 0.5
+export const WALL_GRID_STEP = 0.001
 export const WALL_MIN_LENGTH = 0.01
 // An endpoint projecting within this distance of an existing wall's corner
 // resolves to the corner without splitting — splitting there would mint a
@@ -150,8 +151,9 @@ function findWallIntersection(
 
     const nearCorner = ([wall.start, wall.end] as WallPlanPoint[]).find(
       (corner) =>
+        distanceSquared(point, corner) <= radius * radius &&
         distanceSquared(projected, corner) <=
-        WALL_SPLIT_ENDPOINT_EPSILON * WALL_SPLIT_ENDPOINT_EPSILON,
+          WALL_SPLIT_ENDPOINT_EPSILON * WALL_SPLIT_ENDPOINT_EPSILON,
     )
     best = nearCorner
       ? { wallId: null, point: [nearCorner[0], nearCorner[1]] }
@@ -486,6 +488,7 @@ type SnapWallDraftArgs = {
   walls: WallNode[]
   start?: WallPlanPoint
   angleSnap?: boolean
+  inferDirection?: boolean
   ignoreWallIds?: string[]
   bypassSnap?: boolean
   /** Override the grid step. */
@@ -520,6 +523,7 @@ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSn
     walls,
     start,
     angleSnap = false,
+    inferDirection = false,
     ignoreWallIds,
     bypassSnap = false,
     step: overrideStep,
@@ -537,6 +541,28 @@ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSn
   if (magnetic) {
     const special = findWallSpecialPointSnap(point, walls, ignoreWallIds, snapRadii)
     if (special) return special
+  }
+
+  if (inferDirection && !magnetic) {
+    const connected = findWallSpecialPointSnap(point, walls, ignoreWallIds, {
+      endpoint: WALL_CONNECT_SNAP_RADIUS,
+      midpoint: WALL_CONNECT_SNAP_RADIUS,
+      intersection: WALL_CONNECT_SNAP_RADIUS,
+    })
+    if (connected) return connected
+  }
+
+  if (inferDirection && start && !angleSnap) {
+    const edge = findWallSnapTarget(point, walls, {
+      ignoreWallIds,
+      radius: magnetic ? snapRadii?.wall : WALL_CONNECT_SNAP_RADIUS,
+    })
+    if (edge)
+      return {
+        point: edge,
+        snap: 'wall',
+        targetWallIds: wallIdsAtSnapPoint(edge, walls, ignoreWallIds),
+      }
   }
 
   const step = overrideStep ?? getSegmentGridStep()
@@ -565,7 +591,16 @@ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSn
           start && angleSnap ? { origin: start, through: modePoint } : undefined,
         )
       : null
-  const basePoint: WallPlanPoint = guideStick ?? modePoint
+  const inferred =
+    !guideStick && start && !angleSnap && inferDirection && (step > 0 || magnetic)
+      ? inferWallDirection(
+          start,
+          point,
+          step,
+          walls.filter((w) => !ignoreWallIds?.includes(w.id)),
+        )
+      : null
+  const basePoint: WallPlanPoint = guideStick ?? inferred ?? modePoint
 
   if (magnetic) {
     const wallSnap = findWallSnapTarget(basePoint, walls, {
@@ -579,7 +614,12 @@ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSn
         targetWallIds: wallIdsAtSnapPoint(wallSnap, walls, ignoreWallIds),
       }
     }
-    return { point: basePoint, snap: null, targetWallIds: [] }
+    return {
+      point: basePoint,
+      snap: null,
+      targetWallIds: [],
+      ...(inferred ? { directionInferred: true } : {}),
+    }
   }
 
   // Non-magnetic modes (grid / off / angles): connectivity still sticks so a
@@ -607,7 +647,12 @@ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSn
     }
   }
 
-  return { point: basePoint, snap: null, targetWallIds: [] }
+  return {
+    point: basePoint,
+    snap: null,
+    targetWallIds: [],
+    ...(inferred ? { directionInferred: true } : {}),
+  }
 }
 
 export function snapWallDraftPoint(args: SnapWallDraftArgs): WallPlanPoint {
@@ -619,6 +664,7 @@ export function isSegmentLongEnough(start: WallPlanPoint, end: WallPlanPoint): b
 }
 
 export type WallConstructionOptions = {
+  preserveDirection?: boolean
   /** Pointer-decided maximum support elevation in level-local metres. */
   supportCap?: number | null
   /** Support source selected by the first click or inherited from a snapped wall. */
@@ -679,7 +725,11 @@ export function createWallOnCurrentLevel(
   // sticks endpoints with. So an endpoint the user saw connect to a wall body
   // actually splits that wall (and redistributes its attachments) in every
   // mode, while `'off'` / `'angles'` gain no residual long-range snap.
-  const joinRadius = isMagneticSnapActive() ? WALL_JOIN_SNAP_RADIUS : WALL_CONNECT_SNAP_RADIUS
+  const joinRadius = options?.preserveDirection
+    ? 1e-7
+    : isMagneticSnapActive()
+      ? WALL_JOIN_SNAP_RADIUS
+      : WALL_CONNECT_SNAP_RADIUS
 
   // One undo step for the whole commit: the split ops (create halves, migrate
   // attachments, delete host) plus the new wall each push their own history

@@ -78,20 +78,23 @@ describe('physical wall band construction', () => {
     ])
   })
 
-  test('creates the standard 100 mm wall face-band configuration', () => {
+  test('creates a single solid 100 mm concrete layer by default', () => {
     const faceBands = createDefaultWallFaceBands()
 
     expect(faceBands.enabled).toBe(false)
     expect(faceBands.count).toBe(1)
-    expect(faceBands.construction?.upper?.layers.map((layer) => layer.kind)).toEqual([
-      'timber-stud',
-      'cavity',
-      'gypsum-board',
-      'finish',
+    expect(faceBands.construction?.upper?.layers).toEqual([
+      { kind: 'concrete', thickness: 0.1, wasteFactor: 0 },
     ])
     expect(
       faceBands.construction?.upper?.layers.reduce((sum, layer) => sum + layer.thickness, 0),
     ).toBeCloseTo(0.1)
+    expect(createDefaultWallFaceBands(0.18).construction?.upper?.layers).toEqual([
+      { kind: 'concrete', thickness: 0.18, wasteFactor: 0 },
+    ])
+    expect(
+      normalizeWallBandConstructionToThickness(faceBands.construction!.upper!, 0.2).layers,
+    ).toEqual([{ kind: 'concrete', thickness: 0.2, wasteFactor: 0 }])
   })
 
   test('keeps the material sum as the final thickness when no cavity exists', () => {
@@ -171,6 +174,7 @@ describe('physical wall band construction', () => {
 
   test('round-trips the presets exposed by the wall band editor', () => {
     for (const preset of [
+      'concrete',
       'finish-only',
       'gypsum',
       'mdf',

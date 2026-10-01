@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { type AnyNode, DoorNode, registerNode, sceneRegistry } from '@pascal-app/core'
+import {
+  type AnyNode,
+  DoorNode,
+  GuideNode,
+  registerNode,
+  sceneRegistry,
+  WallNode,
+  WindowNode,
+} from '@pascal-app/core'
 import { buildDoorPreviewMesh } from '@pascal-app/viewer'
 import * as THREE from 'three'
 import type { GLTFWriter } from 'three/examples/jsm/exporters/GLTFExporter.js'
@@ -40,7 +48,88 @@ function meshWithNodeMaterial(material: THREE.Material): THREE.Mesh {
   return new THREE.Mesh(geometry, material)
 }
 
+function alternatingWallGeometry(indexed: boolean): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(
+      [0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 2, 0, 0, 3, 0, 0, 3, 1, 0, 2, 1, 0],
+      3,
+    ),
+  )
+  geometry.setIndex([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7])
+  geometry.addGroup(0, 3, 0)
+  geometry.addGroup(3, 3, 1)
+  geometry.addGroup(6, 3, 0)
+  geometry.addGroup(9, 3, 1)
+  return indexed ? geometry : geometry.toNonIndexed()
+}
+
+function triangleMaterialMultiset(mesh: THREE.Mesh): string[] {
+  const position = mesh.geometry.getAttribute('position')
+  const index = mesh.geometry.getIndex()
+  const vertexIndexAt = (offset: number) => (index ? index.getX(offset) : offset)
+  const records: string[] = []
+
+  for (const group of mesh.geometry.groups) {
+    for (let offset = group.start; offset < group.start + group.count; offset += 3) {
+      const vertices = [0, 1, 2]
+        .map((vertexOffset) => {
+          const vertex = vertexIndexAt(offset + vertexOffset)
+          return [position.getX(vertex), position.getY(vertex), position.getZ(vertex)].join(',')
+        })
+        .join('|')
+      records.push(`${group.materialIndex}:${vertices}`)
+    }
+  }
+
+  return records.sort()
+}
+
+function worldVertexPositions(mesh: THREE.Mesh): number[][] {
+  const position = mesh.geometry.getAttribute('position')
+  const world = new THREE.Vector3()
+  const positions: number[][] = []
+  for (let i = 0; i < position.count; i++) {
+    world.set(position.getX(i), position.getY(i), position.getZ(i)).applyMatrix4(mesh.matrixWorld)
+    positions.push(world.toArray())
+  }
+  return positions
+}
+
 describe('prepareSceneForExport', () => {
+  test('includes textured floorplan guides only for explicit local downloads', () => {
+    registerNode({
+      kind: 'guide',
+      bake: 'strip',
+      schemaVersion: 1,
+      category: 'site',
+      defaults: () => ({}),
+      capabilities: {},
+    } as never)
+    const guide = GuideNode.parse({ id: 'guide_export', url: 'asset://plan' })
+    const root = new THREE.Group()
+    const group = new THREE.Group()
+    group.position.set(2, 0.01, 3)
+    const map = new THREE.Texture()
+    group.add(
+      new THREE.Mesh(
+        new THREE.PlaneGeometry(10, 6),
+        nodeMaterial({ colorNode: { value: map }, opacityNode: { value: 0.5 } }),
+      ),
+    )
+    root.add(group)
+    sceneRegistry.nodes.set(guide.id, group)
+    const nodes = { [guide.id]: guide }
+    expect(prepareSceneForExport(root, nodes).scene.children).toHaveLength(0)
+    const result = prepareSceneForExport(root, nodes, { includeGuides: true }).scene
+    const exported = result.getObjectByName(guide.id)!
+    const material = (exported.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial
+    expect(exported.position.toArray()).toEqual([2, 0.01, 3])
+    expect(material.map).toBe(map)
+    expect(material.opacity).toBe(0.5)
+    expect(group.children[0]!.parent).toBe(group)
+  })
   test('converts NodeMaterials to classic glTF-standard materials', () => {
     const root = new THREE.Group()
     root.name = 'scene-renderer'
@@ -117,6 +206,130 @@ describe('prepareSceneForExport', () => {
     expect(material.normalMap).toBe(unstamped)
     const sharedMaterial = (scene.children[1] as THREE.Mesh).material as THREE.MeshStandardMaterial
     expect(sharedMaterial.map).toBe(placeholder)
+  })
+
+  test('compacts alternating non-indexed wall groups without mutating the source geometry', () => {
+    const root = new THREE.Group()
+    const geometry = alternatingWallGeometry(false)
+    const sourcePositions = Array.from(geometry.getAttribute('position').array)
+    const sourceGroups = geometry.groups.map((group) => ({ ...group }))
+    const mesh = new THREE.Mesh(geometry, [nodeMaterial(), nodeMaterial()])
+    mesh.name = 'alternating-wall-non-indexed'
+    root.add(mesh)
+
+    const before = triangleMaterialMultiset(mesh)
+    const { scene } = prepareSceneForExport(root, {})
+    const exported = scene.getObjectByName(mesh.name) as THREE.Mesh
+
+    expect(exported.geometry).not.toBe(geometry)
+    expect(exported.geometry.getIndex()).toBeDefined()
+    expect(exported.geometry.groups).toEqual([
+      { start: 0, count: 6, materialIndex: 0 },
+      { start: 6, count: 6, materialIndex: 1 },
+    ])
+    expect(triangleMaterialMultiset(exported)).toEqual(before)
+    expect(geometry.getIndex()).toBeNull()
+    expect(geometry.groups).toEqual(sourceGroups)
+    expect(Array.from(geometry.getAttribute('position').array)).toEqual(sourcePositions)
+  })
+
+  test('compacts indexed wall groups while retaining every triangle and material assignment', () => {
+    const root = new THREE.Group()
+    const geometry = alternatingWallGeometry(true)
+    const sourceIndex = geometry.getIndex()!
+    const sourceIndexValues = Array.from(sourceIndex.array)
+    const mesh = new THREE.Mesh(geometry, [nodeMaterial(), nodeMaterial()])
+    mesh.name = 'alternating-wall-indexed'
+    root.add(mesh)
+
+    const before = triangleMaterialMultiset(mesh)
+    const { scene } = prepareSceneForExport(root, {})
+    const exported = scene.getObjectByName(mesh.name) as THREE.Mesh
+    const exportedIndex = exported.geometry.getIndex()!
+
+    expect(exported.geometry).not.toBe(geometry)
+    expect(exportedIndex).not.toBe(sourceIndex)
+    expect(exported.geometry.groups).toEqual([
+      { start: 0, count: 6, materialIndex: 0 },
+      { start: 6, count: 6, materialIndex: 1 },
+    ])
+    expect(exportedIndex.count).toBe(sourceIndex.count)
+    expect(triangleMaterialMultiset(exported)).toEqual(before)
+    expect(Array.from(sourceIndex.array)).toEqual(sourceIndexValues)
+  })
+
+  test('repairs invalid groups before compacting the surviving wall groups', () => {
+    const root = new THREE.Group()
+    const geometry = alternatingWallGeometry(true)
+    const sourceGroups = geometry.groups.map((group) => ({ ...group }))
+    geometry.addGroup(12, 3, 2)
+    const mesh = new THREE.Mesh(geometry, [nodeMaterial(), nodeMaterial()])
+    mesh.name = 'invalid-wall-group'
+    root.add(mesh)
+
+    const { scene } = prepareSceneForExport(root, {})
+    const exported = scene.getObjectByName(mesh.name) as THREE.Mesh
+
+    expect(exported.geometry.groups).toEqual([
+      { start: 0, count: 6, materialIndex: 0 },
+      { start: 6, count: 6, materialIndex: 1 },
+    ])
+    expect(exported.geometry.getIndex()?.count).toBe(12)
+    expect(geometry.groups).toEqual([...sourceGroups, { start: 12, count: 3, materialIndex: 2 }])
+  })
+
+  test('preserves local and world transforms when compacting wall geometry', () => {
+    const root = new THREE.Group()
+    const parent = new THREE.Group()
+    parent.name = 'transformed-wall-parent'
+    parent.position.set(3, 1, -2)
+    parent.rotation.set(0.2, -0.4, 0.1)
+    parent.scale.set(1.25, 0.9, 0.75)
+    const mesh = new THREE.Mesh(alternatingWallGeometry(true), [nodeMaterial(), nodeMaterial()])
+    mesh.name = 'transformed-wall'
+    mesh.position.set(-1, 0.4, 0.6)
+    mesh.rotation.set(-0.15, 0.35, 0.25)
+    mesh.scale.set(0.8, 1.1, 1.3)
+    parent.add(mesh)
+    root.add(parent)
+    root.updateMatrixWorld(true)
+    const sourceWorldPositions = worldVertexPositions(mesh)
+    const sourceParentPosition = parent.position.toArray()
+    const sourceParentQuaternion = parent.quaternion.toArray()
+    const sourceParentScale = parent.scale.toArray()
+    const sourceMeshPosition = mesh.position.toArray()
+    const sourceMeshQuaternion = mesh.quaternion.toArray()
+    const sourceMeshScale = mesh.scale.toArray()
+
+    const { scene } = prepareSceneForExport(root, {})
+    scene.updateMatrixWorld(true)
+    const exportedParent = scene.getObjectByName(parent.name)!
+    const exported = scene.getObjectByName(mesh.name) as THREE.Mesh
+
+    expect(exportedParent.position.toArray()).toEqual(sourceParentPosition)
+    expect(exportedParent.quaternion.toArray()).toEqual(sourceParentQuaternion)
+    expect(exportedParent.scale.toArray()).toEqual(sourceParentScale)
+    expect(exported.position.toArray()).toEqual(sourceMeshPosition)
+    expect(exported.quaternion.toArray()).toEqual(sourceMeshQuaternion)
+    expect(exported.scale.toArray()).toEqual(sourceMeshScale)
+    expect(worldVertexPositions(exported)).toEqual(sourceWorldPositions)
+  })
+
+  test('leaves a partial draw range un-compacted', () => {
+    const root = new THREE.Group()
+    const geometry = alternatingWallGeometry(false)
+    geometry.setDrawRange(3, 6)
+    const mesh = new THREE.Mesh(geometry, [nodeMaterial(), nodeMaterial()])
+    mesh.name = 'partial-wall'
+    root.add(mesh)
+
+    const { scene } = prepareSceneForExport(root, {})
+    const exported = scene.getObjectByName(mesh.name) as THREE.Mesh
+
+    expect(exported.geometry).toBe(geometry)
+    expect(exported.geometry.getIndex()).toBeNull()
+    expect(exported.geometry.drawRange).toEqual({ start: 3, count: 6 })
+    expect(exported.geometry.groups).toEqual(geometry.groups)
   })
 
   test('writes identical texture-reference extras to the texture and image definitions', () => {
@@ -260,6 +473,84 @@ describe('prepareSceneForExport', () => {
       if (object.userData.pascalSwingLeaf) leafMarkerSurvived = true
     })
     expect(leafMarkerSurvived).toBe(false)
+  })
+
+  test('stamps a semantic wall contract with absolute coordinates and opening data', () => {
+    const root = new THREE.Group()
+    const wallGroup = new THREE.Group()
+    wallGroup.position.set(10, 3, -2)
+    wallGroup.add(meshWithNodeMaterial(nodeMaterial()))
+    root.add(wallGroup)
+
+    const wall = WallNode.parse({
+      id: 'wall_export_contract',
+      start: [0, 0],
+      end: [4, 0],
+      children: ['window_export_contract'],
+      frontSide: 'interior',
+      backSide: 'exterior',
+    })
+    const window = WindowNode.parse({
+      id: 'window_export_contract',
+      wallId: wall.id,
+      position: [2, 1, 0],
+      width: 1,
+      height: 1,
+    })
+    sceneRegistry.nodes.set(wall.id, wallGroup)
+
+    const { scene } = prepareSceneForExport(root, {
+      [wall.id]: wall,
+      [window.id]: window,
+    })
+    const exported = scene.getObjectByName(wall.id)
+    const contract = exported?.userData.pascalNativeWall
+
+    expect(contract).toMatchObject({
+      version: 1,
+      compatible: true,
+      coordinates: 'three-world-m',
+      sketchUpMap: 'x,-z,y',
+      wallId: wall.id,
+    })
+    expect(contract.faces.length).toBeGreaterThan(6)
+    expect(
+      contract.faces
+        .flatMap((face: { outer: number[][]; holes: number[][][] }) => [
+          ...face.outer,
+          ...face.holes.flat(),
+        ])
+        .every((point: number[]) => point.every(Number.isFinite)),
+    ).toBe(true)
+    expect(
+      contract.faces
+        .flatMap((face: { outer: number[][] }) => face.outer)
+        .some((point: number[]) => point[0]! > 9),
+    ).toBe(true)
+  })
+
+  test('stamps an incompatible wall contract while keeping normal export available', () => {
+    const root = new THREE.Group()
+    const wallGroup = new THREE.Group()
+    wallGroup.add(meshWithNodeMaterial(nodeMaterial()))
+    root.add(wallGroup)
+
+    const wall = WallNode.parse({
+      id: 'wall_export_incompatible',
+      start: [0, 0],
+      end: [4, 0],
+      curveOffset: 0.25,
+    })
+    sceneRegistry.nodes.set(wall.id, wallGroup)
+
+    const { scene } = prepareSceneForExport(root, { [wall.id]: wall })
+    const exported = scene.getObjectByName(wall.id)
+    expect(exported?.userData.pascalNativeWall).toEqual({
+      version: 1,
+      compatible: false,
+      wallId: wall.id,
+      reasons: ['curved-wall'],
+    })
   })
 
   test('does not flag a door/window openable when no open clip bakes', () => {

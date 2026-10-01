@@ -7,6 +7,7 @@ import {
   useScene,
   type ZoneNode,
   type ZoneQuantityValue,
+  zoneNeedsBoundaryReview,
 } from '@pascal-app/core'
 import {
   formatAreaLabel,
@@ -365,6 +366,12 @@ export default function ZoneQuantitiesPanel() {
 
   return (
     <>
+      {zoneNeedsBoundaryReview(effectiveZone) ? (
+        <p className="text-xs text-destructive" role="alert">
+          벽 변경으로 공간 구획을 확인해야 합니다. 존 경계를 편집하거나 벽 연결을 복구하세요. 아래
+          수치는 기존 존 경계 기준입니다.
+        </p>
+      ) : null}
       <RoomDocumentationPanel zone={effectiveZone} />
       <PanelSection
         title={effectiveZone.spaceRole === 'room' ? 'Room quantities' : 'Zone quantities'}

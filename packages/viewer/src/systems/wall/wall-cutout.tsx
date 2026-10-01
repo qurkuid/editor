@@ -26,7 +26,7 @@ const tmpVec = new Vector3()
 const u = new Vector3()
 const v = new Vector3()
 
-function getWallHideState(
+export function getWallHideState(
   wallNode: WallNode,
   wallMesh: Mesh,
   wallMode: string,

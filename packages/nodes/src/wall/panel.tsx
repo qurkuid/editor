@@ -6,6 +6,7 @@ import {
   bestConstructionMaterial,
   buildWallBandKindPatch,
   buildWallFaceBandCountPatch,
+  buildWallLengthUpdates,
   calculateWallConstructionQuantities,
   createWallBandConstructionPreset,
   detectWallConstructionPreset,
@@ -15,8 +16,8 @@ import {
   getMaxWallCurveOffset,
   getWallBandConstruction,
   getWallBandSlotId,
-  getWallConstructionMaterialKind,
   getWallConstructionEnvelopeThickness,
+  getWallConstructionMaterialKind,
   getWallCurveLength,
   getWallFaceBandConfig,
   getWallKind,
@@ -57,10 +58,11 @@ import {
   triggerSFX,
   useInteractionScope,
   useT,
+  WallEditControls,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
 import { Plus, Spline, Trash2 } from 'lucide-react'
-import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { SurfaceTexturePlacementControls } from '../shared/surface-texture-placement'
 import { resolveWallOpeningCeiling } from '../shared/wall-opening-ceiling'
 import { WALL_LAYER_COLORS } from './construction-visual'
@@ -105,7 +107,8 @@ const WALL_TRIM_PROFILE_OPTIONS = (
 
 export default function WallPanel() {
   const t = useT()
-  const selectedId = useViewer((s) => s.selection.selectedIds[0])
+  const selectedIds = useViewer((s) => s.selection.selectedIds)
+  const selectedId = selectedIds[0]
   const unit = useViewer((s) => s.unit)
   const setSelection = useViewer((s) => s.setSelection)
 
@@ -160,6 +163,7 @@ export default function WallPanel() {
   // "Maximum update depth exceeded" cascade. Same fix in fence-panel.tsx.
   const nodeRef = useRef(node)
   nodeRef.current = node
+  const [lengthError, setLengthError] = useState<{ id: string; message: string } | null>(null)
 
   const handleUpdate = useCallback(
     (updates: Partial<WallNode>) => {
@@ -169,29 +173,21 @@ export default function WallPanel() {
     [selectedId],
   )
 
-  const handleUpdateLength = useCallback(
-    (newLength: number) => {
-      const n = nodeRef.current
-      if (!n || newLength <= 0) return
+  const handleUpdateLength = useCallback((newLength: number) => {
+    const n = nodeRef.current
+    if (!n || newLength <= 0) return
 
-      const dx = n.end[0] - n.start[0]
-      const dz = n.end[1] - n.start[1]
-      const currentLength = Math.sqrt(dx * dx + dz * dz)
-
-      if (currentLength === 0) return
-
-      const dirX = dx / currentLength
-      const dirZ = dz / currentLength
-
-      const newEnd: [number, number] = [
-        n.start[0] + dirX * newLength,
-        n.start[1] + dirZ * newLength,
-      ]
-
-      handleUpdate({ end: newEnd })
-    },
-    [handleUpdate],
-  )
+    try {
+      const scene = useScene.getState()
+      scene.updateNodes(buildWallLengthUpdates(scene.nodes, n.id, newLength))
+      setLengthError(null)
+    } catch (error) {
+      setLengthError({
+        id: n.id,
+        message: error instanceof Error ? error.message : '벽 길이를 변경할 수 없습니다.',
+      })
+    }
+  }, [])
 
   const handleBaseModeChange = useCallback(
     (mode: 'terrain' | 'fixed') => {
@@ -217,7 +213,7 @@ export default function WallPanel() {
     setSelection({ selectedIds: [] })
   }, [node, setSelection])
 
-  if (!(node && node.type === 'wall' && selectedId)) return null
+  if (!(node && node.type === 'wall' && selectedId && selectedIds.length === 1)) return null
 
   const length = getWallCurveLength(node)
 
@@ -261,6 +257,12 @@ export default function WallPanel() {
           unit={unitLabel}
           value={displayLength}
         />
+        {lengthError?.id === node.id ? (
+          <p className="text-xs text-destructive" role="alert">
+            {lengthError.message}
+          </p>
+        ) : null}
+        <WallEditControls />
         <SliderControl
           label={t('common.height')}
           max={metersToLinearUnit(6, unit)}
@@ -575,6 +577,7 @@ function WallFaceBandSection({
 }
 
 const WALL_LAYER_LABELS: Record<WallConstructionLayer['kind'], string> = {
+  concrete: '콘크리트',
   'gypsum-board': '석고보드',
   mdf: 'MDF',
   'timber-stud': '각재',
@@ -729,6 +732,7 @@ export function WallBandConstructionEditor({
           }}
           value={detectWallConstructionPreset(construction)}
         >
+          <option value="concrete">콘크리트 100mm</option>
           <option value="finish-only">표면 마감만</option>
           <option value="gypsum">석고보드 덧시공</option>
           <option value="mdf">MDF 덧시공</option>
@@ -791,7 +795,10 @@ export function WallBandConstructionEditor({
                         ? { kind, thickness: 0.01, wasteFactor: 0 }
                         : kind === 'finish' || kind === 'custom'
                           ? { kind, thickness: kind === 'finish' ? 0.001 : 0.01, wasteFactor: 0.1 }
-                          : kind === 'glass' || kind === 'masonry' || kind === 'glass-block'
+                          : kind === 'concrete' ||
+                              kind === 'glass' ||
+                              kind === 'masonry' ||
+                              kind === 'glass-block'
                             ? { ...WALL_CONSTRUCTION_LAYER_DEFAULTS[kind] }
                             : next
                   if (!defaults) return

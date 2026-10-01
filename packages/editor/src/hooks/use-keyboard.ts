@@ -37,7 +37,11 @@ import { sfxEmitter } from '../lib/sfx-bus'
 import { activeSiteNode, clampBrushRadius } from '../lib/terrain-sculpt'
 import { toggleWindowOpenState } from '../lib/window-interaction'
 import useDeleteConfirmation from '../store/use-delete-confirmation'
-import useEditor, { getActiveContinuationContext, getActiveSnapContext } from '../store/use-editor'
+import useEditor, {
+  getActiveContinuationContext,
+  getActiveSnapContext,
+  isWallDirectionLockContext,
+} from '../store/use-editor'
 import useInteractionScope, { getMovingNode } from '../store/use-interaction-scope'
 import usePivotRotate from '../store/use-pivot-rotate'
 
@@ -284,7 +288,12 @@ export const useKeyboard = ({
         return
       }
 
-      if (e.key === 'Shift' && !e.repeat && isSnappingCycleContext()) {
+      if (
+        e.key === 'Shift' &&
+        !e.repeat &&
+        isSnappingCycleContext() &&
+        !isWallDirectionLockContext()
+      ) {
         // Cycle the global snapping mode (grid → lines → angles → off).
         // `'off'` is the snap bypass now, so Shift no longer holds-to-bypass.
         e.preventDefault()
@@ -761,7 +770,6 @@ export const useKeyboard = ({
           return
         }
         if (!isSnappingCycleContext()) return
-        // Cycle the grid / measurement step (0.5 → 0.25 → 0.1 → 0.05).
         useEditor.getState().cycleGridSnapStep()
         sfxEmitter.emit('sfx:grid-snap')
         return

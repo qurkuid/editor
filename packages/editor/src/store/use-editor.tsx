@@ -229,7 +229,7 @@ export type CatalogCategory =
 export type StructureLayer = 'zones' | 'elements'
 
 export type FloorplanSelectionTool = 'click' | 'marquee'
-export type GridSnapStep = 0.5 | 0.25 | 0.1 | 0.05
+export type GridSnapStep = 0.5 | 0.25 | 0.1 | 0.05 | 0.001
 
 export type NavigationSyncSource = '2d' | '3d'
 
@@ -500,8 +500,6 @@ type EditorState = {
   setFloorplanSelectionTool: (tool: FloorplanSelectionTool) => void
   gridSnapStep: GridSnapStep
   setGridSnapStep: (step: GridSnapStep) => void
-  // Cycles the grid step through GRID_SNAP_STEPS (0.5 → 0.25 → 0.1 → 0.05 →
-  // 0.5) and returns the new value. Bound to the measurement-step shortcut.
   cycleGridSnapStep: () => GridSnapStep
   // Magnetic snapping while drafting — snaps wall endpoints onto existing
   // wall corners / wall bodies (the "magnetic" beacon). Independent of grid
@@ -595,7 +593,7 @@ export const DEFAULT_PERSISTED_EDITOR_LAYOUT_STATE: PersistedEditorLayoutState =
   floorplanPaneRatio: DEFAULT_FLOORPLAN_PANE_RATIO,
   splitOrientation: 'horizontal',
   floorplanSelectionTool: 'click',
-  gridSnapStep: 0.5,
+  gridSnapStep: 0.001,
   magneticSnap: true,
   lastMeasurementKind: DEFAULT_CREATABLE_MEASUREMENT_KIND,
   shortcutOverrides: {},
@@ -616,7 +614,7 @@ export const DEFAULT_PERSISTED_EDITOR_LAYOUT_STATE: PersistedEditorLayoutState =
   referenceFloorOpacity: 0.35,
 }
 
-const GRID_SNAP_STEPS: GridSnapStep[] = [0.5, 0.25, 0.1, 0.05]
+export const GRID_SNAP_STEPS: GridSnapStep[] = [0.001, 0.5, 0.25, 0.1, 0.05]
 
 type SelectDefaultBuildingAndLevelOptions = {
   forceGroundLevel?: boolean
@@ -1497,6 +1495,17 @@ const useEditor = create<EditorState>()(
     }),
     {
       name: 'pascal-editor-ui-preferences',
+      version: 1,
+      migrate: (persistedState) => {
+        const state = persistedState as Partial<PersistedEditorState> | null
+        return {
+          ...state,
+          gridSnapStep:
+            state?.gridSnapStep === 0.5 || state?.gridSnapStep === undefined
+              ? DEFAULT_PERSISTED_EDITOR_LAYOUT_STATE.gridSnapStep
+              : state.gridSnapStep,
+        }
+      },
       merge: (persistedState, currentState) => {
         const uiState = normalizePersistedEditorUiState(
           persistedState as Partial<PersistedEditorState>,
@@ -1612,6 +1621,15 @@ export function getActiveSnapContext(): SnapContext | null {
     profileOfNode: getSnapProfileOfNode,
     draftDirectionalOf: (typeOrTool) => nodeRegistry.get(typeOrTool)?.snapDraftDirectional ?? true,
   })
+}
+
+export function isWallDirectionLockContext(): boolean {
+  const scope = useInteractionScope.getState().scope
+  if (scope.kind === 'reshaping' && scope.reshape === 'endpoint') {
+    return useScene.getState().nodes[scope.nodeId as AnyNodeId]?.type === 'wall'
+  }
+  const { mode, tool } = useEditor.getState()
+  return mode === 'build' && tool === 'wall'
 }
 
 export function getSnapProfileOfNode(nodeId: string) {

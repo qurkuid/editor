@@ -243,6 +243,51 @@ describe('SceneBridge', () => {
       expect(Object.keys(bridge.getNodes()).length).toBe(pre)
     })
 
+    test('applies merge and split wall patches through one validated bridge path', async () => {
+      const level = bridge.findNodes({ type: 'level' })[0]!
+      const left = WallNode.parse({ id: 'wall_bridge_left', start: [0, 0], end: [2, 0] })
+      const right = WallNode.parse({ id: 'wall_bridge_right', start: [2, 0], end: [5, 0] })
+      bridge.createNode(left, level.id)
+      bridge.createNode(right, level.id)
+      bridge.clearHistory()
+
+      const merged = bridge.applyPatch([{ op: 'mergeWalls', wallIds: [left.id, right.id] }])
+      await tick()
+      expect(merged.appliedOps).toBe(1)
+      expect(merged.deletedIds).toEqual([right.id])
+      expect(bridge.getNode(left.id)).toMatchObject({ start: [0, 0], end: [5, 0] })
+      expect(bridge.getHistory().pastCount).toBe(1)
+
+      bridge.clearHistory()
+      const split = bridge.applyPatch([
+        { op: 'splitWall', id: left.id, distance: 2, secondWallId: 'wall_bridge_split' },
+      ])
+      await tick()
+      expect(split.appliedOps).toBe(1)
+      expect(split.createdIds).toEqual(['wall_bridge_split'])
+      expect(bridge.getNode('wall_bridge_split')).toMatchObject({ start: [2, 0], end: [5, 0] })
+      expect(bridge.getHistory().pastCount).toBe(1)
+    })
+
+    test('validates wall operations before mutating an earlier patch', () => {
+      const level = bridge.findNodes({ type: 'level' })[0]!
+      const left = WallNode.parse({ id: 'wall_bridge_atomic_left', start: [0, 0], end: [2, 0] })
+      const right = WallNode.parse({ id: 'wall_bridge_atomic_right', start: [2, 0], end: [5, 0] })
+      bridge.createNode(left, level.id)
+      bridge.createNode(right, level.id)
+      bridge.clearHistory()
+      const before = bridge.exportJSON()
+
+      expect(() =>
+        bridge.applyPatch([
+          { op: 'mergeWalls', wallIds: [left.id, right.id] },
+          { op: 'update', id: 'wall_bridge_missing' as any, data: { height: 3 } as any },
+        ]),
+      ).toThrow(/invalid patch/)
+      expect(bridge.exportJSON()).toEqual(before)
+      expect(bridge.getHistory().pastCount).toBe(0)
+    })
+
     test('rejects create with non-existent parentId', () => {
       const wall = WallNode.parse({ start: [0, 0], end: [1, 0] })
       expect(() =>

@@ -407,17 +407,17 @@ describe('Body move session', () => {
     })
 
     session.apply({
-      planPoint: [1.6, 1.4],
+      planPoint: [1.6004, 1.4004],
       modifiers: { shiftKey: true, altKey: false, ctrlKey: false, metaKey: false },
     })
 
     const override = useLiveNodeOverrides.getState().get(body.id)
     expect(override?.vertices).toBeDefined()
     expectLoopCloseTo(getBodyLoopVertices({ ...body, ...override }, 'loop:0'), [
-      [0.9, 0, 1.1],
-      [2.1, 0, 1.1],
-      [2.1, 0, 1.9],
-      [0.9, 0, 1.9],
+      [1, 0, 1],
+      [2.2, 0, 1],
+      [2.2, 0, 1.8],
+      [1, 0, 1.8],
     ])
 
     session.commit?.()

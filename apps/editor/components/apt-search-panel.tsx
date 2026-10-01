@@ -79,6 +79,7 @@ export function AptSearchPanel() {
           withBasePath(
             `/api/apartments/${encodeURIComponent(complex.apartmentId)}/plans/${encodeURIComponent(plan.planId)}/vector`,
           ),
+          { cache: 'no-store' },
         )
         const body = response.ok
           ? ((await response.json()) as { code: string; data?: AptVectorDoc })

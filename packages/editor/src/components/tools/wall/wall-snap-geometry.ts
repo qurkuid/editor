@@ -18,6 +18,7 @@ export type WallDraftSnapKind = 'endpoint' | 'midpoint' | 'intersection' | 'wall
 export type WallSnapRadii = Partial<Record<WallDraftSnapKind, number>>
 
 export type WallDraftSnapResult = {
+  directionInferred?: boolean
   point: WallPlanPoint
   /**
    * Set when `point` locked onto existing wall geometry (a corner, midpoint,

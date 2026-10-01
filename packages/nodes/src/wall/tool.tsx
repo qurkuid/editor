@@ -22,6 +22,7 @@ import {
   chainEndJoinsExistingWall,
   clearPlacementSurface,
   constrainPlanDraftPoint,
+  createWallDirectionLock,
   createWallOnCurrentLevel,
   EDITOR_LAYER,
   formatAngleRadians,
@@ -29,6 +30,7 @@ import {
   getAngleArcToSegmentReference,
   getAngleToSegmentReference,
   getSegmentAngleReferenceAtPoint,
+  getSegmentGridStep,
   type HorizontalConstructionPlane,
   isAlignmentGuideActive,
   isAngleSnapActive,
@@ -504,6 +506,16 @@ export const WallTool: React.FC = () => {
   useEffect(() => {
     let gridPosition: WallPlanPoint = [0, 0]
     let previousWallEnd: [number, number] | null = null
+    const directionLock = createWallDirectionLock()
+    let shiftHeld = false
+    let lastNativeEvent: GridEvent['nativeEvent'] | null = null
+    const readShift = (event: GridEvent) => {
+      if (event.nativeEvent !== lastNativeEvent) {
+        lastNativeEvent = event.nativeEvent
+        shiftHeld = event.nativeEvent.shiftKey
+      }
+      return shiftHeld
+    }
 
     // Alignment candidates — anchors of every alignable object. Refreshed
     // after each segment commits (the new wall becomes a candidate too).
@@ -620,6 +632,7 @@ export const WallTool: React.FC = () => {
     }
 
     const stopDrafting = () => {
+      directionLock.reset()
       clearDraftLength()
       buildingState.current = 0
       constructionPlane.current = null
@@ -671,12 +684,27 @@ export const WallTool: React.FC = () => {
       const snapResult = snapWallDraftPointDetailed({
         point: localPoint,
         walls: snapWalls,
-        start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
+        start:
+          buildingState.current === 1
+            ? [startingPoint.current.x, startingPoint.current.z]
+            : undefined,
+        inferDirection: true,
         angleSnap: angleLocked,
         magnetic: isMagneticSnapActive(),
       })
-      gridPosition = alignPoint(snapResult.point, { applySnap: !angleLocked })
+      gridPosition = alignPoint(snapResult.point, {
+        applySnap: !angleLocked && !snapResult.directionInferred,
+      })
       if (buildingState.current === 1) {
+        directionLock.set(
+          readShift(event),
+          [startingPoint.current.x, startingPoint.current.z],
+          [endingPoint.current.x, endingPoint.current.z],
+        )
+        if (directionLock.active) {
+          gridPosition = directionLock.project(localPoint, getSegmentGridStep())
+          useAlignmentGuides.getState().clear()
+        }
         gridPosition = constrainPlanDraftPoint(
           [startingPoint.current.x, startingPoint.current.z],
           gridPosition,
@@ -688,7 +716,7 @@ export const WallTool: React.FC = () => {
       useWallSnapIndicator
         .getState()
         .set(
-          snapResult.snap
+          snapResult.snap && !directionLock.active
             ? { x: gridPosition[0], z: gridPosition[1], kind: snapResult.snap }
             : null,
         )
@@ -806,20 +834,33 @@ export const WallTool: React.FC = () => {
         setDraftMeasurement(null)
       } else if (buildingState.current === 1) {
         const angleLocked = isAngleSnapActive()
-        const snappedEnd = constrainPlanDraftPoint(
+        const snapResult = snapWallDraftPointDetailed({
+          point: localClick,
+          walls: snapWalls,
+          start: [startingPoint.current.x, startingPoint.current.z],
+          angleSnap: angleLocked,
+          inferDirection: true,
+          magnetic: isMagneticSnapActive(),
+        })
+        let snappedEnd = constrainPlanDraftPoint(
           [startingPoint.current.x, startingPoint.current.z],
-          alignPoint(
-            snapWallDraftPointDetailed({
-              point: localClick,
-              walls: snapWalls,
-              start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
-              angleSnap: angleLocked,
-              magnetic: isMagneticSnapActive(),
-            }).point,
-            { applySnap: !angleLocked },
-          ),
+          alignPoint(snapResult.point, {
+            applySnap: !angleLocked && !snapResult.directionInferred,
+          }),
           getLengthMeters(),
         )
+        directionLock.set(
+          readShift(event),
+          [startingPoint.current.x, startingPoint.current.z],
+          [endingPoint.current.x, endingPoint.current.z],
+        )
+        if (directionLock.active) {
+          snappedEnd = constrainPlanDraftPoint(
+            [startingPoint.current.x, startingPoint.current.z],
+            directionLock.project(localClick, getSegmentGridStep()),
+            getLengthMeters(),
+          )
+        }
         const dx = snappedEnd[0] - startingPoint.current.x
         const dz = snappedEnd[1] - startingPoint.current.z
         if (dx * dx + dz * dz < 0.01 * 0.01) return
@@ -828,6 +869,7 @@ export const WallTool: React.FC = () => {
           [startingPoint.current.x, startingPoint.current.z],
           snappedEnd,
           {
+            preserveDirection: directionLock.active || !!snapResult.directionInferred,
             supportCap: constructionPlane.current?.elevation ?? null,
             preferredSupportSlabId: constructionPlane.current?.supportSlabId ?? null,
             constructionElevation: constructionPlane.current?.elevation ?? null,
@@ -835,6 +877,7 @@ export const WallTool: React.FC = () => {
           },
         )
         if (!createdWall) return
+        directionLock.reset()
         clearDraftLength()
         chainWallIds.current.push(createdWall.id)
 
@@ -910,14 +953,58 @@ export const WallTool: React.FC = () => {
       }
     }
 
+    const onShiftDown = (event: KeyboardEvent) => {
+      if (event.repeat || buildingState.current !== 1 || useEditor.getState().viewMode === '2d')
+        return
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+        return
+      if (
+        directionLock.toggleAxis(
+          event.key,
+          [startingPoint.current.x, startingPoint.current.z],
+          [endingPoint.current.x, endingPoint.current.z],
+          getCurrentLevelWalls(),
+        )
+      ) {
+        event.preventDefault()
+        return
+      }
+      if (event.key !== 'Shift') return
+      shiftHeld = true
+      directionLock.set(
+        true,
+        [startingPoint.current.x, startingPoint.current.z],
+        [endingPoint.current.x, endingPoint.current.z],
+      )
+    }
+    const releaseDirection = () => {
+      shiftHeld = false
+      directionLock.reset()
+    }
+    const onShiftUp = (event: KeyboardEvent) => {
+      if (event.key !== 'Shift') return
+      shiftHeld = false
+      directionLock.set(
+        false,
+        [startingPoint.current.x, startingPoint.current.z],
+        [endingPoint.current.x, endingPoint.current.z],
+      )
+    }
+
     emitter.on('grid:move', onGridMove)
     emitter.on('grid:click', onGridClick)
     emitter.on('tool:cancel', onCancel)
+    window.addEventListener('keydown', onShiftDown)
+    window.addEventListener('keyup', onShiftUp)
+    window.addEventListener('blur', releaseDirection)
 
     return () => {
       emitter.off('grid:move', onGridMove)
       emitter.off('grid:click', onGridClick)
       emitter.off('tool:cancel', onCancel)
+      window.removeEventListener('keydown', onShiftDown)
+      window.removeEventListener('keyup', onShiftUp)
+      window.removeEventListener('blur', releaseDirection)
       clearPlacementSurface()
       useAlignmentGuides.getState().clear()
       useWallSnapIndicator.getState().clear()
@@ -926,7 +1013,7 @@ export const WallTool: React.FC = () => {
       draftPreview.setWallDraftStart(null)
       draftPreview.setWallDraftEnd(null)
     }
-  }, [clearDraftLength, getLengthMeters, unit])
+  }, [clearDraftLength, getLengthMeters, metricNotation, unit])
 
   return (
     <group>

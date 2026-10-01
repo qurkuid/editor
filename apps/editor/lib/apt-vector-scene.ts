@@ -25,9 +25,13 @@ export type AptVectorDoc = {
     a: [number, number]
     b: [number, number]
     wallThickness: number
-    src?: 'pair' | 'ray' | 'boundary'
+    src?: 'pair' | 'ray' | 'boundary' | 'fixture-split' | 'frame'
     hinge?: [number, number]
     radius?: number
+    /** Wider source barriers are room-extraction evidence, never render geometry. */
+    barrierA?: [number, number]
+    barrierB?: [number, number]
+    barrierThickness?: number | null
   }[]
   rooms: {
     id: string
@@ -127,7 +131,17 @@ type OpeningPlacement = { doc: AptVectorDoc['openings'][number]; group: number; 
  */
 export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   if (doc.unit !== 'mm' || !doc.mmPerPx || doc.mmPerPx <= 0) return null
-  if (doc.metrics?.style === 'wood-dense') return null
+  if (
+    doc.metrics?.style === 'wood-dense' &&
+    !(
+      (doc.metrics.wallIoU ?? 0) >= 0.7 &&
+      doc.rooms.length > 0 &&
+      doc.rooms.filter((room) => room.name && room.polygon && room.polygon.length >= 3).length /
+        doc.rooms.length >=
+        0.8
+    )
+  )
+    return null
 
   const [imageW, imageH] = doc.imageSize
   const cx = (imageW * doc.mmPerPx) / 2
@@ -137,6 +151,10 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   const droppedWallIds: string[] = []
   const segs: Seg[] = []
   for (const wall of doc.walls) {
+    if (!isFiniteVec2(wall.start) || !isFiniteVec2(wall.end) || !Number.isFinite(wall.thickness)) {
+      droppedWallIds.push(wall.id)
+      continue
+    }
     const start = toLevel(wall.start)
     const end = toLevel(wall.end)
     if (Math.hypot(end[0] - start[0], end[1] - start[1]) < MIN_WALL_LENGTH_M) {
@@ -176,17 +194,25 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   const extraPoints: { member: number; point: Vec2 }[] = []
 
   const placements: OpeningPlacement[] = []
+  const unresolvedFixtureDoors: {
+    doc: AptVectorDoc['openings'][number]
+    width: number
+    a: Vec2
+    b: Vec2
+  }[] = []
   for (const opening of doc.openings) {
+    if (!isFiniteVec2(opening.a) || !isFiniteVec2(opening.b)) continue
     const a = toLevel(opening.a)
     const b = toLevel(opening.b)
     const gapLen = Math.hypot(b[0] - a[0], b[1] - a[1])
-    if (gapLen < 0.05) continue
+    if (!Number.isFinite(gapLen) || gapLen < 0.05) continue
     const dir: Vec2 = [(b[0] - a[0]) / gapLen, (b[1] - a[1]) / gapLen]
     const width = clampOpeningWidth(opening.type, gapLen)
     if (!width) continue
 
     let left: number | null = null
     let right: number | null = null
+    let covered: number | null = null
     for (let i = 0; i < segs.length; i++) {
       const seg = segs[i]!
       if (!isCollinearWith(seg, a, dir)) continue
@@ -194,21 +220,26 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
       const p1 = along(seg.end, a, dir)
       const lo = Math.min(p0, p1)
       const hi = Math.max(p0, p1)
+      if (lo <= 0.05 && hi >= gapLen - 0.05) covered = i
       if (
         hi >= -FLANK_ALONG_M &&
-        hi <= 0.15 &&
+        lo <= 0.05 &&
+        hi <= gapLen &&
         (left === null || hi > alongHi(segs[left]!, a, dir))
       )
         left = i
       if (
-        lo >= gapLen - 0.15 &&
+        hi >= gapLen - 0.05 &&
+        lo >= 0 &&
         lo <= gapLen + FLANK_ALONG_M &&
         (right === null || lo < alongLo(segs[right]!, a, dir))
       )
         right = i
     }
 
-    if (left !== null && right !== null && left !== right) {
+    if (covered !== null) {
+      placements.push({ doc: opening, group: covered, width })
+    } else if (left !== null && right !== null && left !== right) {
       union(left, right)
       placements.push({ doc: opening, group: left, width })
     } else if ((left !== null || right !== null) && opening.src !== 'boundary') {
@@ -232,7 +263,76 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
         const index = segs.push(synth) - 1
         parent.push(index)
         placements.push({ doc: opening, group: index, width })
+      } else if (opening.src === 'fixture-split' && opening.type === 'door') {
+        unresolvedFixtureDoors.push({ doc: opening, width, a, b })
       }
+    }
+  }
+
+  // A fixture split can describe two halves of one real door host. If the
+  // first half was emitted before the second half, adopt the unresolved half
+  // onto the already anchored sibling group. Keep this narrow: the halves
+  // need a shared endpoint, opposite collinear rays, matching thickness, and
+  // a plausible combined door span. Two unanchored halves never synthesize a
+  // wall.
+  const anchoredFixtureDoors = placements.filter(
+    (placement) => placement.doc.src === 'fixture-split' && placement.doc.type === 'door',
+  )
+  for (const unresolved of unresolvedFixtureDoors) {
+    const unresolvedLen = Math.hypot(
+      unresolved.b[0] - unresolved.a[0],
+      unresolved.b[1] - unresolved.a[1],
+    )
+    if (!Number.isFinite(unresolvedLen)) continue
+    const unresolvedThickness = clamp(unresolved.doc.wallThickness / 1000, 0.05, 0.6)
+    for (const sibling of anchoredFixtureDoors) {
+      const siblingA = toLevel(sibling.doc.a)
+      const siblingB = toLevel(sibling.doc.b)
+      if (!isFiniteVec2(siblingA) || !isFiniteVec2(siblingB)) continue
+      const siblingLen = Math.hypot(siblingB[0] - siblingA[0], siblingB[1] - siblingA[1])
+      if (!Number.isFinite(siblingLen)) continue
+      const siblingThickness = clamp(sibling.doc.wallThickness / 1000, 0.05, 0.6)
+      if (Math.abs(unresolvedThickness - siblingThickness) > MERGE_THICKNESS_TOL_M) continue
+      const endpointPairs: [Vec2, Vec2, Vec2, Vec2][] = [
+        [unresolved.a, siblingA, unresolved.b, siblingB],
+        [unresolved.a, siblingB, unresolved.b, siblingA],
+        [unresolved.b, siblingA, unresolved.a, siblingB],
+        [unresolved.b, siblingB, unresolved.a, siblingA],
+      ]
+      const shared = endpointPairs.find(
+        ([unresolvedShared, siblingShared, unresolvedOuter, siblingOuter]) => {
+          if (
+            Math.hypot(
+              unresolvedShared[0] - siblingShared[0],
+              unresolvedShared[1] - siblingShared[1],
+            ) > 0.001
+          )
+            return false
+          const unresolvedRay: Vec2 = [
+            unresolvedOuter[0] - unresolvedShared[0],
+            unresolvedOuter[1] - unresolvedShared[1],
+          ]
+          const siblingRay: Vec2 = [
+            siblingOuter[0] - siblingShared[0],
+            siblingOuter[1] - siblingShared[1],
+          ]
+          const unresolvedRayLen = Math.hypot(unresolvedRay[0], unresolvedRay[1])
+          const siblingRayLen = Math.hypot(siblingRay[0], siblingRay[1])
+          if (unresolvedRayLen === 0 || siblingRayLen === 0) return false
+          const dot =
+            (unresolvedRay[0] * siblingRay[0] + unresolvedRay[1] * siblingRay[1]) /
+            (unresolvedRayLen * siblingRayLen)
+          if (dot > -Math.cos((10 * Math.PI) / 180)) return false
+          return unresolvedLen + siblingLen >= 1.2 && unresolvedLen + siblingLen <= 1.8
+        },
+      )
+      if (!shared) continue
+      const unresolvedWidth = clampOpeningWidth('door', unresolvedLen)
+      const siblingWidth = clampOpeningWidth('door', siblingLen)
+      if (!unresolvedWidth || !siblingWidth) continue
+      extraPoints.push({ member: sibling.group, point: shared[2] })
+      placements.push({ doc: unresolved.doc, group: sibling.group, width: unresolvedWidth })
+      break
     }
   }
 
@@ -304,6 +404,7 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   // ray gap) would otherwise stack two windows on one wall. Doors outrank
   // windows outrank bare openings; among equals the tighter span wins.
   type Hosted = {
+    doc: AptVectorDoc['openings'][number]
     docId: string
     mergedIndex: number
     at: number
@@ -325,6 +426,7 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
       host.len - placement.width / 2,
     )
     hosted.push({
+      doc: placement.doc,
       docId: placement.doc.id,
       mergedIndex,
       at,
@@ -358,12 +460,14 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
   const openings: (DoorNode | WindowNode)[] = []
   for (const item of kept) {
     const host = hostByMerged[item.mergedIndex]!
+    const metadata = openingMetadata(item.doc, item.width)
     if (item.type === 'door') {
       openings.push(
         DoorNode.parse({
           wallId: host.node.id,
           width: item.width,
           height: DOOR_HEIGHT_M,
+          metadata,
           position: [item.at, DOOR_HEIGHT_M / 2, 0],
         }),
       )
@@ -377,6 +481,7 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
           width: item.width,
           height,
           ...(isOpening ? { openingKind: 'opening' } : {}),
+          metadata,
           position: [item.at, sill + height / 2, 0],
         }),
       )
@@ -398,18 +503,99 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
         polygon: room.polygon.map(toLevel),
         spaceRole: 'room',
         ...(ROOM_COLOR[room.cls] ? { color: ROOM_COLOR[room.cls] } : {}),
-        metadata: { source: 'apt-vector', cls: room.cls, areaM2: room.areaM2 },
+        metadata: {
+          source: 'apt-vector',
+          sourceRoomId: room.id,
+          cls: room.cls,
+          areaM2: room.areaM2,
+        },
       }),
     )
   }
 
   return {
-    walls,
-    openings,
+    ...connectWallJunctions(walls, openings),
     zones,
     guideScale: (imageW * doc.mmPerPx) / 10000,
     diagnostics: { unhostedOpeningIds, dedupedOpeningIds, droppedWallIds },
   }
+}
+
+function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNode)[]) {
+  const segments = walls.map((wall) => ({ ...wall, th: wall.thickness ?? 0.1 }))
+  const cuts = segments.map(() => [] as { at: number; point: Vec2 }[])
+  for (let i = 0; i < segments.length; i++) {
+    const a = segments[i]!
+    for (let j = i + 1; j < segments.length; j++) {
+      const b = segments[j]!
+      const point = lineIntersection(a, b)
+      if (!point) continue
+      const ta = along(point, a.start, segDir(a))
+      const tb = along(point, b.start, segDir(b))
+      if (ta < -1e-6 || ta > segLen(a) + 1e-6 || tb < -1e-6 || tb > segLen(b) + 1e-6) continue
+      // An endpoint tee is already represented by the two source walls. Keep
+      // the main run continuous so its mitering system can render the
+      // passthrough junction without manufacturing extra wall pieces.
+      const aAtEndpoint = ta < 0.001 || ta > segLen(a) - 0.001
+      const bAtEndpoint = tb < 0.001 || tb > segLen(b) - 0.001
+      if (aAtEndpoint !== bAtEndpoint) continue
+      for (const [index, at, otherThickness] of [
+        [i, ta, b.th],
+        [j, tb, a.th],
+      ] as const) {
+        const wall = segments[index]!
+        if (at < 0.001 || at > segLen(wall) - 0.001) continue
+        if (
+          openings.some(
+            (opening) =>
+              opening.wallId === wall.id &&
+              Math.abs(opening.position[0] - at) < (opening.width + otherThickness) / 2 + 0.001,
+          )
+        )
+          continue
+        if (!cuts[index]!.some((cut) => Math.abs(cut.at - at) < 0.001))
+          cuts[index]!.push({ at, point })
+      }
+    }
+  }
+
+  const connectedWalls: WallNode[] = []
+  const hostedOpenings: (DoorNode | WindowNode)[] = []
+  for (let i = 0; i < walls.length; i++) {
+    const wall = walls[i]!
+    const endpoints = [
+      { at: 0, point: wall.start },
+      ...cuts[i]!.sort((a, b) => a.at - b.at),
+      { at: segLen(segments[i]!), point: wall.end },
+    ]
+    for (let k = 0; k < endpoints.length - 1; k++) {
+      const start = endpoints[k]!
+      const end = endpoints[k + 1]!
+      const children = openings.filter(
+        (opening) =>
+          opening.wallId === wall.id &&
+          opening.position[0] >= start.at &&
+          opening.position[0] < end.at,
+      )
+      const segment = WallNode.parse({
+        ...wall,
+        id: k === 0 ? wall.id : undefined,
+        start: start.point,
+        end: end.point,
+        children: children.map((opening) => opening.id),
+      })
+      connectedWalls.push(segment)
+      for (const opening of children) {
+        hostedOpenings.push({
+          ...opening,
+          wallId: segment.id,
+          parentId: segment.id,
+          position: [opening.position[0] - start.at, opening.position[1], opening.position[2]],
+        })
+      }
+    }
+  }
+  return { walls: connectedWalls, openings: hostedOpenings }
 }
 
 /**
@@ -461,6 +647,9 @@ function snapJunctions(segs: Seg[]): void {
             const move = Math.hypot(p[0] - cross[0], p[1] - cross[1])
             const moveOther = Math.hypot(q[0] - cross[0], q[1] - cross[1])
             if (move > SNAP_MAX_MOVE_M || moveOther > SNAP_MAX_MOVE_M) continue
+            const direction = segDir(a)
+            const outward = endKey === 'start' ? -1 : 1
+            if (along(cross, p, direction) * outward < -a.th / 2) continue
             if (!bestCorner || d < bestCorner.d) bestCorner = { q: cross, d }
           }
           if (!bestCorner) {
@@ -603,33 +792,53 @@ function alongHi(seg: Seg, anchor: Vec2, dir: Vec2): number {
  * a floating wall then. */
 function extendToCrossingWalls(synth: Seg, segs: Seg[]): boolean {
   const dir = segDir(synth)
+  const extensions: { seg: Seg; end: 'start' | 'end'; point: Vec2 }[] = []
   for (const endKey of ['start', 'end'] as const) {
     const outward: Vec2 = endKey === 'start' ? [-dir[0], -dir[1]] : dir
     const p = synth[endKey]
-    let best: { point: Vec2; move: number } | null = null
+    let best: { point: Vec2; move: number; other: Seg; t: number } | null = null
     for (const other of segs) {
       const cross = lineIntersection(synth, other)
       if (!cross) continue
       const t = along(cross, other.start, segDir(other))
-      if (t < -0.15 || t > segLen(other) + 0.15) continue
+      const reach = SNAP_MAX_MOVE_M
+      if (t < -reach || t > segLen(other) + reach) continue
       const move = (cross[0] - p[0]) * outward[0] + (cross[1] - p[1]) * outward[1]
-      if (move < -0.05 || move > 0.7) continue
-      if (!best || move < best.move) best = { point: cross, move }
+      if (move < -synth.th / 2 - 0.05 || move > 0.7) continue
+      if (!best || move < best.move) best = { point: cross, move, other, t }
     }
     if (!best) return false
     synth[endKey] = [best.point[0], best.point[1]]
+    if (best.t < 0 || best.t > segLen(best.other)) {
+      extensions.push({
+        seg: best.other,
+        end: best.t < 0 ? 'start' : 'end',
+        point: best.point,
+      })
+    }
   }
+  for (const extension of extensions) extension.seg[extension.end] = [...extension.point]
   return true
 }
 
 function isSameWallRun(a: Seg, b: Seg): boolean {
   if (Math.abs(a.th - b.th) > MERGE_THICKNESS_TOL_M) return false
+  if (segLen(a) < segLen(b)) [a, b] = [b, a]
   const da = segDir(a)
   const db = segDir(b)
-  if (Math.abs(da[0] * db[0] + da[1] * db[1]) < Math.cos((10 * Math.PI) / 180)) return false
+  const alignment = Math.abs(da[0] * db[0] + da[1] * db[1])
   const latTol = Math.max(a.th, b.th) / 2
   const lateral = (p: Vec2) => Math.abs((p[0] - a.start[0]) * da[1] - (p[1] - a.start[1]) * da[0])
   if (lateral(b.start) > latTol || lateral(b.end) > latTol) return false
+  if (
+    alignment >= Math.cos((15 * Math.PI) / 180) &&
+    [b.start, b.end].every((point) => {
+      const t = along(point, a.start, da)
+      return t >= 0 && t <= segLen(a)
+    })
+  )
+    return true
+  if (alignment < Math.cos((10 * Math.PI) / 180)) return false
   const t1a = along(a.start, a.start, da)
   const t1b = along(a.end, a.start, da)
   const t2a = along(b.start, a.start, da)
@@ -652,6 +861,29 @@ function isCollinearWith(seg: Seg, anchor: Vec2, dir: Vec2): boolean {
   )
 }
 
+function isFiniteVec2(value: readonly number[]): value is Vec2 {
+  return value.length === 2 && value.every((component) => Number.isFinite(component))
+}
+
+function openingMetadata(
+  opening: AptVectorDoc['openings'][number],
+  width: number,
+): Record<string, unknown> {
+  const metadata: Record<string, unknown> = {
+    source: 'apt-vector',
+    sourceOpeningId: opening.id,
+    sourceOpeningType: opening.type,
+    sourceWidthMm:
+      isFiniteVec2(opening.a) && isFiniteVec2(opening.b)
+        ? Math.hypot(opening.b[0] - opening.a[0], opening.b[1] - opening.a[1])
+        : width * 1000,
+  }
+  if (opening.src) metadata.sourceOpeningSource = opening.src
+  if (opening.hinge && isFiniteVec2(opening.hinge)) metadata.sourceHinge = opening.hinge
+  if (Number.isFinite(opening.radius)) metadata.sourceRadius = opening.radius
+  return metadata
+}
+
 function clampOpeningWidth(type: 'door' | 'window' | 'opening', width: number): number | null {
   const [min, max] =
     type === 'door'
@@ -659,8 +891,9 @@ function clampOpeningWidth(type: 'door' | 'window' | 'opening', width: number): 
       : type === 'window'
         ? ([0.3, 6] as const)
         : ([0.4, 4] as const)
-  if (width < min / 2) return null
-  return clamp(width, min, max)
+  const lowerBound = type === 'opening' ? 0.05 : min
+  if (!Number.isFinite(width) || width < lowerBound) return null
+  return clamp(width, lowerBound, max)
 }
 
 function clamp(value: number, min: number, max: number): number {

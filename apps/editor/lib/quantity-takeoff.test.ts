@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { type AnyNode, createDefaultWallFaceBands, DEFAULT_WALL_HEIGHT } from '@pascal-app/core'
+import {
+  type AnyNode,
+  createDefaultWallFaceBands,
+  createWallBandConstructionPreset,
+  DEFAULT_WALL_HEIGHT,
+} from '@pascal-app/core'
 import { deriveTakeoff, type TakeoffCategory } from './quantity-takeoff'
 
 function scene(...nodes: Array<Record<string, unknown>>): Record<string, AnyNode> {
@@ -330,7 +335,6 @@ describe('walls are a quantity even before anyone picks a finish', () => {
 })
 
 describe('a wall expands into what actually gets ordered', () => {
-  // Exactly what the wall tool stamps on every new wall — 각재 + 석고보드 + 마감.
   const wall = {
     id: 'wall_a',
     type: 'wall',
@@ -338,10 +342,13 @@ describe('a wall expands into what actually gets ordered', () => {
     end: [4, 0],
     height: 2.5,
     thickness: 0.1,
-    faceBands: createDefaultWallFaceBands(0.1),
+    faceBands: {
+      ...createDefaultWallFaceBands(0.1),
+      construction: { upper: createWallBandConstructionPreset('stud-gypsum-finish', 0.1) },
+    },
   }
 
-  test('the default build-up yields its materials, not just an area', () => {
+  test('an explicit stud build-up yields its materials, not just an area', () => {
     const labels = deriveTakeoff(scene(wall))
       .lines.filter((l) => l.category === 'wall')
       .map((l) => l.label)

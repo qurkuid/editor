@@ -1,11 +1,7 @@
-import {
-  buildWallConstructionLayerSpans,
-  type WallBandConstruction,
-  type WallConstructionLayer,
-} from '@pascal-app/core'
-import type { WallConstructionDisplayMode } from '@pascal-app/editor'
+import type { WallConstructionLayer } from '@pascal-app/core'
 
 export const WALL_LAYER_COLORS: Record<WallConstructionLayer['kind'], string> = {
+  concrete: '#a3a3a3',
   'gypsum-board': '#ece9df',
   mdf: '#b98a58',
   'timber-stud': '#d39a55',
@@ -22,20 +18,6 @@ export type WallStudPlacement = {
   ratio: number
 }
 
-export function resolveWallConstructionDisplay(
-  mode: WallConstructionDisplayMode,
-  selected: boolean,
-) {
-  if (!selected || mode === 'finish') {
-    return { baseOpacity: 1, fullPreview: null, showTopSection: true } as const
-  }
-  return { baseOpacity: 0, fullPreview: mode, showTopSection: true } as const
-}
-
-export function buildWallTopSectionSpans(construction: WallBandConstruction) {
-  return buildWallConstructionLayerSpans(construction).filter((span) => span.kind !== 'cavity')
-}
-
 export function buildWallStudPlacements(
   length: number,
   spacing = 0.3,
@@ -46,12 +28,12 @@ export function buildWallStudPlacements(
   const safeMemberWidth = Math.min(length, Math.max(0.001, memberWidth))
   const safeSpacing = Math.max(safeMemberWidth, spacing)
   const centers: number[] = []
+  const endCenter = Math.max(safeMemberWidth / 2, length - safeMemberWidth / 2)
 
-  for (let center = safeMemberWidth / 2; center < length; center += safeSpacing) {
+  for (let center = safeMemberWidth / 2; center <= endCenter; center += safeSpacing) {
     centers.push(center)
   }
 
-  const endCenter = Math.max(safeMemberWidth / 2, length - safeMemberWidth / 2)
   if (centers.length === 0 || centers.at(-1)! < endCenter) centers.push(endCenter)
 
   return centers.map((center) => ({ center, ratio: center / length }))

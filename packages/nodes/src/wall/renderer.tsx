@@ -19,8 +19,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { Mesh } from 'three'
 import { useShallow } from 'zustand/react/shallow'
 import { createPlaceholderGeometry } from '../shared/placeholder-geometry'
-import { WallConstructionPreview, WallConstructionTopSection } from './construction-preview'
-import { resolveWallConstructionDisplay } from './construction-visual'
+import { hasWallConstruction } from './construction-geometry'
+import { WallConstructionModel } from './construction-preview'
 import { useWallTreatmentLevelData } from './treatment-level-data'
 import { createWallExtraSlotMaterials, WallTreatments } from './treatments'
 
@@ -68,10 +68,7 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
   const sceneTheme = useViewer((s) => s.sceneTheme)
   const showConstruction = useViewer((s) => s.selection.selectedIds.includes(node.id))
   const constructionDisplayMode = useWallConstructionDisplay((s) => s.mode)
-  const constructionDisplay = resolveWallConstructionDisplay(
-    constructionDisplayMode,
-    showConstruction,
-  )
+  const construction = hasWallConstruction(node)
   const childNodes = useScene(
     useShallow((state) =>
       (node.children ?? [])
@@ -96,16 +93,17 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
     sceneMaterials,
   )
   const visibleBaseMaterials = useMemo(() => {
-    if (constructionDisplay.baseOpacity === 1) return baseMaterials
+    if (!construction) return baseMaterials
     return baseMaterials.map((material) => {
       const transparentMaterial = material.clone()
       transparentMaterial.transparent = true
-      transparentMaterial.opacity = constructionDisplay.baseOpacity
+      transparentMaterial.opacity = 0
+      transparentMaterial.colorWrite = false
       transparentMaterial.depthWrite = false
       transparentMaterial.needsUpdate = true
       return markWallMaterialOverride(transparentMaterial)
     })
-  }, [baseMaterials, constructionDisplay.baseOpacity])
+  }, [baseMaterials, construction])
   useEffect(
     () => () => {
       if (visibleBaseMaterials !== baseMaterials) {
@@ -152,9 +150,11 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
         />
       )}
 
-      {constructionDisplay.showTopSection && <WallConstructionTopSection node={node} />}
-      {constructionDisplay.fullPreview && (
-        <WallConstructionPreview mode={constructionDisplay.fullPreview} node={node} />
+      {construction && (
+        <WallConstructionModel
+          mode={showConstruction ? constructionDisplayMode : 'finish'}
+          node={node}
+        />
       )}
 
       {(node.children ?? []).map((childId) => (

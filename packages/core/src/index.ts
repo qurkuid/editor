@@ -333,6 +333,7 @@ export {
   type SpaceBoundaryFace,
   wallClosesRoom,
   wallTouchesOthers,
+  zoneNeedsBoundaryReview,
 } from './lib/space-detection'
 export {
   advanceStroke,
@@ -402,6 +403,14 @@ export {
   type WallSegment,
   type WallSegmentClosest,
 } from './lib/wall-distance'
+export {
+  buildWallLengthUpdates,
+  buildWallMerge,
+  buildWallSplit,
+  type WallMutation,
+  WallOperationError,
+  type WallSceneState,
+} from './lib/wall-operations'
 export {
   deriveZoneQuantityReport,
   type ZoneQuantityReport,

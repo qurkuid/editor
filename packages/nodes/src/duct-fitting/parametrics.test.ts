@@ -63,6 +63,7 @@ describe('ductFittingParametrics', () => {
   beforeAll(async () => {
     mock.module('@pascal-app/editor', () => ({
       ActionButton: () => null,
+      useT: () => (key: string) => key,
     }))
     ;({ ductFittingParametrics } = await import('./parametrics'))
   })

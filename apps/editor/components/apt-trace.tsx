@@ -50,6 +50,7 @@ export function AptTrace({
           withBasePath(
             `/api/apartments/${encodeURIComponent(apartmentId)}/plans/${encodeURIComponent(planId)}/vector`,
           ),
+          { cache: 'no-store' },
         )
         if (response.ok) {
           const body = (await response.json()) as { code: string; data?: AptVectorDoc }

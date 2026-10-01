@@ -121,7 +121,8 @@ export {
   WHITE_PALETTE,
 } from './lib/materials'
 export { mergedOutline } from './lib/merged-outline-node'
-export { unionPolygons } from './lib/polygon-union'
+export type { Point2D } from './lib/polygon-union'
+export { subtractPolygonsFromPolygon, unionPolygons } from './lib/polygon-union'
 export {
   getSceneTheme,
   SCENE_THEME_IDS,
@@ -226,7 +227,7 @@ export {
   getOpeningCutoutBottomPadding,
   hasFlatOpeningCutoutBottom,
 } from './systems/wall/opening-cutout-geometry'
-export { WallCutout } from './systems/wall/wall-cutout'
+export { getWallHideState, WallCutout } from './systems/wall/wall-cutout'
 export {
   getVisibleWallMaterials,
   markWallMaterialOverride,

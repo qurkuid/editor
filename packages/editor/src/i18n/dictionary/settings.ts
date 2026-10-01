@@ -35,6 +35,11 @@ export const settingsDictionary = {
   'settings.export.glb': { ko: 'GLB 내보내기', en: 'Export GLB' },
   'settings.export.stl': { ko: 'STL 내보내기', en: 'Export STL' },
   'settings.export.obj': { ko: 'OBJ 내보내기', en: 'Export OBJ' },
+  'settings.export.dxf': { ko: 'SketchUp용 DXF · 그룹/태그', en: 'DXF for SketchUp · Groups/Tags' },
+  'settings.export.dxfHint': {
+    ko: '항목별 블록 · 종류별 태그. 도면 이미지가 있으면 DXF와 PNG를 ZIP으로 저장합니다. 압축을 모두 풀고 DXF를 가져오세요. 밀리미터 · 동일 평면 병합 켜기 · 평평하게 선 작업 가져오기 끄기. GLB는 도면 이미지를 내장하며, STL/OBJ는 도면용 DXF와 PNG를 함께 저장합니다.',
+    en: 'Blocks per item, tags by type. Floorplan images are packaged with DXF as a ZIP; extract all files before importing. Millimeters, Merge Coplanar Faces on, Import Linework Flattened off. GLB embeds the image; STL/OBJ include a floorplan DXF and PNG.',
+  },
   'settings.export.floorplan': { ko: '평면도', en: 'Floor plan' },
   'settings.export.defaultMode': { ko: '기본 모드', en: 'Default mode' },
   'settings.export.expertMode': { ko: '전문가 모드', en: 'Expert mode' },

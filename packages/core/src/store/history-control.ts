@@ -31,12 +31,20 @@ type TemporalStoreLike = {
   }
 }
 
+type TemporalHistoryState<TPastState> = {
+  pastStates: TPastState[]
+}
+
 type TemporalHistoryStoreLike<TPastState> = {
   temporal: {
-    getState(): {
-      pastStates: TPastState[]
-    }
+    getState(): TemporalHistoryState<TPastState>
     setState(state: { pastStates: TPastState[] }): void
+    subscribe(
+      listener: (
+        state: TemporalHistoryState<TPastState>,
+        previousState: TemporalHistoryState<TPastState>,
+      ) => void,
+    ): () => void
   }
 }
 
@@ -164,46 +172,28 @@ export function resetSceneHistoryPauseDepth(): void {
   sceneHistoryPauseDepth = 0
 }
 
-function retainedPastStateCount<TPastState>(before: TPastState[], after: TPastState[]): number {
-  for (let start = 0; start < before.length; start += 1) {
-    const retained = before.length - start
-    if (retained > after.length) continue
-    let matches = true
-    for (let index = 0; index < retained; index += 1) {
-      if (before[start + index] !== after[index]) {
-        matches = false
-        break
-      }
-    }
-    if (matches) return retained
-  }
-  return 0
-}
-
 export function runAsSingleSceneHistoryStep<TPastState, TResult>(
   sceneStore: TemporalHistoryStoreLike<TPastState>,
   run: () => TResult,
 ): TResult {
-  const beforePastStates = sceneStore.temporal.getState().pastStates
+  const beforePastStates = [...sceneStore.temporal.getState().pastStates]
+  let firstAddedPastStates: TPastState[] | null = null
+  const unsubscribe = sceneStore.temporal.subscribe((state, previousState) => {
+    if (firstAddedPastStates !== null) return
+    if (state.pastStates.length !== previousState.pastStates.length + 1) return
+    firstAddedPastStates = [...state.pastStates]
+  })
   beginSceneCommitTransaction()
   try {
     const result = run()
-    const afterPastStates = sceneStore.temporal.getState().pastStates
-    const retainedCount = retainedPastStateCount(beforePastStates, afterPastStates)
-    const addedCount = afterPastStates.length - retainedCount
-
-    if (addedCount > 0 && pendingSceneCommitIsNoOp()) {
-      sceneStore.temporal.setState({ pastStates: afterPastStates.slice(0, retainedCount) })
-    } else if (addedCount > 1) {
-      const firstAddedState = afterPastStates[retainedCount]
-      if (firstAddedState !== undefined) {
-        sceneStore.temporal.setState({
-          pastStates: [...afterPastStates.slice(0, retainedCount), firstAddedState],
-        })
-      }
+    if (firstAddedPastStates !== null) {
+      sceneStore.temporal.setState({
+        pastStates: pendingSceneCommitIsNoOp() ? beforePastStates : firstAddedPastStates,
+      })
     }
     return result
   } finally {
+    unsubscribe()
     endSceneCommitTransaction()
   }
 }

@@ -100,6 +100,7 @@ import { sfxEmitter } from '../../lib/sfx-bus'
 import { SITE_BOUNDARY_DRAG_LABEL, siteBoundaryHandlesEnabled } from '../../lib/site-boundary'
 import { resolveSlabPlanPointSnap } from '../../lib/slab-plan-snap'
 import { cn } from '../../lib/utils'
+import { createWallDirectionLock } from '../../lib/wall-direction-lock'
 import { snapBuildingLocalToWorldGrid } from '../../lib/world-grid-snap'
 import { subscribeNavigationSyncPose } from '../../store/navigation-sync-pose-store'
 import useAlignmentGuides from '../../store/use-alignment-guides'
@@ -187,9 +188,9 @@ import {
 import {
   chainEndJoinsExistingWall,
   createWallOnCurrentLevel,
+  getSegmentGridStep,
   isSegmentLongEnough,
   resolveTerrainWallConstructionOptions,
-  snapWallDraftPoint,
   snapWallDraftPointDetailed,
   snapPointToGrid as snapWallPointToGrid,
   WALL_GRID_STEP,
@@ -5155,6 +5156,9 @@ export function FloorplanPanel({
   // Walls committed by the current 2D-only chain — exclusion set for the
   // T-junction chain-termination test (mirrors the 3D tool's `chainWallIds`).
   const wallChainWallIdsRef = useRef<string[]>([])
+  const wallDirectionLockRef = useRef(createWallDirectionLock())
+  const wallPreserveDirectionRef = useRef(false)
+  const wallLastRawPointRef = useRef<WallPlanPoint>([0, 0])
   const setDraftEnd = useCallback(
     (next: WallPlanPoint | null | ((prev: WallPlanPoint | null) => WallPlanPoint | null)) => {
       const store = useFloorplanDraftPreview.getState()
@@ -7861,6 +7865,7 @@ export function FloorplanPanel({
     setWallChainFirstVertex(null)
     wallConstructionOptionsRef.current = undefined
     wallChainWallIdsRef.current = []
+    wallDirectionLockRef.current.reset()
     setDraftEnd(null)
     useSegmentDraftChain.getState().clear('wall')
   }, [clearDraftLength, setDraftEnd])
@@ -9499,12 +9504,13 @@ export function FloorplanPanel({
         walls,
         start: draftStart ?? undefined,
         angleSnap: wallAngleSnap,
+        inferDirection: true,
         magnetic: isMagneticSnapActive(),
       })
       const wallSnapped = wallSnap.point
       // Locked onto existing geometry (corner / midpoint / crossing / edge) →
       // that snap wins, so skip Figma alignment and stand the beacon there.
-      const lockedToWall = wallSnap.snap !== null
+      const lockedToWall = wallSnap.snap !== null || !!wallSnap.directionInferred
       let snappedPoint = wallSnapped
       if (lockedToWall) {
         useAlignmentGuides.getState().clear()
@@ -9515,7 +9521,11 @@ export function FloorplanPanel({
           applySnap: isMagneticSnapActive() && !wallAngleSnap,
         })
       }
+      wallLastRawPointRef.current = planPoint
       if (draftStart) {
+        const lock = wallDirectionLockRef.current
+        if (lock.active && useEditor.getState().viewMode === '2d')
+          snappedPoint = lock.project(planPoint, getSegmentGridStep())
         snappedPoint = constrainPlanDraftPoint(draftStart, snappedPoint, getLengthMeters())
       }
       useWallSnapIndicator
@@ -9525,7 +9535,10 @@ export function FloorplanPanel({
       // Emit `grid:move` so the registry-driven wall tool's 3D preview
       // tracks the cursor. The local draftEnd update below is what
       // drives the 2D draft polygon — both views update in parallel.
-      emitFloorplanGridEvent('move', snappedPoint, event)
+      if (useEditor.getState().viewMode !== '2d') {
+        emitFloorplanGridEvent('move', snappedPoint, event)
+        snappedPoint = useFloorplanDraftPreview.getState().wallDraftEnd ?? snappedPoint
+      }
       setCursorPoint(snappedPoint)
 
       if (!draftStart) {
@@ -9783,30 +9796,18 @@ export function FloorplanPanel({
         return
       }
 
-      // The 3D wall tool's `grid:click` listener
-      // (`packages/nodes/src/wall/tool.tsx`) owns the wall-create
-      // call. `emitFloorplanGridEvent('click', …)` in
-      // `useFloorplanBackgroundPlacement` fires it synchronously
-      // just before this callback runs, so by the time we get here
-      // the wall already exists in the scene. Committing here as
-      // well used to double-create walls whenever the two snap
-      // pipelines resolved endpoints ≥1e-6 apart (the duplicate
-      // check compares exact endpoints).
-      //
-      // That 3D path is dead in 2D-only view — the canvas is
-      // `display:none`, so the tool never commits. Mirror the slab /
-      // ceiling 2D-only committers: create locally here, gated on the
-      // view, so split / 3D keep their single-owner tool commit.
+      // Hidden 3D canvases may suspend their tool. In 2D only, this panel owns
+      // the commit and does not emit a competing wall click.
       const viewIs2DOnly = useEditor.getState().viewMode === '2d'
       let createdWall: WallNode | null = null
       if (viewIs2DOnly) {
-        createdWall = createWallOnCurrentLevel(
-          draftStart,
-          point,
-          wallConstructionOptionsRef.current,
-        )
+        createdWall = createWallOnCurrentLevel(draftStart, point, {
+          ...wallConstructionOptionsRef.current,
+          preserveDirection: wallPreserveDirectionRef.current,
+        })
       }
       if (createdWall) {
+        wallDirectionLockRef.current.reset()
         wallChainWallIdsRef.current.push(createdWall.id)
       }
 
@@ -9871,6 +9872,52 @@ export function FloorplanPanel({
       setCursorPoint,
     ],
   )
+  useEffect(() => {
+    const updateLock = (event: KeyboardEvent) => {
+      if (
+        !isWallBuildActive ||
+        useEditor.getState().viewMode !== '2d' ||
+        !draftStart ||
+        event.repeat
+      )
+        return
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        (event.target instanceof HTMLElement && event.target.isContentEditable)
+      )
+        return
+      const lock = wallDirectionLockRef.current
+      const through = useFloorplanDraftPreview.getState().wallDraftEnd ?? draftStart
+      if (event.type === 'keydown' && lock.toggleAxis(event.key, draftStart, through, walls))
+        event.preventDefault()
+      else if (event.key === 'Shift') lock.set(event.type === 'keydown', draftStart, through)
+      else return
+      const raw = wallLastRawPointRef.current
+      const point = lock.active
+        ? lock.project(raw, getSegmentGridStep())
+        : snapWallDraftPointDetailed({
+            point: raw,
+            start: draftStart,
+            walls,
+            inferDirection: true,
+            magnetic: isMagneticSnapActive(),
+            angleSnap: isAngleSnapActive(),
+          }).point
+      const end = constrainPlanDraftPoint(draftStart, point, getLengthMeters())
+      setDraftEnd(end)
+      setCursorPoint(end)
+    }
+    const reset = () => wallDirectionLockRef.current.reset()
+    window.addEventListener('keydown', updateLock)
+    window.addEventListener('keyup', updateLock)
+    window.addEventListener('blur', reset)
+    return () => {
+      window.removeEventListener('keydown', updateLock)
+      window.removeEventListener('keyup', updateLock)
+      window.removeEventListener('blur', reset)
+    }
+  }, [draftStart, isWallBuildActive, walls, getLengthMeters, setDraftEnd, setCursorPoint])
   const { getFloorplanHitIdAtPoint, getFloorplanSelectionIdsInBounds } = useFloorplanHitTesting({
     sceneRef: floorplanSceneRef,
   })
@@ -9885,7 +9932,19 @@ export function FloorplanPanel({
       angleSnap?: boolean
       bypassSnap?: boolean
       step?: number
-    }) => snapWallDraftPoint({ ...args, magnetic: isMagneticSnapActive() }),
+    }) => {
+      wallLastRawPointRef.current = args.point
+      const result = snapWallDraftPointDetailed({
+        ...args,
+        inferDirection: true,
+        magnetic: isMagneticSnapActive(),
+      })
+      const lock = wallDirectionLockRef.current
+      wallPreserveDirectionRef.current = lock.active || !!result.directionInferred
+      return args.start && lock.active
+        ? lock.project(args.point, getSegmentGridStep())
+        : result.point
+    },
     [],
   )
   const { handleBackgroundPlacementClick } = useFloorplanBackgroundPlacement({

@@ -56,6 +56,23 @@ const DeletePatchSchema = z.object({
   cascade: z.boolean().optional(),
 })
 
+const MergeWallsPatchSchema = z
+  .object({
+    op: z.literal('mergeWalls'),
+    wallIds: z.array(AnyNodeIdSchema).min(2).max(100),
+  })
+  .superRefine((value, ctx) => {
+    if (new Set(value.wallIds).size !== value.wallIds.length) {
+      ctx.addIssue({ code: 'custom', path: ['wallIds'], message: 'wallIds must be unique' })
+    }
+  })
+
+const SplitWallPatchSchema = z.object({
+  op: z.literal('splitWall'),
+  id: AnyNodeIdSchema,
+  distance: z.number().finite().positive(),
+})
+
 const PushPullBodyFacePatchSchema = z
   .object({
     op: z.literal(MODELING_OPERATION_IDS.pushPullBodyFace),
@@ -295,6 +312,8 @@ export const AiModelingPatchSchema = z.discriminatedUnion('op', [
   CreatePatchSchema,
   UpdatePatchSchema,
   DeletePatchSchema,
+  MergeWallsPatchSchema,
+  SplitWallPatchSchema,
   PushPullBodyFacePatchSchema,
   OffsetBodyFacePatchSchema,
   SweepBodyFacePatchSchema,

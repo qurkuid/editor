@@ -341,7 +341,8 @@ export function useFloorplanBackgroundPlacement({
           snappedPoint = constrainPlanDraftPoint(draftStart, snappedPoint, getDraftLengthMeters())
         }
 
-        emitFloorplanGridEvent('click', snappedPoint, event)
+        if (useEditor.getState().viewMode !== '2d')
+          emitFloorplanGridEvent('click', snappedPoint, event)
 
         // Double-click finishes the chain. The emit above already made the
         // 3D wall tool stopDrafting (its detail >= 2 guard), so close the

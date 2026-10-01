@@ -127,7 +127,7 @@ describe('photo_to_scene', () => {
       walls[0]?.type === 'wall'
         ? walls[0].faceBands?.construction?.upper?.layers.map((layer) => layer.kind)
         : [],
-    ).toEqual(['timber-stud', 'cavity', 'gypsum-board', 'finish'])
+    ).toEqual(['concrete'])
     expect(zones.length).toBe(1)
 
     // Scene was persisted in the store.

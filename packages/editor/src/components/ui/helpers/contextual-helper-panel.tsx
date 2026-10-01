@@ -17,12 +17,13 @@ import {
   type SnapContext,
 } from '../../../lib/snapping-mode'
 import { cn } from '../../../lib/utils'
-import useEditor, { type GridSnapStep } from '../../../store/use-editor'
+import useEditor, { GRID_SNAP_STEPS, type GridSnapStep, isWallDirectionLockContext } from '../../../store/use-editor'
 import useFenceCurveDraft from '../../../store/use-fence-curve-draft'
 import { ShortcutToken } from '../primitives/shortcut-token'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../primitives/tooltip'
 import { useTLabel } from '../../../i18n/use-t-label'
 import { useT } from '../../../i18n/use-t'
+import { WallEditControls } from './wall-edit-controls'
 
 // One muted container holds every row — passive key hints and interactive chips
 // alike — so the HUD reads as a single panel, not a stack of floating pills. The
@@ -164,8 +165,6 @@ const SNAPPING_MODE_LABELS = {
   off: 'Off',
 } as const
 
-const GRID_SNAP_STEPS: GridSnapStep[] = [0.5, 0.25, 0.1, 0.05]
-
 function nextGridSnapStep(step: GridSnapStep): GridSnapStep {
   const index = GRID_SNAP_STEPS.indexOf(step)
   return GRID_SNAP_STEPS[(index + 1) % GRID_SNAP_STEPS.length] ?? GRID_SNAP_STEPS[0]!
@@ -185,6 +184,7 @@ function SnappingChips({ context }: { context: SnapContext }) {
   const gridStepLabel = formatLinearMeasurement(gridSnapStep, unit, metricNotation)
 
   const gridActive = resolveSnapFlags(snappingMode).grid
+  const directionLock = isWallDirectionLockContext()
 
   return (
     <>
@@ -196,9 +196,15 @@ function SnappingChips({ context }: { context: SnapContext }) {
           setSnappingMode(context, cycleSnappingModeIn(context, snappingMode))
           sfxEmitter.emit('sfx:grid-snap')
         }}
-        shortcut="Shift"
-        tooltip={t('panel.snappingModeClickOrPressShiftToCycle')}
+        shortcut={directionLock ? undefined : 'Shift'}
+        tooltip={directionLock ? undefined : t('panel.snappingModeClickOrPressShiftToCycle')}
       />
+      {directionLock ? <>
+        <ChipRow label="방향 고정 (누르고 유지)" shortcut="Shift" />
+        <ChipRow label="X축 잠금 / 해제" shortcut="→" />
+        <ChipRow label="Z축 잠금 / 해제" shortcut="←" />
+        <ChipRow label="연결 벽 평행·수직 잠금 / 해제" shortcut="↓" />
+      </> : null}
       {gridActive ? (
         <ChipRow
           ariaLabel={`${tLabel('Grid step')}: ${gridStepLabel}`}
@@ -403,6 +409,7 @@ export function ContextualHelperPanel({
   return (
     <div className={CONTAINER_CLASS}>
       {snapContext ? <SnappingChips context={snapContext} /> : null}
+      <WallEditControls multiOnly />
       {continuationContext === 'fence' ? <FenceContinuationChips /> : null}
       {continuationContext && continuationContext !== 'fence' ? (
         <ContinuationChip context={continuationContext} />

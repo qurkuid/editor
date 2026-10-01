@@ -464,6 +464,15 @@ export function SettingsPanel({
           </div>
           <Button
             className="w-full justify-start gap-2"
+            onClick={() => exportScene?.('dxf')}
+            variant="outline"
+          >
+            <Download className="size-4" />
+            {t('settings.export.dxf')}
+          </Button>
+          <p className="text-muted-foreground text-xs">{t('settings.export.dxfHint')}</p>
+          <Button
+            className="w-full justify-start gap-2"
             onClick={() => exportScene?.('glb')}
             variant="outline"
           >

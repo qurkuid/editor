@@ -129,6 +129,101 @@ describe('scene commit boundary', () => {
     expect(levelNumber()).toBe(0)
   })
 
+  test('coalesces a capped empty-baseline transaction without losing its undo target', () => {
+    runAsSingleSceneHistoryStep(useScene, () => {
+      for (let level = 1; level <= 70; level += 1) {
+        useScene.getState().updateNode(LEVEL_ID, { level } as Partial<AnyNode>)
+      }
+    })
+
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+    expect(levelNumber()).toBe(70)
+    useScene.temporal.getState().undo()
+    expect(levelNumber()).toBe(0)
+    useScene.temporal.getState().redo()
+    expect(levelNumber()).toBe(70)
+  })
+
+  test('preserves the capped history prefix around a long single-step transaction', () => {
+    for (let level = 1; level <= 50; level += 1) {
+      useScene.getState().updateNode(LEVEL_ID, { level } as Partial<AnyNode>)
+    }
+
+    runAsSingleSceneHistoryStep(useScene, () => {
+      for (let level = 51; level <= 120; level += 1) {
+        useScene.getState().updateNode(LEVEL_ID, { level } as Partial<AnyNode>)
+      }
+    })
+
+    expect(useScene.temporal.getState().pastStates).toHaveLength(50)
+    useScene.temporal.getState().undo()
+    expect(levelNumber()).toBe(50)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(49)
+    useScene.temporal.getState().undo()
+    expect(levelNumber()).toBe(49)
+    useScene.temporal.getState().redo()
+    expect(levelNumber()).toBe(50)
+    useScene.temporal.getState().redo()
+    expect(levelNumber()).toBe(120)
+  })
+
+  test('restores the exact capped baseline when a pressured transaction is a semantic no-op', () => {
+    for (let level = 1; level <= 50; level += 1) {
+      useScene.getState().updateNode(LEVEL_ID, { level } as Partial<AnyNode>)
+    }
+
+    runAsSingleSceneHistoryStep(useScene, () => {
+      for (let level = 51; level <= 100; level += 1) {
+        useScene.getState().updateNode(LEVEL_ID, { level } as Partial<AnyNode>)
+      }
+      useScene.getState().updateNode(LEVEL_ID, { level: 50 } as Partial<AnyNode>)
+    })
+
+    expect(useScene.temporal.getState().pastStates).toHaveLength(50)
+    expect(levelNumber()).toBe(50)
+    useScene.temporal.getState().undo()
+    expect(levelNumber()).toBe(49)
+  })
+
+  test('nested single-step wrappers still produce one commit and one undo step', () => {
+    const commits: SceneCommit[] = []
+    unsubscribe = subscribeSceneCommits((commit) => commits.push(commit))
+
+    runAsSingleSceneHistoryStep(useScene, () => {
+      useScene.getState().updateNode(LEVEL_ID, { level: 1 } as Partial<AnyNode>)
+      runAsSingleSceneHistoryStep(useScene, () => {
+        useScene.getState().updateNode(LEVEL_ID, { level: 2 } as Partial<AnyNode>)
+        useScene.getState().updateNode(LEVEL_ID, { level: 3 } as Partial<AnyNode>)
+      })
+      useScene.getState().updateNode(LEVEL_ID, { level: 4 } as Partial<AnyNode>)
+    })
+
+    expect(commits).toHaveLength(1)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+    useScene.temporal.getState().undo()
+    expect(levelNumber()).toBe(0)
+    useScene.temporal.getState().redo()
+    expect(levelNumber()).toBe(4)
+  })
+
+  test('clears redo history on the first write after an undo inside a wrapper', () => {
+    useScene.getState().updateNode(LEVEL_ID, { level: 1 } as Partial<AnyNode>)
+    useScene.getState().updateNode(LEVEL_ID, { level: 2 } as Partial<AnyNode>)
+    useScene.temporal.getState().undo()
+    expect(levelNumber()).toBe(1)
+    expect(useScene.temporal.getState().futureStates).toHaveLength(1)
+
+    runAsSingleSceneHistoryStep(useScene, () => {
+      useScene.getState().updateNode(LEVEL_ID, { level: 3 } as Partial<AnyNode>)
+    })
+
+    expect(useScene.temporal.getState().futureStates).toHaveLength(0)
+    useScene.temporal.getState().undo()
+    expect(levelNumber()).toBe(1)
+    useScene.temporal.getState().redo()
+    expect(levelNumber()).toBe(3)
+  })
+
   test('drops a compound transaction that returns to its semantic baseline', () => {
     const commits: SceneCommit[] = []
     unsubscribe = subscribeSceneCommits((commit) => commits.push(commit))

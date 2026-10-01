@@ -11,6 +11,7 @@ export const WALL_CONSTRUCTION_LAYER_DEFAULTS: Record<
   WallConstructionLayer['kind'],
   WallConstructionLayer
 > = {
+  concrete: { kind: 'concrete', thickness: 0.1, wasteFactor: 0 },
   'gypsum-board': {
     kind: 'gypsum-board',
     thickness: 0.0095,
@@ -58,6 +59,7 @@ export const WALL_CONSTRUCTION_LAYER_DEFAULTS: Record<
 }
 
 export type WallConstructionPresetId =
+  | 'concrete'
   | 'finish-only'
   | 'gypsum'
   | 'mdf'
@@ -76,7 +78,10 @@ export function createDefaultWallFaceBands(targetThickness = 0.1): WallFaceBandC
     middleHeight: 0.61,
     upperHeight: 0.61,
     construction: {
-      upper: createWallBandConstructionPreset('stud-gypsum-finish', targetThickness),
+      upper: {
+        mode: 'assembly',
+        layers: [{ ...WALL_CONSTRUCTION_LAYER_DEFAULTS.concrete, thickness: targetThickness }],
+      },
     },
   }
 }
@@ -85,6 +90,9 @@ export function createWallBandConstructionPreset(
   preset: WallConstructionPresetId,
   targetThickness?: number,
 ): WallBandConstruction {
+  if (preset === 'concrete') {
+    return { mode: 'assembly', layers: [{ ...WALL_CONSTRUCTION_LAYER_DEFAULTS.concrete }] }
+  }
   if (preset === 'finish-only') return { mode: 'finish', layers: [] }
   if (preset === 'gypsum') {
     return { mode: 'overlay', layers: [{ ...WALL_CONSTRUCTION_LAYER_DEFAULTS['gypsum-board'] }] }
@@ -136,6 +144,9 @@ export function normalizeWallBandConstructionToThickness(
   targetThickness: number,
 ): WallBandConstruction {
   if (construction.mode !== 'assembly' || construction.layers.length === 0) return construction
+  if (construction.layers.length === 1 && construction.layers[0]?.kind === 'concrete') {
+    return { ...construction, layers: [{ ...construction.layers[0], thickness: targetThickness }] }
+  }
   const materialLayers = construction.layers.filter((layer) => layer.kind !== 'cavity')
   const materialThickness = materialLayers.reduce((sum, layer) => sum + layer.thickness, 0)
   const cavityThickness = targetThickness - materialThickness
@@ -168,6 +179,7 @@ export function detectWallConstructionPreset(
     .map((layer) => layer.kind)
     .join(',')
   if (construction.mode === 'finish' && kinds === '') return 'finish-only'
+  if (construction.mode === 'assembly' && kinds === 'concrete') return 'concrete'
   if (construction.mode === 'overlay' && kinds === 'gypsum-board') return 'gypsum'
   if (construction.mode === 'overlay' && kinds === 'mdf') return 'mdf'
   if (construction.mode === 'overlay' && kinds === 'timber-stud,gypsum-board') {

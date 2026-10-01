@@ -30,6 +30,8 @@ export const CodexCliPatchSchema = z
       'create',
       'update',
       'delete',
+      'mergeWalls',
+      'splitWall',
       ...MODELING_OPERATION_ID_VALUES,
       'makeMaterialSeamless',
       'createRoundedRectangularFrameBody',
@@ -100,6 +102,7 @@ export const CodexCliPatchSchema = z
     angle: z.number().finite().nullable().default(null),
     fullCircle: z.boolean().nullable().default(null),
     toolBodyId: z.string().nullable().default(null),
+    wallIds: z.array(z.string().min(1)).nullable().default(null),
   })
   .strict()
   .superRefine((patch, context) => {
@@ -158,6 +161,17 @@ export function parseCodexCliPlan(input: unknown): AiModelingPlan {
           op: patch.op,
           id: z.string().min(1).parse(patch.id),
           ...(patch.cascade === null ? {} : { cascade: patch.cascade }),
+        }
+      case 'mergeWalls':
+        return {
+          op: patch.op,
+          wallIds: z.array(z.string().min(1)).min(2).parse(patch.wallIds),
+        }
+      case 'splitWall':
+        return {
+          op: patch.op,
+          id: z.string().min(1).parse(patch.id),
+          distance: z.number().finite().positive().parse(patch.distance),
         }
       case 'pushPullBodyFace':
         return {

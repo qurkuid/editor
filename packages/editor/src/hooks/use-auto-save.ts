@@ -7,8 +7,12 @@ import { type SceneGraph, saveSceneToLocalStorage } from '../lib/scene'
 const AUTOSAVE_DEBOUNCE_MS = 1000
 const STRUCTURAL_NODE_COUNT = 4
 
-export function isSuspiciousNodeDrop(previousNodeCount: number, currentNodeCount: number) {
-  if (previousNodeCount === 0) return false
+export function isSuspiciousNodeDrop(
+  previousNodeCount: number,
+  currentNodeCount: number,
+  isHistoryRestore = false,
+) {
+  if (isHistoryRestore || previousNodeCount === 0) return false
   // Any populated scene collapsing to zero is a wipe signature, never an
   // ordinary edit — `unloadScene()` transients observed through soft
   // navigation look exactly like this, and the old `> 4 → < 4` rule left
@@ -103,7 +107,13 @@ export function useAutoSave({
       // Guard: refuse to autosave if the scene went from populated to nearly empty.
       // This catches accidental full deletions before they're persisted.
       const currentNodeCount = Object.keys(nodes).length
-      if (isSuspiciousNodeDrop(lastNodeCount, currentNodeCount)) {
+      if (
+        isSuspiciousNodeDrop(
+          lastNodeCount,
+          currentNodeCount,
+          useScene.temporal.getState().futureStates.length > 0,
+        )
+      ) {
         console.warn(
           `[autosave] Blocked: scene dropped from ${lastNodeCount} to ${currentNodeCount} nodes. Likely accidental deletion.`,
         )
@@ -206,7 +216,13 @@ export function useAutoSave({
       const { nodes, rootNodeIds, collections, materials, installedPlugins, savedViews } =
         useScene.getState()
       const currentNodeCount = Object.keys(nodes).length
-      if (isSuspiciousNodeDrop(lastNodeCount, currentNodeCount)) {
+      if (
+        isSuspiciousNodeDrop(
+          lastNodeCount,
+          currentNodeCount,
+          useScene.temporal.getState().futureStates.length > 0,
+        )
+      ) {
         console.warn(
           `[autosave] Blocked unload flush: scene dropped from ${lastNodeCount} to ${currentNodeCount} nodes. Likely accidental deletion.`,
         )

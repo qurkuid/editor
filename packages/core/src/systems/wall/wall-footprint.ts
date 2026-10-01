@@ -69,11 +69,21 @@ export function getWallPlanFootprint(wallNode: WallNode, miterData: WallMiterDat
 
   const polygon: Point2D[] = [pStartRight, pEndRight]
   if (endJunction) {
-    polygon.push(wallEnd)
+    polygon.push(
+      miterData.junctions.get(keyEnd)?.connectedWalls.some((wall) => wall.endType === 'passthrough')
+        ? { x: (pEndLeft.x + pEndRight.x) / 2, y: (pEndLeft.y + pEndRight.y) / 2 }
+        : wallEnd,
+    )
   }
   polygon.push(pEndLeft, pStartLeft)
   if (startJunction) {
-    polygon.push(wallStart)
+    polygon.push(
+      miterData.junctions
+        .get(keyStart)
+        ?.connectedWalls.some((wall) => wall.endType === 'passthrough')
+        ? { x: (pStartLeft.x + pStartRight.x) / 2, y: (pStartLeft.y + pStartRight.y) / 2 }
+        : wallStart,
+    )
   }
 
   return polygon

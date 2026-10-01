@@ -3,7 +3,7 @@
 // Node registry bootstrap is loaded once at the root via
 // `<ClientBootstrap>` in `app/layout.tsx` — no per-page side-effect
 // import here.
-import { emitter } from '@pascal-app/core'
+import { emitter, useScene } from '@pascal-app/core'
 import {
   applySceneGraphToEditor,
   Editor,
@@ -275,6 +275,11 @@ export function SceneLoader({ meta }: SceneLoaderProps) {
           headers: {
             'Content-Type': 'application/json',
             'If-Match': String(versionRef.current),
+            // An explicit undo may restore the guide-only state before import.
+            ...(useScene.temporal.getState().futureStates.length > 0 &&
+            graph.nodes === useScene.getState().nodes
+              ? { 'X-Pascal-Allow-Wipe': '1' }
+              : {}),
             ...(compress ? { 'Content-Encoding': 'gzip' } : {}),
           },
           body,

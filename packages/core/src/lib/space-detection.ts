@@ -955,21 +955,82 @@ function sameStringSet(a: readonly string[], b: readonly string[]) {
   return a.every((value) => right.has(value))
 }
 
+export function zoneNeedsBoundaryReview(zone: Pick<ZoneNodeType, 'metadata'>): boolean {
+  const metadata = zone.metadata
+  return (
+    metadata !== null &&
+    typeof metadata === 'object' &&
+    'boundaryNeedsReview' in metadata &&
+    metadata.boundaryNeedsReview === true
+  )
+}
+
 export function planAutoZonesForLevel(
   spaces: readonly Space[],
   existingZones: readonly ZoneNodeType[],
+  context: { previousSpaces?: readonly Space[]; changedWalls?: readonly WallNode[] } = {},
 ): AutoZoneSyncPlan {
   const update: AutoZoneSyncPlan['update'] = []
+  // ponytail: reuse the existing sampled overlap; ambiguous semantic subdivisions stay manual.
+  const coversSameRoom = (zone: ZoneNodeType, space: Space) => {
+    const zonePolygon = zone.polygon.map(pointFromTuple)
+    const roomPolygon = space.polygon.map(pointFromTuple)
+    return (
+      polygonCoverageRatio(zonePolygon, [roomPolygon]) >= 0.9 &&
+      polygonCoverageRatio(roomPolygon, [zonePolygon]) >= 0.9
+    )
+  }
 
   for (const zone of existingZones) {
-    const storedSignature = polygonSignature(zone.polygon.map(pointFromTuple))
-    const matchingSpace =
-      zone.autoFromWalls && zone.boundaryWallIds.length >= 3
-        ? spaces.find((space) => sameStringSet(space.wallIds, zone.boundaryWallIds))
-        : spaces.find(
-            (space) => polygonSignature(space.polygon.map(pointFromTuple)) === storedSignature,
-          )
-    if (!matchingSpace) continue
+    const metadata =
+      zone.metadata !== null && typeof zone.metadata === 'object' && !Array.isArray(zone.metadata)
+        ? zone.metadata
+        : {}
+    const storedSignature = polygonSignature(
+      simplifyClosedPolygon(zone.polygon, 1e-6).map(pointFromTuple),
+    )
+    const previousMatches =
+      metadata.source === 'apt-vector'
+        ? (context.previousSpaces ?? []).filter((space) => coversSameRoom(zone, space))
+        : []
+    const previousSpace =
+      previousMatches.length === 1 &&
+      existingZones.filter((other) => coversSameRoom(other, previousMatches[0]!)).length === 1
+        ? previousMatches[0]
+        : undefined
+    const boundaryWallIds = zone.autoFromWalls ? zone.boundaryWallIds : previousSpace?.wallIds
+    const matchingSpace = spaces.find(
+      (space) =>
+        (boundaryWallIds && sameStringSet(space.wallIds, boundaryWallIds)) ||
+        polygonSignature(simplifyClosedPolygon(space.polygon, 1e-6).map(pointFromTuple)) ===
+          storedSignature,
+    )
+    if (!matchingSpace) {
+      const affected =
+        zone.autoFromWalls ||
+        previousSpace ||
+        (zone.spaceRole === 'room' &&
+          metadata.source === 'apt-vector' &&
+          context.changedWalls?.some(
+            (wall) =>
+              zone.polygon.some(
+                (point) =>
+                  distanceToSegment(point, wall.start, wall.end) <=
+                  Math.max(0.1, wall.thickness ?? 0.1),
+              ) ||
+              pointInPolygon(
+                pointFromTuple([
+                  (wall.start[0] + wall.end[0]) / 2,
+                  (wall.start[1] + wall.end[1]) / 2,
+                ]),
+                zone.polygon.map(pointFromTuple),
+              ),
+          ))
+      if (affected && !zoneNeedsBoundaryReview(zone)) {
+        update.push({ id: zone.id, data: { metadata: { ...metadata, boundaryNeedsReview: true } } })
+      }
+      continue
+    }
 
     const data: Partial<ZoneNodeType> = {}
     if (!zone.autoFromWalls) data.autoFromWalls = true
@@ -978,6 +1039,10 @@ export function planAutoZonesForLevel(
     }
     if (!sameTuplePolygon(zone.polygon, matchingSpace.polygon)) {
       data.polygon = matchingSpace.polygon
+    }
+    if (zoneNeedsBoundaryReview(zone)) {
+      const { boundaryNeedsReview: _, ...remainingMetadata } = metadata
+      data.metadata = remainingMetadata
     }
     if (Object.keys(data).length > 0) update.push({ id: zone.id, data })
   }
@@ -1450,6 +1515,7 @@ function runSpaceDetection(
   sceneStore: any,
   editorStore: any,
   nodes: any,
+  previousNodes: any,
 ): void {
   const { updateNodes } = sceneStore.getState()
   const existingSpaces = editorStore.getState().spaces as Record<string, Space>
@@ -1529,6 +1595,24 @@ function runSpaceDetection(
     const zonePlan = planAutoZonesForLevel(
       spaces,
       zones.map((zone: any) => ZoneNode.parse(zone)),
+      {
+        previousSpaces: detectSpacesFromWalls(
+          levelId,
+          Object.values(previousNodes).filter(
+            (node: any): node is WallNode => node?.type === 'wall' && node.parentId === levelId,
+          ),
+        ).spaces,
+        changedWalls: [...Object.values(previousNodes), ...walls].filter(
+          (node: any): node is WallNode => {
+            if (node?.type !== 'wall' || node.parentId !== levelId) return false
+            const before = previousNodes[node.id]
+            const after = nodes[node.id]
+            return (
+              !before || !after || wallGeometrySignature(before) !== wallGeometrySignature(after)
+            )
+          },
+        ),
+      },
     )
     if (zonePlan.update.length > 0) updateNodes(zonePlan.update)
 
@@ -1569,7 +1653,18 @@ export function initSpaceDetectionSync(sceneStore: any, editorStore: any): () =>
   // scene that merely loaded — rerunning on hydration resurrected auto slabs
   // the user had deleted in an earlier session.
   const previousSnapshots = levelStructureSnapshots(sceneStore.getState().nodes)
+  let previousNodes = sceneStore.getState().nodes
   let isProcessing = false
+  let historyNodes = new Set<unknown>()
+  const rememberHistory = (history: any) => {
+    historyNodes = new Set(
+      [...(history.pastStates ?? []), ...(history.futureStates ?? [])].map(
+        (snapshot: any) => snapshot.nodes,
+      ),
+    )
+  }
+  rememberHistory(sceneStore.temporal.getState())
+  const unsubscribeHistory = sceneStore.temporal.subscribe?.(rememberHistory)
 
   const unsubscribe = sceneStore.subscribe((state: any) => {
     if (isProcessing) return
@@ -1581,10 +1676,30 @@ export function initSpaceDetectionSync(sceneStore: any, editorStore: any): () =>
     // Paused: roll the snapshot forward so we don't backfill (and re-duplicate)
     // every paused change once detection resumes. Whatever the AI built while
     // paused becomes the new baseline; only future changes will reconcile.
-    if (spaceDetectionPauseDepth > 0) {
+    // Zundo removes the target from its arrays before notifying scene listeners.
+    // Remember their last published references so a history jump stays a restoration.
+    const isHistoryJump = historyNodes.has(nodes)
+    if (spaceDetectionPauseDepth > 0 || isHistoryJump) {
+      previousNodes = nodes
       previousSnapshots.clear()
       for (const [levelId, snapshot] of currentSnapshots.entries()) {
         previousSnapshots.set(levelId, snapshot)
+      }
+      if (isHistoryJump) {
+        const restoredSpaces = Object.values(nodes).flatMap((node: any) =>
+          node?.type === 'level'
+            ? detectSpacesFromWalls(
+                node.id,
+                Object.values(nodes).filter(
+                  (wall: any): wall is WallNode =>
+                    wall?.type === 'wall' && wall.parentId === node.id,
+                ),
+              ).spaces
+            : [],
+        )
+        editorStore
+          .getState()
+          .setSpaces(Object.fromEntries(restoredSpaces.map((space) => [space.id, space])))
       }
       return
     }
@@ -1603,6 +1718,7 @@ export function initSpaceDetectionSync(sceneStore: any, editorStore: any): () =>
     }
 
     if (levelsToUpdate.size === 0) {
+      previousNodes = nodes
       previousSnapshots.clear()
       for (const [levelId, snapshot] of currentSnapshots.entries()) {
         previousSnapshots.set(levelId, snapshot)
@@ -1613,11 +1729,12 @@ export function initSpaceDetectionSync(sceneStore: any, editorStore: any): () =>
     isProcessing = true
     pauseSceneHistory(sceneStore)
     try {
-      runSpaceDetection([...levelsToUpdate], sceneStore, editorStore, nodes)
+      runSpaceDetection([...levelsToUpdate], sceneStore, editorStore, nodes, previousNodes)
     } finally {
       resumeSceneHistory(sceneStore)
       previousSnapshots.clear()
       const postRunSnapshots = levelStructureSnapshots(sceneStore.getState().nodes)
+      previousNodes = sceneStore.getState().nodes
       for (const [levelId, snapshot] of postRunSnapshots.entries()) {
         previousSnapshots.set(levelId, snapshot)
       }
@@ -1625,7 +1742,10 @@ export function initSpaceDetectionSync(sceneStore: any, editorStore: any): () =>
     }
   })
 
-  return unsubscribe
+  return () => {
+    unsubscribe()
+    unsubscribeHistory?.()
+  }
 }
 
 export function wallTouchesOthers(wall: WallNode, otherWalls: WallNode[]): boolean {

@@ -1,3 +1,4 @@
+import { getWallConstructionEnvelopeThickness } from '../../lib/wall-construction'
 import type { WallNode } from '../../schema'
 import { getWallCurveFrameAt, isCurvedWall } from './wall-curve'
 
@@ -210,6 +211,7 @@ interface ProcessedWall {
   edgeB: LineEquation // Right edge
   isPassthrough: boolean // True if wall passes through junction (T-junction)
   halfThickness: number // Used to bound the miter joint against runaway spikes
+  length: number
 }
 
 function calculateJunctionIntersections(
@@ -247,6 +249,7 @@ function calculateJunctionIntersections(
           edgeB,
           isPassthrough: true,
           halfThickness: halfT,
+          length: L,
         })
       }
     } else {
@@ -271,6 +274,7 @@ function calculateJunctionIntersections(
         edgeB,
         isPassthrough: false,
         halfThickness: halfT,
+        length: L,
       })
     }
   }
@@ -287,6 +291,14 @@ function calculateJunctionIntersections(
   for (let i = 0; i < n; i++) {
     const wall1 = processedWalls[i]!
     const wall2 = processedWalls[(i + 1) % n]!
+
+    // Unequal nearly straight continuations need a thickness step, not a long taper.
+    if (
+      Math.cos(wall1.angle - wall2.angle) < -Math.cos(Math.PI / 18) &&
+      Math.abs(wall1.halfThickness - wall2.halfThickness) > TOLERANCE
+    ) {
+      continue
+    }
 
     // Intersect left edge of wall1 with right edge of wall2
     const det = wall1.edgeA.a * wall2.edgeB.b - wall2.edgeB.a * wall1.edgeA.b
@@ -306,7 +318,11 @@ function calculateJunctionIntersections(
     // lands far from the junction (∝ 1/sin θ) and the wall renders as an
     // infinite spike. Reject any joint farther than MITER_LIMIT half-thicknesses
     // from the meeting point — those walls fall back to a square joint.
-    const maxMiter = MITER_LIMIT * Math.max(wall1.halfThickness, wall2.halfThickness)
+    const maxMiter = Math.min(
+      MITER_LIMIT * Math.max(wall1.halfThickness, wall2.halfThickness),
+      Math.max(wall1.halfThickness, wall1.length / 2),
+      Math.max(wall2.halfThickness, wall2.length / 2),
+    )
     const dx = p.x - meetingPoint.x
     const dy = p.y - meetingPoint.y
     if (
@@ -351,7 +367,7 @@ export interface WallMiterData {
  * Calculates miter data for all walls on a level
  */
 export function calculateLevelMiters(walls: WallNode[]): WallMiterData {
-  const getThickness = (wall: WallNode) => wall.thickness ?? 0.1
+  const getThickness = getWallConstructionEnvelopeThickness
   const junctions = findJunctions(walls)
   const junctionData: JunctionData = new Map()
 
@@ -367,7 +383,7 @@ export function getWallMiterBoundaryPoints(
   wall: WallNode,
   miterData: WallMiterData,
 ): WallMiterBoundaryPoints | null {
-  const thickness = wall.thickness ?? 0.1
+  const thickness = getWallConstructionEnvelopeThickness(wall)
   const halfThickness = thickness / 2
   const startFrame = getWallBoundaryFrame(wall, 'start')
   const endFrame = getWallBoundaryFrame(wall, 'end')

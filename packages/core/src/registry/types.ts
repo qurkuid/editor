@@ -731,6 +731,7 @@ export type FloorplanAffordanceModifiers = {
 }
 
 export type FloorplanAffordanceSession = {
+  keyDown?(key: string): boolean
   /** Node IDs the drag may mutate. Used by the dispatcher for the snapshot. */
   affectedIds: AnyNodeId[]
   /**

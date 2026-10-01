@@ -4,6 +4,7 @@ import {
   type GeometryContext,
   resolveAutoZonePolygon,
   type ZoneNode,
+  zoneNeedsBoundaryReview,
 } from '@pascal-app/core'
 import { floorplanGeometryMetadata, readFloorplanContext } from '@pascal-app/editor'
 import {
@@ -113,7 +114,7 @@ export function buildZoneFloorplan(node: ZoneNode, ctx: GeometryContext): Floorp
         stroke,
       ),
     )
-    if (floorplanContext.automaticDimensions) {
+    if (floorplanContext.automaticDimensions && !zoneNeedsBoundaryReview(node)) {
       children.push(...buildRoomClearDimensions(node, ctx))
     }
   } else if (name) {
@@ -159,6 +160,9 @@ function buildRoomLabels(
   const lines: Array<{ text: string; fontSize: number; fontWeight: number }> = []
   const name = node.name.trim()
   if (name) lines.push({ text: name, fontSize: ROOM_NAME_FONT_SIZE, fontWeight: 700 })
+  if (zoneNeedsBoundaryReview(node)) {
+    lines.push({ text: '구획 확인 필요', fontSize: ROOM_DETAIL_FONT_SIZE, fontWeight: 700 })
+  }
   if (node.roomNumber) {
     lines.push({ text: node.roomNumber, fontSize: ROOM_NUMBER_FONT_SIZE, fontWeight: 600 })
   }

@@ -96,6 +96,125 @@ describe('AI modeling control plane', () => {
     expect(useScene.getState().nodes.wall_ai_second).toBeUndefined()
   })
 
+  test('merges selected walls through the shared operation as one undo step', () => {
+    const left = WallNode.parse({
+      id: 'wall_ai_merge_left',
+      parentId: levelId,
+      start: [0, 0],
+      end: [2, 0],
+      thickness: 0.2,
+      height: 2.5,
+    })
+    const right = WallNode.parse({
+      id: 'wall_ai_merge_right',
+      parentId: levelId,
+      start: [2, 0],
+      end: [5, 0],
+      thickness: 0.2,
+      height: 2.5,
+    })
+    useScene.setState((state) => ({
+      nodes: {
+        ...state.nodes,
+        [levelId]: LevelNode.parse({ ...state.nodes[levelId], children: [left.id, right.id] }),
+        [left.id]: left,
+        [right.id]: right,
+      },
+    }))
+    useScene.temporal.getState().clear()
+
+    const result = applyAiModelingPlan({
+      message: 'Merge the two selected walls.',
+      patches: [{ op: 'mergeWalls', wallIds: [left.id, right.id] }],
+    })
+
+    expect(result.appliedOps).toBe(1)
+    expect(result.deletedIds).toEqual([right.id])
+    expect(useScene.getState().nodes[left.id]).toMatchObject({ start: [0, 0], end: [5, 0] })
+    expect(useScene.getState().nodes[right.id]).toBeUndefined()
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+
+    useScene.temporal.getState().undo()
+    expect(useScene.getState().nodes[left.id]).toEqual(left)
+    expect(useScene.getState().nodes[right.id]).toEqual(right)
+  })
+
+  test('splits a wall through the shared AI operation as one undo step', () => {
+    const wall = WallNode.parse({
+      id: 'wall_ai_split',
+      parentId: levelId,
+      start: [0, 0],
+      end: [4, 0],
+      thickness: 0.2,
+      height: 2.5,
+    })
+    useScene.setState((state) => ({
+      nodes: {
+        ...state.nodes,
+        [levelId]: LevelNode.parse({ ...state.nodes[levelId], children: [wall.id] }),
+        [wall.id]: wall,
+      },
+    }))
+    useScene.temporal.getState().clear()
+
+    const result = applyAiModelingPlan({
+      message: 'Split the wall at 1.5 metres.',
+      patches: [{ op: 'splitWall', id: wall.id, distance: 1.5 }],
+    })
+
+    expect(result.appliedOps).toBe(1)
+    expect(result.createdIds).toHaveLength(1)
+    const secondId = result.createdIds[0] as AnyNodeId
+    expect(useScene.getState().nodes[wall.id]).toMatchObject({ start: [0, 0], end: [1.5, 0] })
+    expect(useScene.getState().nodes[secondId]).toMatchObject({ start: [1.5, 0], end: [4, 0] })
+    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+
+    useScene.temporal.getState().undo()
+    expect(useScene.getState().nodes[wall.id]).toEqual(wall)
+    expect(useScene.getState().nodes[secondId]).toBeUndefined()
+  })
+
+  test('does not mutate earlier wall operations when a later AI patch is invalid', () => {
+    const left = WallNode.parse({
+      id: 'wall_ai_atomic_left',
+      parentId: levelId,
+      start: [0, 0],
+      end: [2, 0],
+      thickness: 0.2,
+      height: 2.5,
+    })
+    const right = WallNode.parse({
+      id: 'wall_ai_atomic_right',
+      parentId: levelId,
+      start: [2, 0],
+      end: [5, 0],
+      thickness: 0.2,
+      height: 2.5,
+    })
+    useScene.setState((state) => ({
+      nodes: {
+        ...state.nodes,
+        [levelId]: LevelNode.parse({ ...state.nodes[levelId], children: [left.id, right.id] }),
+        [left.id]: left,
+        [right.id]: right,
+      },
+    }))
+    useScene.temporal.getState().clear()
+
+    expect(() =>
+      applyAiModelingPlan({
+        message: 'Merge, then apply an invalid update.',
+        patches: [
+          { op: 'mergeWalls', wallIds: [left.id, right.id] },
+          { op: 'update', id: 'wall_ai_missing', data: { height: 3 } },
+        ],
+      }),
+    ).toThrow(/not found/)
+    expect(useScene.getState().nodes[left.id]).toEqual(left)
+    expect(useScene.getState().nodes[right.id]).toEqual(right)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(0)
+  })
+
   test('adds the standard physical assembly to AI-created walls', () => {
     applyAiModelingPlan({
       message: 'Created one standard wall.',
@@ -117,10 +236,7 @@ describe('AI modeling control plane', () => {
     const wall = WallNode.parse(useScene.getState().nodes.wall_ai_default_assembly)
     expect(wall.thickness).toBe(0.1)
     expect(wall.faceBands?.construction?.upper?.layers.map((layer) => layer.kind)).toEqual([
-      'timber-stud',
-      'cavity',
-      'gypsum-board',
-      'finish',
+      'concrete',
     ])
   })
 

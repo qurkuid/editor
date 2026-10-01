@@ -3,11 +3,11 @@
 import type { TemporalState } from 'zundo'
 import { temporal } from 'zundo'
 import { create, type StoreApi, type UseBoundStore } from 'zustand'
+import type { WallMutation } from '../lib/wall-operations'
 import { parseMaterialRef, toSceneMaterialRef } from '../material-library'
 import { getNodePluginId, isNodeKindEnabled, nodeRegistry } from '../registry/registry'
 import { BuildingNode } from '../schema'
 import type { Collection, CollectionId } from '../schema/collections'
-import type { SavedView, SavedViewId } from '../schema/saved-views'
 import { generateCollectionId } from '../schema/collections'
 import { DoorNode as DoorNodeSchema } from '../schema/nodes/door'
 import { ElevatorNode as ElevatorNodeSchema } from '../schema/nodes/elevator'
@@ -27,6 +27,7 @@ import {
 import { StairSegmentNode as StairSegmentNodeSchema } from '../schema/nodes/stair-segment'
 import { getEffectiveWallSurfaceMaterial, type WallSurfaceSide } from '../schema/nodes/wall'
 import { WindowNode as WindowNodeSchema } from '../schema/nodes/window'
+import type { SavedView, SavedViewId } from '../schema/saved-views'
 import {
   generateSceneMaterialId,
   SceneMaterial,
@@ -39,6 +40,7 @@ import { computeWallSlabSupport } from '../systems/slab/slab-support'
 import { DEFAULT_WALL_HEIGHT } from '../systems/wall/wall-footprint'
 import { healSceneNodes } from '../utils/heal-scene-graph'
 import * as nodeActions from './actions/node-actions'
+import * as wallActions from './actions/wall-actions'
 import {
   areSceneSnapshotsEqual,
   getSceneHistoryPauseDepth,
@@ -1257,6 +1259,15 @@ export type SceneState = {
   deleteNode: (id: AnyNodeId) => void
   deleteNodes: (ids: AnyNodeId[]) => void
 
+  // Explicit wall topology edits. These actions commit one pure mutation and
+  // never route through generic delete (which has legacy neighbour merging).
+  mergeWalls: (wallIds: AnyNodeId[]) => WallMutation | undefined
+  splitWall: (
+    wallId: AnyNodeId,
+    distanceFromStart: number,
+    requestedSecondWallId?: AnyNodeId,
+  ) => WallMutation | undefined
+
   // Collection actions
   createCollection: (name: string, nodeIds?: AnyNodeId[]) => CollectionId
   deleteCollection: (id: CollectionId) => void
@@ -1472,6 +1483,10 @@ const useScene: UseSceneStore = create<SceneState>()(
       deleteNodes: (ids) => nodeActions.deleteNodesAction(set, get, ids),
 
       deleteNode: (id) => nodeActions.deleteNodesAction(set, get, [id]),
+
+      mergeWalls: (wallIds) => wallActions.mergeWallsAction(set, get, wallIds),
+      splitWall: (wallId, distanceFromStart, requestedSecondWallId) =>
+        wallActions.splitWallAction(set, get, wallId, distanceFromStart, requestedSecondWallId),
 
       // --- COLLECTIONS ---
 
@@ -2104,7 +2119,7 @@ useScene.temporal.subscribe((state) => {
     // but still mark walls/items dirty before the next paint.
     queueMicrotask(() => {
       const currentNodes = useScene.getState().nodes
-      const { markDirty } = useScene.getState()
+      const { markDirty, clearDirty } = useScene.getState()
 
       if (snapshotBefore) {
         // Diff: only mark nodes that actually changed
@@ -2118,6 +2133,7 @@ useScene.temporal.subscribe((state) => {
         // Nodes that were deleted (exist in prev but not current)
         for (const [id, node] of Object.entries(snapshotBefore) as [AnyNodeId, AnyNode][]) {
           if (!currentNodes[id]) {
+            clearDirty(id)
             const parentId = node.parentId as AnyNodeId | undefined
             if (parentId) {
               markDirty(parentId)

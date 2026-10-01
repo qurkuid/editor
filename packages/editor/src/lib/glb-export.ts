@@ -4,14 +4,19 @@ import {
   type DoorNode,
   emitter,
   getLevelDisplayName,
+  getWallPlaneTop,
   isOperationDoorType,
   itemClipRegistry,
   type LevelNode,
   nodeRegistry,
+  resolveLevelId,
+  type SlabNode,
   sceneRegistry,
+  type WallNode,
   type WindowNode,
   type ZoneNode,
 } from '@pascal-app/core'
+import { computeWallSlabSupport } from '@pascal-app/core/spatial-grid'
 import {
   getPascalTextureRef,
   poseDoorMovingParts,
@@ -26,7 +31,14 @@ import {
   type GLTFExporterPlugin,
   type GLTFWriter,
 } from 'three/examples/jsm/exporters/GLTFExporter.js'
+import { mergeGroups } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import * as WebGPUTextureUtils from 'three/examples/jsm/utils/WebGPUTextureUtils.js'
+import { conformWallGeometry } from './conform-wall-geometry'
+import {
+  buildSketchupWallContracts,
+  type PascalNativeWallContract,
+  type WallContractSupport,
+} from './sketchup-wall-contract'
 
 /**
  * Two TRS samples (closed vs open) differing by less than this are treated as
@@ -48,6 +60,7 @@ export type GlbExport = {
 
 export type GlbExportOptions = {
   textures?: 'embed' | 'reference'
+  includeGuides?: boolean
 }
 
 /** Resolve after the next couple of animation frames, giving React/R3F time to
@@ -125,10 +138,7 @@ export async function exportSceneToGlb(
   const restoreLevels = snapLevelsToTruePositions()
   let prepared: ReturnType<typeof prepareSceneForExport>
   try {
-    prepared =
-      textureMode === 'reference'
-        ? prepareSceneForExport(sceneGroup, nodes, { textures: 'reference' })
-        : prepareSceneForExport(sceneGroup, nodes)
+    prepared = prepareSceneForExport(sceneGroup, nodes, options)
   } finally {
     restoreLevels()
     emitter.emit('thumbnail:after-capture', undefined)
@@ -192,6 +202,24 @@ export function prepareSceneForExport(
   // for a live render.)
   for (const [id, original] of sceneRegistry.nodes) {
     const node = nodes[id]
+    if (node?.type === 'guide' && options.includeGuides) {
+      cloneByOriginal.get(original)?.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return
+        const material = object.material as THREE.Material & {
+          colorNode?: { value?: THREE.Texture }
+          opacityNode?: { value?: number }
+          map?: THREE.Texture
+        }
+        object.material = new THREE.MeshBasicMaterial({
+          map: material.map ?? material.colorNode?.value,
+          opacity: material.opacityNode?.value ?? material.opacity,
+          transparent: true,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        })
+      })
+      continue
+    }
     if (node && bakePolicyOf(node.type) === 'strip') {
       cloneByOriginal.get(original)?.removeFromParent()
     }
@@ -208,12 +236,28 @@ export function prepareSceneForExport(
   }
 
   pruneNonRenderableMeshes(scene, identityNodes)
+  for (const [id, original] of sceneRegistry.nodes) {
+    const clone = cloneByOriginal.get(original)
+    if (nodes[id]?.type === 'wall' && clone instanceof THREE.Mesh) {
+      clone.geometry = conformWallGeometry(clone.geometry)
+    }
+  }
   sanitizeMaterialGroups(scene, identityNodes)
   convertMaterials(scene, options.textures ?? 'embed')
 
   const { clips, clipNamesByNode } = bakeAnimationClips(cloneByOriginal, nodes)
+  scene.updateMatrixWorld(true)
+  const wallObjects = new Map<string, THREE.Object3D>()
+  for (const [id, original] of sceneRegistry.nodes) {
+    if (nodes[id]?.type !== 'wall') continue
+    const clone = cloneByOriginal.get(original)
+    if (clone) wallObjects.set(id, clone)
+  }
+  const wallContracts = buildSketchupWallContracts(nodes, wallObjects, (wall, levelId) =>
+    resolveWallContractSupport(wall, nodes, levelId),
+  )
 
-  stampIdentity(scene, cloneByOriginal, nodes, clipNamesByNode)
+  stampIdentity(scene, cloneByOriginal, nodes, clipNamesByNode, wallContracts)
 
   return { scene, animations: clips }
 }
@@ -344,7 +388,9 @@ function pruneNonRenderableMeshes(root: THREE.Object3D, identityNodes: Set<THREE
  *    non-renderables (kept as a bare transform node, or removed if a leaf
  *    that carries no node identity).
  * Geometry/material refs are shared with the live scene (`clone(true)` is
- * shallow for both), so repairs swap refs instead of mutating in place.
+ * shallow for both), so repairs swap refs instead of mutating in place. Once
+ * valid groups are repaired, repeated material indices are compacted on a
+ * detached geometry so GLTFExporter emits one primitive per material.
  */
 function sanitizeMaterialGroups(root: THREE.Object3D, identityNodes: Set<THREE.Object3D>) {
   const toRemove: THREE.Object3D[] = []
@@ -357,7 +403,10 @@ function sanitizeMaterialGroups(root: THREE.Object3D, identityNodes: Set<THREE.O
       groups.length === 0 ||
       groups.some((g) => (g.materialIndex ?? 0) >= materials.length || g.count === 0) ||
       materials.some((m) => m == null)
-    if (!broken) return
+    if (!broken) {
+      compactRepeatedMaterialGroups(mesh)
+      return
+    }
 
     const validGroups = groups.filter(
       (g) => (g.materialIndex ?? 0) < materials.length && g.count !== 0,
@@ -371,6 +420,7 @@ function sanitizeMaterialGroups(root: THREE.Object3D, identityNodes: Set<THREE.O
       }
       return
     }
+
     // Only the group list needs repair — share the attribute/index refs
     // instead of geometry.clone(), which deep-copies every vertex buffer.
     if (validGroups.length !== groups.length) {
@@ -386,10 +436,26 @@ function sanitizeMaterialGroups(root: THREE.Object3D, identityNodes: Set<THREE.O
       mesh.geometry = geometry
     }
     mesh.material = materials.map((m) => m ?? PLACEHOLDER_MATERIAL)
+    compactRepeatedMaterialGroups(mesh)
   })
   for (const object of toRemove) {
     object.removeFromParent()
   }
+}
+
+function compactRepeatedMaterialGroups(mesh: THREE.Mesh) {
+  const { geometry } = mesh
+  const groups = geometry.groups
+  if (
+    groups.length < 2 ||
+    geometry.drawRange.start !== 0 ||
+    geometry.drawRange.count !== Infinity ||
+    new Set(groups.map((group) => group.materialIndex)).size === groups.length
+  ) {
+    return
+  }
+
+  mesh.geometry = mergeGroups(geometry.clone())
 }
 
 function isRenderableMesh(mesh: THREE.Mesh): boolean {
@@ -1001,11 +1067,36 @@ function nodeDisplayLabel(node: AnyNode): string {
   }
 }
 
+function resolveWallContractSupport(
+  wall: WallNode,
+  nodes: Record<string, AnyNode>,
+  levelId: string,
+): WallContractSupport {
+  const levelWalls = Object.values(nodes).filter(
+    (node): node is WallNode => node.type === 'wall' && resolveLevelId(node, nodes) === levelId,
+  )
+  const levelSlabs = Object.values(nodes).filter(
+    (node): node is SlabNode => node.type === 'slab' && resolveLevelId(node, nodes) === levelId,
+  )
+  const support = computeWallSlabSupport(wall, levelSlabs, levelWalls, wall.supportSlabId)
+  const offset = wall.supportOffset ?? 0
+  return {
+    slabElevation: support.elevation + offset,
+    baseElevation: support.baseElevation + offset,
+    baseSegments: support.baseSegments.map((segment) => ({
+      ...segment,
+      elevation: segment.elevation + offset,
+    })),
+    storeyHeight: getWallPlaneTop(wall, levelId, nodes),
+  }
+}
+
 function stampIdentity(
   scene: THREE.Object3D,
   cloneByOriginal: Map<THREE.Object3D, THREE.Object3D>,
   nodes: Record<string, AnyNode>,
   clipNamesByNode: Map<string, string[]>,
+  wallContracts: ReadonlyMap<string, PascalNativeWallContract>,
 ) {
   scene.traverse((object) => {
     object.userData = {}
@@ -1057,6 +1148,14 @@ function stampIdentity(
       extras.polygon = zone.polygon
       extras.color = zone.color
       target.visible = true
+    }
+    if (node.type === 'wall') {
+      extras.pascalNativeWall = wallContracts.get(id) ?? {
+        version: 1,
+        compatible: false,
+        wallId: id,
+        reasons: ['missing-renderer'],
+      }
     }
     if (node.type === 'spawn') {
       // The spawn marker's visible mesh lives on a non-scene overlay layer (and

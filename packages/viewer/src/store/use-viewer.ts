@@ -151,8 +151,8 @@ type ViewerState = {
   bumpGeometryRevision: () => void
 
   // Export functionality
-  exportScene: ((format?: 'glb' | 'stl' | 'obj') => Promise<void>) | null
-  setExportScene: (fn: ((format?: 'glb' | 'stl' | 'obj') => Promise<void>) | null) => void
+  exportScene: ((format?: 'glb' | 'stl' | 'obj' | 'dxf') => Promise<void>) | null
+  setExportScene: (fn: ((format?: 'glb' | 'stl' | 'obj' | 'dxf') => Promise<void>) | null) => void
 
   debugColors: boolean
   setDebugColors: (enabled: boolean) => void

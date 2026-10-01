@@ -42,9 +42,11 @@ const KIND_PATTERNS: Array<[ConstructionKind, RegExp]> = [
  * contains 도배. And fittings borrow finish words: `스위치 높이조절 필름` is an
  * electrical accessory, not the 인테리어 필름 a wall is finished in.
  */
-const NOT_A_MATERIAL = /인건비|철거|시공비|노무|출장|운반|폐기물|배관|설비|이설|전기|스위치|콘센트|조명/
+const NOT_A_MATERIAL =
+  /인건비|철거|시공비|노무|출장|운반|폐기물|배관|설비|이설|전기|스위치|콘센트|조명/
 
 const CATEGORY_BY_KIND: Record<ConstructionKind, MaterialCatalogItem['category']> = {
+  concrete: 'concrete',
   'gypsum-board': 'other',
   'timber-stud': 'wood',
   mdf: 'wood',
@@ -69,6 +71,7 @@ function plainAppearance(color: string) {
 }
 
 const COLOR_BY_KIND: Record<ConstructionKind, string> = {
+  concrete: '#a3a3a3',
   'gypsum-board': '#ece9e4',
   'timber-stud': '#c8a273',
   mdf: '#c9a880',

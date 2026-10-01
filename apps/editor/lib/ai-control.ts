@@ -1,4 +1,6 @@
 import {
+  buildWallMerge,
+  buildWallSplit,
   cloneComponentInstance,
   createBodyGroupFromBodies,
   createComponentFromBodies,
@@ -165,9 +167,11 @@ function normalizePatches(plan: AiModelingPlan): {
   readonly materials: SceneMaterial[]
   readonly materialUpdates: (SceneMaterial & { readonly id: SceneMaterialId })[]
 } {
-  const simulatedNodes = new Map(
+  let simulatedNodes = new Map(
     Object.entries(useScene.getState().nodes).map(([id, node]) => [id, node]),
   )
+  let simulatedRootNodeIds = [...useScene.getState().rootNodeIds]
+  let simulatedCollections = { ...useScene.getState().collections }
   const materials: SceneMaterial[] = []
   const materialUpdates: (SceneMaterial & { readonly id: SceneMaterialId })[] = []
 
@@ -209,11 +213,24 @@ function normalizePatches(plan: AiModelingPlan): {
               }
             : patch.node,
         )
-        simulatedNodes.set(node.id, node)
+        const effectiveParentId = (patch.parentId ?? node.parentId ?? null) as AnyNodeId | null
+        const normalizedNode = AnyNode.parse({ ...node, parentId: effectiveParentId })
+        simulatedNodes.set(normalizedNode.id, normalizedNode)
+        if (effectiveParentId) {
+          const parent = simulatedNodes.get(effectiveParentId)
+          if (parent && 'children' in parent && Array.isArray(parent.children)) {
+            simulatedNodes.set(effectiveParentId, {
+              ...parent,
+              children: Array.from(new Set([...parent.children, normalizedNode.id])),
+            } as AnyNode)
+          }
+        } else if (!simulatedRootNodeIds.includes(normalizedNode.id)) {
+          simulatedRootNodeIds.push(normalizedNode.id)
+        }
         return [
           {
             op: 'create',
-            node,
+            node: normalizedNode,
             ...(patch.parentId === undefined ? {} : { parentId: patch.parentId }),
           },
         ]
@@ -241,6 +258,42 @@ function normalizePatches(plan: AiModelingPlan): {
             ...(patch.cascade === undefined ? {} : { cascade: patch.cascade }),
           },
         ]
+      case 'mergeWalls': {
+        const mutation = buildWallMerge(
+          {
+            nodes: Object.fromEntries(simulatedNodes),
+            rootNodeIds: simulatedRootNodeIds,
+            collections: simulatedCollections,
+          },
+          patch.wallIds,
+        )
+        simulatedNodes = new Map(Object.entries(mutation.nodes))
+        simulatedRootNodeIds = mutation.rootNodeIds
+        simulatedCollections = mutation.collections
+        return [{ op: 'mergeWalls', wallIds: patch.wallIds }]
+      }
+      case 'splitWall': {
+        const mutation = buildWallSplit(
+          {
+            nodes: Object.fromEntries(simulatedNodes),
+            rootNodeIds: simulatedRootNodeIds,
+            collections: simulatedCollections,
+          },
+          patch.id,
+          patch.distance,
+        )
+        simulatedNodes = new Map(Object.entries(mutation.nodes))
+        simulatedRootNodeIds = mutation.rootNodeIds
+        simulatedCollections = mutation.collections
+        return [
+          {
+            op: 'splitWall',
+            id: patch.id,
+            distance: patch.distance,
+            secondWallId: mutation.createdNodeIds[0],
+          },
+        ]
+      }
       case 'pushPullBodyFace': {
         const current = simulatedNodes.get(patch.id)
         if (!current) {

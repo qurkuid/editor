@@ -109,6 +109,8 @@ export const aiChatDictionary = {
   'aiChat.op.create': { ko: '생성', en: 'Create' },
   'aiChat.op.update': { ko: '수정', en: 'Update' },
   'aiChat.op.delete': { ko: '삭제', en: 'Delete' },
+  'aiChat.op.mergeWalls': { ko: '벽 합치기', en: 'Merge walls' },
+  'aiChat.op.splitWall': { ko: '벽 분할', en: 'Split wall' },
   'aiChat.op.pushPullBodyFace': { ko: 'Push/Pull', en: 'Push/Pull' },
   'aiChat.op.offsetBodyFace': { ko: '면 Offset', en: 'Face offset' },
   'aiChat.op.sweepBodyFace': { ko: 'Follow Path', en: 'Follow Path' },

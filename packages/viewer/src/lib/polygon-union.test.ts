@@ -77,6 +77,26 @@ describe('unionPolygons', () => {
 })
 
 describe('subtractPolygonsFromPolygon', () => {
+  test('returns an outer contour and an enclosed window hole', () => {
+    const slab: Point2D[] = [
+      [0, 0],
+      [4, 0],
+      [4, 3],
+      [0, 3],
+    ]
+    const window: Point2D[] = [
+      [1, 1],
+      [3, 1],
+      [3, 2],
+      [1, 2],
+    ]
+
+    const result = subtractPolygonsFromPolygon(slab, [window])
+
+    expect(result).toHaveLength(2)
+    expect(result.map(polygonArea).sort((a, b) => a - b)).toEqual([2, 12])
+  })
+
   test('turns a boundary-overlapping cutter into an indentation', () => {
     const slab: Point2D[] = [
       [0, 0],
@@ -117,5 +137,96 @@ describe('subtractPolygonsFromPolygon', () => {
 
     expect(result).toHaveLength(2)
     expect(result.map(polygonArea).sort((a, b) => a - b)).toEqual([4.5, 4.5])
+  })
+
+  test('keeps two disjoint window holes as three contours', () => {
+    const slab: Point2D[] = [
+      [0, 0],
+      [5, 0],
+      [5, 4],
+      [0, 4],
+    ]
+    const leftWindow: Point2D[] = [
+      [1, 1],
+      [2, 1],
+      [2, 2],
+      [1, 2],
+    ]
+    const rightWindow: Point2D[] = [
+      [3, 1],
+      [4, 1],
+      [4, 2],
+      [3, 2],
+    ]
+
+    const result = subtractPolygonsFromPolygon(slab, [leftWindow, rightWindow])
+
+    expect(result).toHaveLength(3)
+    expect(result.map(polygonArea).sort((a, b) => a - b)).toEqual([1, 1, 20])
+  })
+
+  test('clips an opening crossing the footprint cap', () => {
+    const slab: Point2D[] = [
+      [0, 0],
+      [4, 0],
+      [4, 3],
+      [0, 3],
+    ]
+    const crossingOpening: Point2D[] = [
+      [3, 1],
+      [5, 1],
+      [5, 2],
+      [3, 2],
+    ]
+
+    const result = subtractPolygonsFromPolygon(slab, [crossingOpening])
+
+    expect(result).toHaveLength(1)
+    expect(polygonArea(result[0]!)).toBeCloseTo(11)
+    expect(result[0]).toContainEqual([4, 1])
+    expect(result[0]).toContainEqual([4, 2])
+  })
+
+  test('handles an opening ending exactly on the footprint boundary', () => {
+    const slab: Point2D[] = [
+      [0, 0],
+      [5, 0],
+      [5, 4],
+      [0, 4],
+    ]
+    const boundaryOpening: Point2D[] = [
+      [2, 1],
+      [5, 1],
+      [5, 2],
+      [2, 2],
+    ]
+
+    const result = subtractPolygonsFromPolygon(slab, [boundaryOpening])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toHaveLength(8)
+    expect(polygonArea(result[0]!)).toBeCloseTo(17)
+  })
+
+  test('extends a floor-level door notch to the exact semantic padding', () => {
+    const slab: Point2D[] = [
+      [0, 0],
+      [4, 0],
+      [4, 3],
+      [0, 3],
+    ]
+    const floorDoor: Point2D[] = [
+      [1, -0.02],
+      [2, -0.02],
+      [2, 1.05],
+      [1, 1.05],
+    ]
+
+    const result = subtractPolygonsFromPolygon(slab, [floorDoor])
+
+    expect(result).toHaveLength(1)
+    expect(polygonArea(result[0]!)).toBeCloseTo(10.95)
+    expect(result[0]).toContainEqual([1, 0])
+    expect(result[0]).toContainEqual([2, 0])
   })
 })

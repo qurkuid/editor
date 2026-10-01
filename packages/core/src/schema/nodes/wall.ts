@@ -72,6 +72,7 @@ export const WALL_TRIM_DEFAULTS = {
 } as const
 
 export const WallConstructionLayerKind = z.enum([
+  'concrete',
   'gypsum-board',
   'mdf',
   'timber-stud',
@@ -400,7 +401,12 @@ export type WallKind = 'solid' | WallMaterialKind
 
 export const WALL_GLASS_SLOT_REF = WALL_KIND_SLOT_REFS.glass
 
-const WALL_KIND_BAND_ORDER = ['lower', 'middle', 'upper', 'top'] as const satisfies readonly WallFaceBand[]
+const WALL_KIND_BAND_ORDER = [
+  'lower',
+  'middle',
+  'upper',
+  'top',
+] as const satisfies readonly WallFaceBand[]
 
 function getWallKindByRef(ref: string | undefined): WallMaterialKind | null {
   if (!ref) return null

@@ -59,7 +59,7 @@ describe('room tools', () => {
       firstWall?.type === 'wall'
         ? firstWall.faceBands?.construction?.upper?.layers.map((layer) => layer.kind)
         : [],
-    ).toEqual(['timber-stud', 'cavity', 'gypsum-board', 'finish'])
+    ).toEqual(['concrete'])
     expect(bridge.validateScene().valid).toBe(true)
   })
 

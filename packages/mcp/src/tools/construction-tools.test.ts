@@ -58,10 +58,7 @@ describe('construction tools', () => {
       if (wall?.type === 'wall') {
         expect(wall.height).toBe(2.8)
         expect(wall.faceBands?.construction?.upper?.layers.map((layer) => layer.kind)).toEqual([
-          'timber-stud',
-          'cavity',
-          'gypsum-board',
-          'finish',
+          'concrete',
         ])
       }
     }

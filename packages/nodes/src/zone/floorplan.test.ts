@@ -16,6 +16,22 @@ function textChildren(geometry: FloorplanGeometry | null) {
 }
 
 describe('buildZoneFloorplan room documentation', () => {
+  test('shows unresolved room boundaries in the 2D plan', () => {
+    const room = ZoneNode.parse({
+      name: 'Bedroom',
+      spaceRole: 'room',
+      polygon: [
+        [0, 0],
+        [4, 0],
+        [4, 3],
+        [0, 3],
+      ],
+      metadata: { boundaryNeedsReview: true },
+    })
+    expect(textChildren(buildZoneFloorplan(room, context))).toContainEqual(
+      expect.objectContaining({ text: '구획 확인 필요' }),
+    )
+  })
   test('keeps a generic zone label unchanged', () => {
     const zone = ZoneNode.parse({
       id: 'zone_landscape',

@@ -4,6 +4,20 @@ import { describe, expect, test } from 'bun:test'
 import { MODELING_AGENT_MANUAL } from './modeling-agent-manual'
 
 describe('Phase 2 ontology manual contract', () => {
+  test('documents weak endpoint inference separately from explicit angle locking', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('ArrowRight toggles')
+    expect(MODELING_AGENT_MANUAL).toContain('survive Shift release')
+    expect(MODELING_AGENT_MANUAL).toContain('wall drawing and endpoint dragging')
+    expect(MODELING_AGENT_MANUAL).toContain('within 2 degrees')
+    expect(MODELING_AGENT_MANUAL).toContain('Existing endpoint/edge snaps take priority')
+    expect(MODELING_AGENT_MANUAL).toContain('Off disables weak inference')
+    expect(MODELING_AGENT_MANUAL).toContain('not a documented SketchUp tolerance')
+  })
+  test('documents validated length edits and boundary review', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('buildWallLengthUpdates')
+    expect(MODELING_AGENT_MANUAL).toContain('all affected host spans')
+    expect(MODELING_AGENT_MANUAL).toContain('metadata.boundaryNeedsReview')
+  })
   test('documents ontology discovery and evidence requirements', () => {
     expect(MODELING_AGENT_MANUAL).toContain('pascal://ontology/manifest')
     expect(MODELING_AGENT_MANUAL).toContain('query_design_ontology')
@@ -22,6 +36,31 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('snapshots that feature at gesture start')
     expect(MODELING_AGENT_MANUAL).toContain('selected persistent vertex, half-edge, or face')
     expect(MODELING_AGENT_MANUAL).toContain('floor plan remains whole-Body')
+  })
+
+  test('documents apartment wall extraction and junction continuity', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('keeps a straight T main run continuous')
+    expect(MODELING_AGENT_MANUAL).toContain('an X crossing remains split')
+    expect(MODELING_AGENT_MANUAL).toContain('retains source-backed thin wall runs')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'maximal connected, non-branching source-gray wall chains',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('contained OCR crop retry')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Never synthesize a missing boundary by closing a room polygon',
+    )
+  })
+
+  test('documents source-backed opening and room boundary contracts', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('local swing-arc evidence')
+    expect(MODELING_AGENT_MANUAL).toContain('uncertain internal fixtures remain `opening`')
+    expect(MODELING_AGENT_MANUAL).toContain('measured semantic width in node metadata')
+    expect(MODELING_AGENT_MANUAL).toContain('full room barrier')
+    expect(MODELING_AGENT_MANUAL).toContain('protect small labeled rooms')
+    expect(MODELING_AGENT_MANUAL).toContain('conflicting OCR labels')
+    expect(MODELING_AGENT_MANUAL).toContain('source-backed boundaries')
+    expect(MODELING_AGENT_MANUAL).toContain('semantic zones without creating physical walls')
+    expect(MODELING_AGENT_MANUAL).toContain('bright ridge between darker rails')
   })
 
   test('documents persistent Body sub-entity selection', () => {

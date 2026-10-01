@@ -6,8 +6,11 @@ import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
 import * as THREE from 'three'
 import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
-import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js'
+import { strToU8, zipSync } from 'three/examples/jsm/libs/fflate.module.js'
+import { exportSceneToDxf } from '../../lib/dxf-export'
+import { exportFloorplanImages } from '../../lib/floorplan-image-export'
 import { exportSceneToGlb, nextFrames, prepareSceneForExport } from '../../lib/glb-export'
+import { exportSceneToStl } from '../../lib/stl-export'
 
 // prepareSceneForExport neutralises container meshes (door/window hitbox roots,
 // material-less renderables) with an attribute-less geometry — GLTFExporter
@@ -36,7 +39,7 @@ export function ExportManager() {
   const setExportScene = useViewer((state) => state.setExportScene)
 
   useEffect(() => {
-    const exportFn = async (format: 'glb' | 'stl' | 'obj' = 'glb') => {
+    const exportFn = async (format: 'glb' | 'stl' | 'obj' | 'dxf' = 'glb') => {
       // Find the scene renderer group by name
       const sceneGroup = scene.getObjectByName('scene-renderer')
       if (!sceneGroup) {
@@ -55,7 +58,9 @@ export function ExportManager() {
         await nextFrames()
 
         if (format === 'glb') {
-          const buffer = await exportSceneToGlb(sceneGroup, useScene.getState().nodes)
+          const buffer = await exportSceneToGlb(sceneGroup, useScene.getState().nodes, {
+            includeGuides: true,
+          })
           const blob = new Blob([buffer], { type: 'model/gltf-binary' })
           downloadBlob(blob, `model_${date}.glb`)
           return
@@ -68,18 +73,47 @@ export function ExportManager() {
         emitter.emit('thumbnail:before-capture', undefined)
         let prepared: ReturnType<typeof prepareSceneForExport>
         try {
-          prepared = prepareSceneForExport(sceneGroup, useScene.getState().nodes)
+          prepared = prepareSceneForExport(sceneGroup, useScene.getState().nodes, {
+            includeGuides: true,
+          })
         } finally {
           emitter.emit('thumbnail:after-capture', undefined)
         }
         const { scene: exportScene } = prepared
+        const { images, files } = await exportFloorplanImages(exportScene)
+        const downloadWithImages = async (blob: Blob, extension: string) => {
+          const name = `model_${date}.${extension}`
+          if (!images.length) {
+            downloadBlob(blob, name)
+            return
+          }
+          files[name] = new Uint8Array(await blob.arrayBuffer())
+          if (extension !== 'dxf')
+            files['floorplan.dxf'] = strToU8(exportSceneToDxf(new THREE.Group(), images))
+          files['README.txt'] = strToU8(
+            '압축을 모두 푼 뒤 DXF를 SketchUp에서 가져오세요. PNG는 DXF와 같은 폴더에 두세요.\n단위: 밀리미터 / 동일 평면 병합: 켜기 / 평평하게 선 작업 가져오기: 끄기\nSTL/OBJ 사용 시 floorplan.dxf에 도면 이미지 위치와 크기가 포함됩니다.\n\nExtract all files together before importing the DXF. Keep the PNG beside it.\nUnits: millimeters. Merge Coplanar Faces: on. Import Linework Flattened: off.\nFor STL/OBJ, floorplan.dxf carries the positioned reference image.\n',
+          )
+          downloadBlob(
+            new Blob([zipSync(files)], { type: 'application/zip' }),
+            `model_${date}_${extension}.zip`,
+          )
+        }
+        if (format === 'dxf') {
+          const result = exportSceneToDxf(exportScene, images)
+          await downloadWithImages(new Blob([result], { type: 'application/dxf' }), 'dxf')
+          return
+        }
+        const guides: THREE.Object3D[] = []
+        exportScene.traverse((object) => {
+          if (object.userData.kind === 'guide') guides.push(object)
+        })
+        for (const guide of guides) guide.removeFromParent()
         ensurePositionAttributes(exportScene)
 
         if (format === 'stl') {
-          const exporter = new STLExporter()
-          const result = exporter.parse(exportScene, { binary: true })
+          const result = exportSceneToStl(exportScene)
           const blob = new Blob([result], { type: 'model/stl' })
-          downloadBlob(blob, `model_${date}.stl`)
+          await downloadWithImages(blob, 'stl')
           return
         }
 
@@ -87,7 +121,7 @@ export function ExportManager() {
           const exporter = new OBJExporter()
           const result = exporter.parse(exportScene)
           const blob = new Blob([result], { type: 'model/obj' })
-          downloadBlob(blob, `model_${date}.obj`)
+          await downloadWithImages(blob, 'obj')
           return
         }
       } finally {

@@ -1305,6 +1305,14 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
       const drag = dragRef.current
       if (!drag || event.repeat) return
       if (
+        event.target instanceof HTMLElement &&
+        event.target.closest('input, textarea, [contenteditable=true]')
+      )
+        return
+      const consumed = event.type === 'keydown' && drag.session.keyDown?.(event.key)
+      if (consumed) event.preventDefault()
+      if (
+        !consumed &&
         event.key !== 'Alt' &&
         event.key !== 'Shift' &&
         event.key !== 'Control' &&

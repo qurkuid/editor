@@ -19,9 +19,11 @@ import {
 } from '@pascal-app/core'
 import {
   CursorSphere,
+  createWallDirectionLock,
   formatAngleRadians,
   getAngleToSegmentReference,
   getSegmentAngleReferenceAtPoint,
+  getSegmentGridStep,
   isAlignmentGuideActive,
   isAngleSnapActive,
   isMagneticSnapActive,
@@ -279,6 +281,8 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
     // (stale-junction exclusion above), so a point snapped under the previous
     // modifier state must not be reused as-is.
     let lastRawPoint: WallPlanPoint | null = null
+    const directionLock = createWallDirectionLock()
+    let directionInferred = false
     // The first pointer-up is the *grab* of a click-to-move; later ones are
     // drops. See the `!hasChanged` branch in `onPointerUp`.
     let hasReleasedOnce = false
@@ -390,14 +394,14 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
     // candidate set (stale-junction exclusion) flips with the modifier.
     // Endpoint move honours the active snapping mode (the HUD chip): grid →
     // lattice; lines → magnetic corner/alignment snap; angles → lock the
-    // segment to 15° rays from the FIXED corner; off → raw. No Shift bypass —
-    // Shift cycles the mode now, and Off is the bypass.
+    // segment to 15° rays from the FIXED corner; off → raw.
     const resolveDragPoint = (planPoint: WallPlanPoint): WallPlanPoint => {
       const snapResult = snapWallDraftPointDetailed({
         point: planPoint,
         walls: levelWalls,
         ignoreWallIds: altPressedRef.current ? [nodeId] : [nodeId, ...movingLinkedWallIds],
         start: fixedPoint,
+        inferDirection: !target.wall.curveOffset,
         angleSnap: isAngleSnapActive(),
         magnetic: isMagneticSnapActive(),
       })
@@ -446,6 +450,11 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
         useAlignmentGuides.getState().clear()
       }
 
+      directionInferred = !!snapResult.directionInferred && samePoint(alignedPoint, snappedPoint)
+      if (directionLock.active) {
+        alignedPoint = directionLock.project(planPoint, getSegmentGridStep())
+        useAlignmentGuides.getState().clear()
+      }
       if (
         previousGridPosRef.current &&
         (alignedPoint[0] !== previousGridPosRef.current[0] ||
@@ -460,7 +469,7 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
       useWallSnapIndicator
         .getState()
         .set(
-          snapResult.snap
+          snapResult.snap && !directionLock.active
             ? { x: alignedPoint[0], z: alignedPoint[1], kind: snapResult.snap }
             : null,
         )
@@ -471,6 +480,12 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
     const onGridMove = (event: GridEvent) => {
       const planPoint: WallPlanPoint = [event.localPosition[0], event.localPosition[2]]
       lastRawPoint = planPoint
+      const preview = previewRef.current
+      directionLock.set(
+        event.nativeEvent.shiftKey,
+        fixedPoint,
+        preview ? (target.endpoint === 'start' ? preview.start : preview.end) : movingOriginalPoint,
+      )
       // The keydown listener can't observe an Alt press that predates the
       // tool mounting; the pointer event can. Sync the shared ref (single Alt
       // source for snap targets, preview, HUD badge, and commit) before the
@@ -548,6 +563,7 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
             point: movingPoint,
             levelId: target.wall.parentId ?? null,
             ignoreWallIds: [nodeId, ...linkedUpdates.map((u) => String(u.id))],
+            radius: directionLock.active || directionInferred ? 1e-7 : undefined,
           })
           const finalPoint = resolved ?? movingPoint
           useScene.getState().updateNodes([
@@ -619,8 +635,32 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return
       }
+      if (
+        !event.repeat &&
+        directionLock.toggleAxis(
+          event.key,
+          fixedPoint,
+          lastRawPoint ?? movingOriginalPoint,
+          levelWalls.filter((w) => w.id !== nodeId && !movingLinkedIdSet.has(w.id)),
+        )
+      ) {
+        event.preventDefault()
+        if (lastRawPoint) applyPreview(resolveDragPoint(lastRawPoint), altPressedRef.current)
+      }
       if (event.key === 'Alt') {
         setAltState(true)
+      }
+      if (event.key === 'Shift' && !event.repeat) {
+        const preview = previewRef.current
+        directionLock.set(
+          true,
+          fixedPoint,
+          preview
+            ? target.endpoint === 'start'
+              ? preview.start
+              : preview.end
+            : movingOriginalPoint,
+        )
       }
     }
 
@@ -628,9 +668,14 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
       if (event.key === 'Alt') {
         setAltState(false)
       }
+      if (event.key === 'Shift') {
+        directionLock.set(false, fixedPoint, movingOriginalPoint)
+        if (lastRawPoint) applyPreview(resolveDragPoint(lastRawPoint), altPressedRef.current)
+      }
     }
 
     const onWindowBlur = () => {
+      directionLock.reset()
       setAltState(false)
     }
 
