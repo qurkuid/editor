@@ -1638,6 +1638,9 @@ function buildCanonicalTotalLeaves(
   levelId: AnyNodeId,
   componentWallIds: readonly AnyNodeId[],
   chainId: string,
+  tangent: FloorplanPoint,
+  normal: FloorplanPoint,
+  outerCoordinate: number,
 ): FloorplanDimensionEditLeaf[] {
   const lower = Math.min(overall.startProjection, overall.endProjection)
   const upper = Math.max(overall.startProjection, overall.endProjection)
@@ -1722,14 +1725,8 @@ function buildCanonicalTotalLeaves(
       value >= lower - CHAIN_PROJECTION_EPSILON && value <= upper + CHAIN_PROJECTION_EPSILON,
   )
 
-  const pointAt = (projection: number): FloorplanPoint => {
-    const fraction =
-      (projection - overall.startProjection) / (overall.endProjection - overall.startProjection)
-    return [
-      overall.start[0] + (overall.end[0] - overall.start[0]) * fraction,
-      overall.start[1] + (overall.end[1] - overall.start[1]) * fraction,
-    ]
-  }
+  const pointAt = (projection: number): FloorplanPoint =>
+    pointFromCoordinates(projection, outerCoordinate, tangent, normal)
   const entriesAt = (projection: number): PendingConstructionDimension[] =>
     baseChain.filter(
       (entry) =>
@@ -1808,6 +1805,8 @@ function finalizeDimensionTiers(
     String(left).localeCompare(String(right)),
   )
   const totalChainId = `${levelId}:construction:${sortedComponentWallIds.join(',')}:total`
+  const measurementPointAt = (projection: number): FloorplanPoint =>
+    pointFromCoordinates(projection, outerCoordinate, tangent, normal)
   const activeTiers = TIER_ORDER.filter((tier) => pending.some((entry) => entry.tier === tier))
   const offsets = new Map<ConstructionDimensionTier, number>()
   activeTiers.forEach((tier, index) => {
@@ -1820,7 +1819,16 @@ function finalizeDimensionTiers(
 
   const overall = pending.find((entry) => entry.tier === 'overall')
   const leaves = overall
-    ? buildCanonicalTotalLeaves(pending, overall, levelId, sortedComponentWallIds, totalChainId)
+    ? buildCanonicalTotalLeaves(
+        pending,
+        overall,
+        levelId,
+        sortedComponentWallIds,
+        totalChainId,
+        tangent,
+        normal,
+        outerCoordinate,
+      )
     : []
 
   const sortedPending = [...pending].sort((left, right) => {
@@ -1857,10 +1865,12 @@ function finalizeDimensionTiers(
           documentedOffset: entry.opening.documentedOffset,
         }
       : undefined
+    const measuredStart = measurementPointAt(entry.startProjection)
+    const measuredEnd = measurementPointAt(entry.endProjection)
     const leaf = makeDimensionLeaf(
       `${levelId}:construction:${entry.tier}:${entryWallIds.join(',')}:${entry.startProjection}:${entry.endProjection}`,
-      entry.start,
-      entry.end,
+      measuredStart,
+      measuredEnd,
       entryWallIds,
       opening,
       entry.opening
@@ -1907,8 +1917,8 @@ function finalizeDimensionTiers(
               : undefined,
       levelId: levelId as FloorplanDimensionEditDescriptor['levelId'],
       kind: entry.opening ? 'opening-width' : isTotal ? 'total' : 'leaf',
-      measuredStart: entry.start,
-      measuredEnd: entry.end,
+      measuredStart,
+      measuredEnd,
       fixedEndOptions: ['start', 'end'],
       leaves: descriptorLeaves,
       defaultLeafId: descriptorLeaves.at(-1)?.id,

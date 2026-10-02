@@ -1123,6 +1123,34 @@ describe('buildLevelWallConstructionDimensionPlan', () => {
     expect(jogs[0]?.dimensionEnd?.[1]).toBeCloseTo(1.65)
     expect(jogs[1]?.dimensionStart?.[1]).toBeCloseTo(1.65)
     expect(jogs[1]?.dimensionEnd?.[1]).toBeCloseTo(1.65)
+
+    for (const entry of planned) {
+      const descriptor = entry.editDescriptor
+      if (!descriptor || !entry.dimensionStart || !entry.dimensionEnd) continue
+      const measuredLength = Math.hypot(
+        descriptor.measuredEnd[0] - descriptor.measuredStart[0],
+        descriptor.measuredEnd[1] - descriptor.measuredStart[1],
+      )
+      const renderedLength = Math.hypot(
+        entry.dimensionEnd[0] - entry.dimensionStart[0],
+        entry.dimensionEnd[1] - entry.dimensionStart[1],
+      )
+      expect(measuredLength).toBeCloseTo(renderedLength)
+      expect(descriptor.leaves.reduce((sum, leaf) => sum + leaf.currentLength, 0)).toBeCloseTo(
+        measuredLength,
+      )
+    }
+    for (const geometry of rendered) {
+      const segments = geometry.kind === 'dimension-string' ? geometry.segments : [geometry]
+      for (const segment of segments) {
+        if (!segment.editDescriptor) continue
+        const measuredLength = Math.hypot(
+          segment.editDescriptor.measuredEnd[0] - segment.editDescriptor.measuredStart[0],
+          segment.editDescriptor.measuredEnd[1] - segment.editDescriptor.measuredStart[1],
+        )
+        expect(segment.text).toBe(formatConstructionLength(measuredLength, 'metric'))
+      }
+    }
   })
 
   test('dimensions an exterior column row by structural centerline', () => {

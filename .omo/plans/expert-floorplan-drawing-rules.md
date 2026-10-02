@@ -39,6 +39,7 @@ Explicitly out of scope:
 - Finished-face exterior horizontal and vertical chains contain segment dimensions to one consistent face and one overall dimension; no segment exists only to report partition thickness.
 - Within each exterior placement/opening segment tier, consecutive dimensions share witness endpoints without gaps or overlaps, the first and last witnesses equal the exterior overall endpoints, and the segment lengths sum to the overall length within the existing geometry tolerance.
 - Opening-width-only annotations may remain separate, but their provenance and edit IDs continue to reference the actual hosted opening; filling a facade-chain gap must not synthesize an opening or replace an existing editable leaf identity.
+- Every facade edit descriptor and leaf measures along the same projected axis used by its rendered dimension line: descriptor/leaf length equals the rendered `dimensionStart`–`dimensionEnd` length. Visual witness origins remain attached to the actual geometry and do not define the editable target when facade lines have different normal coordinates.
 - A rectangular room produces its finished-face clear width and depth without any `R-R` annotation.
 - An opening-free interior partition with proven generated room-clear coverage produces no wall-local overall dimension; unsupported or unproven rooms retain the wall dimension.
 - An interior wall with hosted openings retains its opening-placement chain and editable dimension descriptors.
