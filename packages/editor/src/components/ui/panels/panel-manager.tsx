@@ -75,7 +75,11 @@ function isMovableNode(node: AnyNode | null): node is MovableNode {
   return !!node && MOVABLE_TYPES.has(node.type)
 }
 
-function panelForType(type: string | null, footer?: React.ReactNode) {
+function panelForType(
+  type: string | null,
+  footer?: React.ReactNode,
+  inspectorZoneSection?: React.ReactNode,
+) {
   if (!type) return null
   // Every kind now renders through `<ParametricInspector>`, which either
   // composes auto-derived editors from `parametrics.groups` or lazy-
@@ -85,7 +89,7 @@ function panelForType(type: string | null, footer?: React.ReactNode) {
   // future cases where we might want a non-registry fallback (e.g.
   // reference scale, paint mode); leave the function shape intact.
   void type
-  return <ParametricInspector footer={footer} />
+  return <ParametricInspector footer={footer} inspectorZoneSection={inspectorZoneSection} />
 }
 
 function MobilePanelLayer({
@@ -171,9 +175,11 @@ function MobilePanelLayer({
 
 export function PanelManager({
   inspectorFooter,
+  inspectorZoneSection,
   multiSelectionFooter,
 }: {
   inspectorFooter?: React.ReactNode
+  inspectorZoneSection?: React.ReactNode
   multiSelectionFooter?: React.ReactNode
 }) {
   const isMobile = useIsMobile()
@@ -223,7 +229,7 @@ export function PanelManager({
       <MobilePanelLayer
         isReference={false}
         node={selectedNode}
-        panel={panelForType(selectedNodeType)}
+        panel={panelForType(selectedNodeType, undefined, inspectorZoneSection)}
       />
     )
   }
@@ -237,6 +243,7 @@ export function PanelManager({
     return (
       <ParametricInspector
         footer={inspectorFooter}
+        inspectorZoneSection={inspectorZoneSection}
         key={selectedZoneId}
         nodeId={selectedZoneId as AnyNodeId}
         onClose={() => setSelection({ zoneId: null })}
@@ -250,5 +257,5 @@ export function PanelManager({
     return <MultiSelectionPanel footer={multiSelectionFooter} />
   }
 
-  return panelForType(selectedNodeType, inspectorFooter)
+  return panelForType(selectedNodeType, inspectorFooter, inspectorZoneSection)
 }

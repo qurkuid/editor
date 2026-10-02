@@ -24,7 +24,11 @@ import { PanelSection } from '../controls/panel-section'
 import { SegmentedControl } from '../controls/segmented-control'
 import { SliderControl } from '../controls/slider-control'
 import { ToggleControl } from '../controls/toggle-control'
-import { InspectorFooterContext, PanelWrapper } from './panel-wrapper'
+import {
+  InspectorFooterContext,
+  InspectorZoneSectionContext,
+  PanelWrapper,
+} from './panel-wrapper'
 import { useT } from '../../../i18n/use-t'
 
 /**
@@ -45,9 +49,15 @@ import { useT } from '../../../i18n/use-t'
  */
 export function ParametricInspector({
   footer,
+  inspectorZoneSection,
   nodeId,
   onClose,
-}: { footer?: React.ReactNode; nodeId?: AnyNodeId; onClose?: () => void } = {}) {
+}: {
+  footer?: React.ReactNode
+  inspectorZoneSection?: React.ReactNode
+  nodeId?: AnyNodeId
+  onClose?: () => void
+} = {}) {
   const t = useT()
   const selectedIdFromSelection = useViewer((s) => s.selection.selectedIds[0]) as
     | AnyNodeId
@@ -135,9 +145,11 @@ export function ParametricInspector({
     // `footer` prop, so hand the host footer down via context.
     return (
       <InspectorFooterContext.Provider value={footer}>
-        <Suspense fallback={null}>
-          <CustomPanel />
-        </Suspense>
+        <InspectorZoneSectionContext.Provider value={inspectorZoneSection}>
+          <Suspense fallback={null}>
+            <CustomPanel />
+          </Suspense>
+        </InspectorZoneSectionContext.Provider>
       </InspectorFooterContext.Provider>
     )
   }
@@ -174,9 +186,17 @@ export function ParametricInspector({
         </PanelSection>
       ))}
       {TrailingSection && (
-        <Suspense fallback={null}>
-          <TrailingSection />
-        </Suspense>
+        isZone ? (
+          <InspectorZoneSectionContext.Provider value={inspectorZoneSection}>
+            <Suspense fallback={null}>
+              <TrailingSection />
+            </Suspense>
+          </InspectorZoneSectionContext.Provider>
+        ) : (
+          <Suspense fallback={null}>
+            <TrailingSection />
+          </Suspense>
+        )
       )}
       {(canMove || canDelete || (parametrics.actions && parametrics.actions.length > 0)) && (
         <PanelSection title={t('panel.actions')}>

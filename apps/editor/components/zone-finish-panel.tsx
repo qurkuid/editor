@@ -331,7 +331,7 @@ function TemplateNameForm({
   )
 }
 
-export function ZoneFinishInspectorFooter() {
+export function ZoneFinishInspectorFooter({ embedded = false }: { embedded?: boolean } = {}) {
   const nodes = useScene((state) => state.nodes)
   const materials = useScene((state) => state.materials)
   const spaces = useEditor((state) => state.spaces)
@@ -915,30 +915,47 @@ export function ZoneFinishInspectorFooter() {
 
   return (
     <section
-      aria-labelledby="zone-finish-inspector-title"
-      className="border-t border-border/70 bg-sidebar px-3 py-2"
+      {...(!embedded ? { 'aria-labelledby': 'zone-finish-inspector-title' } : {})}
+      className={embedded ? 'px-0 py-0' : 'border-t border-border/70 bg-sidebar px-3 py-2'}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <h2 className="truncate font-semibold text-xs" id="zone-finish-inspector-title">
-            실제 마감 자재
-          </h2>
-          <p className="truncate text-[10px] text-muted-foreground">
-            {roomLabel(selectedZone, allZones)}
-          </p>
+      {!embedded ? (
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="truncate font-semibold text-xs" id="zone-finish-inspector-title">
+              실제 마감 자재
+            </h2>
+            <p className="truncate text-[10px] text-muted-foreground">
+              {roomLabel(selectedZone, allZones)}
+            </p>
+          </div>
+          <button
+            aria-expanded={templateOpen}
+            aria-label="Zone 템플릿 열기"
+            className={`rounded-md border border-border/70 p-1.5 text-muted-foreground hover:text-foreground ${focusRing}`}
+            onClick={() => setTemplateOpen((open) => !open)}
+            type="button"
+          >
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform ${templateOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
         </div>
-        <button
-          aria-expanded={templateOpen}
-          aria-label="Zone 템플릿 열기"
-          className={`rounded-md border border-border/70 p-1.5 text-muted-foreground hover:text-foreground ${focusRing}`}
-          onClick={() => setTemplateOpen((open) => !open)}
-          type="button"
-        >
-          <ChevronDown
-            className={`h-3.5 w-3.5 transition-transform ${templateOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-      </div>
+      ) : null}
+      {embedded ? (
+        <div className="flex justify-end">
+          <button
+            aria-expanded={templateOpen}
+            aria-label="Zone 템플릿 열기"
+            className={`rounded-md border border-border/70 p-1.5 text-muted-foreground hover:text-foreground ${focusRing}`}
+            onClick={() => setTemplateOpen((open) => !open)}
+            type="button"
+          >
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform ${templateOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+        </div>
+      ) : null}
       <div className="mt-2 grid gap-1.5">
         {(['walls', 'ceiling', 'floor'] as const).map(renderTargetRow)}
       </div>
@@ -1105,7 +1122,7 @@ export function ZoneFinishInspectorFooter() {
 
       <Dialog open={dialogTarget !== null} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent
-          className="flex max-h-[82vh] flex-col overflow-hidden p-0 sm:max-w-xl"
+          className={`flex max-h-[82vh] flex-col overflow-hidden p-0 ${dialogTarget?.kind === 'walls' ? 'sm:max-w-3xl' : 'sm:max-w-xl'}`}
           onEscapeKeyDown={(event) => {
             if (dialogBusy) event.preventDefault()
           }}
@@ -1151,11 +1168,21 @@ export function ZoneFinishInspectorFooter() {
           </div>
           <div className="subtle-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">
             {catalogView === 'materials' ? (
-              <MergedMaterialCatalog onSelectMaterial={applyCatalogSelection} />
+              <MergedMaterialCatalog
+                columns={dialogTarget?.kind === 'walls' ? 4 : undefined}
+                onSelectMaterial={applyCatalogSelection}
+              />
             ) : catalogView === 'favorites' ? (
-              <FavoriteMaterialsGrid onSelectMaterial={applyCatalogSelection} />
+              <FavoriteMaterialsGrid
+                columns={dialogTarget?.kind === 'walls' ? 4 : undefined}
+                onSelectMaterial={applyCatalogSelection}
+              />
             ) : (
-              <MergedMaterialCatalog onSelectMaterial={applyCatalogSelection} sceneOnly />
+              <MergedMaterialCatalog
+                columns={dialogTarget?.kind === 'walls' ? 4 : undefined}
+                onSelectMaterial={applyCatalogSelection}
+                sceneOnly
+              />
             )}
           </div>
           {dialogBusy ? (

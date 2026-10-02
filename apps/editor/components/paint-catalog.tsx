@@ -281,6 +281,12 @@ function SectionLabel({ children, action }: { children: ReactNode; action?: Reac
 
 const SWATCH_GRID_STYLE = { gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }
 
+function catalogGridStyle(columns?: number) {
+  return columns && columns > 0
+    ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
+    : SWATCH_GRID_STYLE
+}
+
 /** One level of the category → brand drill-down: a large tappable row. */
 function DrillRow({
   label,
@@ -354,9 +360,11 @@ function libraryFavorite(item: MaterialCatalogItem): MaterialFavorite {
  * no local sections at all.
  */
 export function MergedMaterialCatalog({
+  columns,
   sceneOnly = false,
   onSelectMaterial,
 }: {
+  columns?: number
   sceneOnly?: boolean
   onSelectMaterial?: MaterialSelectionSink
 } = {}) {
@@ -791,6 +799,7 @@ export function MergedMaterialCatalog({
             {sceneMaterialCount > 0 ? (
               <SceneMaterialList
                 autoEditId={autoEditMaterialId}
+                columns={columns}
                 filter={(_, sceneMaterial) => matchesQuery(sceneMaterial.name)}
                 onSelectMaterial={onSelectMaterial}
                 rowActions={(id, sceneMaterial) => (
@@ -837,7 +846,7 @@ export function MergedMaterialCatalog({
               </p>
             )}
             {visibleMyLibrary.length > 0 ? (
-              <div className="mt-2 grid gap-2" style={SWATCH_GRID_STYLE}>
+              <div className="mt-2 grid gap-2" style={catalogGridStyle(columns)}>
                 {visibleMyLibrary.map(libraryTile)}
               </div>
             ) : null}
@@ -923,7 +932,7 @@ export function MergedMaterialCatalog({
                 {isBuiltinLeaf ||
                 (catalogRequest.search !== '' && catalogRequest.brand === null) ? (
                   visibleBuiltin.length > 0 ? (
-                    <div className="mb-2.5 grid gap-2" style={SWATCH_GRID_STYLE}>
+                    <div className="mb-2.5 grid gap-2" style={catalogGridStyle(columns)}>
                       {visibleBuiltin.map(libraryTile)}
                     </div>
                   ) : isBuiltinLeaf ? (
@@ -962,7 +971,10 @@ export function MergedMaterialCatalog({
                 ) : null}
                 {!isBuiltinLeaf && status === 'ready' ? (
                   products.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-2.5 pb-2">
+                    <div
+                      className="grid grid-cols-1 gap-2.5 pb-2"
+                      style={columns ? catalogGridStyle(columns) : undefined}
+                    >
                       {products.map((product) => (
                         <RawPainterProductCard
                           favorite={`rawpainter:${String(product.id)}` in favorites}
@@ -1021,8 +1033,10 @@ export function MergedMaterialCatalog({
 
 /** Starred materials across every source, resolved live where possible. */
 export function FavoriteMaterialsGrid({
+  columns,
   onSelectMaterial,
 }: {
+  columns?: number
   onSelectMaterial?: MaterialSelectionSink
 } = {}) {
   const t = useT()
@@ -1058,7 +1072,7 @@ export function FavoriteMaterialsGrid({
         </div>
       ) : null}
       {swatchFavorites.length > 0 ? (
-        <div className="grid gap-2" style={SWATCH_GRID_STYLE}>
+        <div className="grid gap-2" style={catalogGridStyle(columns)}>
           {swatchFavorites.map((favorite) => {
             if (favorite.kind === 'scene') {
               const sceneMaterial = sceneMaterials[favorite.id as SceneMaterialId]
@@ -1133,7 +1147,10 @@ export function FavoriteMaterialsGrid({
         </div>
       ) : null}
       {productFavorites.length > 0 ? (
-        <div className="mt-2 grid grid-cols-1 gap-2.5 pb-2">
+        <div
+          className="mt-2 grid grid-cols-1 gap-2.5 pb-2"
+          style={columns ? catalogGridStyle(columns) : undefined}
+        >
           {productFavorites.map((favorite) =>
             favorite.kind === 'rawpainter' ? (
               <RawPainterProductCard

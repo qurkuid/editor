@@ -91,6 +91,13 @@ describe('Phase 2 ontology manual contract', () => {
     )
   })
 
+  test('documents preserved Zone boundaries and structural membership UI', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('deletion-only boundary loss preserves')
+    expect(MODELING_AGENT_MANUAL).toContain('read-only Zone membership')
+    expect(MODELING_AGENT_MANUAL).toContain('collapsed 마감재 section')
+    expect(MODELING_AGENT_MANUAL).toContain('four columns')
+  })
+
   test('documents source-backed opening and room boundary contracts', () => {
     expect(MODELING_AGENT_MANUAL).toContain('local swing-arc evidence')
     expect(MODELING_AGENT_MANUAL).toContain('uncertain internal fixtures remain `opening`')

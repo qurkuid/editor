@@ -45,11 +45,14 @@ function getSlotRecord(node: unknown): SlotRecord | null {
 }
 
 export function SceneMaterialList({
+  columns,
   autoEditId,
   filter,
   rowActions,
   onSelectMaterial,
 }: {
+  /** Optional fixed card columns for compact catalog dialogs. */
+  columns?: number
   autoEditId?: SceneMaterialId | null
   /** When provided, only materials passing the predicate render. */
   filter?: (id: SceneMaterialId, sceneMaterial: SceneMaterial) => boolean
@@ -101,7 +104,10 @@ export function SceneMaterialList({
     : materialEntries
 
   return (
-    <div className="space-y-2">
+    <div
+      className={columns ? 'grid gap-2' : 'space-y-2'}
+      style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
+    >
       {visibleEntries.map(([id, sceneMaterial]) => (
         <SceneMaterialRow
           addSceneMaterial={addSceneMaterial}

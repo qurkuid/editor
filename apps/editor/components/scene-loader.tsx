@@ -424,7 +424,7 @@ export function SceneLoader({ meta }: SceneLoaderProps) {
       <IntmMaterialLibrary />
       <Editor
         actionMenuControls={<ModelingRailControls />}
-        inspectorFooter={<ZoneFinishInspectorFooter />}
+        inspectorZoneSection={<ZoneFinishInspectorFooter embedded />}
         layoutVersion="v2"
         onLoad={handleLoad}
         onSave={handleSave}

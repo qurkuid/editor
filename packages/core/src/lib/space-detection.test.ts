@@ -575,6 +575,8 @@ describe('procedural zones', () => {
       parentId: level.id,
       polygon: square,
       spaceRole: 'room',
+      autoFromWalls: true,
+      boundaryWallIds: walls.map((wall) => wall.id),
       metadata: { source: 'apt-vector', sourceRoomId: 'bedroom' },
     })
     const original = Object.fromEntries([level, ...walls, zone].map((node) => [node.id, node]))
@@ -584,9 +586,13 @@ describe('procedural zones', () => {
     const broken = { ...original }
     delete broken[walls[0]!.id]
     scene.setNodes(broken)
-    expect((scene.getState().nodes[zone.id] as typeof zone).metadata).toEqual({
-      ...zone.metadata,
-      boundaryNeedsReview: true,
+    expect(scene.getState().nodes[zone.id]).toMatchObject({
+      id: zone.id,
+      name: zone.name,
+      polygon: zone.polygon,
+      autoFromWalls: true,
+      boundaryWallIds: zone.boundaryWallIds,
+      metadata: { ...zone.metadata, boundaryNeedsReview: true },
     })
     scene.setNodes(original)
     expect((scene.getState().nodes[zone.id] as typeof zone).metadata).toEqual(zone.metadata)

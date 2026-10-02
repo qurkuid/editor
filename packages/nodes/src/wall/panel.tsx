@@ -53,6 +53,7 @@ import {
   metersToLinearUnit,
   PanelSection,
   PanelWrapper,
+  RelatedZonePanel,
   SegmentedControl,
   SliderControl,
   triggerSFX,
@@ -242,6 +243,7 @@ export default function WallPanel() {
       title={node.name || 'Wall'}
       width={280}
     >
+      <RelatedZonePanel nodeId={node.id} />
       <PanelSection title={t('panel.dimensions')}>
         <SliderControl
           label={t('common.length')}

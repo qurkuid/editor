@@ -7,6 +7,7 @@ import {
   holeEditScope,
   PanelSection,
   PanelWrapper,
+  RelatedZonePanel,
   SegmentedControl,
   SliderControl,
   triggerSFX,
@@ -281,6 +282,7 @@ export function SlabPanel() {
       title={node.name || 'Slab'}
       width={320}
     >
+      <RelatedZonePanel nodeId={node.id} />
       <PanelSection title={t('panel.elevation')}>
         <SliderControl
           label={node.recessed ? 'Floor' : 'Surface'}

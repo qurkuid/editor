@@ -59,6 +59,13 @@ function getDragBounds(el: HTMLElement | null): {
  */
 export const InspectorFooterContext = createContext<React.ReactNode>(null)
 
+/**
+ * Host-supplied content rendered inside the selected Zone's scrollable
+ * section. This stays separate from `InspectorFooterContext`: generic host
+ * footers remain pinned to the panel and are never interpreted as Zone UI.
+ */
+export const InspectorZoneSectionContext = createContext<React.ReactNode>(null)
+
 interface PanelWrapperProps {
   title: string
   /** Either a URL path (legacy panels pass `/icons/floor.webp` etc.,

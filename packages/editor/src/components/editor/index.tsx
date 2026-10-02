@@ -183,6 +183,9 @@ export interface EditorProps {
    * only while a node is selected.
    */
   inspectorFooter?: ReactNode
+  /** Host-injected content rendered inside the selected room Zone's
+   * collapsed finish section. */
+  inspectorZoneSection?: ReactNode
   /**
    * Docked below the multi-selection panel (v2). Hosts mount whole-selection
    * affordances here (e.g. "Save to my catalog"); shows only while more than
@@ -1160,6 +1163,7 @@ export default function Editor({
   actionMenuControls,
   stageOverlay,
   inspectorFooter,
+  inspectorZoneSection,
   multiSelectionFooter,
   viewerSceneSlot,
   floorplanSceneSlot,
@@ -1503,6 +1507,7 @@ export default function Editor({
                     <div className="pointer-events-auto">
                       <PanelManager
                         inspectorFooter={inspectorFooter}
+                        inspectorZoneSection={inspectorZoneSection}
                         multiSelectionFooter={multiSelectionFooter}
                       />
                     </div>

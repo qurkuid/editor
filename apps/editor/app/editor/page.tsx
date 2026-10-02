@@ -218,7 +218,7 @@ export default function Home() {
       <IntmMaterialLibrary />
       <Editor
         integrationAdapter={rawPainterIntegrationAdapter}
-        inspectorFooter={<ZoneFinishInspectorFooter />}
+        inspectorZoneSection={<ZoneFinishInspectorFooter embedded />}
         layoutVersion="v2"
         onSaveStatusChange={setSaveStatus}
         projectId={PROJECT_ID}

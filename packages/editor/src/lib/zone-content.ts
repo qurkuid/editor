@@ -9,12 +9,20 @@ import {
   type WallNode,
   type ZoneNode,
 } from '@pascal-app/core'
+import { inspectZoneFinishTarget } from './zone-finish'
 
 type Point2D = [number, number]
 
 const POINT_TOLERANCE = 0.5
 const COLLINEAR_TOLERANCE = 1e-6
 const SURFACE_POLYGON_TOLERANCE = 0.15
+
+export type RelatedZoneInfo = Pick<
+  ZoneNode,
+  'id' | 'name' | 'roomNumber' | 'enclosureStatus' | 'occupancy'
+> & {
+  area: number
+}
 
 function getPointToSegmentDistance(point: Point2D, start: Point2D, end: Point2D): number {
   const dx = end[0] - start[0]
@@ -127,4 +135,66 @@ export function collectZoneContentIds(
       ...floorItems.map((item) => item.id as AnyNodeId),
     ]),
   )
+}
+
+function polygonArea(polygon: readonly (readonly [number, number])[]): number {
+  if (polygon.length < 3) return 0
+  let area = 0
+  for (let index = 0; index < polygon.length; index += 1) {
+    const current = polygon[index]
+    const next = polygon[(index + 1) % polygon.length]
+    if (!(current && next)) continue
+    area += current[0] * next[1] - next[0] * current[1]
+  }
+  return Math.abs(area) / 2
+}
+
+/**
+ * Read-only Zone membership for structural inspectors. This intentionally
+ * delegates wall-face and floor containment to the finish inspection resolver
+ * so shared walls, containing support slabs, holes, and concave boundaries use
+ * the same proof rules as the finish workflow. It never returns content IDs
+ * and never mutates the scene.
+ */
+export function resolveRelatedZonesForNode(
+  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
+  nodeId: AnyNodeId,
+): RelatedZoneInfo[] {
+  const target = nodes[nodeId]
+  if (!target || (target.type !== 'wall' && target.type !== 'slab') || !target.parentId) return []
+
+  const sceneNodes = nodes as Record<string, AnyNode>
+  const zones = Object.values(nodes).filter(
+    (node): node is ZoneNode => node.type === 'zone' && node.parentId === target.parentId,
+  )
+
+  return zones
+    .filter((zone) => {
+      const inspection = inspectZoneFinishTarget({
+        kind: target.type === 'wall' ? 'walls' : 'floor',
+        materials: {},
+        nodes: sceneNodes,
+        spaces: {},
+        zoneId: zone.id,
+      })
+      if (target.type === 'wall') {
+        if (zone.autoFromWalls && zone.boundaryWallIds.includes(target.id)) return true
+        return (
+          !inspection.boundaryError &&
+          inspection.wallFaces.some((face) => face.wallId === target.id)
+        )
+      }
+      return (
+        (inspection.floor.status === 'existing' && inspection.floor.slabId === target.id) ||
+        (inspection.floor.status === 'creatable' && inspection.floor.baseSlabId === target.id)
+      )
+    })
+    .map((zone) => ({
+      area: polygonArea(zone.polygon),
+      enclosureStatus: zone.enclosureStatus,
+      id: zone.id,
+      name: zone.name,
+      occupancy: zone.occupancy,
+      roomNumber: zone.roomNumber,
+    }))
 }

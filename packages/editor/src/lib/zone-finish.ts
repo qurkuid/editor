@@ -137,7 +137,7 @@ export type ZoneFinishInspection = {
   boundaryError?: ZoneFinishBoundaryError
   floor:
     | { status: 'existing'; slabId: string }
-    | { status: 'creatable' }
+    | { status: 'creatable'; baseSlabId?: string }
     | { status: 'blocked'; reason: string; conflictIds: string[] }
   ceiling:
     | { status: 'existing'; ceilingId: string; explicit: boolean }
@@ -1469,7 +1469,10 @@ function makeInspection(
         ? { status: 'blocked', reason: floor.reason, conflictIds: floor.conflictIds }
         : floor.status === 'existing'
           ? { status: 'existing', slabId: floor.slab.id }
-          : { status: 'creatable' },
+          : {
+              status: 'creatable',
+              ...(floor.baseSlab ? { baseSlabId: floor.baseSlab.id } : {}),
+            },
     ceiling:
       ceiling.status === 'blocked'
         ? {

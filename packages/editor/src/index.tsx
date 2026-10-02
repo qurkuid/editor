@@ -258,8 +258,13 @@ export { CollectionsPopover } from './components/ui/panels/collections/collectio
 // Phase 5 Stage E — kinds with bespoke editors (slab holes list,
 // ceiling height presets, etc.) use `parametrics.customPanel` to mount
 // a kind-owned panel and need PanelWrapper for the chrome.
-export { PanelWrapper } from './components/ui/panels/panel-wrapper'
+export {
+  InspectorFooterContext,
+  InspectorZoneSectionContext,
+  PanelWrapper,
+} from './components/ui/panels/panel-wrapper'
 export { ParametricInspector as Inspector } from './components/ui/panels/parametric-inspector'
+export { RelatedZonePanel } from './components/ui/panels/related-zone-panel'
 export { PALETTE_COLORS } from './components/ui/primitives/color-dot'
 export {
   Dialog,
@@ -605,6 +610,10 @@ export {
   snapBuildingLocalToWorldGrid,
   snapWorldXZForActiveBuilding,
 } from './lib/world-grid-snap'
+export {
+  type RelatedZoneInfo,
+  resolveRelatedZonesForNode,
+} from './lib/zone-content'
 export {
   applyHomeFinishTemplate,
   applyMaterialToCapturedZoneTarget,

@@ -13,6 +13,7 @@ import {
   formatAreaLabel,
   formatLinearMeasurement,
   formatVolumeLabel,
+  InspectorZoneSectionContext,
   MetricControl,
   type MetricNotation,
   PanelSection,
@@ -20,7 +21,7 @@ import {
   useT,
 } from '@pascal-app/editor'
 import { useViewer } from '@pascal-app/viewer'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 type Point2D = readonly [number, number]
@@ -276,21 +277,6 @@ function RoomDocumentationPanel({ zone }: { zone: ZoneNode }) {
             onCommit={(occupancy) => update({ occupancy })}
             value={zone.occupancy}
           />
-          <RoomTextField
-            label={t('panel.floorFinish')}
-            onCommit={(floorFinish) => update({ floorFinish })}
-            value={zone.floorFinish}
-          />
-          <RoomTextField
-            label={t('panel.wallFinish')}
-            onCommit={(wallFinish) => update({ wallFinish })}
-            value={zone.wallFinish}
-          />
-          <RoomTextField
-            label={t('panel.ceilingFinish')}
-            onCommit={(ceilingFinish) => update({ ceilingFinish })}
-            value={zone.ceilingFinish}
-          />
           <MetricControl
             label={t('panel.ceilingHeight')}
             max={20}
@@ -361,6 +347,8 @@ export default function ZoneQuantitiesPanel() {
     () => (effectiveZone ? deriveZoneQuantityReport(effectiveZone, effectiveNodes) : null),
     [effectiveNodes, effectiveZone],
   )
+  const inspectorZoneSection = useContext(InspectorZoneSectionContext)
+  const embeddedFinishSection = effectiveZone?.spaceRole === 'room' ? inspectorZoneSection : null
 
   if (!effectiveZone || !report) return null
 
@@ -373,6 +361,11 @@ export default function ZoneQuantitiesPanel() {
         </p>
       ) : null}
       <RoomDocumentationPanel zone={effectiveZone} />
+      {embeddedFinishSection ? (
+        <PanelSection defaultExpanded={false} title="마감재">
+          {embeddedFinishSection}
+        </PanelSection>
+      ) : null}
       <PanelSection
         title={effectiveZone.spaceRole === 'room' ? 'Room quantities' : 'Zone quantities'}
       >
