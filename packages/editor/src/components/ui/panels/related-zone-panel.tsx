@@ -5,6 +5,7 @@ import { useViewer } from '@pascal-app/viewer'
 import { useMemo } from 'react'
 import { formatAreaLabel } from '../../../lib/measurements'
 import { resolveRelatedZonesForNode } from '../../../lib/zone-content'
+import useEditor from '../../../store/use-editor'
 import { PanelSection } from '../controls/panel-section'
 
 const ENCLOSURE_LABEL: Record<string, string> = {
@@ -16,6 +17,9 @@ const ENCLOSURE_LABEL: Record<string, string> = {
 export function RelatedZonePanel({ nodeId }: { nodeId: AnyNodeId }) {
   const nodes = useScene((state) => state.nodes)
   const unit = useViewer((state) => state.unit)
+  const setSelection = useViewer((state) => state.setSelection)
+  const setPhase = useEditor((state) => state.setPhase)
+  const setStructureLayer = useEditor((state) => state.setStructureLayer)
   const zones = useMemo(() => resolveRelatedZonesForNode(nodes, nodeId), [nodeId, nodes])
 
   if (zones.length === 0) return null
@@ -24,9 +28,15 @@ export function RelatedZonePanel({ nodeId }: { nodeId: AnyNodeId }) {
     <PanelSection title="소속 구역">
       <div className="grid gap-1.5" data-testid="related-zone-list">
         {zones.map((zone) => (
-          <div
-            className="rounded-md border border-border/60 bg-background/35 px-2.5 py-2"
+          <button
+            className="w-full rounded-md border border-border/60 bg-background/35 px-2.5 py-2 text-left transition-colors hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             key={zone.id}
+            onClick={() => {
+              setPhase('structure')
+              setStructureLayer('zones')
+              setSelection({ zoneId: zone.id })
+            }}
+            type="button"
           >
             <div className="flex items-baseline gap-2">
               <span className="min-w-0 truncate font-medium text-foreground text-xs">
@@ -46,7 +56,7 @@ export function RelatedZonePanel({ nodeId }: { nodeId: AnyNodeId }) {
               <span aria-hidden="true">·</span>
               <span className="min-w-0 truncate">{zone.occupancy || '용도 미지정'}</span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </PanelSection>

@@ -96,10 +96,12 @@ function MobilePanelLayer({
   node,
   panel,
   isReference,
+  keepSheetOpenForZoneSelection,
 }: {
   node: AnyNode | null
   panel: React.ReactNode
   isReference: boolean
+  keepSheetOpenForZoneSelection?: boolean
 }) {
   const setSelection = useViewer((s) => s.setSelection)
   const setSelectedReferenceId = useEditor((s) => s.setSelectedReferenceId)
@@ -107,11 +109,12 @@ function MobilePanelLayer({
   const deleteNode = useScene((s) => s.deleteNode)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
-  // Reset sheet open state when the selection changes / clears
+  // Keep the sheet open while a related inspector link swaps to a zone.
   const selectionKey = node?.id ?? (isReference ? 'reference' : null)
   useEffect(() => {
+    if (keepSheetOpenForZoneSelection && selectionKey !== null) return
     setIsSheetOpen(false)
-  }, [selectionKey])
+  }, [keepSheetOpenForZoneSelection, selectionKey])
 
   const clearSelection = useCallback(() => {
     setSelection({ selectedIds: [] })
@@ -199,6 +202,10 @@ export function PanelManager({
     const id = selectedIds[0]
     return id ? (s.nodes[id as AnyNodeId] ?? null) : null
   })
+  const selectedZone = useScene((s) => {
+    if (selectedIds.length > 0 || !selectedZoneId) return null
+    return s.nodes[selectedZoneId] ?? null
+  })
 
   // Node and reference selection are mutually exclusive: selecting a guide
   // clears the node selection (handleGuideSelect), but node selection never
@@ -214,7 +221,8 @@ export function PanelManager({
 
   // The inspector's expanded state is shared across panel swaps, but a fresh
   // selection after everything was deselected should open collapsed again.
-  const hasAnySelection = selectedIds.length > 0 || Boolean(selectedZoneId) || Boolean(selectedReferenceId)
+  const hasAnySelection =
+    selectedIds.length > 0 || Boolean(selectedZoneId) || Boolean(selectedReferenceId)
   useEffect(() => {
     if (!hasAnySelection) {
       resetDesktopInspectorCollapsed()
@@ -228,8 +236,19 @@ export function PanelManager({
     return (
       <MobilePanelLayer
         isReference={false}
-        node={selectedNode}
-        panel={panelForType(selectedNodeType, undefined, inspectorZoneSection)}
+        keepSheetOpenForZoneSelection={Boolean(selectedZoneId && selectedIds.length === 0)}
+        node={selectedNode ?? selectedZone}
+        panel={
+          selectedZoneId && selectedIds.length === 0 ? (
+            <ParametricInspector
+              inspectorZoneSection={inspectorZoneSection}
+              nodeId={selectedZoneId as AnyNodeId}
+              onClose={() => setSelection({ zoneId: null })}
+            />
+          ) : (
+            panelForType(selectedNodeType, undefined, inspectorZoneSection)
+          )
+        }
       />
     )
   }
