@@ -3,9 +3,15 @@ import {
   type CabinetModuleNode,
   type CabinetNode,
   DEFAULT_WALL_HEIGHT,
+  getWallBandSlotId,
   getWallCurveLength,
+  getWallFaceBandConfig,
+  getWallSurfaceSideFromBandSlot,
+  isCurvedWall,
+  normalizeWallFinishRegions,
   resolveLightingFixtureCount,
   type WallNode,
+  type WallSurfaceSide,
 } from '@pascal-app/core'
 import {
   surfaceAssemblyLines,
@@ -131,6 +137,84 @@ function moduleBoardArea(module: CabinetModuleNode): { carcass: number; front: n
     carcass: sides + topBottom + back + shelves,
     front: hasFront ? width * height : 0,
   }
+}
+
+type WallFinishSpan = {
+  slotId: string
+  height: number
+}
+
+function wallFinishSpans(wall: WallNode, height: number, side: WallSurfaceSide): WallFinishSpan[] {
+  const bands = getWallFaceBandConfig(wall, height)
+  if (!bands.enabled) return [{ slotId: side, height }]
+
+  const activeBands =
+    bands.count === 2
+      ? (['lower', 'upper'] as const)
+      : bands.count === 3
+        ? (['lower', 'middle', 'upper'] as const)
+        : (['lower', 'middle', 'upper', 'top'] as const)
+  const configuredHeights = [bands.lowerHeight, bands.middleHeight, bands.upperHeight]
+  let consumed = 0
+
+  return activeBands.map((band, index) => {
+    const spanHeight =
+      index === activeBands.length - 1
+        ? Math.max(0, height - consumed)
+        : Math.max(0, configuredHeights[index] ?? 0)
+    consumed += spanHeight
+    return { slotId: getWallBandSlotId(side, band), height: spanHeight }
+  })
+}
+
+function wallFinishBaseRef(wall: WallNode, slotId: string): string | undefined {
+  const direct = wall.slots?.[slotId]
+  if (direct) return direct
+  const side = getWallSurfaceSideFromBandSlot(slotId)
+  return side ? wall.slots?.[side] : undefined
+}
+
+function addWallFinishArea(
+  areas: Map<string, number>,
+  materialRef: string | undefined,
+  area: number,
+) {
+  if (!materialRef || area <= 0) return
+  areas.set(materialRef, (areas.get(materialRef) ?? 0) + area)
+}
+
+function wallFinishAreas(wall: WallNode, length: number, height: number): Map<string, number> {
+  const areas = new Map<string, number>()
+  const curved = isCurvedWall(wall)
+  const regions = curved ? [] : normalizeWallFinishRegions(wall.finishRegions ?? [])
+  const spanArea = (span: WallFinishSpan) => length * span.height
+
+  for (const side of ['interior', 'exterior'] as const) {
+    for (const span of wallFinishSpans(wall, height, side)) {
+      const area = spanArea(span)
+      if (area <= 0) continue
+      const baseRef = wallFinishBaseRef(wall, span.slotId)
+      if (curved) {
+        addWallFinishArea(areas, baseRef, area)
+        continue
+      }
+
+      const matchingRegions = regions.filter(
+        (region) => region.side === side && region.slots[span.slotId],
+      )
+      let cursor = 0
+      for (const region of matchingRegions) {
+        const start = Math.max(cursor, Math.max(0, Math.min(1, region.start)))
+        const end = Math.max(start, Math.min(1, region.end))
+        addWallFinishArea(areas, baseRef, area * (start - cursor))
+        addWallFinishArea(areas, region.slots[span.slotId], area * (end - start))
+        cursor = Math.max(cursor, end)
+      }
+      addWallFinishArea(areas, baseRef, area * (1 - cursor))
+    }
+  }
+
+  return areas
 }
 
 function push(lines: Map<string, TakeoffLine>, line: TakeoffLineInput) {
@@ -440,14 +524,14 @@ export function deriveTakeoff(
 
       // Painted faces additionally group by material, so the estimate can
       // order by finish rather than by wall.
-      for (const [slot, ref] of Object.entries(wall.slots ?? {})) {
-        if (!ref || (slot !== 'interior' && slot !== 'exterior')) continue
+      const finishAreas = wallFinishAreas(wall, length, wall.height ?? DEFAULT_WALL_HEIGHT)
+      for (const [ref, quantity] of finishAreas) {
         push(lines, {
           category: 'finish',
           key: ref,
           label: `벽 마감 ${ref}`,
           unit: 'm2',
-          quantity: faceArea,
+          quantity,
           nodeIds: [node.id],
           materialRef: ref,
         })

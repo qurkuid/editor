@@ -4,6 +4,7 @@ import {
   createDefaultWallFaceBands,
   createWallBandConstructionPreset,
   DEFAULT_WALL_HEIGHT,
+  getWallCurveLength,
 } from '@pascal-app/core'
 import { deriveTakeoff, type TakeoffCategory } from './quantity-takeoff'
 
@@ -13,6 +14,14 @@ function scene(...nodes: Array<Record<string, unknown>>): Record<string, AnyNode
 
 function line(report: ReturnType<typeof deriveTakeoff>, category: TakeoffCategory, key: string) {
   return report.lines.find((l) => l.category === category && l.key === key)
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value)
+    for (const child of Object.values(value as Record<string, unknown>)) deepFreeze(child)
+  }
+  return value
 }
 
 describe('board takeoff', () => {
@@ -198,6 +207,277 @@ describe('areas and finishes', () => {
       scene({ id: 'wall_a', type: 'wall', start: [0, 0], end: [4, 0], height: 2.5 }),
     )
     expect(report.totals.finish).toBe(0)
+  })
+
+  test('a straight wall splits an unbanded partial finish between its region and base', () => {
+    const report = deriveTakeoff(
+      scene({
+        id: 'wall_a',
+        type: 'wall',
+        start: [0, 0],
+        end: [4, 0],
+        height: 2.5,
+        slots: { interior: 'library:base', exterior: 'library:outside' },
+        finishRegions: [
+          {
+            id: 'zone_a',
+            side: 'interior',
+            start: 0,
+            end: 0.5,
+            slots: { interior: 'library:zone' },
+          },
+        ],
+      }),
+    )
+
+    expect(line(report, 'finish', 'library:zone')?.quantity).toBeCloseTo(5)
+    expect(line(report, 'finish', 'library:base')?.quantity).toBeCloseTo(5)
+    expect(line(report, 'finish', 'library:outside')?.quantity).toBeCloseTo(10)
+  })
+
+  test('a partial finish without a base material leaves uncovered area unpriced', () => {
+    const report = deriveTakeoff(
+      scene({
+        id: 'wall_a',
+        type: 'wall',
+        start: [0, 0],
+        end: [4, 0],
+        height: 2.5,
+        finishRegions: [
+          {
+            id: 'zone_a',
+            side: 'interior',
+            start: 0,
+            end: 0.5,
+            slots: { interior: 'library:zone' },
+          },
+        ],
+      }),
+    )
+
+    expect(line(report, 'finish', 'library:zone')?.quantity).toBeCloseTo(5)
+    expect(report.lines.filter((entry) => entry.category === 'finish')).toHaveLength(1)
+  })
+
+  test('active two, three and four band spans use their exact heights and side fallback', () => {
+    const cases = [
+      {
+        count: 2,
+        heights: { lowerHeight: 1 },
+        slots: {
+          interior: 'library:whole',
+          lowerInterior: 'library:lower',
+          upperInterior: 'library:upper',
+        },
+        expected: [
+          ['library:lower', 4],
+          ['library:upper', 6],
+        ],
+      },
+      {
+        count: 3,
+        heights: { lowerHeight: 0.5, middleHeight: 0.75 },
+        slots: {
+          interior: 'library:whole',
+          lowerInterior: 'library:lower',
+          middleInterior: 'library:middle',
+          upperInterior: 'library:upper',
+        },
+        expected: [
+          ['library:lower', 2],
+          ['library:middle', 3],
+          ['library:upper', 5],
+        ],
+      },
+      {
+        count: 4,
+        heights: { lowerHeight: 0.5, middleHeight: 0.5, upperHeight: 0.5 },
+        slots: {
+          interior: 'library:whole',
+          lowerInterior: 'library:lower',
+          middleInterior: 'library:middle',
+          upperInterior: 'library:upper',
+          topInterior: 'library:top',
+        },
+        expected: [
+          ['library:lower', 2],
+          ['library:middle', 2],
+          ['library:upper', 2],
+          ['library:top', 4],
+        ],
+      },
+    ] as const
+
+    for (const testCase of cases) {
+      const report = deriveTakeoff(
+        scene({
+          id: `wall_${testCase.count}`,
+          type: 'wall',
+          start: [0, 0],
+          end: [4, 0],
+          height: 2.5,
+          faceBands: { enabled: true, count: testCase.count, ...testCase.heights },
+          slots: testCase.slots,
+        }),
+      )
+
+      for (const [ref, quantity] of testCase.expected) {
+        expect(line(report, 'finish', ref)?.quantity).toBeCloseTo(quantity)
+      }
+    }
+  })
+
+  test('band regions match only their active role and fall back to the whole side', () => {
+    const report = deriveTakeoff(
+      scene({
+        id: 'wall_a',
+        type: 'wall',
+        start: [0, 0],
+        end: [4, 0],
+        height: 2.5,
+        faceBands: { enabled: true, count: 2, lowerHeight: 1 },
+        slots: {
+          interior: 'library:whole',
+          lowerInterior: 'library:lower',
+          middleInterior: 'library:stale',
+        },
+        finishRegions: [
+          {
+            id: 'whole_side_role',
+            side: 'interior',
+            start: 0,
+            end: 0.5,
+            slots: { interior: 'library:ignored' },
+          },
+          {
+            id: 'lower_zone',
+            side: 'interior',
+            start: 0,
+            end: 0.5,
+            slots: { lowerInterior: 'library:zone' },
+          },
+        ],
+      }),
+    )
+
+    expect(line(report, 'finish', 'library:zone')?.quantity).toBeCloseTo(2)
+    expect(line(report, 'finish', 'library:lower')?.quantity).toBeCloseTo(2)
+    expect(line(report, 'finish', 'library:whole')?.quantity).toBeCloseTo(6)
+    expect(line(report, 'finish', 'library:ignored')).toBeUndefined()
+    expect(line(report, 'finish', 'library:stale')).toBeUndefined()
+  })
+
+  test('adjacent and disjoint regions recombine by material and keep one wall id', () => {
+    const report = deriveTakeoff(
+      scene({
+        id: 'wall_a',
+        type: 'wall',
+        start: [0, 0],
+        end: [4, 0],
+        height: 2.5,
+        slots: { interior: 'library:base' },
+        finishRegions: [
+          {
+            id: 'zone_a',
+            side: 'interior',
+            start: 0,
+            end: 0.25,
+            slots: { interior: 'library:zone' },
+          },
+          {
+            id: 'zone_b',
+            side: 'interior',
+            start: 0.25,
+            end: 0.5,
+            slots: { interior: 'library:zone' },
+          },
+          {
+            id: 'zone_c',
+            side: 'interior',
+            start: 0.75,
+            end: 1,
+            slots: { interior: 'library:zone' },
+          },
+        ],
+      }),
+    )
+
+    expect(line(report, 'finish', 'library:zone')).toMatchObject({
+      quantity: 7.5,
+      nodeIds: ['wall_a'],
+    })
+    expect(line(report, 'finish', 'library:base')).toMatchObject({
+      quantity: 2.5,
+      nodeIds: ['wall_a'],
+    })
+  })
+
+  test('curved walls keep arc-length base area and ignore partial regions', () => {
+    const wall = {
+      id: 'wall_curve',
+      type: 'wall',
+      start: [0, 0],
+      end: [4, 0],
+      curveOffset: 1,
+      height: 2.5,
+      slots: { interior: 'library:base' },
+      finishRegions: [
+        { id: 'zone_a', side: 'interior', start: 0, end: 0.5, slots: { interior: 'library:zone' } },
+      ],
+    }
+    const report = deriveTakeoff(scene(wall))
+    const base = line(report, 'finish', 'library:base')
+
+    expect(base?.quantity).toBeCloseTo(getWallCurveLength(wall) * 2.5)
+    expect(line(report, 'finish', 'library:zone')).toBeUndefined()
+  })
+
+  test('wall-hosted openings do not reduce gross finish area', () => {
+    const report = deriveTakeoff(
+      scene(
+        {
+          id: 'wall_a',
+          type: 'wall',
+          start: [0, 0],
+          end: [4, 0],
+          height: 2.5,
+          slots: { interior: 'library:base' },
+          children: ['door_a', 'window_a'],
+        },
+        { id: 'door_a', type: 'door', parentId: 'wall_a' },
+        { id: 'window_a', type: 'window', parentId: 'wall_a' },
+      ),
+    )
+
+    expect(line(report, 'finish', 'library:base')?.quantity).toBeCloseTo(10)
+  })
+
+  test('wall finish takeoff does not mutate frozen scene input', () => {
+    const nodes = deepFreeze(
+      scene({
+        id: 'wall_a',
+        type: 'wall',
+        start: [0, 0],
+        end: [4, 0],
+        height: 2.5,
+        faceBands: { enabled: true, count: 2, lowerHeight: 1 },
+        slots: { interior: 'library:base', lowerInterior: 'library:lower' },
+        finishRegions: [
+          {
+            id: 'zone_a',
+            side: 'interior',
+            start: 0,
+            end: 0.5,
+            slots: { lowerInterior: 'library:zone' },
+          },
+        ],
+      }),
+    )
+    const before = structuredClone(nodes)
+
+    deriveTakeoff(nodes)
+
+    expect(nodes).toEqual(before)
   })
 })
 
