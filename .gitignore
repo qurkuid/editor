@@ -55,3 +55,10 @@ og-test
 .claude/settings.local.json
 .vscode/launch.json
 .gstack/
+
+# Local validation build copies and deployment intermediates
+/apps/editor/private/
+/.omo/evidence/**/build-workspace/
+/.omo/evidence/**/*.pickle
+/.omo/evidence/**/*.tar.gz
+/apps/editor/.next-*/

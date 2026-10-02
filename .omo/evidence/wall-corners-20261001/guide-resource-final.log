@@ -1,0 +1,19 @@
+bun test v1.3.11 (af24e281)
+
+packages/mcp/src/resources/resources.test.ts:
+(pass) pascal://scene/current > returns the full scene JSON [8.43ms]
+(pass) pascal://scene/current > reflects mutations to the store [3.04ms]
+(pass) pascal://scene/current/summary > returns markdown with counts and bbox [0.89ms]
+(pass) pascal://scene/current/summary > estimated floor area sums zone polygon areas [0.23ms]
+(pass) pascal://scene/current/summary > empty scene returns a markdown skeleton without crashing [0.93ms]
+(pass) pascal://catalog/items > returns built-in catalog subset [0.69ms]
+(pass) pascal://agent-guide > agent guide returns MCP-first project guidance [1.48ms]
+(pass) pascal://agent-guide > keeps the legacy agent guide URI as an alias [0.59ms]
+(pass) pascal://constraints/{levelId} > returns slabs + wall footprints for a known level [1.92ms]
+(pass) pascal://constraints/{levelId} > returns {error:"level_not_found"} for unknown levelId [0.35ms]
+(pass) pascal://debug/state > returns structural diagnostics without viewport data [0.93ms]
+
+ 11 pass
+ 0 fail
+ 138 expect() calls
+Ran 11 tests across 1 file. [167.00ms]

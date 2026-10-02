@@ -1,0 +1,45 @@
+start build_masks
+end build_masks 0.74
+start zhang_suen
+end zhang_suen 0.63
+start extract_segments
+end extract_segments 0.03
+start assign_thickness
+end assign_thickness 0.18
+start snap_junctions
+end snap_junctions 0.05
+start run_ocr
+end run_ocr 0.0
+start assign_thickness
+end assign_thickness 0.18
+start source_room_barriers
+end source_room_barriers 0.63
+start classify_openings
+end classify_openings 2.49
+start recover_source_boundary_segments
+start zhang_suen
+end zhang_suen 0.57
+start extract_segments
+end extract_segments 0.01
+start assign_thickness
+end assign_thickness 2.27
+start assign_thickness
+end assign_thickness 0.0
+start assign_thickness
+end assign_thickness 0.0
+start assign_thickness
+end assign_thickness 0.0
+start assign_thickness
+end assign_thickness 0.0
+start assign_thickness
+end assign_thickness 0.0
+end recover_source_boundary_segments 103.43
+start classify_openings
+end classify_openings 2.64
+start detect_rooms
+end detect_rooms 0.13
+start partition_labeled_spaces
+end partition_labeled_spaces 0.04
+start retry_unlabeled_room_ocr
+end retry_unlabeled_room_ocr 0.0
+{'planId': 'apt-vector-3FO40NYO9IFT', 'style': 'wood-dense', 'wallIoU': 0.706, 'scale': 6.592, 'walls': 104, 'doors': 4, 'windows': 32, 'openings': 9, 'rooms': 12}

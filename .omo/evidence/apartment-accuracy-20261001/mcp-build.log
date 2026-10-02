@@ -1,0 +1,1 @@
+$ tsc --build && bun scripts/copy-ontology-pack.ts

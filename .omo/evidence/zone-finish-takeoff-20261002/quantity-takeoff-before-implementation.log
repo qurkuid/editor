@@ -1,0 +1,107 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/quantity-takeoff.test.ts:
+(pass) board takeoff > a module counts sides, top, bottom, back and shelves [0.33ms]
+(pass) board takeoff > door and drawer faces are counted as front board, open shelving is not [0.44ms]
+(pass) board takeoff > a degenerate module contributes nothing rather than a zero-area line [0.03ms]
+(pass) furniture and countertop > a run reports itself, its bays, and its worktop area [0.08ms]
+(pass) furniture and countertop > a run without a worktop reports no countertop [0.04ms]
+(pass) areas and finishes > floor and ceiling areas come from their polygons [0.08ms]
+(pass) areas and finishes > ceiling drop zones add their reveal faces, skipping open edges [0.03ms]
+(pass) areas and finishes > painted wall faces group by material, not by wall [0.86ms]
+(pass) areas and finishes > unpainted walls contribute no finish line [0.13ms]
+222 |           { id: 'zone_a', side: 'interior', start: 0, end: 0.5, slots: { interior: 'library:zone' } },
+223 |         ],
+224 |       }),
+225 |     )
+226 | 
+227 |     expect(line(report, 'finish', 'library:zone')?.quantity).toBeCloseTo(5)
+                                                                   ^
+TypeError: Expected received to be a number for 'expect'.
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:227:62)
+(fail) areas and finishes > a straight wall splits an unbanded partial finish between its region and base [1.46ms]
+241 |           { id: 'zone_a', side: 'interior', start: 0, end: 0.5, slots: { interior: 'library:zone' } },
+242 |         ],
+243 |       }),
+244 |     )
+245 | 
+246 |     expect(line(report, 'finish', 'library:zone')?.quantity).toBeCloseTo(5)
+                                                                   ^
+TypeError: Expected received to be a number for 'expect'.
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:246:62)
+(fail) areas and finishes > a partial finish without a base material leaves uncovered area unpriced [0.33ms]
+308 |           slots: testCase.slots,
+309 |         }),
+310 |       )
+311 | 
+312 |       for (const [ref, quantity] of testCase.expected) {
+313 |         expect(line(report, 'finish', ref)?.quantity).toBeCloseTo(quantity)
+                                                            ^
+TypeError: Expected received to be a number for 'expect'.
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:313:55)
+(fail) areas and finishes > active two, three and four band spans use their exact heights and side fallback [0.23ms]
+346 |           },
+347 |         ],
+348 |       }),
+349 |     )
+350 | 
+351 |     expect(line(report, 'finish', 'library:zone')?.quantity).toBeCloseTo(2)
+                                                                   ^
+TypeError: Expected received to be a number for 'expect'.
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:351:62)
+(fail) areas and finishes > band regions match only their active role and fall back to the whole side [0.12ms]
+370 |           { id: 'zone_c', side: 'interior', start: 0.75, end: 1, slots: { interior: 'library:zone' } },
+371 |         ],
+372 |       }),
+373 |     )
+374 | 
+375 |     expect(line(report, 'finish', 'library:zone')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+Matcher error: received value must be a non-null object
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:375:52)
+(fail) areas and finishes > adjacent and disjoint regions recombine by material and keep one wall id [0.08ms]
+(pass) areas and finishes > curved walls keep arc-length base area and ignore partial regions [0.25ms]
+(pass) areas and finishes > wall-hosted openings do not reduce gross finish area [0.06ms]
+(pass) areas and finishes > wall finish takeoff does not mutate frozen scene input [0.17ms]
+(pass) lighting > fixtures aggregate per light type
+(pass) lighting > a divided run counts its full fixture count from one node
+(pass) lighting > a linked product groups by its ref and carries it as materialRef
+(pass) lighting > linear fixtures add a run-length measure
+(pass) scoping > a level filter excludes other levels [0.17ms]
+(pass) walls are a quantity even before anyone picks a finish > an unpainted wall still reports face area and length [0.05ms]
+(pass) walls are a quantity even before anyone picks a finish > painting it adds finish lines without removing the wall quantity
+(pass) walls are a quantity even before anyone picks a finish > wall areas aggregate across walls
+(pass) a wall expands into what actually gets ordered > an explicit stud build-up yields its materials, not just an area [0.24ms]
+(pass) a wall expands into what actually gets ordered > 각재 is ordered by the metre and 석고보드 by the sheet [0.08ms]
+(pass) a wall expands into what actually gets ordered > a cavity is not ordered — it is empty space [0.05ms]
+(pass) a wall expands into what actually gets ordered > the same layer aggregates across walls [0.11ms]
+(pass) a wall expands into what actually gets ordered > face area and run length are marked as measures, materials are not [0.06ms]
+(pass) a wall expands into what actually gets ordered > a wall with no build-up recorded still reports its area [0.06ms]
+(pass) a wall expands into what actually gets ordered > a wall with no height set is measured at the same default core uses [0.05ms]
+(pass) placed models > items count per product, aggregating duplicates [0.03ms]
+(pass) placed models > an item with no asset metadata still gets counted
+(pass) furniture run make-up > reports total run length alongside the bay count [0.12ms]
+(pass) furniture run make-up > bays group by width [0.03ms]
+(pass) furniture run make-up > a run with no bays reports no length or make-up
+(pass) floor and ceiling openings > area comes from the polygon field
+(pass) floor and ceiling openings > holes are deducted — a stairwell is not floor [0.08ms]
+(pass) floor and ceiling openings > holes larger than the slab clamp at zero rather than going negative [0.01ms]
+(pass) floor and ceiling build-up > a ceiling expands into furring and board, under the ceiling heading [0.07ms]
+(pass) floor and ceiling build-up > floor screed is measured by volume [0.05ms]
+(pass) floor and ceiling build-up > holes reduce the build-up too, not just the headline area [0.04ms]
+(pass) floor and ceiling build-up > a surface with no construction still reports its area [0.02ms]
+
+5 tests failed:
+(fail) areas and finishes > a straight wall splits an unbanded partial finish between its region and base [1.46ms]
+(fail) areas and finishes > a partial finish without a base material leaves uncovered area unpriced [0.33ms]
+(fail) areas and finishes > active two, three and four band spans use their exact heights and side fallback [0.23ms]
+(fail) areas and finishes > band regions match only their active role and fall back to the whole side [0.12ms]
+(fail) areas and finishes > adjacent and disjoint regions recombine by material and keep one wall id [0.08ms]
+
+ 39 pass
+ 5 fail
+ 82 expect() calls
+Ran 44 tests across 1 file. [118.00ms]

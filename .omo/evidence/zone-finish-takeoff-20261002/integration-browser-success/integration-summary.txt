@@ -1,0 +1,9 @@
+Model profile: gpt-5.6-luna / max
+
+Integration surface: existing Next dev runtime on port 3002. API fixture base was http://127.0.0.1:3002; page loaded through http://localhost:3002 because the 127.0.0.1 alias produced only the dev HMR websocket handshake error and left the client loader mounted. Both aliases reached the same PID 79978 runtime; the app page hydrated through localhost.
+
+Synthetic scene: zonetakeoff1790919523635
+
+Observed UI flow: visible Zone apply -> Stats rows 5.00 / 2.00 / 3.00 sqm -> Undo removed the applied row and finish region -> redo restored it -> reload retained all three rows.
+
+Evidence: scene GET/PUT responses all 200; consoleErrors=[]; pageErrors=[]; externalMutations=[]; external requests were static icon/texture/decoder GETs only.

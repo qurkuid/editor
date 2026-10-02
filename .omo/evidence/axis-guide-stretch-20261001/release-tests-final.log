@@ -1,0 +1,59 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/ai-contract.test.ts:
+(pass) AI modeling operation contract > accepts canonical semantic operation ids across internal schemas [1.99ms]
+(pass) AI modeling operation contract > publishes every canonical operation id in the provider JSON schema
+(pass) AI modeling operation contract > keeps AI operation fields strict and emits the canonical manifest once [11.23ms]
+
+packages/mcp/src/ontology-manual.test.ts:
+(pass) Phase 2 ontology manual contract > documents weak endpoint inference separately from explicit angle locking [0.02ms]
+(pass) Phase 2 ontology manual contract > documents validated length edits and boundary review
+(pass) Phase 2 ontology manual contract > documents direct axis-guide stretch without adding an AI mutation command
+(pass) Phase 2 ontology manual contract > documents ontology discovery and evidence requirements
+(pass) Phase 2 ontology manual contract > documents the canonical Body transform and direct scale interactions [0.28ms]
+(pass) Phase 2 ontology manual contract > documents apartment wall extraction and junction continuity [0.06ms]
+(pass) Phase 2 ontology manual contract > documents source-backed opening and room boundary contracts
+(pass) Phase 2 ontology manual contract > documents persistent Body sub-entity selection [0.10ms]
+(pass) Phase 2 ontology manual contract > documents Body Autofold constraints
+(pass) Phase 2 ontology manual contract > documents whole-Body array operations
+(pass) Phase 2 ontology manual contract > documents editor-only Body container edit routing [0.19ms]
+(pass) Phase 2 ontology manual contract > documents solid inspection and Body boolean operations
+(pass) Phase 2 ontology manual contract > documents Solid Tools ordering and tool lifetime [0.14ms]
+(pass) Phase 2 ontology manual contract > documents the canonical Body offset operation and signed interaction [0.08ms]
+(pass) Phase 2 ontology manual contract > documents signed imprint through-cuts and the 2D render-only boundary [0.05ms]
+(pass) Phase 2 ontology manual contract > documents sampled Arc parity through existing Body operations [0.07ms]
+
+packages/core/src/lib/axis-guide-stretch.test.ts:
+(pass) buildAxisGuideStretchPlan > moves selected-side walls, changes only a straight crossing endpoint, and remaps hosted centers [4.23ms]
+(pass) buildAxisGuideStretchPlan > supports horizontal guides with positive Z as the selected side [0.56ms]
+(pass) buildAxisGuideStretchPlan > keeps points on the guide fixed and rejects unsupported crossings atomically [0.20ms]
+(pass) buildAxisGuideStretchPlan > rejects diagonal guides and invalid distances [0.03ms]
+(pass) buildAxisGuideStretchPlan > normalizes guide direction and uses wall-local item rotation for edge clearance [0.95ms]
+(pass) buildAxisGuideStretchPlan > normalizes legacy wall-attached items with a local wallT update [0.08ms]
+(pass) buildAxisGuideStretchPlan > rejects a new hosted-opening collision before returning a partial plan [0.20ms]
+(pass) buildAxisGuideStretchPlan > updates an existing auto zone from the stretched wall enclosure [0.63ms]
+(pass) buildAxisGuideStretchPlan > rejects a newly created wall contact atomically [0.12ms]
+(pass) buildAxisGuideStretchPlan > retains an existing hosted overlap when the stretch does not worsen it [0.18ms]
+(pass) buildAxisGuideStretchPlan > translates a curved wall on the selected side while preserving its curve data [0.53ms]
+
+packages/nodes/src/construction-guide/floorplan.test.ts:
+(pass) guideFrame > normalizes the direction and derives the +90° normal [0.05ms]
+(pass) directConstructionGuidePlacement > places vertical guides on the snapped X coordinate [0.04ms]
+(pass) directConstructionGuidePlacement > places horizontal guides on the snapped Z coordinate
+(pass) directConstructionGuidePlacement > leaves the reference offset workflow to its existing placement path
+(pass) guideLineEndpoints > spans the extent both ways from the origin [0.03ms]
+(pass) buildConstructionGuideFloorplan > emits dashed line + hit line, and the slide handle only when selected [0.17ms]
+(pass) buildConstructionGuideFloorplan > hidden guides emit nothing
+(pass) buildConstructionGuideFloorplan > schema rejects a zero direction
+
+packages/editor/src/components/editor-2d/construction-guide-stretch-controls.test.ts:
+(pass) construction-guide-stretch-controls > classifies axis-aligned directions after normalization [0.40ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) construction-guide-stretch-controls > pauses reactive room sync and keeps one undoable scene update [4.92ms]
+
+ 40 pass
+ 0 fail
+ 177 expect() calls
+Ran 40 tests across 5 files. [451.00ms]

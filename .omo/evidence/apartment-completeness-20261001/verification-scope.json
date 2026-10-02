@@ -1,0 +1,13 @@
+{
+  "mode": "2D only",
+  "performedBy": "root directly",
+  "cases": 3,
+  "independentRoomProbes": 36,
+  "roomProbesCorrect": 31,
+  "completenessPass": 0,
+  "sourceZoneConversion": "all source polygons saved without loss",
+  "browserErrors": 0,
+  "productCodeChanges": false,
+  "report": "report.html",
+  "rerunExitCode": 1
+}

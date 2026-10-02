@@ -1,0 +1,10 @@
+{
+  "implementationModel": "gpt-5.6-luna",
+  "reasoningEffort": "max",
+  "baseUrl": "https://apt.intm.kr",
+  "script": "zone-finish-public-qa.mjs",
+  "status": "prepared_waiting_for_activation_and_build_id_match",
+  "productionSceneCreated": false,
+  "productionMutationsIssued": false,
+  "sourceFilesChanged": false
+}

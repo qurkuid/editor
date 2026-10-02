@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "2215e094fefdf96f3f74d7cbd7afbb2d11ed4c0f",
+  "pushed": true,
+  "ciRuns": [],
+  "productionActivated": false,
+  "productionObserved": {
+    "url": "https://apt.intm.kr",
+    "httpStatus": 200,
+    "pid": 69188,
+    "cwd": "/Volumes/DATABASE/floorplan-releases/20261001-9d79de8a/apps/editor",
+    "intmBaseUrl": "https://intm.kr",
+    "buildId": "VvK6ZLvTWya3UrIT0uZ0c"
+  },
+  "accessIssue": "Fresh SSH attempt still resets before authentication. Remote Desktop verified password lock screen. Console unlock is required; no runtime switch performed.",
+  "prepareStarted": false,
+  "temporaryRemoteArtifacts": [
+    "/tmp/pascal-prepare-f705593d.sh",
+    "/tmp/pascal-prepare-f705593d.log"
+  ],
+  "lastAccessCheck": "2026-10-01T22:57:07.210025+00:00",
+  "latestPublicCheck": {
+    "error": "HTTP Error 403: Forbidden"
+  }
+}

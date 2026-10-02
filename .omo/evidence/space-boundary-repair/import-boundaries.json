@@ -1,0 +1,127 @@
+{
+  "status": "PASS",
+  "walls": 56,
+  "zones": 15,
+  "boundaries": [
+    {
+      "boundary": "central-dress-divider-top-diagonal",
+      "maxDistanceM": 0.028,
+      "pass": true,
+      "samplesM": [
+        0.0119,
+        0.028,
+        0.0245,
+        0.0209,
+        0.0174,
+        0.0139,
+        0.0104,
+        0.0069,
+        0.0034
+      ]
+    },
+    {
+      "boundary": "central-dress-divider-vertical",
+      "maxDistanceM": 0.0034,
+      "pass": true,
+      "samplesM": [
+        0.0034,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004
+      ]
+    },
+    {
+      "boundary": "left-bedroom-diagonal-upper-jamb",
+      "maxDistanceM": 0.0305,
+      "pass": true,
+      "samplesM": [
+        0.0101,
+        0.0076,
+        0.0051,
+        0.0026,
+        0.0001,
+        0.0024,
+        0.0049,
+        0.0074,
+        0.0305
+      ]
+    },
+    {
+      "boundary": "left-bedroom-diagonal-jamb",
+      "maxDistanceM": 0.0305,
+      "pass": true,
+      "samplesM": [
+        0.0305,
+        0.0285,
+        0.0277,
+        0.0268,
+        0.026,
+        0.0251,
+        0.0243,
+        0.0234,
+        0.0225
+      ]
+    },
+    {
+      "boundary": "top-dress-left-side",
+      "maxDistanceM": 0.095,
+      "pass": true,
+      "samplesM": [
+        0.0219,
+        0.095,
+        0.0852,
+        0.0754,
+        0.0657,
+        0.0559,
+        0.0461,
+        0.0364,
+        0.0001
+      ]
+    },
+    {
+      "boundary": "top-dress-right-side",
+      "maxDistanceM": 0.0004,
+      "pass": true,
+      "samplesM": [
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004,
+        0.0004
+      ]
+    }
+  ],
+  "bedroomNames": [
+    "안방",
+    "안방",
+    "안방"
+  ],
+  "openingTypes": {
+    "door": 9,
+    "window": 3,
+    "opening": 5
+  },
+  "centralOpenings": [
+    {
+      "id": "window_4cinjmef4br8ljer",
+      "type": "opening",
+      "openingKind": "opening",
+      "host": "wall_u6w37bhoi0ao3x6j",
+      "parentMatches": true,
+      "center": [
+        -1.6048639999999996,
+        -1.0552260000000007
+      ]
+    }
+  ],
+  "toleranceM": 0.13
+}

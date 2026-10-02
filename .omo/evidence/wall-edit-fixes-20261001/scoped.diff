@@ -1,0 +1,872 @@
+--- before/packages/core/src/index.ts
++++ after/packages/core/src/index.ts
+@@ -333,6 +333,7 @@
+   type SpaceBoundaryFace,
+   wallClosesRoom,
+   wallTouchesOthers,
++  zoneNeedsBoundaryReview,
+ } from './lib/space-detection'
+ export {
+   advanceStroke,
+@@ -403,6 +404,7 @@
+   type WallSegmentClosest,
+ } from './lib/wall-distance'
+ export {
++  buildWallLengthUpdates,
+   buildWallMerge,
+   buildWallSplit,
+   type WallMutation,
+--- before/packages/core/src/lib/space-detection.test.ts
++++ after/packages/core/src/lib/space-detection.test.ts
+@@ -567,6 +567,95 @@
+ })
+ 
+ describe('procedural zones', () => {
++  test('reactive wall deletion updates imported zone review state without changing its source identity', () => {
++    const level = LevelNode.parse({ id: 'level_zone_sync' })
++    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
++    const zone = ZoneNode.parse({
++      name: 'Bedroom',
++      parentId: level.id,
++      polygon: square,
++      spaceRole: 'room',
++      metadata: { source: 'apt-vector', sourceRoomId: 'bedroom' },
++    })
++    const original = Object.fromEntries([level, ...walls, zone].map((node) => [node.id, node]))
++    const scene = createSceneStoreStub(original)
++    const stop = initSpaceDetectionSync(scene, createEditorStoreStub())
++    expect(scene.getState().nodes[zone.id]).toEqual(zone)
++    const broken = { ...original }
++    delete broken[walls[0]!.id]
++    scene.setNodes(broken)
++    expect((scene.getState().nodes[zone.id] as typeof zone).metadata).toEqual({
++      ...zone.metadata,
++      boundaryNeedsReview: true,
++    })
++    scene.setNodes(original)
++    expect((scene.getState().nodes[zone.id] as typeof zone).metadata).toEqual(zone.metadata)
++    stop()
++  })
++  test('follows an imported approximate room through a wall edit and marks a removed boundary for review', () => {
++    const walls = squareWalls()
++    const previousSpaces = detectSpacesForLevel('level-1', walls).spaces
++    const zone = ZoneNode.parse({
++      name: 'Bedroom',
++      spaceRole: 'room',
++      floorFinish: 'Timber',
++      polygon: [
++        [0.05, 0.05],
++        [3.95, 0.05],
++        [3.95, 2.95],
++        [0.05, 2.95],
++      ],
++      metadata: { source: 'apt-vector', sourceRoomId: 'room-1' },
++    })
++    const moved = [
++      { ...walls[0]!, end: [5, 0] as [number, number] },
++      { ...walls[1]!, start: [5, 0] as [number, number], end: [5, 3] as [number, number] },
++      { ...walls[2]!, start: [5, 3] as [number, number] },
++      walls[3]!,
++    ]
++    const plan = planAutoZonesForLevel(detectSpacesForLevel('level-1', moved).spaces, [zone], {
++      previousSpaces,
++      changedWalls: walls,
++    })
++    expect(plan.update[0]?.data.polygon).toContainEqual([5, 0])
++    const adopted = ZoneNode.parse({ ...zone, ...plan.update[0]?.data })
++    const broken = planAutoZonesForLevel([], [adopted], { previousSpaces, changedWalls: walls })
++    expect(broken.update[0]?.data.metadata).toEqual({ ...zone.metadata, boundaryNeedsReview: true })
++    expect(adopted.name).toBe('Bedroom')
++    expect(adopted.floorFinish).toBe('Timber')
++  })
++
++  test('split wall IDs with unchanged room geometry update the binding without a false warning', () => {
++    const walls = squareWalls()
++    const zone = ZoneNode.parse({
++      name: 'Kitchen',
++      polygon: square,
++      autoFromWalls: true,
++      boundaryWallIds: walls.map((wall) => wall.id),
++    })
++    const split = WallNode.parse({ start: [2, 0], end: [4, 0] })
++    const nextWalls = [{ ...walls[0]!, end: [2, 0] as [number, number] }, split, ...walls.slice(1)]
++    const plan = planAutoZonesForLevel(detectSpacesForLevel('level-1', nextWalls).spaces, [zone])
++    expect(plan.update[0]?.data.boundaryWallIds).toContain(split.id)
++    expect(plan.update[0]?.data.metadata?.boundaryNeedsReview).not.toBe(true)
++  })
++
++  test('a deleted imported room boundary reports uncertainty without renaming or merging rooms', () => {
++    const walls = squareWalls()
++    const zone = ZoneNode.parse({
++      name: 'Kitchen',
++      spaceRole: 'room',
++      polygon: square,
++      metadata: { source: 'apt-vector' },
++    })
++    const plan = planAutoZonesForLevel([], [zone], {
++      previousSpaces: detectSpacesForLevel('level-1', walls).spaces,
++      changedWalls: [walls[0]!],
++    })
++    expect(plan.update[0]?.data.metadata?.boundaryNeedsReview).toBe(true)
++    expect(plan.update[0]?.data.name).toBeUndefined()
++    expect(plan.update[0]?.data.polygon).toBeUndefined()
++  })
+   test('adopts an exact room footprint and records its enclosing walls', () => {
+     const walls = squareWalls()
+     const { spaces } = detectSpacesForLevel('level-1', walls)
+--- before/packages/core/src/lib/space-detection.ts
++++ after/packages/core/src/lib/space-detection.ts
+@@ -955,21 +955,82 @@
+   return a.every((value) => right.has(value))
+ }
+ 
++export function zoneNeedsBoundaryReview(zone: Pick<ZoneNodeType, 'metadata'>): boolean {
++  const metadata = zone.metadata
++  return (
++    metadata !== null &&
++    typeof metadata === 'object' &&
++    'boundaryNeedsReview' in metadata &&
++    metadata.boundaryNeedsReview === true
++  )
++}
++
+ export function planAutoZonesForLevel(
+   spaces: readonly Space[],
+   existingZones: readonly ZoneNodeType[],
++  context: { previousSpaces?: readonly Space[]; changedWalls?: readonly WallNode[] } = {},
+ ): AutoZoneSyncPlan {
+   const update: AutoZoneSyncPlan['update'] = []
++  // ponytail: reuse the existing sampled overlap; ambiguous semantic subdivisions stay manual.
++  const coversSameRoom = (zone: ZoneNodeType, space: Space) => {
++    const zonePolygon = zone.polygon.map(pointFromTuple)
++    const roomPolygon = space.polygon.map(pointFromTuple)
++    return (
++      polygonCoverageRatio(zonePolygon, [roomPolygon]) >= 0.9 &&
++      polygonCoverageRatio(roomPolygon, [zonePolygon]) >= 0.9
++    )
++  }
+ 
+   for (const zone of existingZones) {
+-    const storedSignature = polygonSignature(zone.polygon.map(pointFromTuple))
+-    const matchingSpace =
+-      zone.autoFromWalls && zone.boundaryWallIds.length >= 3
+-        ? spaces.find((space) => sameStringSet(space.wallIds, zone.boundaryWallIds))
+-        : spaces.find(
+-            (space) => polygonSignature(space.polygon.map(pointFromTuple)) === storedSignature,
+-          )
+-    if (!matchingSpace) continue
++    const metadata =
++      zone.metadata !== null && typeof zone.metadata === 'object' && !Array.isArray(zone.metadata)
++        ? zone.metadata
++        : {}
++    const storedSignature = polygonSignature(
++      simplifyClosedPolygon(zone.polygon, 1e-6).map(pointFromTuple),
++    )
++    const previousMatches =
++      metadata.source === 'apt-vector'
++        ? (context.previousSpaces ?? []).filter((space) => coversSameRoom(zone, space))
++        : []
++    const previousSpace =
++      previousMatches.length === 1 &&
++      existingZones.filter((other) => coversSameRoom(other, previousMatches[0]!)).length === 1
++        ? previousMatches[0]
++        : undefined
++    const boundaryWallIds = zone.autoFromWalls ? zone.boundaryWallIds : previousSpace?.wallIds
++    const matchingSpace = spaces.find(
++      (space) =>
++        (boundaryWallIds && sameStringSet(space.wallIds, boundaryWallIds)) ||
++        polygonSignature(simplifyClosedPolygon(space.polygon, 1e-6).map(pointFromTuple)) ===
++          storedSignature,
++    )
++    if (!matchingSpace) {
++      const affected =
++        zone.autoFromWalls ||
++        previousSpace ||
++        (zone.spaceRole === 'room' &&
++          metadata.source === 'apt-vector' &&
++          context.changedWalls?.some(
++            (wall) =>
++              zone.polygon.some(
++                (point) =>
++                  distanceToSegment(point, wall.start, wall.end) <=
++                  Math.max(0.1, wall.thickness ?? 0.1),
++              ) ||
++              pointInPolygon(
++                pointFromTuple([
++                  (wall.start[0] + wall.end[0]) / 2,
++                  (wall.start[1] + wall.end[1]) / 2,
++                ]),
++                zone.polygon.map(pointFromTuple),
++              ),
++          ))
++      if (affected && !zoneNeedsBoundaryReview(zone)) {
++        update.push({ id: zone.id, data: { metadata: { ...metadata, boundaryNeedsReview: true } } })
++      }
++      continue
++    }
+ 
+     const data: Partial<ZoneNodeType> = {}
+     if (!zone.autoFromWalls) data.autoFromWalls = true
+@@ -978,6 +1039,10 @@
+     }
+     if (!sameTuplePolygon(zone.polygon, matchingSpace.polygon)) {
+       data.polygon = matchingSpace.polygon
++    }
++    if (zoneNeedsBoundaryReview(zone)) {
++      const { boundaryNeedsReview: _, ...remainingMetadata } = metadata
++      data.metadata = remainingMetadata
+     }
+     if (Object.keys(data).length > 0) update.push({ id: zone.id, data })
+   }
+@@ -1450,6 +1515,7 @@
+   sceneStore: any,
+   editorStore: any,
+   nodes: any,
++  previousNodes: any,
+ ): void {
+   const { updateNodes } = sceneStore.getState()
+   const existingSpaces = editorStore.getState().spaces as Record<string, Space>
+@@ -1529,6 +1595,24 @@
+     const zonePlan = planAutoZonesForLevel(
+       spaces,
+       zones.map((zone: any) => ZoneNode.parse(zone)),
++      {
++        previousSpaces: detectSpacesFromWalls(
++          levelId,
++          Object.values(previousNodes).filter(
++            (node: any): node is WallNode => node?.type === 'wall' && node.parentId === levelId,
++          ),
++        ).spaces,
++        changedWalls: [...Object.values(previousNodes), ...walls].filter(
++          (node: any): node is WallNode => {
++            if (node?.type !== 'wall' || node.parentId !== levelId) return false
++            const before = previousNodes[node.id]
++            const after = nodes[node.id]
++            return (
++              !before || !after || wallGeometrySignature(before) !== wallGeometrySignature(after)
++            )
++          },
++        ),
++      },
+     )
+     if (zonePlan.update.length > 0) updateNodes(zonePlan.update)
+ 
+@@ -1569,7 +1653,18 @@
+   // scene that merely loaded — rerunning on hydration resurrected auto slabs
+   // the user had deleted in an earlier session.
+   const previousSnapshots = levelStructureSnapshots(sceneStore.getState().nodes)
++  let previousNodes = sceneStore.getState().nodes
+   let isProcessing = false
++  let historyNodes = new Set<unknown>()
++  const rememberHistory = (history: any) => {
++    historyNodes = new Set(
++      [...(history.pastStates ?? []), ...(history.futureStates ?? [])].map(
++        (snapshot: any) => snapshot.nodes,
++      ),
++    )
++  }
++  rememberHistory(sceneStore.temporal.getState())
++  const unsubscribeHistory = sceneStore.temporal.subscribe?.(rememberHistory)
+ 
+   const unsubscribe = sceneStore.subscribe((state: any) => {
+     if (isProcessing) return
+@@ -1581,10 +1676,30 @@
+     // Paused: roll the snapshot forward so we don't backfill (and re-duplicate)
+     // every paused change once detection resumes. Whatever the AI built while
+     // paused becomes the new baseline; only future changes will reconcile.
+-    if (spaceDetectionPauseDepth > 0) {
++    // Zundo removes the target from its arrays before notifying scene listeners.
++    // Remember their last published references so a history jump stays a restoration.
++    const isHistoryJump = historyNodes.has(nodes)
++    if (spaceDetectionPauseDepth > 0 || isHistoryJump) {
++      previousNodes = nodes
+       previousSnapshots.clear()
+       for (const [levelId, snapshot] of currentSnapshots.entries()) {
+         previousSnapshots.set(levelId, snapshot)
++      }
++      if (isHistoryJump) {
++        const restoredSpaces = Object.values(nodes).flatMap((node: any) =>
++          node?.type === 'level'
++            ? detectSpacesFromWalls(
++                node.id,
++                Object.values(nodes).filter(
++                  (wall: any): wall is WallNode =>
++                    wall?.type === 'wall' && wall.parentId === node.id,
++                ),
++              ).spaces
++            : [],
++        )
++        editorStore
++          .getState()
++          .setSpaces(Object.fromEntries(restoredSpaces.map((space) => [space.id, space])))
+       }
+       return
+     }
+@@ -1603,6 +1718,7 @@
+     }
+ 
+     if (levelsToUpdate.size === 0) {
++      previousNodes = nodes
+       previousSnapshots.clear()
+       for (const [levelId, snapshot] of currentSnapshots.entries()) {
+         previousSnapshots.set(levelId, snapshot)
+@@ -1613,11 +1729,12 @@
+     isProcessing = true
+     pauseSceneHistory(sceneStore)
+     try {
+-      runSpaceDetection([...levelsToUpdate], sceneStore, editorStore, nodes)
++      runSpaceDetection([...levelsToUpdate], sceneStore, editorStore, nodes, previousNodes)
+     } finally {
+       resumeSceneHistory(sceneStore)
+       previousSnapshots.clear()
+       const postRunSnapshots = levelStructureSnapshots(sceneStore.getState().nodes)
++      previousNodes = sceneStore.getState().nodes
+       for (const [levelId, snapshot] of postRunSnapshots.entries()) {
+         previousSnapshots.set(levelId, snapshot)
+       }
+@@ -1625,7 +1742,10 @@
+     }
+   })
+ 
+-  return unsubscribe
++  return () => {
++    unsubscribe()
++    unsubscribeHistory?.()
++  }
+ }
+ 
+ export function wallTouchesOthers(wall: WallNode, otherWalls: WallNode[]): boolean {
+--- before/packages/core/src/lib/wall-operations.ts
++++ after/packages/core/src/lib/wall-operations.ts
+@@ -3,6 +3,7 @@
+ import { getScaledDimensions, type ItemNode } from '../schema/nodes/item'
+ import { WallNode, type WallNode as WallNodeData } from '../schema/nodes/wall'
+ import type { AnyNode, AnyNodeId } from '../schema/types'
++import { getLinkedWallUpdates } from '../systems/wall/wall-move'
+ 
+ const EPSILON = 1e-6
+ 
+@@ -254,6 +255,112 @@
+     }
+   }
+   return { center, half: 0 }
++}
++
++export function buildWallLengthUpdates(
++  nodes: Record<AnyNodeId, AnyNode>,
++  wallId: AnyNodeId,
++  newLength: number,
++): Array<{ id: AnyNodeId; data: Partial<AnyNode> }> {
++  const wall = requireWall(nodes, wallId)
++  const length = distance(wall.start, wall.end)
++  if (!Number.isFinite(newLength) || newLength <= EPSILON || length <= EPSILON) {
++    throw new WallOperationError('invalid-wall-length', '벽 길이는 0보다 커야 합니다.')
++  }
++  if (Math.abs(wall.curveOffset ?? 0) > EPSILON) {
++    throw new WallOperationError('curved-wall', '곡선 벽은 곡률을 해제한 후 길이를 변경하세요.')
++  }
++  const end = pointAt(wall, newLength)
++  const siblings = Object.values(nodes).filter(
++    (node): node is WallNodeData =>
++      isWall(node) && node.parentId === wall.parentId && node.id !== wallId,
++  )
++  const linked = getLinkedWallUpdates(
++    siblings.map((other) => ({ wall: other })),
++    wall.start,
++    wall.end,
++    wall.start,
++    end,
++  ).filter((update) => {
++    const other = requireWall(nodes, update.id)
++    return !pointsEqual(other.start, update.start) || !pointsEqual(other.end, update.end)
++  })
++  const updates: Array<{ id: AnyNodeId; data: Partial<AnyNode> }> = [
++    { id: wallId, data: { end } },
++    ...linked.map(({ id, start, end }) => ({ id, data: { start, end } })),
++  ]
++  const nextWalls = new Map([wall, ...siblings].map((other) => [other.id, other]))
++  for (const update of updates) {
++    nextWalls.set(
++      update.id as WallNodeData['id'],
++      { ...requireWall(nodes, update.id), ...update.data } as WallNodeData,
++    )
++  }
++  const onSegment = (point: Vec2, host: WallNodeData) => {
++    const axis: Vec2 = [host.end[0] - host.start[0], host.end[1] - host.start[1]]
++    const delta: Vec2 = [point[0] - host.start[0], point[1] - host.start[1]]
++    const lengthSquared = dot(axis, axis)
++    const t = dot(delta, axis) / lengthSquared
++    return (
++      Math.abs(cross(delta, axis)) <= EPSILON * Math.sqrt(lengthSquared) &&
++      t >= -EPSILON &&
++      t <= 1 + EPSILON
++    )
++  }
++  for (const update of [...updates]) {
++    const before = requireWall(nodes, update.id)
++    const after = nextWalls.get(before.id)!
++    const nextLength = distance(after.start, after.end)
++    if (nextLength <= EPSILON) {
++      throw new WallOperationError(
++        'zero-length-wall',
++        '연결된 벽이 길이 0으로 줄어드는 변경은 적용할 수 없습니다.',
++      )
++    }
++    if (dot(direction(before.start, before.end), direction(after.start, after.end)) <= 0) {
++      throw new WallOperationError(
++        'reversed-wall',
++        '연결된 벽의 방향이 뒤집히는 길이 변경은 적용할 수 없습니다.',
++      )
++    }
++    if (Math.abs(before.curveOffset ?? 0) > EPSILON) {
++      throw new WallOperationError(
++        'curved-wall',
++        '연결된 곡선 벽의 곡률을 해제한 후 길이를 변경하세요.',
++      )
++    }
++    for (const child of listWallAttachments(nodes, before)) {
++      const span = getAttachmentSpan(child, after)
++      if (
++        span &&
++        (span.center - span.half < -EPSILON || span.center + span.half > nextLength + EPSILON)
++      ) {
++        throw new WallOperationError(
++          'attachment-outside-wall',
++          '문·창 또는 부착물이 벽 밖으로 나가는 길이 변경은 적용할 수 없습니다.',
++        )
++      }
++      if (span && child.type === 'item') {
++        updates.push({ id: child.id, data: { wallT: span.center / nextLength } })
++      }
++    }
++    for (const other of [wall, ...siblings]) {
++      if (other.id === before.id) continue
++      const nextOther = nextWalls.get(other.id)!
++      for (const endpoint of ['start', 'end'] as const) {
++        if (
++          (onSegment(before[endpoint], other) && !onSegment(after[endpoint], nextOther)) ||
++          (onSegment(other[endpoint], before) && !onSegment(nextOther[endpoint], after))
++        ) {
++          throw new WallOperationError(
++            'detached-wall-junction',
++            'T자 벽 접합을 끊는 길이 변경은 적용할 수 없습니다.',
++          )
++        }
++      }
++    }
++  }
++  return updates
+ }
+ 
+ function uniqueWallId(nodes: Record<AnyNodeId, AnyNode>, requested?: AnyNodeId) {
+--- before/packages/editor/src/components/ui/helpers/contextual-helper-panel.tsx
++++ after/packages/editor/src/components/ui/helpers/contextual-helper-panel.tsx
+@@ -404,7 +404,7 @@
+   return (
+     <div className={CONTAINER_CLASS}>
+       {snapContext ? <SnappingChips context={snapContext} /> : null}
+-      <WallEditControls />
++      <WallEditControls multiOnly />
+       {continuationContext === 'fence' ? <FenceContinuationChips /> : null}
+       {continuationContext && continuationContext !== 'fence' ? (
+         <ContinuationChip context={continuationContext} />
+--- before/packages/editor/src/components/ui/helpers/wall-edit-controls.tsx
++++ after/packages/editor/src/components/ui/helpers/wall-edit-controls.tsx
+@@ -22,12 +22,18 @@
+ }
+ 
+ function wallOperationErrorMessage(error: unknown): string {
++  if (error instanceof WallOperationError && error.code === 'attachment-crosses-split') {
++    return '문·창 또는 부착물 안에서는 벽을 분리할 수 없습니다. 분리 위치를 옮겨주세요.'
++  }
++  if (error instanceof WallOperationError && error.code === 'invalid-split-distance') {
++    return '벽 시작점과 끝점 사이의 분리 거리를 입력하세요.'
++  }
+   return error instanceof WallOperationError
+     ? error.message
+     : '벽 편집을 적용할 수 없습니다.'
+ }
+ 
+-export function WallEditControls() {
++export function WallEditControls({ multiOnly = false }: { multiOnly?: boolean }) {
+   const mode = useEditor((state) => state.mode)
+   const scopeKind = useInteractionScope((state) => state.scope.kind)
+   const selectedIds = useViewer((state) => state.selection.selectedIds)
+@@ -136,6 +142,7 @@
+ 
+   if (mode !== 'select' || scopeKind !== 'idle') return null
+   if (selectedWalls.length < 1 || selectedWalls.length !== selectedIds.length) return null
++  if (multiOnly && selectedWalls.length === 1) return null
+   if (selectedWalls.length === 1 && wall) {
+     return (
+       <div className="pointer-events-auto col-span-2 mt-1 border-border/40 border-t pt-2">
+--- before/packages/editor/src/index.tsx
++++ after/packages/editor/src/index.tsx
+@@ -247,6 +247,7 @@
+ export { TerrainSculptPanel } from './components/ui/controls/terrain-sculpt-panel'
+ export { ToggleControl } from './components/ui/controls/toggle-control'
+ export { FloatingLevelSelector } from './components/ui/floating-level-selector'
++export { WallEditControls } from './components/ui/helpers/wall-edit-controls'
+ export { CATALOG_ITEMS } from './components/ui/item-catalog/catalog-items'
+ export { lightingReplacementNode } from './components/ui/item-catalog/item-catalog'
+ // Item collections UI — used by the kind-owned ItemPanel in nodes/.
+--- before/packages/mcp/src/modeling-agent-manual.ts
++++ after/packages/mcp/src/modeling-agent-manual.ts
+@@ -23,6 +23,8 @@
+   '- Apartment extraction separates contained room labels into semantic zones without creating physical walls. Such open-space zone divisions are approximate. Window frames require a bright ridge between darker rails; a gray silhouette edge or an open floor line is insufficient. Openings already inside a retained wall use that wall as their host, and measured crossing-wall hosts may close short endpoint gaps only after both ends are validated. A wood render is accepted only with measured wall coverage and predominantly labeled valid room polygons. Nearly straight wall continuations with different thicknesses use a thickness step instead of a long miter taper.',
+   '- `mergeWalls` is the semantic operation for merging two or more selected walls. It accepts one exact contiguous, collinear, straight chain on the same parent with matching style, support, height, slots, and construction metadata; overlapping, branched, curved, incompatible, or disconnected walls are rejected. A reversed wall with hosted content or directional paint/trim/side metadata is rejected rather than silently changing its local frame. The first selected wall id is retained, hosted children keep their world positions, rotations, side, `wallT`, and links, and collection membership, `supportOffset`, and `fillToTerrain` are preserved. Commit the whole merge as one undo step.',
+   '- `splitWall` is the semantic operation for splitting one straight wall at a finite distance in metres from its authored start. The distance must be strictly inside the wall and cannot cross a door, window, or wall-hosted item span. The first wall id is retained and the second id is generated or explicitly supplied only when unused; hosted children keep their world positions, rotations, side, links, and updated `wallT`, while parent/root links, collections, `supportOffset`, and `fillToTerrain` are preserved. Commit the split as one undo step.',
++  '- Wall length input in the shared 2D/3D properties panel uses `buildWallLengthUpdates`: shared endpoints follow together, all affected host spans are checked before a single undoable update, and collapsed walls, detached T junctions, or unsupported curved walls are rejected. Single-wall split controls are in that properties panel; multi-selection merge remains in the contextual helper.',
++  '- Wall-driven zone sync follows confirmed enclosing wall loops, including a uniquely matched approximate apartment room. A split/merge with unchanged room geometry rebinds its boundary wall ids. Lost or ambiguous boundaries preserve room names and finishes and set `metadata.boundaryNeedsReview`; both views display a boundary review warning and 2D suppresses unproven clear dimensions. Undo/redo restores the saved graph without rewriting zone metadata; only derived space detection is refreshed. Open semantic subdivisions are not guessed into physical rooms.',
+   '- Preserve node ids, parent relationships, Body vertex/edge/loop/face ids, face materials, and UV frames unless the requested operation explicitly replaces them.',
+   '- Levels belong to Buildings. Walls, zones, slabs, ceilings, roofs, stairs, Bodies, and floor items belong to a Level or their documented structural parent. Doors and windows belong to a Wall.',
+   '- For doors and windows, use `t` or `position` from 0 to 1 along the wall unless the operation schema explicitly documents another coordinate.',
+--- before/packages/mcp/src/ontology-manual.test.ts
++++ after/packages/mcp/src/ontology-manual.test.ts
+@@ -4,6 +4,11 @@
+ import { MODELING_AGENT_MANUAL } from './modeling-agent-manual'
+ 
+ describe('Phase 2 ontology manual contract', () => {
++  test('documents validated length edits and boundary review', () => {
++    expect(MODELING_AGENT_MANUAL).toContain('buildWallLengthUpdates')
++    expect(MODELING_AGENT_MANUAL).toContain('all affected host spans')
++    expect(MODELING_AGENT_MANUAL).toContain('metadata.boundaryNeedsReview')
++  })
+   test('documents ontology discovery and evidence requirements', () => {
+     expect(MODELING_AGENT_MANUAL).toContain('pascal://ontology/manifest')
+     expect(MODELING_AGENT_MANUAL).toContain('query_design_ontology')
+--- before/packages/nodes/src/wall/panel.tsx
++++ after/packages/nodes/src/wall/panel.tsx
+@@ -6,6 +6,7 @@
+   bestConstructionMaterial,
+   buildWallBandKindPatch,
+   buildWallFaceBandCountPatch,
++  buildWallLengthUpdates,
+   calculateWallConstructionQuantities,
+   createWallBandConstructionPreset,
+   detectWallConstructionPreset,
+@@ -57,10 +58,11 @@
+   triggerSFX,
+   useInteractionScope,
+   useT,
++  WallEditControls,
+ } from '@pascal-app/editor'
+ import { useViewer } from '@pascal-app/viewer'
+ import { Plus, Spline, Trash2 } from 'lucide-react'
+-import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
++import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+ import { SurfaceTexturePlacementControls } from '../shared/surface-texture-placement'
+ import { resolveWallOpeningCeiling } from '../shared/wall-opening-ceiling'
+ import { WALL_LAYER_COLORS } from './construction-visual'
+@@ -105,7 +107,8 @@
+ 
+ export default function WallPanel() {
+   const t = useT()
+-  const selectedId = useViewer((s) => s.selection.selectedIds[0])
++  const selectedIds = useViewer((s) => s.selection.selectedIds)
++  const selectedId = selectedIds[0]
+   const unit = useViewer((s) => s.unit)
+   const setSelection = useViewer((s) => s.setSelection)
+ 
+@@ -160,6 +163,7 @@
+   // "Maximum update depth exceeded" cascade. Same fix in fence-panel.tsx.
+   const nodeRef = useRef(node)
+   nodeRef.current = node
++  const [lengthError, setLengthError] = useState<{ id: string; message: string } | null>(null)
+ 
+   const handleUpdate = useCallback(
+     (updates: Partial<WallNode>) => {
+@@ -169,29 +173,21 @@
+     [selectedId],
+   )
+ 
+-  const handleUpdateLength = useCallback(
+-    (newLength: number) => {
+-      const n = nodeRef.current
+-      if (!n || newLength <= 0) return
+-
+-      const dx = n.end[0] - n.start[0]
+-      const dz = n.end[1] - n.start[1]
+-      const currentLength = Math.sqrt(dx * dx + dz * dz)
+-
+-      if (currentLength === 0) return
+-
+-      const dirX = dx / currentLength
+-      const dirZ = dz / currentLength
+-
+-      const newEnd: [number, number] = [
+-        n.start[0] + dirX * newLength,
+-        n.start[1] + dirZ * newLength,
+-      ]
+-
+-      handleUpdate({ end: newEnd })
+-    },
+-    [handleUpdate],
+-  )
++  const handleUpdateLength = useCallback((newLength: number) => {
++    const n = nodeRef.current
++    if (!n || newLength <= 0) return
++
++    try {
++      const scene = useScene.getState()
++      scene.updateNodes(buildWallLengthUpdates(scene.nodes, n.id, newLength))
++      setLengthError(null)
++    } catch (error) {
++      setLengthError({
++        id: n.id,
++        message: error instanceof Error ? error.message : '벽 길이를 변경할 수 없습니다.',
++      })
++    }
++  }, [])
+ 
+   const handleBaseModeChange = useCallback(
+     (mode: 'terrain' | 'fixed') => {
+@@ -217,7 +213,7 @@
+     setSelection({ selectedIds: [] })
+   }, [node, setSelection])
+ 
+-  if (!(node && node.type === 'wall' && selectedId)) return null
++  if (!(node && node.type === 'wall' && selectedId && selectedIds.length === 1)) return null
+ 
+   const length = getWallCurveLength(node)
+ 
+@@ -261,6 +257,12 @@
+           unit={unitLabel}
+           value={displayLength}
+         />
++        {lengthError?.id === node.id ? (
++          <p className="text-xs text-destructive" role="alert">
++            {lengthError.message}
++          </p>
++        ) : null}
++        <WallEditControls />
+         <SliderControl
+           label={t('common.height')}
+           max={metersToLinearUnit(6, unit)}
+--- before/packages/nodes/src/zone/floorplan.test.ts
++++ after/packages/nodes/src/zone/floorplan.test.ts
+@@ -16,6 +16,22 @@
+ }
+ 
+ describe('buildZoneFloorplan room documentation', () => {
++  test('shows unresolved room boundaries in the 2D plan', () => {
++    const room = ZoneNode.parse({
++      name: 'Bedroom',
++      spaceRole: 'room',
++      polygon: [
++        [0, 0],
++        [4, 0],
++        [4, 3],
++        [0, 3],
++      ],
++      metadata: { boundaryNeedsReview: true },
++    })
++    expect(textChildren(buildZoneFloorplan(room, context))).toContainEqual(
++      expect.objectContaining({ text: '구획 확인 필요' }),
++    )
++  })
+   test('keeps a generic zone label unchanged', () => {
+     const zone = ZoneNode.parse({
+       id: 'zone_landscape',
+--- before/packages/nodes/src/zone/floorplan.ts
++++ after/packages/nodes/src/zone/floorplan.ts
+@@ -4,6 +4,7 @@
+   type GeometryContext,
+   resolveAutoZonePolygon,
+   type ZoneNode,
++  zoneNeedsBoundaryReview,
+ } from '@pascal-app/core'
+ import { floorplanGeometryMetadata, readFloorplanContext } from '@pascal-app/editor'
+ import {
+@@ -113,7 +114,7 @@
+         stroke,
+       ),
+     )
+-    if (floorplanContext.automaticDimensions) {
++    if (floorplanContext.automaticDimensions && !zoneNeedsBoundaryReview(node)) {
+       children.push(...buildRoomClearDimensions(node, ctx))
+     }
+   } else if (name) {
+@@ -159,6 +160,9 @@
+   const lines: Array<{ text: string; fontSize: number; fontWeight: number }> = []
+   const name = node.name.trim()
+   if (name) lines.push({ text: name, fontSize: ROOM_NAME_FONT_SIZE, fontWeight: 700 })
++  if (zoneNeedsBoundaryReview(node)) {
++    lines.push({ text: '구획 확인 필요', fontSize: ROOM_DETAIL_FONT_SIZE, fontWeight: 700 })
++  }
+   if (node.roomNumber) {
+     lines.push({ text: node.roomNumber, fontSize: ROOM_NUMBER_FONT_SIZE, fontWeight: 600 })
+   }
+--- before/packages/nodes/src/zone/quantities-panel.tsx
++++ after/packages/nodes/src/zone/quantities-panel.tsx
+@@ -7,6 +7,7 @@
+   useScene,
+   type ZoneNode,
+   type ZoneQuantityValue,
++  zoneNeedsBoundaryReview,
+ } from '@pascal-app/core'
+ import {
+   formatAreaLabel,
+@@ -365,6 +366,12 @@
+ 
+   return (
+     <>
++      {zoneNeedsBoundaryReview(effectiveZone) ? (
++        <p className="text-xs text-destructive" role="alert">
++          벽 변경으로 공간 구획을 확인해야 합니다. 존 경계를 편집하거나 벽 연결을 복구하세요. 아래
++          수치는 기존 존 경계 기준입니다.
++        </p>
++      ) : null}
+       <RoomDocumentationPanel zone={effectiveZone} />
+       <PanelSection
+         title={effectiveZone.spaceRole === 'room' ? 'Room quantities' : 'Zone quantities'}
+--- before/packages/nodes/src/zone/renderer.tsx
++++ after/packages/nodes/src/zone/renderer.tsx
+@@ -7,6 +7,7 @@
+   useRegistry,
+   useScene,
+   type ZoneNode,
++  zoneNeedsBoundaryReview,
+ } from '@pascal-app/core'
+ import { useNodeEvents, useViewer, ZONE_LAYER } from '@pascal-app/viewer'
+ import { Html } from '@react-three/drei'
+@@ -248,7 +249,10 @@
+                   textAlign: 'center',
+                 }}
+               >
+-                <span>{node.name}</span>
++                <span>
++                  {node.name}
++                  {zoneNeedsBoundaryReview(node) ? ' · 구획 확인 필요' : ''}
++                </span>
+               </div>
+               <div
+                 className="label-pin"
+--- /dev/null
++++ after/packages/core/src/lib/wall-length.test.ts
+@@ -0,0 +1,57 @@
++import { expect, test } from 'bun:test'
++import { DoorNode, WallNode, WindowNode } from '../schema'
++import { buildWallLengthUpdates, WallOperationError } from './wall-operations'
++
++test('length input follows shared endpoints and validates all hosts before mutation', () => {
++  const wall = WallNode.parse({ start: [0, 0], end: [4, 0] })
++  const neighbor = WallNode.parse({ start: [4, 0], end: [4, 3] })
++  const nodes = { [wall.id]: wall, [neighbor.id]: neighbor }
++  const updates = buildWallLengthUpdates(nodes, wall.id, 3)
++  expect(updates.find((update) => update.id === wall.id)?.data.end).toEqual([3, 0])
++  expect(updates.find((update) => update.id === neighbor.id)?.data.start).toEqual([3, 0])
++  expect(wall.end).toEqual([4, 0])
++
++  for (const Schema of [DoorNode, WindowNode]) {
++    const opening = Schema.parse({
++      wallId: wall.id,
++      parentId: wall.id,
++      position: [3, 0, 0],
++      width: 1,
++    })
++    expect(() => buildWallLengthUpdates({ ...nodes, [opening.id]: opening }, wall.id, 3)).toThrow(
++      WallOperationError,
++    )
++  }
++  const collinear = WallNode.parse({ start: [4, 0], end: [8, 0] })
++  const opening = WindowNode.parse({ wallId: collinear.id, position: [3, 0, 0], width: 1 })
++  expect(() =>
++    buildWallLengthUpdates(
++      { [wall.id]: wall, [collinear.id]: collinear, [opening.id]: opening },
++      wall.id,
++      6,
++    ),
++  ).toThrow(WallOperationError)
++  expect(collinear.start).toEqual([4, 0])
++})
++
++test('length input rejects loss of an interior T junction, collapsed neighbors and curved walls', () => {
++  const wall = WallNode.parse({ start: [0, 0], end: [4, 0] })
++  const branch = WallNode.parse({ start: [3, 0], end: [3, 3] })
++  expect(() =>
++    buildWallLengthUpdates({ [wall.id]: wall, [branch.id]: branch }, wall.id, 2),
++  ).toThrow(WallOperationError)
++  expect(() =>
++    buildWallLengthUpdates({ [wall.id]: wall, [branch.id]: branch }, branch.id, 4),
++  ).not.toThrow()
++  const neighbor = WallNode.parse({ start: [4, 0], end: [5, 0] })
++  expect(() =>
++    buildWallLengthUpdates({ [wall.id]: wall, [neighbor.id]: neighbor }, wall.id, 5),
++  ).toThrow(WallOperationError)
++  expect(() =>
++    buildWallLengthUpdates({ [wall.id]: wall, [neighbor.id]: neighbor }, wall.id, 6),
++  ).toThrow(WallOperationError)
++  const curve = WallNode.parse({ ...wall, curveOffset: 0.5 })
++  expect(() => buildWallLengthUpdates({ [curve.id]: curve }, curve.id, 5)).toThrow(
++    WallOperationError,
++  )
++})
+--- /dev/null
++++ after/packages/core/src/lib/space-detection-history.test.ts
+@@ -0,0 +1,65 @@
++import { expect, test } from 'bun:test'
++import { LevelNode, WallNode, ZoneNode } from '../schema'
++import { clearSceneHistory, default as useScene } from '../store/use-scene'
++import { initSpaceDetectionSync } from './space-detection'
++
++globalThis.requestAnimationFrame ??= (callback) => {
++  callback(0)
++  return 0
++}
++globalThis.cancelAnimationFrame ??= () => {}
++
++test('undo/redo restores zone review metadata without regenerating the restored snapshot', () => {
++  const level = LevelNode.parse({ id: 'level_zone_history' })
++  const walls = [
++    WallNode.parse({ start: [0, 0], end: [4, 0], parentId: level.id }),
++    WallNode.parse({ start: [4, 0], end: [4, 3], parentId: level.id }),
++    WallNode.parse({ start: [4, 3], end: [0, 3], parentId: level.id }),
++    WallNode.parse({ start: [0, 3], end: [0, 0], parentId: level.id }),
++  ]
++  const zone = ZoneNode.parse({
++    name: 'Bedroom',
++    parentId: level.id,
++    spaceRole: 'room',
++    polygon: [
++      [0.05, 0.05],
++      [3.95, 0.05],
++      [3.95, 2.95],
++      [0.05, 2.95],
++    ],
++    metadata: { source: 'apt-vector', sourceRoomId: 'bedroom' },
++  })
++  const original = Object.fromEntries([level, ...walls, zone].map((node) => [node.id, node]))
++  useScene.setState({
++    nodes: original,
++    rootNodeIds: [level.id],
++    collections: {},
++    materials: {},
++    readOnly: false,
++  })
++  clearSceneHistory()
++  const editorState = {
++    spaces: {},
++    setSpaces(spaces: object) {
++      this.spaces = spaces
++    },
++  }
++  const stop = initSpaceDetectionSync(useScene, { getState: () => editorState })
++  try {
++    useScene.getState().deleteNode(walls[0]!.id)
++    const deleted = useScene.getState().nodes
++    expect((deleted[zone.id] as typeof zone).metadata).toEqual({
++      ...zone.metadata,
++      boundaryNeedsReview: true,
++    })
++    useScene.temporal.getState().undo()
++    expect(useScene.getState().nodes).toEqual(original)
++    expect(Object.keys(editorState.spaces)).toHaveLength(1)
++    useScene.temporal.getState().redo()
++    expect(useScene.getState().nodes).toEqual(deleted)
++    expect(Object.keys(editorState.spaces)).toHaveLength(0)
++  } finally {
++    stop()
++    clearSceneHistory()
++  }
++})

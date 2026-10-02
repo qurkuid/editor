@@ -1,0 +1,31 @@
+Zone finish takeoff validation — 2026-10-02
+
+Profile
+- Resolved model: gpt-5.6-luna
+- Reasoning effort: max
+
+Owned source
+- apps/editor/lib/quantity-takeoff.ts
+- apps/editor/lib/quantity-takeoff.test.ts
+
+Source checks
+- quantity-takeoff-before-implementation.log: expected RED baseline, 39 pass / 5 fail, EXIT_CODE=1
+- focused-regression.log: 64 pass / 0 fail / 138 expectations, EXIT_CODE=0
+- biome.log: 2 files checked, no fixes, EXIT_CODE=0
+- check-types.log: next typegen + tsgo --noEmit, EXIT_CODE=0
+- build.log: bun run --cwd apps/editor build, Next 16.2.12 Turbopack, EXIT_CODE=0, BUILD_ID lF-ZXFuTjrQJw7PnZ3Y7-
+
+Real-surface browser QA
+- zone-finish-qa.mjs / zone-finish-qa.log
+- Fixture scene: zonetakeoff1790918969085
+- Visible flow: scene tree Zone selection -> actual finish materials -> whole-wall dialog -> Concrete Plate tile -> Stats
+- Applied persisted region: wall_zone_qa, interior, start 0, end 0.5; selected scene material ref scene:mat_magult185y46l8yx
+- Stats after apply and reload: selected finish 5.00 m2; lower fallback library:flooring-rusticbrick 2.00 m2; upper fallback library:wood-finewood27 3.00 m2
+- Undo: region removed and selected material absent from Stats; redo restored region
+- Save/reload: scene GET/PUT responses status 200; region and quantities retained
+- consoleErrors: []
+- pageErrors: []
+- failedResponses: []
+- externalMutations: [] (static icon, texture, and decoder GETs were allowed/mocked)
+
+The initial-autosave-race screenshot is retained as historical evidence: the UI had completed before the first baseline PUT was replaced by the applied PUT. The final script waits for the applied graph payload.

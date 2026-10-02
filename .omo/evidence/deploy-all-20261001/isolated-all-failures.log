@@ -1,0 +1,70 @@
+packages/nodes/src/body/move-session.test.ts
+
+packages/nodes/src/body/move-session.test.ts:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > previews and cancels through live transforms without mutating topology [5.16ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > commits one transformBody update and undo restores the original body [2.06ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > previews a selected persistent vertex through a live geometry override [0.83ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > previews, commits, cancels, and undoes an autofold feature move [1.09ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > remaps attached feature annotations and undoes the whole feature move atomically [1.66ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > rejects an invalid feature preview without mutating scene state [0.15ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > commits one selected edge update and undo restores the original body [0.35ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > cancels a selected face preview without changing topology or history [0.22ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > resolves 3D surface stacking translation from surface point, body center, and minimum Y [1.14ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > resolves empty-grid/free-overlap 3D move without vertical translation [0.05ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > keeps the chosen base point attached to the destination inference point [0.06ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > creates a fresh effect-owned session after StrictMode cleanup [0.21ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > floorplan target previews through live overrides and commits the same transform once [0.43ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+39 |   actual: ReadonlyArray<readonly [number, number, number]>,
+40 |   expected: Array<[number, number, number]>,
+41 | ): void {
+42 |   expect(actual).toHaveLength(expected.length)
+43 |   for (let index = 0; index < expected.length; index += 1) {
+44 |     expect(actual[index]?.[0]).toBeCloseTo(expected[index]![0])
+                                    ^
+error: expect(received).toBeCloseTo(expected, precision)
+
+Expected: 0.9
+Received: 1
+
+Expected precision: 2
+Expected difference: < 0.005
+Received difference: 0.09999999999999998
+
+      at expectLoopCloseTo (/Users/changseok/editor/packages/nodes/src/body/move-session.test.ts:44:32)
+      at <anonymous> (/Users/changseok/editor/packages/nodes/src/body/move-session.test.ts:416:5)
+(fail) Body move session > floorplan body move keeps polygon grid snapping active when Shift is held [0.17ms]
+
+ 13 pass
+ 1 fail
+ 108 expect() calls
+Ran 14 tests across 1 file. [648.00ms]
+bun test v1.3.11 (af24e281)
+
+packages/nodes/src/duct-fitting/parametrics.test.ts
+
+packages/nodes/src/duct-fitting/parametrics.test.ts:
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'useT' not found in module '/Users/changseok/editor/packages/editor/src/index.tsx'.
+      at requestImportModule (2:1)
+(fail) ductFittingParametrics > (unnamed) [28.23ms]
+
+ 0 pass
+ 1 fail
+Ran 1 test across 1 file. [150.00ms]
+bun test v1.3.11 (af24e281)

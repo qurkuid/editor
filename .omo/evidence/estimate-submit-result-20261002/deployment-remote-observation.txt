@@ -1,0 +1,10 @@
+2026-10-02 KST, encrypted ARD UNIX command
+host=baegchangseogs-Mac-mini.local
+PM2 apt-subdomain PID=69188 status=online
+cwd=/Volumes/DATABASE/floorplan-releases/20261001-9d79de8a/apps/editor
+INTM_BASE_URL=https://intm.kr
+local HTTP 200; public /apt HTTP 200
+public HTML buildId=VvK6ZLvTWya3UrIT0uZ0c (previous release)
+prepare PID40934 exited at mkdir before git/build/DB backup/runtime changes:
+mkdir: /Volumes/DATABASE/floorplan-deploy-backups/20261002-f705593d: Operation not permitted
+No runtime activation occurred.

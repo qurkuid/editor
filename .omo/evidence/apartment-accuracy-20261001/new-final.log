@@ -1,0 +1,5 @@
+daeyeon 16.2 {'planId': 'apt-vector-3FO3YBRFCS62', 'style': 'standard', 'wallIoU': 0.842, 'scale': 11.938, 'walls': 75, 'doors': 6, 'windows': 14, 'openings': 3, 'rooms': 16}
+centum 18.3 {'planId': 'apt-vector-3FO3Y8IOXTF4', 'style': 'standard', 'wallIoU': 0.791, 'scale': 13.679, 'walls': 81, 'doors': 7, 'windows': 12, 'openings': 4, 'rooms': 17}
+forest 64.2 {'planId': 'apt-vector-3FO40NYO9IFT', 'style': 'wood-dense', 'wallIoU': 0.752, 'scale': 6.592, 'walls': 152, 'doors': 5, 'windows': 39, 'openings': 8, 'rooms': 12}
+sajik 17.7 {'planId': 'apt-vector-3FO40NS9PWUJ', 'style': 'standard', 'wallIoU': 0.872, 'scale': 10.909, 'walls': 65, 'doors': 8, 'windows': 13, 'openings': 3, 'rooms': 14}
+beonyeong 12.6 {'planId': 'apt-vector-3FO3SY16C3LW', 'style': 'standard', 'wallIoU': 0.842, 'scale': 9.731, 'walls': 70, 'doors': 8, 'windows': 9, 'openings': 1, 'rooms': 13}

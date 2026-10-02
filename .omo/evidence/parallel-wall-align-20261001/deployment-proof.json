@@ -1,0 +1,39 @@
+{
+  "commit": "9d79de8a35a7264247001bdd92e8090cbe270acc",
+  "release": "/Volumes/DATABASE/floorplan-releases/20261001-9d79de8a",
+  "buildId": "VvK6ZLvTWya3UrIT0uZ0c",
+  "pm2": {
+    "name": "apt-subdomain",
+    "pid": 69188,
+    "status": "online"
+  },
+  "public": "https://apt.intm.kr",
+  "featureAssetSha256": "1159f0c6ff2973d64501298b76119f91feb038ca8af2510a2f9d821d4154647f",
+  "tests": {
+    "pass": 72,
+    "fail": 0
+  },
+  "localBrowser": {
+    "2D": true,
+    "3D": true,
+    "undoExact": true,
+    "redoExact": true,
+    "negativeCases": 4
+  },
+  "productionBrowser": {
+    "buttonVisible": true,
+    "click": "PASS",
+    "errors": 0,
+    "warnings": [
+      "viewer scene readiness timed out during hydration"
+    ],
+    "savedResult": "PASS",
+    "maxNumericDelta": 0,
+    "undoExact": true,
+    "beforeNodes": 85,
+    "alignedNodes": 105,
+    "restoredNodes": 85,
+    "userApproval": "승인"
+  },
+  "githubActions": []
+}

@@ -1,0 +1,7 @@
+{
+  "source": "local captured updater",
+  "original_sha256": "aa3c5b558722984eee10f39bc089c6bff165d1a6dbcfe3ee70184bea364debf3",
+  "patched_sha256": "cac4f87635e6801ac6c6916c5c836c92588c995e113b139f8a5c9cb46cfc79da",
+  "recovery_sha256": "8026a9a57ecb60f5d7492c0a0a1346bf4ee0a06a4497081dbf83d0ead5f16046",
+  "production_installed": false
+}

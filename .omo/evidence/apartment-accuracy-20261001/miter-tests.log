@@ -1,0 +1,23 @@
+bun test v1.3.11 (af24e281)
+
+packages/core/src/systems/wall/wall-mitering.test.ts:
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.75ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.04ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.05ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.04ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.01ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.06ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.02ms]
+(pass) wall mitering miter limit > still miters a normal 90° corner [0.11ms]
+(pass) wall mitering miter limit > keeps unequal near-straight continuations at their thickness step [0.09ms]
+(pass) wall mitering miter limit > does not extend a short source fragment beyond its own span [0.12ms]
+(pass) wall miter boundary sides > keeps left and right on the same physical face at both free endpoints
+
+packages/core/src/systems/wall/wall-footprint.test.ts:
+(pass) T branch ends at the physical host face without a wedge inside the host [3.03ms]
+(pass) junctions use construction thickness rather than a stale authored thickness [2.14ms]
+
+ 13 pass
+ 0 fail
+ 149 expect() calls
+Ran 13 tests across 2 files. [66.00ms]

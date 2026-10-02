@@ -1,0 +1,45 @@
+bun test v1.3.11 (af24e281)
+
+packages/nodes/src/body/move-session.test.ts:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > previews and cancels through live transforms without mutating topology [4.74ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > commits one transformBody update and undo restores the original body [1.58ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > previews a selected persistent vertex through a live geometry override [0.72ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > previews, commits, cancels, and undoes an autofold feature move [0.88ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > remaps attached feature annotations and undoes the whole feature move atomically [1.36ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > rejects an invalid feature preview without mutating scene state [0.08ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > commits one selected edge update and undo restores the original body [0.17ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > cancels a selected face preview without changing topology or history [0.33ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > resolves 3D surface stacking translation from surface point, body center, and minimum Y [0.12ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > resolves empty-grid/free-overlap 3D move without vertical translation [0.04ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > keeps the chosen base point attached to the destination inference point [0.03ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > creates a fresh effect-owned session after StrictMode cleanup [0.12ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > floorplan target previews through live overrides and commits the same transform once [0.33ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > floorplan body move keeps polygon grid snapping active when Shift is held [0.29ms]
+
+packages/nodes/src/duct-fitting/parametrics.test.ts:
+(pass) ductFittingParametrics > resizing a fitting retrims connected ducts without changing their roll [1.58ms]
+(pass) ductFittingParametrics > resizing a fitting refreshes a connected duct auto-offset base path [0.31ms]
+(pass) ductFittingParametrics > deleting an elbow re-extends mated runs back onto the junction [0.17ms]
+(pass) ductFittingParametrics > delete repair matches the 5 cm live connectivity mate tolerance [0.12ms]
+(pass) ductFittingParametrics > deleting a generated elbow clears the owner duct auto-offset tag [0.04ms]
+(pass) ductFittingParametrics > deleting a tee leaves mated runs untouched [0.03ms]
+(pass) ductFittingParametrics > resizing a generated fitting clears the owner duct auto-offset tag [0.17ms]
+
+ 21 pass
+ 0 fail
+ 129 expect() calls
+Ran 21 tests across 2 files. [530.00ms]

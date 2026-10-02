@@ -1,0 +1,134 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/components/zone-finish-panel.test.tsx:
+(pass) renders the footer for a sole room Zone in selectedIds [17.73ms]
+(pass) renders the footer through the empty selectedIds zoneId route [1.30ms]
+(pass) does not render for a generic Zone or non-Zone selected entry [1.50ms]
+(pass) does not render for multi-selection, stale zoneId, or no selection [1.56ms]
+(pass) renders the regional wall material name and swatch in the SSR footer [2.70ms]
+
+packages/editor/src/hooks/use-keyboard.test.tsx:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) useKeyboard history cancellation > undoes idle continuous Paint with one native Cmd+Z [10.69ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) useKeyboard history cancellation > keeps a consumed drafting cancel out of history [0.81ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) useKeyboard history cancellation > keeps a pointer drag cancel out of history [0.50ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) useKeyboard history cancellation > keeps paused temporal history out of the shortcut path [0.43ms]
+
+packages/editor/src/lib/zone-finish.test.ts:
+(pass) zone finish resolver > resolves each inward face and reports a missing floor for a zero-Slab Zone [0.60ms]
+(pass) zone finish resolver > reports unique regional material refs before direct wall-slot fallback [0.81ms]
+(pass) zone finish resolver > uses the selected wall face target without including the floor in completion [0.94ms]
+(pass) zone finish resolver > patches only the selected face while preserving opposite and inactive slots [0.91ms]
+(pass) zone finish resolver > creates one ground Slab at the Zone footprint when the level has no Slabs [1.09ms]
+(pass) zone finish resolver > inspects and creates one Zone-footprint Ceiling without inventing a height [0.99ms]
+(pass) zone finish resolver > patches one exact Ceiling surface while preserving its authored fields [0.85ms]
+(pass) zone finish resolver > commits a created Ceiling and its material in one undo step [1.46ms]
+(pass) zone finish resolver > blocks containing, partial, duplicate, and hole Ceiling conflicts before mutation [1.58ms]
+(pass) zone finish resolver > blocks a Slab with a positive aligned overlap even when every vertex is on the boundary [0.59ms]
+(pass) zone finish resolver > allows adjacent Slabs that only share an edge with the Zone [0.82ms]
+(pass) zone finish resolver > blocks an aligned hole when a containing Slab would otherwise support the Zone [0.47ms]
+(pass) zone finish resolver > checks holes after selecting a marked Slab among exact footprint matches [0.34ms]
+(pass) zone finish resolver > does not let a marked exact Slab bypass another partial overlap [0.34ms]
+(pass) zone finish resolver > rejects a floor plan when its level context changes before commit [0.25ms]
+(pass) zone finish resolver > rejects a ceiling plan when its level context changes before commit [0.62ms]
+(pass) zone finish resolver > applies every inward wall band in one undo step and preserves opposite slots [1.10ms]
+(pass) zone finish resolver > ignores disjoint existing Slabs and overlays one containing structural base [0.69ms]
+(pass) zone finish resolver > blocks an overlapping Slab before any wall or floor mutation [0.20ms]
+(pass) zone finish resolver > keeps a wall-only target independent from an unsafe floor [0.39ms]
+(pass) zone finish resolver > does not silently accept an unavailable library material [0.24ms]
+(pass) zone finish resolver > freezes a provided snapshot even when its library reference is still known [0.35ms]
+(pass) zone finish resolver > uses a frozen material snapshot when a library ref is no longer registered [0.18ms]
+(pass) zone finish resolver > accepts a manual Zone when every boundary wall face is a whole face [0.39ms]
+(pass) zone finish resolver > uses an inward edge witness for concave whole-face Zones and preserves opposite slots [0.61ms]
+(pass) zone finish resolver > accepts straight manual subsegments while leaving the floor target available [0.64ms]
+(pass) zone finish resolver > keeps disjoint manual subsegments on one physical wall face [0.45ms]
+(pass) zone finish resolver > blocks canonical curved partial claims before mutation, including modest curves [0.39ms]
+(pass) zone finish resolver > fails closed for a partial curved auto boundary but accepts authored endpoints [0.43ms]
+(pass) zone finish resolver > coalesces touching auto boundary segments on one wall face [0.26ms]
+(pass) zone finish resolver > reuses a stable partial finish-region identity and rejects a foreign overlap before mutation [1.03ms]
+(pass) zone finish templates > captures and restores a mixed wall template by exact fingerprint [2.95ms]
+(pass) zone finish templates > requires a matching scene identity before using an exact Zone template [0.99ms]
+(pass) zone finish templates > requires a matching Home source scene before child templates may use exact faces [1.50ms]
+(pass) zone finish templates > captures an explicit ceiling snapshot and reapplies only its surface slot [0.67ms]
+(pass) zone finish templates > omits an absent ceiling snapshot and preserves an existing target ceiling [0.25ms]
+(pass) zone finish templates > rejects two manual Zones that claim the same physical wall face [1.41ms]
+(pass) zone finish templates > does not treat reversed polygon winding as an opposite wall face [1.40ms]
+(pass) zone finish templates > allows opposite semantic faces of a shared wall in a home apply [2.63ms]
+(pass) zone finish templates > commits a home template with a created Ceiling in one undo step [1.91ms]
+(pass) zone finish templates > allows same-footprint home floors on different levels [2.05ms]
+(pass) zone finish templates > maps a mixed template across a changed Zone one-to-one [0.81ms]
+(pass) zone finish templates > maps a partial template by its interval key [0.93ms]
+(pass) zone finish templates > rejects a template capture when the Zone has no resolved wall boundary [0.05ms]
+
+packages/editor/src/lib/paint-scope.test.ts:
+(pass) availablePaintScopes > every node offers single
+(pass) availablePaintScopes > more than one slot adds whole-object [0.28ms]
+(pass) availablePaintScopes > a single slot does not add whole-object
+(pass) availablePaintScopes > an asset adds all-matching (items) [0.02ms]
+(pass) cyclePaintScope > wraps within the given set [0.06ms]
+(pass) cyclePaintScope > a scope foreign to the set restarts at the first entry [0.02ms]
+(pass) cyclePaintScope > an empty set stays single
+(pass) paintScopeLabel > single shows the hovered slot label [0.04ms]
+(pass) paintScopeLabel > single falls back when there is no slot label [0.02ms]
+(pass) paintScopeLabel > object reads "Whole <noun>" [0.01ms]
+(pass) paintScopeLabel > matching / room are kind-agnostic [0.02ms]
+(pass) Zone wall face slot helpers > maps a shared wall face to only its effective semantic side and active bands [0.06ms]
+(pass) Zone wall face slot helpers > rejects explicit and fallback side metadata that resolve both faces to one slot [0.03ms]
+(pass) resolvePaintScopeTargets > single always returns just the clicked surface [0.19ms]
+(pass) resolvePaintScopeTargets > item matching fans the same slot across same-asset items only [0.06ms]
+(pass) resolvePaintScopeTargets > item whole-item fans every enumerated slot of the clicked item [0.09ms]
+(pass) resolvePaintScopeTargets > item whole-item falls back to the single slot when the subtree is unmounted [0.03ms]
+(pass) resolvePaintScopeTargets > wall room selects the enclosed space on the clicked face of a shared wall [0.44ms]
+(pass) resolvePaintScopeTargets > wall room preserves the vertical band while mapping each boundary face side [0.36ms]
+(pass) resolvePaintScopeTargets > wall room maps a reversed boundary wall to its rendered side [0.33ms]
+(pass) resolvePaintScopeTargets > wall room excludes duplicate geometry and spaces from another level [0.34ms]
+(pass) resolvePaintScopeTargets > wall room uses the hit subsegment when one long wall bounds adjacent bays [0.19ms]
+(pass) resolvePaintScopeTargets > wall room with no enclosing space falls back to single [0.02ms]
+(pass) resolvePaintScopeTargets > wall room paints the connected exterior envelope from an exterior face [0.35ms]
+(pass) resolvePaintScopeTargets > wall room does not cross to a disconnected exterior envelope [0.18ms]
+(pass) resolvePaintScopeTargets > wall room excludes shared interior walls from the exterior envelope [0.27ms]
+(pass) resolvePaintScopeTargets > wall room follows an exterior wall that is logically split across rooms [0.16ms]
+(pass) resolvePaintScopeTargets > slab room fans across slabs whose centroid sits in the same space [0.15ms]
+
+ 81 pass
+ 0 fail
+ 269 expect() calls
+Ran 81 tests across 4 files. [687.00ms]

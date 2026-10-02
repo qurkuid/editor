@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "fixturePath": "/Users/changseok/editor/.omo/evidence/parallel-wall-align-20261001/negative-fixture.json",
+  "nodeCount": 15,
+  "caseCount": 4,
+  "results": [
+    {
+      "id": "perpendicular-only",
+      "selectedWallId": "wall_neg_perpendicular_selected",
+      "expectedError": "no-parallel-continuation",
+      "actualError": "no-parallel-continuation",
+      "updateCount": 0,
+      "graphUnchanged": true,
+      "passed": true
+    },
+    {
+      "id": "ambiguous-two-refs",
+      "selectedWallId": "wall_neg_ambiguous_selected",
+      "expectedError": "ambiguous-parallel-continuation",
+      "actualError": "ambiguous-parallel-continuation",
+      "updateCount": 0,
+      "graphUnchanged": true,
+      "passed": true
+    },
+    {
+      "id": "protected-interior-t",
+      "selectedWallId": "wall_neg_t_selected",
+      "expectedError": "detached-wall-junction",
+      "actualError": "detached-wall-junction",
+      "updateCount": 0,
+      "graphUnchanged": true,
+      "passed": true
+    },
+    {
+      "id": "hosted-overflow-linked",
+      "selectedWallId": "wall_neg_overflow_selected",
+      "expectedError": "attachment-outside-wall",
+      "actualError": "attachment-outside-wall",
+      "updateCount": 0,
+      "graphUnchanged": true,
+      "passed": true
+    }
+  ]
+}

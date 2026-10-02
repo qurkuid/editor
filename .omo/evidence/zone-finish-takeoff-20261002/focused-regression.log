@@ -1,0 +1,76 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/quantity-takeoff.test.ts:
+(pass) board takeoff > a module counts sides, top, bottom, back and shelves [0.39ms]
+(pass) board takeoff > door and drawer faces are counted as front board, open shelving is not [0.33ms]
+(pass) board takeoff > a degenerate module contributes nothing rather than a zero-area line [0.01ms]
+(pass) furniture and countertop > a run reports itself, its bays, and its worktop area [0.06ms]
+(pass) furniture and countertop > a run without a worktop reports no countertop [0.03ms]
+(pass) areas and finishes > floor and ceiling areas come from their polygons [0.08ms]
+(pass) areas and finishes > ceiling drop zones add their reveal faces, skipping open edges [0.03ms]
+(pass) areas and finishes > painted wall faces group by material, not by wall [0.82ms]
+(pass) areas and finishes > unpainted walls contribute no finish line [0.22ms]
+(pass) areas and finishes > a straight wall splits an unbanded partial finish between its region and base [0.25ms]
+(pass) areas and finishes > a partial finish without a base material leaves uncovered area unpriced [0.12ms]
+(pass) areas and finishes > active two, three and four band spans use their exact heights and side fallback [2.84ms]
+(pass) areas and finishes > band regions match only their active role and fall back to the whole side [0.15ms]
+(pass) areas and finishes > adjacent and disjoint regions recombine by material and keep one wall id [0.09ms]
+(pass) areas and finishes > curved walls keep arc-length base area and ignore partial regions [0.22ms]
+(pass) areas and finishes > wall-hosted openings do not reduce gross finish area
+(pass) areas and finishes > wall finish takeoff does not mutate frozen scene input
+(pass) lighting > fixtures aggregate per light type
+(pass) lighting > a divided run counts its full fixture count from one node
+(pass) lighting > a linked product groups by its ref and carries it as materialRef
+(pass) lighting > linear fixtures add a run-length measure
+(pass) scoping > a level filter excludes other levels
+(pass) walls are a quantity even before anyone picks a finish > an unpainted wall still reports face area and length [0.48ms]
+(pass) walls are a quantity even before anyone picks a finish > painting it adds finish lines without removing the wall quantity
+(pass) walls are a quantity even before anyone picks a finish > wall areas aggregate across walls
+(pass) a wall expands into what actually gets ordered > an explicit stud build-up yields its materials, not just an area [0.31ms]
+(pass) a wall expands into what actually gets ordered > 각재 is ordered by the metre and 석고보드 by the sheet [0.09ms]
+(pass) a wall expands into what actually gets ordered > a cavity is not ordered — it is empty space
+(pass) a wall expands into what actually gets ordered > the same layer aggregates across walls [0.20ms]
+(pass) a wall expands into what actually gets ordered > face area and run length are marked as measures, materials are not
+(pass) a wall expands into what actually gets ordered > a wall with no build-up recorded still reports its area
+(pass) a wall expands into what actually gets ordered > a wall with no height set is measured at the same default core uses
+(pass) placed models > items count per product, aggregating duplicates
+(pass) placed models > an item with no asset metadata still gets counted
+(pass) furniture run make-up > reports total run length alongside the bay count
+(pass) furniture run make-up > bays group by width
+(pass) furniture run make-up > a run with no bays reports no length or make-up
+(pass) floor and ceiling openings > area comes from the polygon field
+(pass) floor and ceiling openings > holes are deducted — a stairwell is not floor [0.03ms]
+(pass) floor and ceiling openings > holes larger than the slab clamp at zero rather than going negative [0.02ms]
+(pass) floor and ceiling build-up > a ceiling expands into furring and board, under the ceiling heading [0.05ms]
+(pass) floor and ceiling build-up > floor screed is measured by volume
+(pass) floor and ceiling build-up > holes reduce the build-up too, not just the headline area
+(pass) floor and ceiling build-up > a surface with no construction still reports its area
+
+apps/editor/lib/estimate-lines.test.ts:
+(pass) measures are not priced > a measure is reported as such rather than matched to a material [0.13ms]
+(pass) measures are not priced > a measure is not something to fix, so it is not flagged unresolved
+(pass) a line already counted in whole units > is priced directly rather than converted a second time [0.11ms]
+(pass) a line already counted in whole units > a material with no price still reports as no-price, not as priced [0.01ms]
+(pass) a line already counted in whole units > a running-metre line still goes through coverage
+(pass) material matching > a painted surface matches by the ref it was painted with
+(pass) material matching > a user override beats both ref and name
+(pass) material matching > a kind-level line falls back to matching by name
+(pass) material matching > no plausible match returns nothing rather than the first row
+(pass) draft pricing > 10평 of wallpaper prices as 2 rolls at the material rate
+(pass) draft pricing > the category's waste allowance applies when the material states none
+(pass) unresolved lines are surfaced, never dropped > no matching material
+(pass) unresolved lines are surfaced, never dropped > material found but coverage unregistered
+(pass) unresolved lines are surfaced, never dropped > converted but priced at zero
+(pass) unresolved lines are surfaced, never dropped > a mixed report totals only what is actually priced
+
+apps/editor/lib/scene-material-overrides.test.ts:
+(pass) a painted face finds the INTM product it was painted with > a scene copy of an INTM material resolves to its id [0.10ms]
+(pass) a painted face finds the INTM product it was painted with > floors and ceilings resolve the same way
+(pass) a painted face finds the INTM product it was painted with > a scene material with no INTM source stays unlinked
+(pass) a painted face finds the INTM product it was painted with > a ref to a deleted scene material resolves to nothing
+(pass) a painted face finds the INTM product it was painted with > library refs pass through untouched — they already match by tail
+
+ 64 pass
+ 0 fail
+ 138 expect() calls
+Ran 64 tests across 3 files. [113.00ms]

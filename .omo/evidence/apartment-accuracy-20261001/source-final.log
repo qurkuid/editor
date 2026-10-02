@@ -1,0 +1,8 @@
+metrics {"doors": 9, "openings": 5, "planId": "source-plan", "rooms": 15, "scale": 10.992, "style": "standard", "wallIoU": 0.826, "walls": 88, "windows": 3}
+Traceback (most recent call last):
+  File "/Users/changseok/editor/.omo/evidence/openings-spaces/source-regression.py", line 231, in <module>
+    run(Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_IMAGE)
+  File "/Users/changseok/editor/.omo/evidence/openings-spaces/source-regression.py", line 161, in run
+    assert sum(not getattr(seg, "recovered", False) for seg in analysis["segs"]) == 51, metrics
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'planId': 'source-plan', 'style': 'standard', 'wallIoU': 0.826, 'scale': 10.992, 'walls': 88, 'doors': 9, 'windows': 3, 'openings': 5, 'rooms': 15}

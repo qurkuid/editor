@@ -1,0 +1,51 @@
+{
+  "sourceCommit": "e5a4fb1552fe9b50c4662e7a6449d077e867ba3d",
+  "remote": "qurkuid/editor",
+  "branch": "deploy/floorplan",
+  "pushConfirmed": true,
+  "deployed": false,
+  "stopReason": "Remote Desktop reconnected; Mac mini console is locked. Both background and direct prepare failed before service mutation: mkdir deployment backup directory Operation not permitted. SSH reset before authentication. Mac mini unlock requested.",
+  "productionBefore": {
+    "source": "999b2771b3a0f1aa84f18d74fda82c77b29aad08",
+    "buildId": "teZZYbe0c3JXeZCui2Wr5",
+    "pid": 48938,
+    "cwd": "/Volumes/DATABASE/floorplan-releases/20261002-999b2771/apps/editor",
+    "remoteLocalHttp": 200,
+    "publicBuildMatched": true
+  },
+  "ci": "Workflow runs only on main; deploy/floorplan excluded",
+  "unrelatedDirtyFilesPreserved": 23,
+  "originalBrowserValidation": {
+    "page": "http://localhost:3002",
+    "passed": true,
+    "sceneId": "zonetakeoff1790919523635",
+    "quantitiesM2": [
+      5,
+      2,
+      3
+    ],
+    "undoRedoReload": true,
+    "errors": 0,
+    "sceneApi": "GET/PUT 200",
+    "catalogue": "synthetic mock",
+    "evidence": "integration-browser-final/first-successful-run.json",
+    "laterRepeat": "browser closed; first successful log preserved separately"
+  },
+  "publicBeforeResume": {
+    "url": "https://apt.intm.kr/apt",
+    "existingBuildMatched": true,
+    "intendedCommit": "e5a4fb1552fe9b50c4662e7a6449d077e867ba3d"
+  },
+  "preparationAttempts": [
+    {
+      "mode": "background",
+      "exit": 1,
+      "stage": "mkdir backup"
+    },
+    {
+      "mode": "direct",
+      "exit": 1,
+      "stage": "mkdir backup"
+    }
+  ]
+}

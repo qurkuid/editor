@@ -1,0 +1,22 @@
+[
+  {
+    "file": "apps/editor/components/stats-tab.tsx",
+    "sha256": "2218dcf59e31bd1663d480575eeaa1f2a9307bbe9c2afc741474a0608e1cdc5e",
+    "matchesValidationSnapshot": true
+  },
+  {
+    "file": "apps/editor/lib/estimate-submit.ts",
+    "sha256": "128e99263a3d481855766217b1074b9b284fd9dd09a61ba4629a80653107cd5c",
+    "matchesValidationSnapshot": true
+  },
+  {
+    "file": "apps/editor/lib/estimate-submit.test.ts",
+    "sha256": "321e04e2b69ba65af3cafa07b02820045b870827181d6664196918bd1f8036ba",
+    "matchesValidationSnapshot": true
+  },
+  {
+    "file": "packages/editor/src/i18n/dictionary/furniture.ts",
+    "sha256": "8bd4b12e411f073a6d0abffe568f44e71e1a577f4def6f3088f840aba249def8",
+    "matchesValidationSnapshot": true
+  }
+]

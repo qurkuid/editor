@@ -1,0 +1,882 @@
+--- before/packages/core/src/registry/types.ts
++++ packages/core/src/registry/types.ts
+@@ -731,6 +731,7 @@
+ }
+ 
+ export type FloorplanAffordanceSession = {
++  keyDown?(key: string): boolean
+   /** Node IDs the drag may mutate. Used by the dispatcher for the snapshot. */
+   affectedIds: AnyNodeId[]
+   /**
+--- before/packages/nodes/src/wall/tool.tsx
++++ packages/nodes/src/wall/tool.tsx
+@@ -684,11 +684,17 @@
+       const snapResult = snapWallDraftPointDetailed({
+         point: localPoint,
+         walls: snapWalls,
+-        start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
++        start:
++          buildingState.current === 1
++            ? [startingPoint.current.x, startingPoint.current.z]
++            : undefined,
++        inferDirection: true,
+         angleSnap: angleLocked,
+         magnetic: isMagneticSnapActive(),
+       })
+-      gridPosition = alignPoint(snapResult.point, { applySnap: !angleLocked })
++      gridPosition = alignPoint(snapResult.point, {
++        applySnap: !angleLocked && !snapResult.directionInferred,
++      })
+       if (buildingState.current === 1) {
+         directionLock.set(
+           readShift(event),
+@@ -828,18 +834,19 @@
+         setDraftMeasurement(null)
+       } else if (buildingState.current === 1) {
+         const angleLocked = isAngleSnapActive()
++        const snapResult = snapWallDraftPointDetailed({
++          point: localClick,
++          walls: snapWalls,
++          start: [startingPoint.current.x, startingPoint.current.z],
++          angleSnap: angleLocked,
++          inferDirection: true,
++          magnetic: isMagneticSnapActive(),
++        })
+         let snappedEnd = constrainPlanDraftPoint(
+           [startingPoint.current.x, startingPoint.current.z],
+-          alignPoint(
+-            snapWallDraftPointDetailed({
+-              point: localClick,
+-              walls: snapWalls,
+-              start: angleLocked ? [startingPoint.current.x, startingPoint.current.z] : undefined,
+-              angleSnap: angleLocked,
+-              magnetic: isMagneticSnapActive(),
+-            }).point,
+-            { applySnap: !angleLocked },
+-          ),
++          alignPoint(snapResult.point, {
++            applySnap: !angleLocked && !snapResult.directionInferred,
++          }),
+           getLengthMeters(),
+         )
+         directionLock.set(
+@@ -862,7 +869,7 @@
+           [startingPoint.current.x, startingPoint.current.z],
+           snappedEnd,
+           {
+-            preserveDirection: directionLock.active,
++            preserveDirection: directionLock.active || !!snapResult.directionInferred,
+             supportCap: constructionPlane.current?.elevation ?? null,
+             preferredSupportSlabId: constructionPlane.current?.supportSlabId ?? null,
+             constructionElevation: constructionPlane.current?.elevation ?? null,
+@@ -947,9 +954,22 @@
+     }
+ 
+     const onShiftDown = (event: KeyboardEvent) => {
+-      if (event.key !== 'Shift' || event.repeat || buildingState.current !== 1) return
++      if (event.repeat || buildingState.current !== 1 || useEditor.getState().viewMode === '2d')
++        return
+       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+         return
++      if (
++        directionLock.toggleAxis(
++          event.key,
++          [startingPoint.current.x, startingPoint.current.z],
++          [endingPoint.current.x, endingPoint.current.z],
++          getCurrentLevelWalls(),
++        )
++      ) {
++        event.preventDefault()
++        return
++      }
++      if (event.key !== 'Shift') return
+       shiftHeld = true
+       directionLock.set(
+         true,
+@@ -963,7 +983,12 @@
+     }
+     const onShiftUp = (event: KeyboardEvent) => {
+       if (event.key !== 'Shift') return
+-      releaseDirection()
++      shiftHeld = false
++      directionLock.set(
++        false,
++        [startingPoint.current.x, startingPoint.current.z],
++        [endingPoint.current.x, endingPoint.current.z],
++      )
+     }
+ 
+     emitter.on('grid:move', onGridMove)
+--- before/packages/nodes/src/wall/floorplan-affordances.ts
++++ packages/nodes/src/wall/floorplan-affordances.ts
+@@ -22,7 +22,7 @@
+   resolveEndpointWallSplit,
+   snapBuildingLocalToWorldGrid,
+   snapScalarToGrid,
+-  snapWallDraftPoint,
++  snapWallDraftPointDetailed,
+   useAlignmentGuides,
+   type WallPlanPoint,
+ } from '@pascal-app/editor'
+@@ -188,9 +188,20 @@
+     let lastPrimaryEnd: WallPlanPoint = originalEnd
+     let lastLinkedUpdates: Array<{ id: AnyNodeId; start: WallPlanPoint; end: WallPlanPoint }> = []
+     const directionLock = createWallDirectionLock()
++    let directionInferred = false
+ 
+     return {
+       affectedIds,
++      keyDown(key) {
++        return directionLock.toggleAxis(
++          key,
++          fixedPoint,
++          endpoint === 'start' ? lastPrimaryStart : lastPrimaryEnd,
++          collectLevelWalls(useScene.getState().nodes, node.id).filter(
++            (w) => w.parentId === node.parentId && !movingLinkedWallIds.includes(w.id),
++          ),
++        )
++      },
+       apply({ planPoint, modifiers }) {
+         directionLock.set(
+           modifiers.shiftKey,
+@@ -212,15 +223,17 @@
+         // the endpoint angle-locks off the fixed corner (free length), matching
+         // the draft tool — the angle path ignores the `gridSnap` override.
+         const angleLocked = isAngleSnapActive()
+-        const snapped = snapWallDraftPoint({
++        const snapResult = snapWallDraftPointDetailed({
+           point: planPoint as WallPlanPoint,
+           walls,
+           ignoreWallIds: staleWallIds,
+-          start: angleLocked ? fixedPoint : undefined,
++          start: fixedPoint,
++          inferDirection: !node.curveOffset,
+           angleSnap: angleLocked,
+           magnetic: isMagneticSnapActive(),
+           gridSnap: (p) => snapBuildingLocalToWorldGrid(p, getSegmentGridStep()),
+         })
++        const snapped = snapResult.point
+         // Figma-style alignment on the dragged corner — snaps it onto another
+         // object's edge / wall face and publishes a guide. The guide is
+         // DISPLAYED in every mode except Off (isAlignmentGuideActive); the
+@@ -235,6 +248,7 @@
+           bypass: !isAlignmentGuideActive(),
+           excludeIds: staleWallIds,
+         }) as WallPlanPoint
++        directionInferred = !!snapResult.directionInferred && pointsEqual(aligned, snapped)
+         if (directionLock.active) {
+           aligned = directionLock.project(planPoint, getSegmentGridStep())
+           useAlignmentGuides.getState().clear()
+@@ -316,7 +330,7 @@
+                 point: movingPoint,
+                 levelId: (node.parentId ?? null) as string | null,
+                 ignoreWallIds: [node.id, ...lastLinkedUpdates.map((u) => String(u.id))],
+-                radius: directionLock.active ? 1e-7 : undefined,
++                radius: directionLock.active || directionInferred ? 1e-7 : undefined,
+               })
+           const finalPoint = resolved ?? movingPoint
+           useScene.getState().updateNodes([
+--- before/packages/nodes/src/wall/floorplan-affordances.test.ts
++++ packages/nodes/src/wall/floorplan-affordances.test.ts
+@@ -20,6 +20,78 @@
+   afterEach(() => {
+     useLiveNodeOverrides.getState().clearAll()
+     useInteractionScope.getState().end()
++  })
++
++  test('weak endpoint inference releases freely, keeps connections, and honors Off and Shift', () => {
++    const wall = WallNode.parse({ id: 'wall_weak', start: [0, 0], end: [4, 0.1] })
++    const linked = WallNode.parse({ id: 'wall_linked', start: wall.end, end: [6, 3] })
++    useScene.setState({ nodes: { [wall.id]: wall, [linked.id]: linked } })
++    useScene.temporal.getState().clear()
++    useScene.temporal.getState().resume()
++    useEditor.setState({ gridSnapStep: 0.001 })
++    useEditor.getState().setSnappingMode('wall', 'grid')
++    useInteractionScope.getState().begin({
++      kind: 'reshaping',
++      nodeId: wall.id,
++      reshape: 'endpoint',
++      driver: 'tool',
++    })
++    const session = wallMoveEndpointAffordance.start({
++      node: wall,
++      nodes: useScene.getState().nodes,
++      payload: { wallId: wall.id, endpoint: 'end' },
++      initialPlanPoint: wall.end,
++      gridSnapStep: 0.001,
++    })
++    session.apply({ planPoint: [4, 0.1], modifiers })
++    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([4, 0])
++    expect(useLiveNodeOverrides.getState().get(linked.id)?.start).toEqual([4, 0])
++    expect(useScene.getState().nodes[wall.id]).toEqual(wall)
++    session.apply({ planPoint: [4, 0.2], modifiers: { ...modifiers, shiftKey: true } })
++    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([4, 0])
++    session.apply({ planPoint: [4, 0.2], modifiers })
++    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([4, 0.2])
++    session.apply({ planPoint: [3.9, 4], modifiers })
++    const diagonal = useLiveNodeOverrides.getState().get(wall.id)?.end as number[]
++    expect(diagonal[0]).toBeCloseTo(diagonal[1]!, 12)
++    useEditor.getState().setSnappingMode('wall', 'off')
++    session.apply({ planPoint: [4, 0.1], modifiers })
++    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([4, 0.1])
++    useEditor.getState().setSnappingMode('wall', 'grid')
++    expect(session.keyDown?.('ArrowRight')).toBe(true)
++    session.apply({ planPoint: [-4, 2], modifiers })
++    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([-4, 0])
++    expect(session.keyDown?.('ArrowRight')).toBe(true)
++    session.apply({ planPoint: [4, 0.1], modifiers })
++    expect(session.canCommit()).toBe(true)
++    session.commit?.()
++    expect((useScene.getState().nodes[wall.id] as WallNode).end).toEqual([4, 0])
++    expect((useScene.getState().nodes[linked.id] as WallNode).start).toEqual([4, 0])
++    useScene.temporal.getState().undo()
++    expect(useScene.getState().nodes[wall.id]).toEqual(wall)
++    expect(useScene.getState().nodes[linked.id]).toEqual(linked)
++  })
++
++  test('an existing endpoint wins over weak angle inference', () => {
++    const wall = WallNode.parse({ id: 'wall_target', start: [0, 0], end: [2, 0.5] })
++    const destination = WallNode.parse({ id: 'wall_dest', start: [4, 0.1], end: [5, 2] })
++    useScene.setState({ nodes: { [wall.id]: wall, [destination.id]: destination } })
++    useEditor.getState().setSnappingMode('wall', 'grid')
++    useInteractionScope.getState().begin({
++      kind: 'reshaping',
++      nodeId: wall.id,
++      reshape: 'endpoint',
++      driver: 'tool',
++    })
++    const session = wallMoveEndpointAffordance.start({
++      node: wall,
++      nodes: useScene.getState().nodes,
++      payload: { wallId: wall.id, endpoint: 'end' },
++      initialPlanPoint: wall.end,
++      gridSnapStep: 0.001,
++    })
++    session.apply({ planPoint: [4, 0.1], modifiers })
++    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual(destination.start)
+   })
+ 
+   test('Shift preserves endpoint direction through preview, commit and undo', () => {
+--- before/packages/nodes/src/wall/move-endpoint-tool.tsx
++++ packages/nodes/src/wall/move-endpoint-tool.tsx
+@@ -282,6 +282,7 @@
+     // modifier state must not be reused as-is.
+     let lastRawPoint: WallPlanPoint | null = null
+     const directionLock = createWallDirectionLock()
++    let directionInferred = false
+     // The first pointer-up is the *grab* of a click-to-move; later ones are
+     // drops. See the `!hasChanged` branch in `onPointerUp`.
+     let hasReleasedOnce = false
+@@ -400,6 +401,7 @@
+         walls: levelWalls,
+         ignoreWallIds: altPressedRef.current ? [nodeId] : [nodeId, ...movingLinkedWallIds],
+         start: fixedPoint,
++        inferDirection: !target.wall.curveOffset,
+         angleSnap: isAngleSnapActive(),
+         magnetic: isMagneticSnapActive(),
+       })
+@@ -448,6 +450,7 @@
+         useAlignmentGuides.getState().clear()
+       }
+ 
++      directionInferred = !!snapResult.directionInferred && samePoint(alignedPoint, snappedPoint)
+       if (directionLock.active) {
+         alignedPoint = directionLock.project(planPoint, getSegmentGridStep())
+         useAlignmentGuides.getState().clear()
+@@ -560,7 +563,7 @@
+             point: movingPoint,
+             levelId: target.wall.parentId ?? null,
+             ignoreWallIds: [nodeId, ...linkedUpdates.map((u) => String(u.id))],
+-            radius: directionLock.active ? 1e-7 : undefined,
++            radius: directionLock.active || directionInferred ? 1e-7 : undefined,
+           })
+           const finalPoint = resolved ?? movingPoint
+           useScene.getState().updateNodes([
+@@ -632,6 +635,18 @@
+       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+         return
+       }
++      if (
++        !event.repeat &&
++        directionLock.toggleAxis(
++          event.key,
++          fixedPoint,
++          lastRawPoint ?? movingOriginalPoint,
++          levelWalls.filter((w) => w.id !== nodeId && !movingLinkedIdSet.has(w.id)),
++        )
++      ) {
++        event.preventDefault()
++        if (lastRawPoint) applyPreview(resolveDragPoint(lastRawPoint), altPressedRef.current)
++      }
+       if (event.key === 'Alt') {
+         setAltState(true)
+       }
+@@ -654,7 +669,7 @@
+         setAltState(false)
+       }
+       if (event.key === 'Shift') {
+-        directionLock.reset()
++        directionLock.set(false, fixedPoint, movingOriginalPoint)
+         if (lastRawPoint) applyPreview(resolveDragPoint(lastRawPoint), altPressedRef.current)
+       }
+     }
+--- before/packages/mcp/src/ontology-manual.test.ts
++++ packages/mcp/src/ontology-manual.test.ts
+@@ -4,6 +4,15 @@
+ import { MODELING_AGENT_MANUAL } from './modeling-agent-manual'
+ 
+ describe('Phase 2 ontology manual contract', () => {
++  test('documents weak endpoint inference separately from explicit angle locking', () => {
++    expect(MODELING_AGENT_MANUAL).toContain('ArrowRight toggles')
++    expect(MODELING_AGENT_MANUAL).toContain('survive Shift release')
++    expect(MODELING_AGENT_MANUAL).toContain('wall drawing and endpoint dragging')
++    expect(MODELING_AGENT_MANUAL).toContain('within 2 degrees')
++    expect(MODELING_AGENT_MANUAL).toContain('Existing endpoint/edge snaps take priority')
++    expect(MODELING_AGENT_MANUAL).toContain('Off disables weak inference')
++    expect(MODELING_AGENT_MANUAL).toContain('not a documented SketchUp tolerance')
++  })
+   test('documents validated length edits and boundary review', () => {
+     expect(MODELING_AGENT_MANUAL).toContain('buildWallLengthUpdates')
+     expect(MODELING_AGENT_MANUAL).toContain('all affected host spans')
+--- before/packages/mcp/src/modeling-agent-manual.ts
++++ packages/mcp/src/modeling-agent-manual.ts
+@@ -64,6 +64,7 @@
+   '',
+   '## Direct Editor Interactions',
+   '',
++  '- Straight wall drawing and endpoint dragging in 2D and 3D use weak direction inference in grid/lines mode: within 2 degrees of a building-local 45-degree axis ray or parallel/perpendicular to a straight wall at the fixed corner, the endpoint follows that ray; outside that window it follows freely. Existing endpoint/edge snaps take priority, and explicit construction guides take priority over weak inference. ArrowRight toggles building-local X-axis lock; ArrowLeft toggles plan Z-axis lock; ArrowDown toggles the nearest parallel/perpendicular direction of a straight wall at the fixed corner. Axis locks allow both positive and negative travel and survive Shift release; Escape, commit, and tool changes clear them. Walls edit in the XZ plane (Pascal Y is vertical, unlike SketchUp Z), so ArrowUp does not change wall height. Shift locks the current inferred direction, Off disables weak inference, and the separate Angles mode retains its explicit 15-degree constraint. The 2-degree window is a Pascal tuning value, not a documented SketchUp tolerance.',
+   '- The default grid/measurement snap step is 0.001 m (1 mm). While drawing a wall or moving its endpoint in either 2D or 3D, hold Shift to freeze the currently previewed direction; pointer movement then changes only the length along that ray. Release Shift to resume free direction changes. Wall snapping modes remain selectable from the HUD; Shift still cycles snapping for other tools. Alt keeps its existing bypass/detach behavior. Typed wall lengths preserve the held direction, and cancel or commit clears the lock.',
+   '- Selecting or re-clicking any scene element is inert: selection alone never starts movement or another modeling gesture. Move an element only after explicitly choosing Move from its action menu or pressing the Move shortcut. A selected Body likewise requires the explicit 3D action menu to arm Rotate, Scale, Push/Pull, Offset, or Follow Path; later face and point clicks belong only to that armed action.',
+   '- In 3D, Body Move follows a two-click point-to-point workflow: activate Move, click a vertex, edge point, edge midpoint, face point, face center, or Body center as the base, then click the same inference types on another element to place that exact base point there. These object inferences are active in the default grid mode and the lines mode; Off disables them. Snapped feedback names the inference in Korean (꼭짓점, 선 중점, 선 위, 면 중심, 면 위, 요소 중심). Hold Alt while choosing the destination to bypass inference snapping for deliberate free movement or overlap. In the floor plan, the Move action intentionally uses the 2D-owned placement overlay and plan snapping instead of mounting the 3D base-point tool.',
+--- before/packages/editor/src/components/ui/helpers/contextual-helper-panel.tsx
++++ packages/editor/src/components/ui/helpers/contextual-helper-panel.tsx
+@@ -199,7 +199,12 @@
+         shortcut={directionLock ? undefined : 'Shift'}
+         tooltip={directionLock ? undefined : t('panel.snappingModeClickOrPressShiftToCycle')}
+       />
+-      {directionLock ? <ChipRow label="방향 고정 (누르고 유지)" shortcut="Shift" /> : null}
++      {directionLock ? <>
++        <ChipRow label="방향 고정 (누르고 유지)" shortcut="Shift" />
++        <ChipRow label="X축 잠금 / 해제" shortcut="→" />
++        <ChipRow label="Z축 잠금 / 해제" shortcut="←" />
++        <ChipRow label="연결 벽 평행·수직 잠금 / 해제" shortcut="↓" />
++      </> : null}
+       {gridActive ? (
+         <ChipRow
+           ariaLabel={`${tLabel('Grid step')}: ${gridStepLabel}`}
+--- before/packages/editor/src/components/tools/wall/wall-drafting.ts
++++ packages/editor/src/components/tools/wall/wall-drafting.ts
+@@ -22,6 +22,7 @@
+ import { useViewer } from '@pascal-app/viewer'
+ import { sfxEmitter } from '../../../lib/sfx-bus'
+ import { resolveSnapFlags } from '../../../lib/snapping-mode'
++import { inferWallDirection } from '../../../lib/wall-direction-lock'
+ import useEditor, { getActiveSnappingMode, isMagneticSnapActive } from '../../../store/use-editor'
+ import {
+   distanceSquared,
+@@ -487,6 +488,7 @@
+   walls: WallNode[]
+   start?: WallPlanPoint
+   angleSnap?: boolean
++  inferDirection?: boolean
+   ignoreWallIds?: string[]
+   bypassSnap?: boolean
+   /** Override the grid step. */
+@@ -521,6 +523,7 @@
+     walls,
+     start,
+     angleSnap = false,
++    inferDirection = false,
+     ignoreWallIds,
+     bypassSnap = false,
+     step: overrideStep,
+@@ -538,6 +541,28 @@
+   if (magnetic) {
+     const special = findWallSpecialPointSnap(point, walls, ignoreWallIds, snapRadii)
+     if (special) return special
++  }
++
++  if (inferDirection && !magnetic) {
++    const connected = findWallSpecialPointSnap(point, walls, ignoreWallIds, {
++      endpoint: WALL_CONNECT_SNAP_RADIUS,
++      midpoint: WALL_CONNECT_SNAP_RADIUS,
++      intersection: WALL_CONNECT_SNAP_RADIUS,
++    })
++    if (connected) return connected
++  }
++
++  if (inferDirection && start && !angleSnap) {
++    const edge = findWallSnapTarget(point, walls, {
++      ignoreWallIds,
++      radius: magnetic ? snapRadii?.wall : WALL_CONNECT_SNAP_RADIUS,
++    })
++    if (edge)
++      return {
++        point: edge,
++        snap: 'wall',
++        targetWallIds: wallIdsAtSnapPoint(edge, walls, ignoreWallIds),
++      }
+   }
+ 
+   const step = overrideStep ?? getSegmentGridStep()
+@@ -566,7 +591,16 @@
+           start && angleSnap ? { origin: start, through: modePoint } : undefined,
+         )
+       : null
+-  const basePoint: WallPlanPoint = guideStick ?? modePoint
++  const inferred =
++    !guideStick && start && !angleSnap && inferDirection && (step > 0 || magnetic)
++      ? inferWallDirection(
++          start,
++          point,
++          step,
++          walls.filter((w) => !ignoreWallIds?.includes(w.id)),
++        )
++      : null
++  const basePoint: WallPlanPoint = guideStick ?? inferred ?? modePoint
+ 
+   if (magnetic) {
+     const wallSnap = findWallSnapTarget(basePoint, walls, {
+@@ -580,7 +614,12 @@
+         targetWallIds: wallIdsAtSnapPoint(wallSnap, walls, ignoreWallIds),
+       }
+     }
+-    return { point: basePoint, snap: null, targetWallIds: [] }
++    return {
++      point: basePoint,
++      snap: null,
++      targetWallIds: [],
++      ...(inferred ? { directionInferred: true } : {}),
++    }
+   }
+ 
+   // Non-magnetic modes (grid / off / angles): connectivity still sticks so a
+@@ -608,7 +647,12 @@
+     }
+   }
+ 
+-  return { point: basePoint, snap: null, targetWallIds: [] }
++  return {
++    point: basePoint,
++    snap: null,
++    targetWallIds: [],
++    ...(inferred ? { directionInferred: true } : {}),
++  }
+ }
+ 
+ export function snapWallDraftPoint(args: SnapWallDraftArgs): WallPlanPoint {
+--- before/packages/editor/src/components/tools/wall/wall-snap-geometry.ts
++++ packages/editor/src/components/tools/wall/wall-snap-geometry.ts
+@@ -18,6 +18,7 @@
+ export type WallSnapRadii = Partial<Record<WallDraftSnapKind, number>>
+ 
+ export type WallDraftSnapResult = {
++  directionInferred?: boolean
+   point: WallPlanPoint
+   /**
+    * Set when `point` locked onto existing wall geometry (a corner, midpoint,
+--- before/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
++++ packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
+@@ -1305,6 +1305,14 @@
+       const drag = dragRef.current
+       if (!drag || event.repeat) return
+       if (
++        event.target instanceof HTMLElement &&
++        event.target.closest('input, textarea, [contenteditable=true]')
++      )
++        return
++      const consumed = event.type === 'keydown' && drag.session.keyDown?.(event.key)
++      if (consumed) event.preventDefault()
++      if (
++        !consumed &&
+         event.key !== 'Alt' &&
+         event.key !== 'Shift' &&
+         event.key !== 'Control' &&
+--- before/packages/editor/src/components/editor/use-floorplan-background-placement.ts
++++ packages/editor/src/components/editor/use-floorplan-background-placement.ts
+@@ -341,7 +341,8 @@
+           snappedPoint = constrainPlanDraftPoint(draftStart, snappedPoint, getDraftLengthMeters())
+         }
+ 
+-        emitFloorplanGridEvent('click', snappedPoint, event)
++        if (useEditor.getState().viewMode !== '2d')
++          emitFloorplanGridEvent('click', snappedPoint, event)
+ 
+         // Double-click finishes the chain. The emit above already made the
+         // 3D wall tool stopDrafting (its detail >= 2 guard), so close the
+--- before/packages/editor/src/components/editor/floorplan-panel.tsx
++++ packages/editor/src/components/editor/floorplan-panel.tsx
+@@ -100,6 +100,7 @@
+ import { SITE_BOUNDARY_DRAG_LABEL, siteBoundaryHandlesEnabled } from '../../lib/site-boundary'
+ import { resolveSlabPlanPointSnap } from '../../lib/slab-plan-snap'
+ import { cn } from '../../lib/utils'
++import { createWallDirectionLock } from '../../lib/wall-direction-lock'
+ import { snapBuildingLocalToWorldGrid } from '../../lib/world-grid-snap'
+ import { subscribeNavigationSyncPose } from '../../store/navigation-sync-pose-store'
+ import useAlignmentGuides from '../../store/use-alignment-guides'
+@@ -187,9 +188,9 @@
+ import {
+   chainEndJoinsExistingWall,
+   createWallOnCurrentLevel,
++  getSegmentGridStep,
+   isSegmentLongEnough,
+   resolveTerrainWallConstructionOptions,
+-  snapWallDraftPoint,
+   snapWallDraftPointDetailed,
+   snapPointToGrid as snapWallPointToGrid,
+   WALL_GRID_STEP,
+@@ -5155,6 +5156,9 @@
+   // Walls committed by the current 2D-only chain — exclusion set for the
+   // T-junction chain-termination test (mirrors the 3D tool's `chainWallIds`).
+   const wallChainWallIdsRef = useRef<string[]>([])
++  const wallDirectionLockRef = useRef(createWallDirectionLock())
++  const wallPreserveDirectionRef = useRef(false)
++  const wallLastRawPointRef = useRef<WallPlanPoint>([0, 0])
+   const setDraftEnd = useCallback(
+     (next: WallPlanPoint | null | ((prev: WallPlanPoint | null) => WallPlanPoint | null)) => {
+       const store = useFloorplanDraftPreview.getState()
+@@ -7861,6 +7865,7 @@
+     setWallChainFirstVertex(null)
+     wallConstructionOptionsRef.current = undefined
+     wallChainWallIdsRef.current = []
++    wallDirectionLockRef.current.reset()
+     setDraftEnd(null)
+     useSegmentDraftChain.getState().clear('wall')
+   }, [clearDraftLength, setDraftEnd])
+@@ -9499,12 +9504,13 @@
+         walls,
+         start: draftStart ?? undefined,
+         angleSnap: wallAngleSnap,
++        inferDirection: true,
+         magnetic: isMagneticSnapActive(),
+       })
+       const wallSnapped = wallSnap.point
+       // Locked onto existing geometry (corner / midpoint / crossing / edge) →
+       // that snap wins, so skip Figma alignment and stand the beacon there.
+-      const lockedToWall = wallSnap.snap !== null
++      const lockedToWall = wallSnap.snap !== null || !!wallSnap.directionInferred
+       let snappedPoint = wallSnapped
+       if (lockedToWall) {
+         useAlignmentGuides.getState().clear()
+@@ -9515,7 +9521,11 @@
+           applySnap: isMagneticSnapActive() && !wallAngleSnap,
+         })
+       }
++      wallLastRawPointRef.current = planPoint
+       if (draftStart) {
++        const lock = wallDirectionLockRef.current
++        if (lock.active && useEditor.getState().viewMode === '2d')
++          snappedPoint = lock.project(planPoint, getSegmentGridStep())
+         snappedPoint = constrainPlanDraftPoint(draftStart, snappedPoint, getLengthMeters())
+       }
+       useWallSnapIndicator
+@@ -9525,8 +9535,10 @@
+       // Emit `grid:move` so the registry-driven wall tool's 3D preview
+       // tracks the cursor. The local draftEnd update below is what
+       // drives the 2D draft polygon — both views update in parallel.
+-      emitFloorplanGridEvent('move', snappedPoint, event)
+-      snappedPoint = useFloorplanDraftPreview.getState().wallDraftEnd ?? snappedPoint
++      if (useEditor.getState().viewMode !== '2d') {
++        emitFloorplanGridEvent('move', snappedPoint, event)
++        snappedPoint = useFloorplanDraftPreview.getState().wallDraftEnd ?? snappedPoint
++      }
+       setCursorPoint(snappedPoint)
+ 
+       if (!draftStart) {
+@@ -9784,30 +9796,18 @@
+         return
+       }
+ 
+-      // The 3D wall tool's `grid:click` listener
+-      // (`packages/nodes/src/wall/tool.tsx`) owns the wall-create
+-      // call. `emitFloorplanGridEvent('click', …)` in
+-      // `useFloorplanBackgroundPlacement` fires it synchronously
+-      // just before this callback runs, so by the time we get here
+-      // the wall already exists in the scene. Committing here as
+-      // well used to double-create walls whenever the two snap
+-      // pipelines resolved endpoints ≥1e-6 apart (the duplicate
+-      // check compares exact endpoints).
+-      //
+-      // That 3D path is dead in 2D-only view — the canvas is
+-      // `display:none`, so the tool never commits. Mirror the slab /
+-      // ceiling 2D-only committers: create locally here, gated on the
+-      // view, so split / 3D keep their single-owner tool commit.
++      // Hidden 3D canvases may suspend their tool. In 2D only, this panel owns
++      // the commit and does not emit a competing wall click.
+       const viewIs2DOnly = useEditor.getState().viewMode === '2d'
+       let createdWall: WallNode | null = null
+       if (viewIs2DOnly) {
+-        createdWall = createWallOnCurrentLevel(
+-          draftStart,
+-          point,
+-          wallConstructionOptionsRef.current,
+-        )
++        createdWall = createWallOnCurrentLevel(draftStart, point, {
++          ...wallConstructionOptionsRef.current,
++          preserveDirection: wallPreserveDirectionRef.current,
++        })
+       }
+       if (createdWall) {
++        wallDirectionLockRef.current.reset()
+         wallChainWallIdsRef.current.push(createdWall.id)
+       }
+ 
+@@ -9872,6 +9872,52 @@
+       setCursorPoint,
+     ],
+   )
++  useEffect(() => {
++    const updateLock = (event: KeyboardEvent) => {
++      if (
++        !isWallBuildActive ||
++        useEditor.getState().viewMode !== '2d' ||
++        !draftStart ||
++        event.repeat
++      )
++        return
++      if (
++        event.target instanceof HTMLInputElement ||
++        event.target instanceof HTMLTextAreaElement ||
++        (event.target instanceof HTMLElement && event.target.isContentEditable)
++      )
++        return
++      const lock = wallDirectionLockRef.current
++      const through = useFloorplanDraftPreview.getState().wallDraftEnd ?? draftStart
++      if (event.type === 'keydown' && lock.toggleAxis(event.key, draftStart, through, walls))
++        event.preventDefault()
++      else if (event.key === 'Shift') lock.set(event.type === 'keydown', draftStart, through)
++      else return
++      const raw = wallLastRawPointRef.current
++      const point = lock.active
++        ? lock.project(raw, getSegmentGridStep())
++        : snapWallDraftPointDetailed({
++            point: raw,
++            start: draftStart,
++            walls,
++            inferDirection: true,
++            magnetic: isMagneticSnapActive(),
++            angleSnap: isAngleSnapActive(),
++          }).point
++      const end = constrainPlanDraftPoint(draftStart, point, getLengthMeters())
++      setDraftEnd(end)
++      setCursorPoint(end)
++    }
++    const reset = () => wallDirectionLockRef.current.reset()
++    window.addEventListener('keydown', updateLock)
++    window.addEventListener('keyup', updateLock)
++    window.addEventListener('blur', reset)
++    return () => {
++      window.removeEventListener('keydown', updateLock)
++      window.removeEventListener('keyup', updateLock)
++      window.removeEventListener('blur', reset)
++    }
++  }, [draftStart, isWallBuildActive, walls, getLengthMeters, setDraftEnd, setCursorPoint])
+   const { getFloorplanHitIdAtPoint, getFloorplanSelectionIdsInBounds } = useFloorplanHitTesting({
+     sceneRef: floorplanSceneRef,
+   })
+@@ -9886,7 +9932,19 @@
+       angleSnap?: boolean
+       bypassSnap?: boolean
+       step?: number
+-    }) => snapWallDraftPoint({ ...args, magnetic: isMagneticSnapActive() }),
++    }) => {
++      wallLastRawPointRef.current = args.point
++      const result = snapWallDraftPointDetailed({
++        ...args,
++        inferDirection: true,
++        magnetic: isMagneticSnapActive(),
++      })
++      const lock = wallDirectionLockRef.current
++      wallPreserveDirectionRef.current = lock.active || !!result.directionInferred
++      return args.start && lock.active
++        ? lock.project(args.point, getSegmentGridStep())
++        : result.point
++    },
+     [],
+   )
+   const { handleBackgroundPlacementClick } = useFloorplanBackgroundPlacement({
+--- before/packages/editor/src/lib/wall-direction-lock.ts
++++ packages/editor/src/lib/wall-direction-lock.ts
+@@ -1,29 +1,112 @@
++import { snapAngleToList, snapScalar } from '@pascal-app/core'
++
+ type Point = readonly [number, number]
++const AXIS_ANGLES = Array.from({ length: 8 }, (_, index) => (index * Math.PI) / 4)
++// This editor's capture window; SketchUp does not document a degree tolerance.
++const INFERENCE_TOLERANCE = (2 * Math.PI) / 180
++
++export function inferWallDirection(
++  origin: Point,
++  point: Point,
++  step: number,
++  references: readonly { start: Point; end: Point; curveOffset?: number }[] = [],
++): [number, number] | null {
++  const dx = point[0] - origin[0]
++  const dz = point[1] - origin[1]
++  const length = Math.hypot(dx, dz)
++  if (!Number.isFinite(length) || length < 1e-9) return null
++  const angles = [...AXIS_ANGLES]
++  for (const wall of references) {
++    if (wall.curveOffset) continue
++    if (![wall.start, wall.end].some((p) => Math.hypot(p[0] - origin[0], p[1] - origin[1]) < 1e-6))
++      continue
++    const wx = wall.end[0] - wall.start[0]
++    const wz = wall.end[1] - wall.start[1]
++    if (!Number.isFinite(Math.hypot(wx, wz)) || Math.hypot(wx, wz) < 1e-9) continue
++    const angle = Math.atan2(wz, wx)
++    for (let index = 0; index < 4; index++) angles.push(angle + (index * Math.PI) / 2)
++  }
++  const angle = Math.atan2(dz, dx)
++  const target = snapAngleToList(angle, angles, Number.POSITIVE_INFINITY)
++  const delta = Math.abs(Math.atan2(Math.sin(angle - target), Math.cos(angle - target)))
++  if (delta > INFERENCE_TOLERANCE + 1e-12) return null
++  const x = Math.cos(target)
++  const z = Math.sin(target)
++  const distance = snapScalar(dx * x + dz * z, step)
++  return [origin[0] + x * distance, origin[1] + z * distance]
++}
+ 
+ export function createWallDirectionLock() {
+-  let ray: { origin: Point; direction: Point } | null = null
++  let ray: { origin: Point; direction: Point; key?: string } | null = null
+   return {
++    infer: inferWallDirection,
+     get active() {
+       return ray !== null
+     },
++    toggleAxis(
++      key: string,
++      origin: Point,
++      through: Point,
++      references: readonly { start: Point; end: Point; curveOffset?: number }[] = [],
++    ) {
++      let angle: number
++      if (key === 'ArrowRight') angle = 0
++      else if (key === 'ArrowLeft') angle = Math.PI / 2
++      else if (key === 'ArrowDown') {
++        const angles = references
++          .filter(
++            (w) =>
++              !w.curveOffset &&
++              [w.start, w.end].some((p) => Math.hypot(p[0] - origin[0], p[1] - origin[1]) < 1e-6) &&
++              Math.hypot(w.end[0] - w.start[0], w.end[1] - w.start[1]) > 1e-9,
++          )
++          .flatMap((w) =>
++            Array.from(
++              { length: 4 },
++              (_, i) =>
++                Math.atan2(w.end[1] - w.start[1], w.end[0] - w.start[0]) + (i * Math.PI) / 2,
++            ),
++          )
++        if (!angles.length) return false
++        angle = snapAngleToList(
++          Math.atan2(through[1] - origin[1], through[0] - origin[0]),
++          angles,
++          Infinity,
++        )
++      } else return false
++      ray =
++        ray?.key === key
++          ? null
++          : {
++              origin: [...origin],
++              direction:
++                key === 'ArrowRight'
++                  ? [1, 0]
++                  : key === 'ArrowLeft'
++                    ? [0, 1]
++                    : [Math.cos(angle), Math.sin(angle)],
++              key,
++            }
++      return true
++    },
+     set(held: boolean, origin: Point, through: Point) {
+       if (!held) {
+-        ray = null
++        if (!ray?.key) ray = null
+         return
+       }
+       if (ray) return
+       const dx = through[0] - origin[0]
+       const dz = through[1] - origin[1]
+       const length = Math.hypot(dx, dz)
+-      if (length > 1e-9) ray = { origin: [...origin], direction: [dx / length, dz / length] }
++      if (Number.isFinite(length) && length > 1e-9)
++        ray = { origin: [...origin], direction: [dx / length, dz / length] }
+     },
+     project(point: Point, step: number): [number, number] {
+       if (!ray) return [...point]
+       const { origin, direction } = ray
+-      const distance = Math.max(
+-        0,
+-        (point[0] - origin[0]) * direction[0] + (point[1] - origin[1]) * direction[1],
+-      )
++      const projected =
++        (point[0] - origin[0]) * direction[0] + (point[1] - origin[1]) * direction[1]
++      const distance = ray.key ? projected : Math.max(0, projected)
+       const length = step > 0 ? Math.round(distance / step) * step : distance
+       return [origin[0] + direction[0] * length, origin[1] + direction[1] * length]
+     },
+--- before/packages/editor/src/lib/wall-direction-lock.test.ts
++++ packages/editor/src/lib/wall-direction-lock.test.ts
+@@ -1,6 +1,35 @@
+ import { expect, test } from 'bun:test'
+ import { DEFAULT_PERSISTED_EDITOR_LAYOUT_STATE } from '../store/use-editor'
+ import { createWallDirectionLock } from './wall-direction-lock'
++
++test('endpoint inference captures only near 45 degree rays and fixed-corner references', () => {
++  const lock = createWallDirectionLock()
++  const pointAt = (degrees: number): [number, number] => [
++    2 + 4 * Math.cos((degrees * Math.PI) / 180),
++    3 + 4 * Math.sin((degrees * Math.PI) / 180),
++  ]
++  for (const target of [-180, -135, -90, -45, 0, 45, 90, 135, 180]) {
++    for (const offset of [-2, 0, 2]) {
++      const point = lock.infer([2, 3], pointAt(target + offset), 0.001)
++      expect(point).not.toBeNull()
++      const angle = Math.atan2(point![1] - 3, point![0] - 2)
++      expect(Math.sin(angle - (target * Math.PI) / 180)).toBeCloseTo(0, 12)
++    }
++    expect(lock.infer([2, 3], pointAt(target + 2.1), 0.001)).toBeNull()
++  }
++  const reference = { start: [2, 3] as const, end: pointAt(20) }
++  for (const angle of [20, 110, 200, 290]) {
++    const point = lock.infer([2, 3], pointAt(angle + 1), 0.001, [reference])!
++    expect(Math.sin(Math.atan2(point[1] - 3, point[0] - 2) - (angle * Math.PI) / 180)).toBeCloseTo(
++      0,
++      12,
++    )
++  }
++  expect(lock.infer([2, 3], [2, 3], 0.001)).toBeNull()
++  expect(lock.infer([2, 3], [Number.NaN, 3], 0.001)).toBeNull()
++  expect(lock.infer([2, 3], pointAt(21), 0.001, [{ ...reference, curveOffset: 1 }])).toBeNull()
++  expect(lock.infer([2, 3], pointAt(21), 0.001, [{ start: [0, 0], end: [4, 1.456] }])).toBeNull()
++})
+ 
+ test('wall direction holds the current ray while length follows a 1 mm step', () => {
+   expect(DEFAULT_PERSISTED_EDITOR_LAYOUT_STATE.gridSnapStep).toBe(0.001)
+@@ -17,3 +46,24 @@
+   lock.reset()
+   expect(lock.active).toBe(false)
+ })
++
++test('axis locks toggle, cross the origin, and survive Shift release', () => {
++  const lock = createWallDirectionLock()
++  expect(lock.toggleAxis('ArrowRight', [2, 3], [4, 5])).toBe(true)
++  lock.set(false, [2, 3], [4, 5])
++  expect(lock.project([-1.1234, 8], 0.001)).toEqual([-1.1230000000000002, 3])
++  expect(lock.toggleAxis('ArrowLeft', [2, 3], [4, 5])).toBe(true)
++  const p = lock.project([9, -2.1234], 0.001)
++  expect(p[0]).toBeCloseTo(2, 12)
++  expect(p[1]).toBeCloseTo(-2.123, 12)
++  lock.toggleAxis('ArrowLeft', [2, 3], p)
++  expect(lock.active).toBe(false)
++  expect(lock.toggleAxis('ArrowDown', [0, 0], [4, 1])).toBe(false)
++  const reference = { start: [0, 0] as const, end: [3, 1] as const }
++  expect(lock.toggleAxis('ArrowDown', [0, 0], [4, 1], [reference])).toBe(true)
++  const q = lock.project([5, 1], 0)
++  expect(q[1] / q[0]).toBeCloseTo(1 / 3, 12)
++  lock.reset()
++  expect(lock.active).toBe(false)
++  expect(lock.toggleAxis('ArrowUp', [0, 0], [3, 4])).toBe(false)
++})

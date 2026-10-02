@@ -1,0 +1,10 @@
+Production browser QA initial evidence
+model=gpt-5.6-luna
+reasoning=max
+url=https://apt.intm.kr/scene/qa-zone-finish-999b2771
+browser=Chrome1 tab=1057539915
+surface=apt.intm.kr production
+visible=배포 검수실; QA-001; CH:2700; Ground floor; 4x4 synthetic room enclosure
+mode=2D; active tool=Wall; next actions shown: 2 기준점 클릭 / 3 방향 지정·치수 입력 / 4 마지막 클릭
+fixture=synthetic only; no customer/user model touched
+screenshot=CUA Chrome screenshot captured in tool output at initial state

@@ -1,0 +1,4 @@
+{"name":"apt-subdomain","pid":48786,"status":"online","cwd":"/Volumes/DATABASE/floorplan-releases/20261001-df1d7a1d/apps/editor","restarts":0}
+df1d7a1da95843c81a3e24c70d193cf19868d33f
+9gq8ocvxjLV4JQQprAyVL
+{"publicAsset": "/_next/static/chunks/38ok0_0h2b4_v.js", "sha256": "207cd571bdf86d240e891c139700729059d7a686551171e3c8c7e1200f04a9ed"}

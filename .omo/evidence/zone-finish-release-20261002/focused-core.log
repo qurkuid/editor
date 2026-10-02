@@ -1,0 +1,59 @@
+bun test v1.3.11 (af24e281)
+
+packages/core/src/lib/wall-operations.test.ts:
+(pass) wall operations > merges exact collinear walls and preserves hosted world positions and construction [6.44ms]
+(pass) wall operations > splits inside a wall, retains the first id, and preserves collection membership [0.62ms]
+(pass) wall operations > remaps finish regions before, across, and after a split while preserving ids [1.24ms]
+(pass) wall operations > rejects an opening that would straddle the split [0.42ms]
+(pass) wall operations > supports a three-wall chain when the first selected wall is internal [0.37ms]
+(pass) wall operations > adds a secondary-only collection membership to the retained wall [0.16ms]
+(pass) wall operations > remaps aligned finish regions by physical chain length and mints duplicate ids [0.28ms]
+(pass) wall operations > rejects reversed one-sided trims before changing their side [0.39ms]
+(pass) wall operations > rejects reversed walls with unequal front and back side metadata [0.20ms]
+(pass) wall operations > rejects a reversed hosted wall instead of changing its local frame [0.02ms]
+(pass) wall operations > rejects a reversed wall with finish regions before mutating the scene [0.24ms]
+(pass) wall operations > rejects overlapping mapped finish regions before any merge writes [0.17ms]
+(pass) wall operations > projects rotated item width and depth when validating a split [0.12ms]
+(pass) wall operations > rejects an occupied requested split id [0.03ms]
+(pass) wall operations > splits a wall once per distinct interior T/X contact in descending order [0.45ms]
+(pass) wall operations > ignores endpoint-only contacts and contacts on another level [0.27ms]
+(pass) wall operations > validates every contact before exposing a mutation when an attachment crosses one [0.33ms]
+
+packages/core/src/store/use-scene-dirty-tracking.test.ts:
+(pass) dirty tracking > markDirty skips kinds whose definition opts out [0.71ms]
+(pass) dirty tracking > markDirty tracks kinds without the opt-out, registered or not [0.24ms]
+(pass) dirty tracking > deleteNodes removes deleted ids from the dirty set [0.16ms]
+(pass) dirty tracking > wall merge does not re-mark a deleted secondary wall dirty [0.46ms]
+(pass) dirty tracking > deleting a wall skips optional neighbor merge when either neighbor has finish regions [0.43ms]
+(pass) dirty tracking > rejecting conflicting finish regions leaves nodes and history untouched [0.12ms]
+(pass) dirty tracking > wall topology actions create a direct undo and redo step [0.50ms]
+(pass) dirty tracking > parallel wall alignment is one undo step and restores the exact graph [1.69ms]
+
+packages/core/src/schema/nodes/wall.test.ts:
+(pass) wall support offset > stores a finite offset without defaulting it onto ordinary walls [0.54ms]
+(pass) wall support offset > stores terrain infill only when explicitly enabled [0.04ms]
+(pass) wall finish regions > normalizes and stably sorts side ranges while preserving material roles [0.12ms]
+(pass) wall finish regions > rejects overlapping same-side same-role ranges but allows different roles and sides [0.43ms]
+(pass) wall finish regions > remaps split and merge ranges without losing side or slot data [0.14ms]
+(pass) wall face bands > defaults to one band while preserving legacy enabled scenes as three bands [0.29ms]
+(pass) wall face bands > four bands adds an upper split below the final top band [0.01ms]
+(pass) wall face bands > enabling bands seeds visible solid-color band slots [0.08ms]
+(pass) wall face bands > band count patch enables only the active slots [0.08ms]
+(pass) wall face bands > enabling bands replaces stale inactive band slots with solid-color defaults [0.02ms]
+(pass) wall face bands > increasing band count paints newly active bands with the solid palette [0.02ms]
+(pass) wall face bands > increasing to four bands keeps the previous top material on the new top band [0.05ms]
+(pass) wall kinds > detects a kind only when both faces reference that kind finish [0.04ms]
+(pass) wall kinds > every wall kind ref resolves to a wall-paintable catalog entry [0.13ms]
+(pass) wall kinds > derives the kind from the band composition, bottom band first [0.04ms]
+(pass) wall kinds > painting a kind material over the composition changes the derived kind [0.04ms]
+(pass) wall kinds > selecting a band kind writes both sides of that band and derives the wall kind [0.05ms]
+(pass) wall kinds > selecting a band kind on a single-band wall targets the whole faces [0.03ms]
+(pass) wall kinds > derives the kind from the band construction before painted slots [0.02ms]
+(pass) wall kinds > returning a band to solid restores the band palette without touching custom paint [0.03ms]
+(pass) wall trim profiles > uses curated defaults while preserving legacy profile values [0.02ms]
+(pass) wall trim profiles > declares separate default materials for each trim family [0.03ms]
+
+ 47 pass
+ 0 fail
+ 174 expect() calls
+Ran 47 tests across 3 files. [84.00ms]

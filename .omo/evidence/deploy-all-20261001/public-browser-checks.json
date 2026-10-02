@@ -1,0 +1,12 @@
+{
+  "sceneId": "qa-deploy-33d05e5b",
+  "savedVersion": 11,
+  "wallCount": 4,
+  "xAxisLock": true,
+  "endpointDragWeakAxisSnap": true,
+  "weak45DegreeSnap": true,
+  "splitWallCounts": 4,
+  "mergedWallCounts": 3,
+  "deleteUndoReload": true,
+  "consoleErrors": []
+}

@@ -1,0 +1,9 @@
+{
+  "undoExact": true,
+  "redoExact": true,
+  "before": "scene-redo.json",
+  "after": "scene-final.json",
+  "beforeNodes": 100,
+  "afterNodes": 100,
+  "initialBaselineNote": "Opening editor hydrated existing derived slab/ceiling and side classification before first regeneration."
+}

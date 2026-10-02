@@ -1,0 +1,43 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/scene-project-link.test.ts:
+(pass) where the link lives > the building node holds it when there is one
+(pass) where the link lives > a scene with no building falls back to its first root [0.03ms]
+(pass) where the link lives > stale root ids still resolve to a parentless node
+(pass) where the link lives > an empty scene has nowhere to put it
+(pass) reading and writing > reads the linked project
+(pass) reading and writing > an unlinked scene reads as null, not empty string
+(pass) reading and writing > writing preserves whatever else is in metadata [0.12ms]
+(pass) reading and writing > clearing removes only the link [0.03ms]
+(pass) reading and writing > a round trip preserves the value
+(pass) estimate submission history > preserves the project link and unrelated metadata through a JSON round trip [0.25ms]
+(pass) estimate submission history > keeps full, partial, and all-failed attempted item snapshots [0.23ms]
+(pass) estimate submission history > filters by project and de-duplicates before capping at ten newest records [0.62ms]
+(pass) estimate submission history > drops malformed history records without throwing
+(pass) estimate submission history > does not append a pre-document failure result
+(pass) estimate submission history > only trusts canonical server-origin estimate links [0.34ms]
+
+apps/editor/lib/estimate-submit.test.ts:
+(pass) line items > a priced line becomes an INTM item with its converted quantity [0.15ms]
+(pass) line items > the description traces the line back to the drawing
+(pass) line items > a no-material line is left out
+(pass) line items > a no-coverage line is left out
+(pass) line items > a no-price line is left out
+(pass) line items > a priced line with zero quantity is left out too
+(pass) line items > a mixed draft submits only what is resolved
+(pass) submission > posts the items to INTM with the caller session [0.47ms]
+(pass) submission > creates the document first, then posts each item to it [0.07ms]
+(pass) submission > counts item failures instead of discarding the estimate
+(pass) submission > keeps a link when every item fails after the document is created
+(pass) submission > normalizes the configured base and encodes the estimate id in the link
+(pass) submission > refuses with no project before any request
+(pass) submission > refuses with no title before any request [0.21ms]
+(pass) submission > refuses to create an estimate with nothing resolved [0.01ms]
+(pass) submission > reports a refusal instead of pretending it worked [0.04ms]
+(pass) submission > a 200 with no estimate id is still a failure [0.06ms]
+(pass) submission > no session and no INTM both refuse before any request
+
+ 33 pass
+ 0 fail
+ 65 expect() calls
+Ran 33 tests across 2 files. [28.00ms]

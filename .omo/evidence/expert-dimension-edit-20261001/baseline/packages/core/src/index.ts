@@ -1,0 +1,746 @@
+export type {
+  BodyEvent,
+  BodySelectionActionKind,
+  BoxVentEvent,
+  BuildingEvent,
+  CabinetEvent,
+  CabinetModuleEvent,
+  CameraControlEvent,
+  CameraControlFitSceneEvent,
+  CameraPose,
+  CeilingEvent,
+  ChimneyEvent,
+  ColumnEvent,
+  ConstructionDimensionEvent,
+  DoorEvent,
+  DormerEvent,
+  ElevatorEvent,
+  EventSuffix,
+  FenceEvent,
+  GridEvent,
+  GuideEvent,
+  GutterEvent,
+  ItemEvent,
+  LevelEvent,
+  LightingCircuitEvent,
+  LightingFixtureEvent,
+  LightingSwitchEvent,
+  MeasurementEvent,
+  NodeEvent,
+  RidgeVentEvent,
+  RoofEvent,
+  RoofSegmentEvent,
+  RoomPresetCreateEvent,
+  ScanEvent,
+  ShelfEvent,
+  SiteEvent,
+  SkylightEvent,
+  SlabEvent,
+  SolarPanelEvent,
+  SpawnEvent,
+  StairEvent,
+  StairSegmentEvent,
+  StructuralGridEvent,
+  WallEvent,
+  WindowEvent,
+  ZoneEvent,
+} from './events/bus'
+export { emitter, eventSuffixes } from './events/bus'
+export { type ItemClipEntry, itemClipRegistry } from './hooks/scene-registry/item-clip-registry'
+export {
+  sceneRegistry,
+  useRegistry,
+} from './hooks/scene-registry/scene-registry'
+export {
+  type FloorPlacedElevationArgs,
+  GROUND_SUPPORT_ID,
+  getFloorPlacedElevation,
+  getFloorPlacedFootprints,
+  getFloorStackedPosition,
+} from './hooks/spatial-grid/floor-placed-elevation'
+export {
+  getWallBaseElevationForNodes,
+  getWallEffectiveHeightForNodes,
+  type PointedSupportSurface,
+  pointInPolygon,
+  SUPPORT_ELEVATION_EPSILON,
+  spatialGridManager,
+  type WallSlabSupportSegment,
+} from './hooks/spatial-grid/spatial-grid-manager'
+export {
+  findLevelAncestorId,
+  initSpatialGridSync,
+  markSlabChangeDependents,
+  resolveBuildingForLevel,
+  resolveLevelId,
+} from './hooks/spatial-grid/spatial-grid-sync'
+export {
+  type FenceSupportInput,
+  resolveFenceSupportSlabPatch,
+  resolveMovedWallSupportSlabPatch,
+  resolveSupportSlabPatch,
+  resolveWallSupportSlabPatch,
+  type SupportSlabPatch,
+  type SupportSlabPatchOptions,
+} from './hooks/spatial-grid/support-host-patch'
+export { useSpatialQuery } from './hooks/spatial-grid/use-spatial-query'
+export {
+  findStoredAsset,
+  loadAssetUrl,
+  saveAsset,
+  saveStoredAsset,
+} from './lib/asset-storage'
+export {
+  AxisGuideStretchError,
+  type AxisGuideStretchErrorCode,
+  type AxisGuideStretchPlan,
+  type AxisGuideStretchRequest,
+  buildAxisGuideStretchPlan,
+} from './lib/axis-guide-stretch'
+export {
+  type BodyArrayPoint,
+  type BodyCircularArrayInput,
+  type BodyLinearArrayInput,
+  createBodyCircularArray,
+  createBodyLinearArray,
+} from './lib/body-array'
+export {
+  type BodyContainerNode,
+  type BodyContainerWrite,
+  bodyContainerChildren,
+  bodySiblingSelection,
+  cloneComponentInstance,
+  componentBodyPeers,
+  createBodyGroupFromBodies,
+  createComponentFromBodies,
+  explodeComponent,
+  isBodyContainerNode,
+  linkedBodyUpdates,
+  makeComponentUnique,
+} from './lib/body-containers'
+export {
+  type BodyCsgDiagnosticCode,
+  BodyCsgError,
+  type BodyCsgOperation,
+  type BodyCsgResult,
+  type BodySplitPiece,
+  type BodySplitPieceKind,
+  type BodySplitResult,
+  booleanBodies,
+  intersectBodies,
+  outerShellBodies,
+  splitBodies,
+  subtractBodies,
+  trimBodies,
+  unionBodies,
+} from './lib/body-csg'
+export {
+  type BodyPoint3,
+  createCircularArcFaceBody,
+  DEFAULT_BODY_CURVE_SEGMENTS,
+  getBodyLoopBoundaryPoints,
+  rebaseCircularArcCurve,
+  sampleBodyCurve,
+} from './lib/body-curves'
+export { type SplitBodyFaceResult, splitBodyFace } from './lib/body-face-split'
+export {
+  assertBodyFeatureGeometry,
+  autofoldBodyFaces,
+  type BodyFeatureKind,
+  type BodyFeatureMoveOptions,
+  bodyFeatureCurveIds,
+  bodyFeatureFaceVertexIds,
+  isBodyFeatureFacePlanar,
+  moveBodyFeature,
+  resolveBodyFeatureVertexIds,
+} from './lib/body-feature-move'
+export {
+  type CreateRoundedRectangularFrameBodyOptions,
+  createRoundedRectangularFrameBody,
+} from './lib/body-frame'
+export {
+  getRoundedRectangularFrameOpeningPlacement,
+  getRoundedRectangularFrameParameters,
+  RoundedFrameOpeningBoundsError,
+  type RoundedFrameOpeningPlacement,
+  type RoundedRectangularFrameParameters,
+  updateRoundedRectangularFrameOpening,
+  updateRoundedRectangularFrameRadius,
+} from './lib/body-frame-edit'
+export { type ImprintBodyFaceResult, imprintBodyFace } from './lib/body-imprint'
+export { createPlanarPointProjection } from './lib/body-imprint-validation'
+export { type OffsetBodyFaceResult, offsetBodyFace } from './lib/body-offset'
+export { pushPullBodyFace } from './lib/body-push-pull'
+export {
+  type BodySolidDiagnostic,
+  type BodySolidDiagnosticCode,
+  type BodySolidInspection,
+  inspectBodySolid,
+} from './lib/body-solid'
+export {
+  SweepBodyFaceError,
+  type SweepBodyFaceErrorCode,
+  type SweepBodyFaceResult,
+  sweepBodyFace,
+} from './lib/body-sweep'
+export {
+  type BodyTopologyDiagnostic,
+  type BodyTopologyDiagnosticCode,
+  type BodyTopologyValidation,
+  createPlanarFaceBody,
+  createRectangleBody,
+  getBodyFaceFrame,
+  getBodyLoopVertices,
+  getBodySemanticHash,
+  type PushPullBodyResult,
+  type TopologyRemap,
+  validateBodyTopology,
+} from './lib/body-topology'
+export {
+  type CeilingFeatureEdgeFrame,
+  type CeilingProfileBounds,
+  ceilingFeatureEdgeFrame,
+  ceilingProfileBounds,
+} from './lib/ceiling-features'
+export {
+  bestConstructionMaterial,
+  matchScore as constructionMaterialMatchScore,
+  sectionFromName as constructionSectionFromName,
+  sheetFromName as constructionSheetFromName,
+  thicknessFromName as constructionThicknessFromName,
+} from './lib/construction-material-match'
+export {
+  clampDoorOperationState,
+  getDoorRenderOpenAmount,
+  getGarageVisibleOpeningRatio,
+  isOperationDoorType,
+  SECTIONAL_GARAGE_RENDER_OPEN_SCALE,
+} from './lib/door-operation'
+export type {
+  CreateDefaultFurnitureAssemblyOptions,
+  DeleteFurnitureBayOptions,
+  DeleteFurnitureTierOptions,
+  FurnitureAssemblyBounds,
+  FurnitureAssemblyOptions,
+  FurnitureAssemblyPart,
+  FurnitureAssemblyPartKind,
+  FurnitureAssemblyPartShape,
+  FurnitureAssemblyResult,
+  FurnitureAssemblyWarning,
+  FurnitureAssemblyWarningCode,
+  FurnitureBuilderImportResult,
+  FurnitureFace,
+  FurnitureFrontPose,
+  FurnitureImportWarning,
+  FurnitureImportWarningCode,
+  FurnitureNormalizationInput,
+  InsertFurnitureBayOptions,
+  InsertFurnitureTierOptions,
+  ResizeFurnitureBayOptions,
+  ResizeFurnitureTierOptions,
+  SetFurnitureTierFrontOptions,
+  SetFurnitureTierInteriorOptions,
+} from './lib/furniture'
+export {
+  buildFurnitureAssembly,
+  createDefaultFurnitureAssembly,
+  deleteFurnitureBay,
+  deleteFurnitureTier,
+  drawerFrontPose,
+  FURNITURE_ASSEMBLY_SCHEMA_VERSION,
+  FURNITURE_KIND_DEFAULT_DIMENSIONS,
+  flapFrontPose,
+  hingedFrontPose,
+  importFurnitureBuilder,
+  importFurnitureBuilderJson,
+  insertFurnitureBay,
+  insertFurnitureTier,
+  metresToMillimetres,
+  millimetresToMetres,
+  normalizeFurniture,
+  normalizeFurnitureAssembly,
+  resizeFurnitureAssembly,
+  resizeFurnitureBay,
+  resizeFurnitureTier,
+  setFurnitureKind,
+  setFurnitureTierFront,
+  setFurnitureTierInterior,
+  slidingFrontPose,
+} from './lib/furniture'
+export {
+  canonicalizeGuidePerspectiveCorners,
+  type GuideImagePoint,
+  projectGuidePerspectivePoint,
+} from './lib/guide-perspective'
+export { getDefaultLevelName, getLevelDisplayName } from './lib/level-name'
+export * from './lib/lighting'
+export {
+  withBandConstructionMaterials,
+  withDefaultConstructionMaterials,
+} from './lib/link-default-construction'
+export {
+  areMeasurementPointsCoplanar,
+  type BodyAnnotationUpdate,
+  closestMeasurementFeatureBinding,
+  MEASUREMENT_PLANAR_TOLERANCE,
+  measurementAnchorFallback,
+  measurementAnchorReferenceNodeIds,
+  measurementAngle,
+  measurementArea,
+  measurementAreaVector,
+  measurementCentroid,
+  measurementDistance,
+  measurementFeatureLength,
+  measurementNormal,
+  measurementPerimeter,
+  measurementPrismVolume,
+  measurementReferenceNodeIds,
+  remapBodyFeatureAnnotations,
+  remapMeasurementAnchors,
+  remapMeasurementReferences,
+} from './lib/measurement-geometry'
+export {
+  type Point2D as PolygonPoint2D,
+  pointInPolygon as pointInPolygon2D,
+  pointOnSegment,
+  polygonContainsPolygon,
+  polygonsIntersect,
+  polygonsOverlap,
+  segmentsIntersect,
+} from './lib/polygon-relations'
+export { resolveSelectionProxyId, selectionProxyIdFromMetadata } from './lib/selection-proxy'
+export {
+  getRenderableSlabPolygon,
+  type SlabEdgeWallBandSnap,
+  type SlabPolygonContext,
+  slabPolygonContextFromGeometry,
+  snapSlabEdgeToWallBand,
+} from './lib/slab-polygon'
+export {
+  deriveSlotId,
+  isSlotMaterialName,
+  SLOT_MATERIAL_PREFIX,
+  slotLabelFromId,
+} from './lib/slots'
+export {
+  type AutoCeilingPlanningContext,
+  type AutoCeilingSyncPlan,
+  type AutoSlabPlanningContext,
+  type AutoSlabSyncPlan,
+  type AutoZoneSyncPlan,
+  detectSpacesForLevel,
+  initSpaceDetectionSync,
+  isSpaceDetectionPaused,
+  pauseSpaceDetection,
+  planAutoCeilingsForLevel,
+  planAutoSlabsForLevel,
+  planAutoZonesForLevel,
+  resolveAutoZonePolygon,
+  resumeSpaceDetection,
+  type Space,
+  type SpaceBoundaryFace,
+  wallClosesRoom,
+  wallTouchesOthers,
+  zoneNeedsBoundaryReview,
+} from './lib/space-detection'
+export {
+  advanceStroke,
+  type BrushSettings,
+  type BrushShape,
+  beginStroke,
+  brushHeightAt,
+  DEFAULT_BRUSH_SETTINGS,
+  detachStrokeAnchor,
+  highestOver,
+  MIN_BRUSH_RADIUS_IN_SPACINGS,
+  maxCoverage,
+  minBrushRadius,
+  RAISE_METRES_PER_STROKE,
+  sampleTarget,
+  type TerrainStroke,
+  type TerrainVerb,
+  weightAt,
+} from './lib/terrain-brush'
+export { decodeTerrainField, encodeTerrainField, isDatumField } from './lib/terrain-codec'
+export {
+  applyHeightPatch,
+  createTerrainField,
+  DEFAULT_TERRAIN_SPACING,
+  DEFAULT_TERRAIN_STEP,
+  diffToPatches,
+  flattenPatch,
+  type HeightPatch,
+  heightAt,
+  heightAtSample,
+  isFlatOver,
+  normalAt,
+  quantize,
+  sampleRangeOver,
+  slopeAt,
+  surfaceHeightAt,
+  type TerrainField,
+} from './lib/terrain-field'
+export { raycastTerrain, type TerrainHit } from './lib/terrain-raycast'
+export { commitTerrainField, terrainFieldForEdit, terrainFieldOf } from './lib/terrain-source'
+export {
+  isSiteDatum,
+  SITE_DATUM_EPSILON,
+  SITE_DATUM_Y,
+  terrainSupportLift,
+} from './lib/terrain-support'
+export {
+  buildWallConstructionLayerSpans,
+  calculateWallConstructionQuantities,
+  createDefaultWallFaceBands,
+  createWallBandConstructionPreset,
+  detectWallConstructionPreset,
+  getWallBandConstruction,
+  getWallBandPhysicalThickness,
+  getWallConstructionEnvelopeThickness,
+  normalizeWallBandConstructionToThickness,
+  WALL_CONSTRUCTION_LAYER_DEFAULTS,
+  type WallConstructionLayerSpan,
+  type WallConstructionPresetId,
+  type WallConstructionQuantity,
+} from './lib/wall-construction'
+export {
+  closestOnSegment,
+  collectLevelWallSegments,
+  nearestWallSegment,
+  WALL_SNAP_DISTANCE_M,
+  type WallSegment,
+  type WallSegmentClosest,
+} from './lib/wall-distance'
+export {
+  buildWallLengthUpdates,
+  buildWallMerge,
+  buildWallSplit,
+  buildWallSplitAtContacts,
+  type WallMutation,
+  WallOperationError,
+  type WallSceneState,
+} from './lib/wall-operations'
+export {
+  deriveZoneQuantityReport,
+  type ZoneQuantityReport,
+  type ZoneQuantityValue,
+} from './lib/zone-quantities'
+export {
+  getCatalogMaterialById,
+  getDynamicLibraryMaterials,
+  getLibraryMaterialIdFromRef,
+  getLibraryMaterialsVersion,
+  getMaterialPresetByRef,
+  getMaterialsForCategory,
+  getSceneMaterialIdFromRef,
+  LIBRARY_MATERIAL_REF_PREFIX,
+  MATERIAL_CATALOG,
+  MATERIAL_CATEGORIES,
+  MATERIAL_SURFACES,
+  type MaterialCatalogItem,
+  type MaterialCategory,
+  type MaterialRef,
+  type MaterialSource,
+  type MaterialSurface,
+  type ParsedMaterialRef,
+  parseMaterialRef,
+  registerLibraryMaterials,
+  SCENE_MATERIAL_REF_PREFIX,
+  subscribeLibraryMaterials,
+  toLibraryMaterialRef,
+  toSceneMaterialRef,
+  unregisterLibraryMaterials,
+} from './material-library'
+export { resizeMaterialPhysicalSize } from './material-size'
+export {
+  MANIPULATION_SNAP_TIERS,
+  type ManipulationSnapCandidate,
+  type ManipulationSnapMarkerToken,
+  type ManipulationSnapTier,
+  manipulationSnapCandidateFromFeature,
+  manipulationSnapMarkerToken,
+  manipulationSnapTier,
+} from './modeling/manipulation'
+export {
+  type ArrayBodyCircularInput,
+  ArrayBodyCircularInputSchema,
+  type ArrayBodyCircularOperationResult,
+  type ArrayBodyLinearInput,
+  ArrayBodyLinearInputSchema,
+  type ArrayBodyLinearOperationResult,
+  type BooleanBodiesInput,
+  BooleanBodiesInputSchema,
+  type CreateComponentInput,
+  CreateComponentInputSchema,
+  type ExplodeComponentInput,
+  ExplodeComponentInputSchema,
+  executeArrayBodyCircular,
+  executeArrayBodyLinear,
+  executeBodyContainerOperation,
+  executeImprintBodyFace,
+  executeIntersectBodies,
+  executeModelingOperation,
+  executeOffsetBodyFace,
+  executeOuterShellBodies,
+  executePaintBodyFace,
+  executePushPullBodyFace,
+  executeSplitBodies,
+  executeSplitBodyFace,
+  executeSubtractBodies,
+  executeSweepBodyFace,
+  executeTransformBody,
+  executeTrimBodies,
+  executeUnionBodies,
+  type GroupBodiesInput,
+  GroupBodiesInputSchema,
+  getModelingOperationManifestEntry,
+  type ImprintBodyFaceInput,
+  ImprintBodyFaceInputSchema,
+  type ImprintBodyFaceOperationResult,
+  type IntersectBodiesInput,
+  IntersectBodiesInputSchema,
+  type IntersectBodiesOperationResult,
+  type MakeComponentUniqueInput,
+  MakeComponentUniqueInputSchema,
+  MODELING_OPERATION_ID_VALUES,
+  MODELING_OPERATION_IDS,
+  MODELING_OPERATION_INPUT_SCHEMAS,
+  MODELING_OPERATION_MANIFEST,
+  type ModelingOperationField,
+  type ModelingOperationId,
+  ModelingOperationIdSchema,
+  type ModelingOperationInput,
+  type ModelingOperationInputById,
+  type ModelingOperationManifest,
+  type ModelingOperationManifestEntry,
+  type ModelingOperationRequest,
+  type ModelingOperationResult,
+  type ModelingOperationSurface,
+  type OffsetBodyFaceInput,
+  OffsetBodyFaceInputSchema,
+  type OffsetBodyFaceOperationResult,
+  type OuterShellBodiesInput,
+  OuterShellBodiesInputSchema,
+  type OuterShellBodiesOperationResult,
+  type PaintBodyFaceInput,
+  PaintBodyFaceInputSchema,
+  type PaintBodyFaceOperationResult,
+  type PushPullBodyFaceInput,
+  PushPullBodyFaceInputSchema,
+  type PushPullBodyFaceOperationResult,
+  parseModelingOperationRequest,
+  type SplitBodiesInput,
+  SplitBodiesInputSchema,
+  type SplitBodiesOperationResult,
+  type SplitBodyFaceInput,
+  SplitBodyFaceInputSchema,
+  type SplitBodyFaceOperationResult,
+  type SubtractBodiesInput,
+  SubtractBodiesInputSchema,
+  type SubtractBodiesOperationResult,
+  type SweepBodyFaceInput,
+  SweepBodyFaceInputSchema,
+  type SweepBodyFaceOperationResult,
+  type TransformBodyInput,
+  TransformBodyInputSchema,
+  type TransformBodyOperationResult,
+  type TrimBodiesInput,
+  TrimBodiesInputSchema,
+  type TrimBodiesOperationResult,
+  type UnionBodiesInput,
+  UnionBodiesInputSchema,
+  type UnionBodiesOperationResult,
+} from './modeling/operations'
+export {
+  PASCAL_ARCHITECTURE_BODY_REF,
+  PASCAL_ARCHITECTURE_CORE_PACK_ID,
+  PASCAL_ARCHITECTURE_CORE_VERSION,
+  PASCAL_ARCHITECTURE_NODE_SEMANTIC_REFS,
+  PASCAL_ARCHITECTURE_WALL_REF,
+  PASCAL_ARCHITECTURE_WINDOW_REF,
+  SemanticIdSchema,
+  type SemanticRef,
+  SemanticRefSchema,
+  SemanticVersionSchema,
+} from './ontology/semantic-ref'
+export type {
+  FloorPlacedFootprint,
+  FloorPlacedFootprintContext,
+  FloorPlacedFootprintResolver,
+  FloorPlacedFootprintsResolver,
+} from './registry'
+export * from './registry'
+export * from './schema'
+export {
+  SurfaceConstruction,
+  SurfaceConstructionLayer,
+  SurfaceConstructionLayerKind,
+} from './schema/nodes/surface-construction'
+export * from './services'
+export { isMovable, movePlanToward, moveToward, resolveMovable } from './services/movement'
+export {
+  getSceneHistoryPauseDepth,
+  pauseSceneHistory,
+  resetSceneHistoryPauseDepth,
+  resumeSceneHistory,
+  runAsSingleSceneHistoryStep,
+  type SceneCommit,
+  type SceneCommitListener,
+  type SceneCommitOrigin,
+  type SceneSnapshot,
+  subscribeSceneCommits,
+} from './store/history-control'
+export {
+  type ControlValue,
+  type DoorAnimationState,
+  type DoorInteractiveState,
+  type ElevatorInteractiveState,
+  type ElevatorPhase,
+  type ItemInteractiveState,
+  type SkylightAnimationState,
+  type SkylightInteractiveState,
+  useInteractive,
+  type WindowAnimationState,
+  type WindowInteractiveState,
+} from './store/use-interactive'
+export {
+  default as useLiveNodeOverrides,
+  getEffectiveNode,
+  type LiveNodeOverrides,
+} from './store/use-live-node-overrides'
+export {
+  default as useLiveTerrain,
+  type LiveTerrainStroke,
+} from './store/use-live-terrain'
+export { default as useLiveTransforms, type LiveTransform } from './store/use-live-transforms'
+export {
+  type ApplySceneSnapshotOptions,
+  acquireSceneReadOnlyLease,
+  applySceneOperationPatch,
+  applyScenePatch,
+  applySceneSnapshot,
+  clearSceneHistory,
+  default as useScene,
+  type SceneMaterialPatch,
+  type SceneNodePatch,
+  type SceneNodeStructuralPatch,
+  type SceneOperationPatch,
+  type ScenePatch,
+} from './store/use-scene'
+export { resolveElevatorDispatchTarget } from './systems/elevator/elevator-dispatch'
+export {
+  type ElevatorDoorSide,
+  getElevatorCabCenterZ,
+  getElevatorCabDepth,
+  getElevatorCabWidth,
+  getElevatorDoorLeafSides,
+  getElevatorDoorLeafWidth,
+  getElevatorDoorLeafX,
+  getElevatorShaftDepth,
+  getElevatorShaftWallThickness,
+  getElevatorShaftWidth,
+  getResolvedElevatorDoorPanelStyle,
+  getResolvedElevatorDoorStyle,
+  getResolvedElevatorShaftStyle,
+} from './systems/elevator/elevator-geometry'
+export { syncAutoElevatorOpenings } from './systems/elevator/elevator-opening-sync'
+export { ElevatorOpeningSystem } from './systems/elevator/elevator-opening-system'
+export {
+  createElevatorInteractiveState,
+  openElevatorDoor,
+  openElevatorDoorState,
+  queueElevatorRequest,
+  requestElevatorLevel,
+  stepElevatorRuntimeState,
+  stepElevatorRuntimes,
+} from './systems/elevator/elevator-runtime'
+export { ElevatorRuntimeSystem } from './systems/elevator/elevator-runtime-system'
+export {
+  type ElevatorLevelEntry,
+  resolveElevatorBuildingLevels,
+  resolveElevatorLevels,
+  resolveElevatorServiceLevelIds,
+  resolveElevatorServiceLevels,
+} from './systems/elevator/elevator-service'
+export {
+  getFenceCenterlineFrameAt,
+  getFenceCenterlineLength,
+  sampleFenceCenterline,
+} from './systems/fence/fence-centerline'
+export {
+  getFenceControlHandle,
+  getFenceSplineFrameAt,
+  getFenceSplineLength,
+  getTwoPointFenceCurveTangents,
+  isSplineFence,
+  sampleFenceSpline,
+} from './systems/fence/fence-spline'
+export { resolveSlabPlacementElevation } from './systems/slab/slab-placement'
+export {
+  clampSlabElevationForWalls,
+  getSlabElevationUpperBound,
+  type SlabElevationClamp,
+} from './systems/slab/slab-support'
+export { type StairFootprintAABB, stairFootprintAABB } from './systems/stair/stair-footprint'
+export { createSurfaceOpeningPreviewController } from './systems/stair/stair-opening-preview'
+export { syncAutoStairOpenings } from './systems/stair/stair-opening-sync'
+export { StairOpeningSystem } from './systems/stair/stair-opening-system'
+export { resolveStairTotalRise, syncStairRises } from './systems/stair/stair-rise'
+export {
+  getClampedWallCurveOffset,
+  getMaxWallCurveOffset,
+  getWallArcData,
+  getWallChordFrame,
+  getWallCurveFrameAt,
+  getWallCurveLength,
+  getWallMidpointHandlePoint,
+  getWallStraightSnapOffset,
+  getWallSurfacePolygon,
+  isCurvedWall,
+  normalizeWallCurveOffset,
+  sampleWallCenterline,
+} from './systems/wall/wall-curve'
+export {
+  DEFAULT_WALL_HEIGHT,
+  DEFAULT_WALL_THICKNESS,
+  getWallPlanFootprint,
+  getWallThickness,
+} from './systems/wall/wall-footprint'
+export {
+  calculateLevelMiters,
+  getAdjacentWallIds,
+  getWallMiterBoundaryPoints,
+  type Point2D,
+  pointToKey,
+  type WallMiterBoundaryPoints,
+  type WallMiterData,
+} from './systems/wall/wall-mitering'
+export {
+  constrainWallMoveDeltaToAxis,
+  getLinkedWallUpdates,
+  getPerpendicularWallMoveAxis,
+  getPlannedLinkedWallUpdates,
+  planWallMoveJunctions,
+  type WallMoveAxis,
+  type WallMoveBridgePlan,
+  type WallMoveJunctionPlan,
+  type WallMoveLinkedWallTargetPlan,
+  type WallPlanPoint,
+} from './systems/wall/wall-move'
+export {
+  MIN_WALL_HEIGHT,
+  resolveWallEffectiveHeight,
+  resolveWallTop,
+} from './systems/wall/wall-top'
+export type { SceneGraph } from './utils/clone-scene-graph'
+export { cloneLevelSubtree, cloneSceneGraph, forkSceneGraph } from './utils/clone-scene-graph'
+export { isObject } from './utils/types'
+export {
+  type BuildStats,
+  type ParsedBuildJson,
+  type SchemaIssue,
+  type ValidateBuildJsonResult,
+  type ValidationIssue,
+  type ValidationSeverity,
+  validateBuildJson,
+} from './validation/validate-build-json'

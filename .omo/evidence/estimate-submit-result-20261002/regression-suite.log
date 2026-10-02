@@ -1,0 +1,66 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/estimate-lines.test.ts:
+(pass) measures are not priced > a measure is reported as such rather than matched to a material [0.10ms]
+(pass) measures are not priced > a measure is not something to fix, so it is not flagged unresolved [0.13ms]
+(pass) a line already counted in whole units > is priced directly rather than converted a second time [0.03ms]
+(pass) a line already counted in whole units > a material with no price still reports as no-price, not as priced [0.11ms]
+(pass) a line already counted in whole units > a running-metre line still goes through coverage [0.03ms]
+(pass) material matching > a painted surface matches by the ref it was painted with [0.07ms]
+(pass) material matching > a user override beats both ref and name [0.01ms]
+(pass) material matching > a kind-level line falls back to matching by name [0.02ms]
+(pass) material matching > no plausible match returns nothing rather than the first row [0.04ms]
+(pass) draft pricing > 10평 of wallpaper prices as 2 rolls at the material rate [0.01ms]
+(pass) draft pricing > the category's waste allowance applies when the material states none [0.13ms]
+(pass) unresolved lines are surfaced, never dropped > no matching material [0.02ms]
+(pass) unresolved lines are surfaced, never dropped > material found but coverage unregistered [0.02ms]
+(pass) unresolved lines are surfaced, never dropped > converted but priced at zero [0.02ms]
+(pass) unresolved lines are surfaced, never dropped > a mixed report totals only what is actually priced [0.02ms]
+
+apps/editor/lib/scene-project-link.test.ts:
+(pass) where the link lives > the building node holds it when there is one
+(pass) where the link lives > a scene with no building falls back to its first root [0.26ms]
+(pass) where the link lives > stale root ids still resolve to a parentless node [0.01ms]
+(pass) where the link lives > an empty scene has nowhere to put it [0.02ms]
+(pass) reading and writing > reads the linked project [0.03ms]
+(pass) reading and writing > an unlinked scene reads as null, not empty string [0.02ms]
+(pass) reading and writing > writing preserves whatever else is in metadata [0.02ms]
+(pass) reading and writing > clearing removes only the link [0.04ms]
+(pass) reading and writing > a round trip preserves the value [0.03ms]
+
+apps/editor/lib/estimate-submit.test.ts:
+(pass) line items > a priced line becomes an INTM item with its converted quantity [0.30ms]
+(pass) line items > the description traces the line back to the drawing [0.02ms]
+(pass) line items > a no-material line is left out [0.02ms]
+(pass) line items > a no-coverage line is left out
+(pass) line items > a no-price line is left out
+(pass) line items > a priced line with zero quantity is left out too
+(pass) line items > a mixed draft submits only what is resolved [0.04ms]
+(pass) submission > posts the items to INTM with the caller session [0.21ms]
+(pass) submission > creates the document first, then posts each item to it [0.19ms]
+(pass) submission > counts item failures instead of discarding the estimate [0.11ms]
+(pass) submission > keeps a link when every item fails after the document is created [0.02ms]
+(pass) submission > normalizes the configured base and encodes the estimate id in the link [0.06ms]
+(pass) submission > refuses with no project before any request [0.05ms]
+(pass) submission > refuses with no title before any request [0.02ms]
+(pass) submission > refuses to create an estimate with nothing resolved [0.03ms]
+(pass) submission > reports a refusal instead of pretending it worked [0.02ms]
+(pass) submission > a 200 with no estimate id is still a failure [0.06ms]
+(pass) submission > no session and no INTM both refuse before any request [0.02ms]
+
+apps/editor/lib/intm-session.test.ts:
+(pass) gating > stays off until an INTM instance is configured
+(pass) gating > turns on once INTM_BASE_URL is set, and can be forced off [0.10ms]
+(pass) gating > login URL returns the user to where they were headed, as a path [0.02ms]
+(pass) gating > a return URL on another origin is left absolute [0.07ms]
+(pass) session resolution > forwards the inbound cookie verbatim to INTM [0.12ms]
+(pass) session resolution > no session cookie means no INTM round trip at all [0.03ms]
+(pass) session resolution > a rejected session resolves to no user [0.13ms]
+(pass) session resolution > an error status resolves to no user [0.01ms]
+(pass) session resolution > an unreachable INTM resolves to no user [0.05ms]
+(pass) session resolution > an unconfigured INTM never authenticates anyone [0.02ms]
+
+ 52 pass
+ 0 fail
+ 87 expect() calls
+Ran 52 tests across 4 files. [26.00ms]

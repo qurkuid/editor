@@ -1,0 +1,205 @@
+{
+  "sourceImageSize": [
+    800,
+    800
+  ],
+  "origin": "원본 도면 육안 판독 후 생성 결과 확인 전에 동결한 기준점",
+  "expectedRooms": 12,
+  "roomProbes": [
+    {
+      "id": "bedroom-0",
+      "label": "bedroom",
+      "source": [
+        558,
+        270
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "bedroom-1",
+      "label": "bedroom",
+      "source": [
+        113,
+        521
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "bedroom-2",
+      "label": "bedroom",
+      "source": [
+        283,
+        521
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "bath-3",
+      "label": "bath",
+      "source": [
+        435,
+        173
+      ],
+      "cls": "bath",
+      "acceptedNames": [
+        "욕실"
+      ]
+    },
+    {
+      "id": "bath-4",
+      "label": "bath",
+      "source": [
+        412,
+        333
+      ],
+      "cls": "bath",
+      "acceptedNames": [
+        "욕실"
+      ]
+    },
+    {
+      "id": "dress-5",
+      "label": "dress",
+      "source": [
+        575,
+        128
+      ],
+      "cls": "dress",
+      "acceptedNames": [
+        "드레스룸",
+        "드레스"
+      ]
+    },
+    {
+      "id": "entrance-6",
+      "label": "entrance",
+      "source": [
+        269,
+        332
+      ],
+      "cls": "entrance",
+      "acceptedNames": [
+        "현관",
+        "전실"
+      ]
+    },
+    {
+      "id": "living-7",
+      "label": "living",
+      "source": [
+        481,
+        478
+      ],
+      "cls": "living",
+      "acceptedNames": [
+        "거실"
+      ]
+    },
+    {
+      "id": "kitchen-8",
+      "label": "kitchen",
+      "source": [
+        388,
+        530
+      ],
+      "cls": "kitchen",
+      "acceptedNames": [
+        "부엌",
+        "주방"
+      ]
+    },
+    {
+      "id": "balcony-9",
+      "label": "balcony",
+      "source": [
+        705,
+        216
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-10",
+      "label": "balcony",
+      "source": [
+        705,
+        435
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-11",
+      "label": "balcony",
+      "source": [
+        392,
+        636
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    }
+  ],
+  "wallProbes": [
+    {
+      "id": "wall-0",
+      "label": "원본 실벽",
+      "a": [
+        480,
+        193
+      ],
+      "b": [
+        480,
+        338
+      ]
+    },
+    {
+      "id": "wall-1",
+      "label": "원본 실벽",
+      "a": [
+        343,
+        307
+      ],
+      "b": [
+        343,
+        368
+      ]
+    },
+    {
+      "id": "wall-2",
+      "label": "원본 실벽",
+      "a": [
+        211,
+        478
+      ],
+      "b": [
+        211,
+        578
+      ]
+    }
+  ],
+  "forbiddenWallProbes": [],
+  "closedHostPairs": [],
+  "tolerances": {
+    "wallBodyDistanceM": 0.06,
+    "overlapInteriorAreaM2": 0.005,
+    "endpointGapM": 0.02
+  }
+}

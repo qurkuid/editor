@@ -1,0 +1,87 @@
+{
+  "file": "/Users/changseok/editor/outputs/onheuk-line-chair/onheuk-line-chair-cut-layout-600x2400.skp",
+  "sheet_mm": [
+    2400,
+    600,
+    15
+  ],
+  "sheet_count": 1,
+  "kerf_mm": 4,
+  "edge_margin_mm": 10,
+  "original_preserved": true,
+  "parts": [
+    {
+      "name": "01 뒤판·등받이",
+      "source": "02 뒤판·등받이 350×570×15 · 중앙 슬롯",
+      "x_mm": 10,
+      "y_mm": 10,
+      "width_mm": 570,
+      "height_mm": 350,
+      "thickness_mm": 15,
+      "solid": true,
+      "volume_mm3": 2936325.247809864
+    },
+    {
+      "name": "02 앞판",
+      "source": "01 앞판 350×435×15 · 중앙 슬롯",
+      "x_mm": 584,
+      "y_mm": 10,
+      "width_mm": 435,
+      "height_mm": 350,
+      "thickness_mm": 15,
+      "solid": true,
+      "volume_mm3": 2236462.62390493
+    },
+    {
+      "name": "03 좌면 좌",
+      "source": "03 좌면 좌 171×350×15",
+      "x_mm": 10,
+      "y_mm": 364,
+      "width_mm": 350,
+      "height_mm": 171,
+      "thickness_mm": 15,
+      "solid": true,
+      "volume_mm3": 897750.0000000024
+    },
+    {
+      "name": "04 좌면 우",
+      "source": "03 좌면 우 171×350×15",
+      "x_mm": 364,
+      "y_mm": 364,
+      "width_mm": 350,
+      "height_mm": 171,
+      "thickness_mm": 15,
+      "solid": true,
+      "volume_mm3": 897750.000000001
+    },
+    {
+      "name": "05 보강재 좌",
+      "source": "04 하부 보강재 좌 15×335×60",
+      "x_mm": 718,
+      "y_mm": 364,
+      "width_mm": 335,
+      "height_mm": 60,
+      "thickness_mm": 15,
+      "solid": true,
+      "volume_mm3": 301499.9999999998
+    },
+    {
+      "name": "06 보강재 우",
+      "source": "04 하부 보강재 우 15×335×60",
+      "x_mm": 718,
+      "y_mm": 428,
+      "width_mm": 335,
+      "height_mm": 60,
+      "thickness_mm": 15,
+      "solid": true,
+      "volume_mm3": 301499.9999999994
+    }
+  ],
+  "continuous_offcut_mm": [
+    1333,
+    600
+  ],
+  "all_solid": true,
+  "no_overlaps": true,
+  "within_sheet": true
+}

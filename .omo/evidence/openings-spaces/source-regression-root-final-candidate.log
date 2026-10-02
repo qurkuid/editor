@@ -1,0 +1,2 @@
+metrics {"doors": 9, "openings": 4, "planId": "source-plan", "rooms": 15, "scale": 10.992, "style": "standard", "wallIoU": 0.81, "walls": 51, "windows": 3}
+PASS source probes=15 labels=14 openings=16 rooms=15

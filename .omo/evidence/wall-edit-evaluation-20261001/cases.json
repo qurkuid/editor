@@ -1,0 +1,34 @@
+{
+  "blank": {
+    "id": "04760d4d358e",
+    "name": "벽 편집 사용성 검수 · blank",
+    "projectId": "qa-wall-edit-20261001",
+    "ownerId": null,
+    "thumbnailUrl": null,
+    "version": 1,
+    "createdAt": "2026-09-30T23:04:50.338Z",
+    "updatedAt": "2026-09-30T23:04:50.338Z",
+    "sizeBytes": 686,
+    "nodeCount": 3,
+    "editorUrl": "/editor/04760d4d358e",
+    "url": "/editor/04760d4d358e",
+    "published": true,
+    "graphHash": "9f9816e1c5e7dee76dace669222e39fe9f3552fdf11389d6d316729fe8e94da1"
+  },
+  "apartment": {
+    "id": "796409ebb6bf",
+    "name": "벽 편집 사용성 검수 · apartment",
+    "projectId": "qa-wall-edit-20261001",
+    "ownerId": null,
+    "thumbnailUrl": null,
+    "version": 1,
+    "createdAt": "2026-09-30T23:04:50.572Z",
+    "updatedAt": "2026-09-30T23:04:50.572Z",
+    "sizeBytes": 66796,
+    "nodeCount": 93,
+    "editorUrl": "/editor/796409ebb6bf",
+    "url": "/editor/796409ebb6bf",
+    "published": true,
+    "graphHash": "6569bac9be2314bfd88a08077f3d47abc9ac550a15f53d52f45746b7d1d452d0"
+  }
+}

@@ -1,0 +1,53 @@
+Recovery artifact fresh verification; no product source mutation.
+
+Eight recovered source Git blob hashes verified against validation.json: PASS
+
+Invocation: git apply --check --directory=.omx/recovery-20260929/session-recovery/validation-tree .omx/recovery-20260929/session-recovery/wall-recovered.patch .omx/recovery-20260929/session-recovery/floor-recovered.patch
+
+Exit code: 0
+
+stdout:
+(empty; git apply --check succeeds silently)
+
+stderr:
+(empty)
+
+Invocation: git apply --stat .omx/recovery-20260929/session-recovery/wall-recovered.patch .omx/recovery-20260929/session-recovery/floor-recovered.patch
+
+Exit code: 0
+
+stdout:
+ packages/editor/src/lib/glb-export.test.ts         |  260 ++++++
+ packages/editor/src/lib/glb-export.ts              |   82 ++
+ .../editor/src/lib/sketchup-wall-contract.test.ts  |  361 ++++++++
+ packages/editor/src/lib/sketchup-wall-contract.ts  |  927 ++++++++++++++++++++
+ packages/viewer/src/index.ts                       |    3 
+ packages/viewer/src/lib/polygon-union.test.ts      |  111 ++
+ 6 files changed, 1739 insertions(+), 5 deletions(-)
+ packages/core/src/lib/slab-polygon.test.ts         |  266 ++++++
+ packages/core/src/lib/slab-polygon.ts              |  132 +++
+ 2 files changed, 396 insertions(+), 2 deletions(-)
+
+
+stderr:
+(empty)
+
+Invocation: git apply --numstat .omx/recovery-20260929/session-recovery/wall-recovered.patch .omx/recovery-20260929/session-recovery/floor-recovered.patch
+
+Exit code: 0
+
+stdout:
+259	1	packages/editor/src/lib/glb-export.test.ts
+79	3	packages/editor/src/lib/glb-export.ts
+361	0	packages/editor/src/lib/sketchup-wall-contract.test.ts
+927	0	packages/editor/src/lib/sketchup-wall-contract.ts
+2	1	packages/viewer/src/index.ts
+111	0	packages/viewer/src/lib/polygon-union.test.ts
+265	1	packages/core/src/lib/slab-polygon.test.ts
+131	1	packages/core/src/lib/slab-polygon.ts
+
+
+stderr:
+(empty)
+
+Judgment: both recovered patches apply cleanly to a fresh copy of the original six baseline files; all eight patch numstats match recorded final commit observations. Original commit object identity and runtime behavior are not claimed by this recovery-only lane.

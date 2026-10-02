@@ -1,0 +1,915 @@
+--- a/apps/editor/app/editor/page.tsx
++++ b/apps/editor/app/editor/page.tsx
+@@ -218,7 +218,7 @@
+       <IntmMaterialLibrary />
+       <Editor
+         integrationAdapter={rawPainterIntegrationAdapter}
+-        inspectorFooter={<ZoneFinishInspectorFooter />}
++        inspectorZoneSection={<ZoneFinishInspectorFooter embedded />}
+         layoutVersion="v2"
+         onSaveStatusChange={setSaveStatus}
+         projectId={PROJECT_ID}
+--- a/apps/editor/components/paint-catalog.tsx
++++ b/apps/editor/components/paint-catalog.tsx
+@@ -281,6 +281,12 @@
+ 
+ const SWATCH_GRID_STYLE = { gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }
+ 
++function catalogGridStyle(columns?: number) {
++  return columns && columns > 0
++    ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
++    : SWATCH_GRID_STYLE
++}
++
+ /** One level of the category → brand drill-down: a large tappable row. */
+ function DrillRow({
+   label,
+@@ -354,9 +360,11 @@
+  * no local sections at all.
+  */
+ export function MergedMaterialCatalog({
++  columns,
+   sceneOnly = false,
+   onSelectMaterial,
+ }: {
++  columns?: number
+   sceneOnly?: boolean
+   onSelectMaterial?: MaterialSelectionSink
+ } = {}) {
+@@ -791,6 +799,7 @@
+             {sceneMaterialCount > 0 ? (
+               <SceneMaterialList
+                 autoEditId={autoEditMaterialId}
++                columns={columns}
+                 filter={(_, sceneMaterial) => matchesQuery(sceneMaterial.name)}
+                 onSelectMaterial={onSelectMaterial}
+                 rowActions={(id, sceneMaterial) => (
+@@ -837,7 +846,7 @@
+               </p>
+             )}
+             {visibleMyLibrary.length > 0 ? (
+-              <div className="mt-2 grid gap-2" style={SWATCH_GRID_STYLE}>
++              <div className="mt-2 grid gap-2" style={catalogGridStyle(columns)}>
+                 {visibleMyLibrary.map(libraryTile)}
+               </div>
+             ) : null}
+@@ -923,7 +932,7 @@
+                 {isBuiltinLeaf ||
+                 (catalogRequest.search !== '' && catalogRequest.brand === null) ? (
+                   visibleBuiltin.length > 0 ? (
+-                    <div className="mb-2.5 grid gap-2" style={SWATCH_GRID_STYLE}>
++                    <div className="mb-2.5 grid gap-2" style={catalogGridStyle(columns)}>
+                       {visibleBuiltin.map(libraryTile)}
+                     </div>
+                   ) : isBuiltinLeaf ? (
+@@ -962,7 +971,10 @@
+                 ) : null}
+                 {!isBuiltinLeaf && status === 'ready' ? (
+                   products.length > 0 ? (
+-                    <div className="grid grid-cols-1 gap-2.5 pb-2">
++                    <div
++                      className="grid grid-cols-1 gap-2.5 pb-2"
++                      style={columns ? catalogGridStyle(columns) : undefined}
++                    >
+                       {products.map((product) => (
+                         <RawPainterProductCard
+                           favorite={`rawpainter:${String(product.id)}` in favorites}
+@@ -1021,8 +1033,10 @@
+ 
+ /** Starred materials across every source, resolved live where possible. */
+ export function FavoriteMaterialsGrid({
++  columns,
+   onSelectMaterial,
+ }: {
++  columns?: number
+   onSelectMaterial?: MaterialSelectionSink
+ } = {}) {
+   const t = useT()
+@@ -1058,7 +1072,7 @@
+         </div>
+       ) : null}
+       {swatchFavorites.length > 0 ? (
+-        <div className="grid gap-2" style={SWATCH_GRID_STYLE}>
++        <div className="grid gap-2" style={catalogGridStyle(columns)}>
+           {swatchFavorites.map((favorite) => {
+             if (favorite.kind === 'scene') {
+               const sceneMaterial = sceneMaterials[favorite.id as SceneMaterialId]
+@@ -1133,7 +1147,10 @@
+         </div>
+       ) : null}
+       {productFavorites.length > 0 ? (
+-        <div className="mt-2 grid grid-cols-1 gap-2.5 pb-2">
++        <div
++          className="mt-2 grid grid-cols-1 gap-2.5 pb-2"
++          style={columns ? catalogGridStyle(columns) : undefined}
++        >
+           {productFavorites.map((favorite) =>
+             favorite.kind === 'rawpainter' ? (
+               <RawPainterProductCard
+--- a/apps/editor/components/scene-loader.tsx
++++ b/apps/editor/components/scene-loader.tsx
+@@ -424,7 +424,7 @@
+       <IntmMaterialLibrary />
+       <Editor
+         actionMenuControls={<ModelingRailControls />}
+-        inspectorFooter={<ZoneFinishInspectorFooter />}
++        inspectorZoneSection={<ZoneFinishInspectorFooter embedded />}
+         layoutVersion="v2"
+         onLoad={handleLoad}
+         onSave={handleSave}
+--- a/apps/editor/components/zone-finish-panel.tsx
++++ b/apps/editor/components/zone-finish-panel.tsx
+@@ -331,7 +331,7 @@
+   )
+ }
+ 
+-export function ZoneFinishInspectorFooter() {
++export function ZoneFinishInspectorFooter({ embedded = false }: { embedded?: boolean } = {}) {
+   const nodes = useScene((state) => state.nodes)
+   const materials = useScene((state) => state.materials)
+   const spaces = useEditor((state) => state.spaces)
+@@ -915,30 +915,47 @@
+ 
+   return (
+     <section
+-      aria-labelledby="zone-finish-inspector-title"
+-      className="border-t border-border/70 bg-sidebar px-3 py-2"
++      {...(!embedded ? { 'aria-labelledby': 'zone-finish-inspector-title' } : {})}
++      className={embedded ? 'px-0 py-0' : 'border-t border-border/70 bg-sidebar px-3 py-2'}
+     >
+-      <div className="flex items-center justify-between gap-2">
+-        <div className="min-w-0">
+-          <h2 className="truncate font-semibold text-xs" id="zone-finish-inspector-title">
+-            실제 마감 자재
+-          </h2>
+-          <p className="truncate text-[10px] text-muted-foreground">
+-            {roomLabel(selectedZone, allZones)}
+-          </p>
++      {!embedded ? (
++        <div className="flex items-center justify-between gap-2">
++          <div className="min-w-0">
++            <h2 className="truncate font-semibold text-xs" id="zone-finish-inspector-title">
++              실제 마감 자재
++            </h2>
++            <p className="truncate text-[10px] text-muted-foreground">
++              {roomLabel(selectedZone, allZones)}
++            </p>
++          </div>
++          <button
++            aria-expanded={templateOpen}
++            aria-label="Zone 템플릿 열기"
++            className={`rounded-md border border-border/70 p-1.5 text-muted-foreground hover:text-foreground ${focusRing}`}
++            onClick={() => setTemplateOpen((open) => !open)}
++            type="button"
++          >
++            <ChevronDown
++              className={`h-3.5 w-3.5 transition-transform ${templateOpen ? 'rotate-180' : ''}`}
++            />
++          </button>
+         </div>
+-        <button
+-          aria-expanded={templateOpen}
+-          aria-label="Zone 템플릿 열기"
+-          className={`rounded-md border border-border/70 p-1.5 text-muted-foreground hover:text-foreground ${focusRing}`}
+-          onClick={() => setTemplateOpen((open) => !open)}
+-          type="button"
+-        >
+-          <ChevronDown
+-            className={`h-3.5 w-3.5 transition-transform ${templateOpen ? 'rotate-180' : ''}`}
+-          />
+-        </button>
+-      </div>
++      ) : null}
++      {embedded ? (
++        <div className="flex justify-end">
++          <button
++            aria-expanded={templateOpen}
++            aria-label="Zone 템플릿 열기"
++            className={`rounded-md border border-border/70 p-1.5 text-muted-foreground hover:text-foreground ${focusRing}`}
++            onClick={() => setTemplateOpen((open) => !open)}
++            type="button"
++          >
++            <ChevronDown
++              className={`h-3.5 w-3.5 transition-transform ${templateOpen ? 'rotate-180' : ''}`}
++            />
++          </button>
++        </div>
++      ) : null}
+       <div className="mt-2 grid gap-1.5">
+         {(['walls', 'ceiling', 'floor'] as const).map(renderTargetRow)}
+       </div>
+@@ -1105,7 +1122,7 @@
+ 
+       <Dialog open={dialogTarget !== null} onOpenChange={(open) => !open && closeDialog()}>
+         <DialogContent
+-          className="flex max-h-[82vh] flex-col overflow-hidden p-0 sm:max-w-xl"
++          className={`flex max-h-[82vh] flex-col overflow-hidden p-0 ${dialogTarget?.kind === 'walls' ? 'sm:max-w-3xl' : 'sm:max-w-xl'}`}
+           onEscapeKeyDown={(event) => {
+             if (dialogBusy) event.preventDefault()
+           }}
+@@ -1151,11 +1168,21 @@
+           </div>
+           <div className="subtle-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">
+             {catalogView === 'materials' ? (
+-              <MergedMaterialCatalog onSelectMaterial={applyCatalogSelection} />
++              <MergedMaterialCatalog
++                columns={dialogTarget?.kind === 'walls' ? 4 : undefined}
++                onSelectMaterial={applyCatalogSelection}
++              />
+             ) : catalogView === 'favorites' ? (
+-              <FavoriteMaterialsGrid onSelectMaterial={applyCatalogSelection} />
++              <FavoriteMaterialsGrid
++                columns={dialogTarget?.kind === 'walls' ? 4 : undefined}
++                onSelectMaterial={applyCatalogSelection}
++              />
+             ) : (
+-              <MergedMaterialCatalog onSelectMaterial={applyCatalogSelection} sceneOnly />
++              <MergedMaterialCatalog
++                columns={dialogTarget?.kind === 'walls' ? 4 : undefined}
++                onSelectMaterial={applyCatalogSelection}
++                sceneOnly
++              />
+             )}
+           </div>
+           {dialogBusy ? (
+--- a/packages/core/src/lib/space-detection.test.ts
++++ b/packages/core/src/lib/space-detection.test.ts
+@@ -575,6 +575,8 @@
+       parentId: level.id,
+       polygon: square,
+       spaceRole: 'room',
++      autoFromWalls: true,
++      boundaryWallIds: walls.map((wall) => wall.id),
+       metadata: { source: 'apt-vector', sourceRoomId: 'bedroom' },
+     })
+     const original = Object.fromEntries([level, ...walls, zone].map((node) => [node.id, node]))
+@@ -584,9 +586,13 @@
+     const broken = { ...original }
+     delete broken[walls[0]!.id]
+     scene.setNodes(broken)
+-    expect((scene.getState().nodes[zone.id] as typeof zone).metadata).toEqual({
+-      ...zone.metadata,
+-      boundaryNeedsReview: true,
++    expect(scene.getState().nodes[zone.id]).toMatchObject({
++      id: zone.id,
++      name: zone.name,
++      polygon: zone.polygon,
++      autoFromWalls: true,
++      boundaryWallIds: zone.boundaryWallIds,
++      metadata: { ...zone.metadata, boundaryNeedsReview: true },
+     })
+     scene.setNodes(original)
+     expect((scene.getState().nodes[zone.id] as typeof zone).metadata).toEqual(zone.metadata)
+--- a/packages/editor/src/components/editor/index.tsx
++++ b/packages/editor/src/components/editor/index.tsx
+@@ -183,6 +183,9 @@
+    * only while a node is selected.
+    */
+   inspectorFooter?: ReactNode
++  /** Host-injected content rendered inside the selected room Zone's
++   * collapsed finish section. */
++  inspectorZoneSection?: ReactNode
+   /**
+    * Docked below the multi-selection panel (v2). Hosts mount whole-selection
+    * affordances here (e.g. "Save to my catalog"); shows only while more than
+@@ -1160,6 +1163,7 @@
+   actionMenuControls,
+   stageOverlay,
+   inspectorFooter,
++  inspectorZoneSection,
+   multiSelectionFooter,
+   viewerSceneSlot,
+   floorplanSceneSlot,
+@@ -1503,6 +1507,7 @@
+                     <div className="pointer-events-auto">
+                       <PanelManager
+                         inspectorFooter={inspectorFooter}
++                        inspectorZoneSection={inspectorZoneSection}
+                         multiSelectionFooter={multiSelectionFooter}
+                       />
+                     </div>
+--- a/packages/editor/src/components/ui/controls/scene-material-list.tsx
++++ b/packages/editor/src/components/ui/controls/scene-material-list.tsx
+@@ -45,11 +45,14 @@
+ }
+ 
+ export function SceneMaterialList({
++  columns,
+   autoEditId,
+   filter,
+   rowActions,
+   onSelectMaterial,
+ }: {
++  /** Optional fixed card columns for compact catalog dialogs. */
++  columns?: number
+   autoEditId?: SceneMaterialId | null
+   /** When provided, only materials passing the predicate render. */
+   filter?: (id: SceneMaterialId, sceneMaterial: SceneMaterial) => boolean
+@@ -101,7 +104,10 @@
+     : materialEntries
+ 
+   return (
+-    <div className="space-y-2">
++    <div
++      className={columns ? 'grid gap-2' : 'space-y-2'}
++      style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
++    >
+       {visibleEntries.map(([id, sceneMaterial]) => (
+         <SceneMaterialRow
+           addSceneMaterial={addSceneMaterial}
+--- a/packages/editor/src/components/ui/panels/panel-manager.tsx
++++ b/packages/editor/src/components/ui/panels/panel-manager.tsx
+@@ -75,7 +75,11 @@
+   return !!node && MOVABLE_TYPES.has(node.type)
+ }
+ 
+-function panelForType(type: string | null, footer?: React.ReactNode) {
++function panelForType(
++  type: string | null,
++  footer?: React.ReactNode,
++  inspectorZoneSection?: React.ReactNode,
++) {
+   if (!type) return null
+   // Every kind now renders through `<ParametricInspector>`, which either
+   // composes auto-derived editors from `parametrics.groups` or lazy-
+@@ -85,7 +89,7 @@
+   // future cases where we might want a non-registry fallback (e.g.
+   // reference scale, paint mode); leave the function shape intact.
+   void type
+-  return <ParametricInspector footer={footer} />
++  return <ParametricInspector footer={footer} inspectorZoneSection={inspectorZoneSection} />
+ }
+ 
+ function MobilePanelLayer({
+@@ -171,9 +175,11 @@
+ 
+ export function PanelManager({
+   inspectorFooter,
++  inspectorZoneSection,
+   multiSelectionFooter,
+ }: {
+   inspectorFooter?: React.ReactNode
++  inspectorZoneSection?: React.ReactNode
+   multiSelectionFooter?: React.ReactNode
+ }) {
+   const isMobile = useIsMobile()
+@@ -223,7 +229,7 @@
+       <MobilePanelLayer
+         isReference={false}
+         node={selectedNode}
+-        panel={panelForType(selectedNodeType)}
++        panel={panelForType(selectedNodeType, undefined, inspectorZoneSection)}
+       />
+     )
+   }
+@@ -237,6 +243,7 @@
+     return (
+       <ParametricInspector
+         footer={inspectorFooter}
++        inspectorZoneSection={inspectorZoneSection}
+         key={selectedZoneId}
+         nodeId={selectedZoneId as AnyNodeId}
+         onClose={() => setSelection({ zoneId: null })}
+@@ -250,5 +257,5 @@
+     return <MultiSelectionPanel footer={multiSelectionFooter} />
+   }
+ 
+-  return panelForType(selectedNodeType, inspectorFooter)
+-}
++  return panelForType(selectedNodeType, inspectorFooter, inspectorZoneSection)
++}
+--- a/packages/editor/src/components/ui/panels/panel-wrapper.tsx
++++ b/packages/editor/src/components/ui/panels/panel-wrapper.tsx
+@@ -58,6 +58,13 @@
+  * prop still wins over the context.
+  */
+ export const InspectorFooterContext = createContext<React.ReactNode>(null)
++
++/**
++ * Host-supplied content rendered inside the selected Zone's scrollable
++ * section. This stays separate from `InspectorFooterContext`: generic host
++ * footers remain pinned to the panel and are never interpreted as Zone UI.
++ */
++export const InspectorZoneSectionContext = createContext<React.ReactNode>(null)
+ 
+ interface PanelWrapperProps {
+   title: string
+--- a/packages/editor/src/components/ui/panels/parametric-inspector.tsx
++++ b/packages/editor/src/components/ui/panels/parametric-inspector.tsx
+@@ -24,7 +24,11 @@
+ import { SegmentedControl } from '../controls/segmented-control'
+ import { SliderControl } from '../controls/slider-control'
+ import { ToggleControl } from '../controls/toggle-control'
+-import { InspectorFooterContext, PanelWrapper } from './panel-wrapper'
++import {
++  InspectorFooterContext,
++  InspectorZoneSectionContext,
++  PanelWrapper,
++} from './panel-wrapper'
+ import { useT } from '../../../i18n/use-t'
+ 
+ /**
+@@ -45,9 +49,15 @@
+  */
+ export function ParametricInspector({
+   footer,
++  inspectorZoneSection,
+   nodeId,
+   onClose,
+-}: { footer?: React.ReactNode; nodeId?: AnyNodeId; onClose?: () => void } = {}) {
++}: {
++  footer?: React.ReactNode
++  inspectorZoneSection?: React.ReactNode
++  nodeId?: AnyNodeId
++  onClose?: () => void
++} = {}) {
+   const t = useT()
+   const selectedIdFromSelection = useViewer((s) => s.selection.selectedIds[0]) as
+     | AnyNodeId
+@@ -135,9 +145,11 @@
+     // `footer` prop, so hand the host footer down via context.
+     return (
+       <InspectorFooterContext.Provider value={footer}>
+-        <Suspense fallback={null}>
+-          <CustomPanel />
+-        </Suspense>
++        <InspectorZoneSectionContext.Provider value={inspectorZoneSection}>
++          <Suspense fallback={null}>
++            <CustomPanel />
++          </Suspense>
++        </InspectorZoneSectionContext.Provider>
+       </InspectorFooterContext.Provider>
+     )
+   }
+@@ -174,9 +186,17 @@
+         </PanelSection>
+       ))}
+       {TrailingSection && (
+-        <Suspense fallback={null}>
+-          <TrailingSection />
+-        </Suspense>
++        isZone ? (
++          <InspectorZoneSectionContext.Provider value={inspectorZoneSection}>
++            <Suspense fallback={null}>
++              <TrailingSection />
++            </Suspense>
++          </InspectorZoneSectionContext.Provider>
++        ) : (
++          <Suspense fallback={null}>
++            <TrailingSection />
++          </Suspense>
++        )
+       )}
+       {(canMove || canDelete || (parametrics.actions && parametrics.actions.length > 0)) && (
+         <PanelSection title={t('panel.actions')}>
+--- a/packages/editor/src/components/ui/panels/related-zone-panel.tsx
++++ b/packages/editor/src/components/ui/panels/related-zone-panel.tsx
+@@ -0,0 +1,54 @@
++'use client'
++
++import { type AnyNodeId, useScene } from '@pascal-app/core'
++import { useViewer } from '@pascal-app/viewer'
++import { useMemo } from 'react'
++import { formatAreaLabel } from '../../../lib/measurements'
++import { resolveRelatedZonesForNode } from '../../../lib/zone-content'
++import { PanelSection } from '../controls/panel-section'
++
++const ENCLOSURE_LABEL: Record<string, string> = {
++  auto: '자동 감지',
++  enclosed: '구획됨',
++  open: '개방',
++}
++
++export function RelatedZonePanel({ nodeId }: { nodeId: AnyNodeId }) {
++  const nodes = useScene((state) => state.nodes)
++  const unit = useViewer((state) => state.unit)
++  const zones = useMemo(() => resolveRelatedZonesForNode(nodes, nodeId), [nodeId, nodes])
++
++  if (zones.length === 0) return null
++
++  return (
++    <PanelSection title="소속 구역">
++      <div className="grid gap-1.5" data-testid="related-zone-list">
++        {zones.map((zone) => (
++          <div
++            className="rounded-md border border-border/60 bg-background/35 px-2.5 py-2"
++            key={zone.id}
++          >
++            <div className="flex items-baseline gap-2">
++              <span className="min-w-0 truncate font-medium text-foreground text-xs">
++                {zone.name || '이름 없는 Zone'}
++              </span>
++              {zone.roomNumber ? (
++                <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
++                  {zone.roomNumber}
++                </span>
++              ) : null}
++              <span className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground">
++                {formatAreaLabel(zone.area, unit, 2)}
++              </span>
++            </div>
++            <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
++              <span>{ENCLOSURE_LABEL[zone.enclosureStatus] ?? zone.enclosureStatus}</span>
++              <span aria-hidden="true">·</span>
++              <span className="min-w-0 truncate">{zone.occupancy || '용도 미지정'}</span>
++            </div>
++          </div>
++        ))}
++      </div>
++    </PanelSection>
++  )
++}
+--- a/packages/editor/src/index.tsx
++++ b/packages/editor/src/index.tsx
+@@ -258,8 +258,13 @@
+ // Phase 5 Stage E — kinds with bespoke editors (slab holes list,
+ // ceiling height presets, etc.) use `parametrics.customPanel` to mount
+ // a kind-owned panel and need PanelWrapper for the chrome.
+-export { PanelWrapper } from './components/ui/panels/panel-wrapper'
++export {
++  InspectorFooterContext,
++  InspectorZoneSectionContext,
++  PanelWrapper,
++} from './components/ui/panels/panel-wrapper'
+ export { ParametricInspector as Inspector } from './components/ui/panels/parametric-inspector'
++export { RelatedZonePanel } from './components/ui/panels/related-zone-panel'
+ export { PALETTE_COLORS } from './components/ui/primitives/color-dot'
+ export {
+   Dialog,
+@@ -605,6 +610,10 @@
+   snapBuildingLocalToWorldGrid,
+   snapWorldXZForActiveBuilding,
+ } from './lib/world-grid-snap'
++export {
++  type RelatedZoneInfo,
++  resolveRelatedZonesForNode,
++} from './lib/zone-content'
+ export {
+   applyHomeFinishTemplate,
+   applyMaterialToCapturedZoneTarget,
+--- a/packages/editor/src/lib/zone-content.ts
++++ b/packages/editor/src/lib/zone-content.ts
+@@ -9,12 +9,20 @@
+   type WallNode,
+   type ZoneNode,
+ } from '@pascal-app/core'
++import { inspectZoneFinishTarget } from './zone-finish'
+ 
+ type Point2D = [number, number]
+ 
+ const POINT_TOLERANCE = 0.5
+ const COLLINEAR_TOLERANCE = 1e-6
+ const SURFACE_POLYGON_TOLERANCE = 0.15
++
++export type RelatedZoneInfo = Pick<
++  ZoneNode,
++  'id' | 'name' | 'roomNumber' | 'enclosureStatus' | 'occupancy'
++> & {
++  area: number
++}
+ 
+ function getPointToSegmentDistance(point: Point2D, start: Point2D, end: Point2D): number {
+   const dx = end[0] - start[0]
+@@ -128,3 +136,65 @@
+     ]),
+   )
+ }
++
++function polygonArea(polygon: readonly (readonly [number, number])[]): number {
++  if (polygon.length < 3) return 0
++  let area = 0
++  for (let index = 0; index < polygon.length; index += 1) {
++    const current = polygon[index]
++    const next = polygon[(index + 1) % polygon.length]
++    if (!(current && next)) continue
++    area += current[0] * next[1] - next[0] * current[1]
++  }
++  return Math.abs(area) / 2
++}
++
++/**
++ * Read-only Zone membership for structural inspectors. This intentionally
++ * delegates wall-face and floor containment to the finish inspection resolver
++ * so shared walls, containing support slabs, holes, and concave boundaries use
++ * the same proof rules as the finish workflow. It never returns content IDs
++ * and never mutates the scene.
++ */
++export function resolveRelatedZonesForNode(
++  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
++  nodeId: AnyNodeId,
++): RelatedZoneInfo[] {
++  const target = nodes[nodeId]
++  if (!target || (target.type !== 'wall' && target.type !== 'slab') || !target.parentId) return []
++
++  const sceneNodes = nodes as Record<string, AnyNode>
++  const zones = Object.values(nodes).filter(
++    (node): node is ZoneNode => node.type === 'zone' && node.parentId === target.parentId,
++  )
++
++  return zones
++    .filter((zone) => {
++      const inspection = inspectZoneFinishTarget({
++        kind: target.type === 'wall' ? 'walls' : 'floor',
++        materials: {},
++        nodes: sceneNodes,
++        spaces: {},
++        zoneId: zone.id,
++      })
++      if (target.type === 'wall') {
++        if (zone.autoFromWalls && zone.boundaryWallIds.includes(target.id)) return true
++        return (
++          !inspection.boundaryError &&
++          inspection.wallFaces.some((face) => face.wallId === target.id)
++        )
++      }
++      return (
++        (inspection.floor.status === 'existing' && inspection.floor.slabId === target.id) ||
++        (inspection.floor.status === 'creatable' && inspection.floor.baseSlabId === target.id)
++      )
++    })
++    .map((zone) => ({
++      area: polygonArea(zone.polygon),
++      enclosureStatus: zone.enclosureStatus,
++      id: zone.id,
++      name: zone.name,
++      occupancy: zone.occupancy,
++      roomNumber: zone.roomNumber,
++    }))
++}
+--- a/packages/editor/src/lib/zone-content.test.ts
++++ b/packages/editor/src/lib/zone-content.test.ts
+@@ -0,0 +1,125 @@
++import { describe, expect, test } from 'bun:test'
++import { detectSpacesForLevel, SlabNode, WallNode, ZoneNode } from '@pascal-app/core'
++import { resolveRelatedZonesForNode } from './zone-content'
++
++const levelId = 'level-related-zone'
++
++function sharedRoomWalls() {
++  return [
++    WallNode.parse({ id: 'wall_left_bottom', parentId: levelId, start: [0, 0], end: [2, 0] }),
++    WallNode.parse({ id: 'wall_shared', parentId: levelId, start: [2, 0], end: [2, 3] }),
++    WallNode.parse({ id: 'wall_right_bottom', parentId: levelId, start: [2, 0], end: [4, 0] }),
++    WallNode.parse({ id: 'wall_right', parentId: levelId, start: [4, 0], end: [4, 3] }),
++    WallNode.parse({ id: 'wall_right_top', parentId: levelId, start: [4, 3], end: [2, 3] }),
++    WallNode.parse({ id: 'wall_left_top', parentId: levelId, start: [2, 3], end: [0, 3] }),
++    WallNode.parse({ id: 'wall_left', parentId: levelId, start: [0, 3], end: [0, 0] }),
++  ]
++}
++
++function roomZones() {
++  const walls = sharedRoomWalls()
++  const spaces = detectSpacesForLevel(levelId, walls).spaces
++  return spaces.map((space, index) =>
++    ZoneNode.parse({
++      id: `zone_room_${index + 1}`,
++      name: index === 0 ? '왼쪽 방' : '오른쪽 방',
++      parentId: levelId,
++      polygon: space.polygon,
++      boundaryWallIds: space.wallIds,
++      autoFromWalls: true,
++      spaceRole: 'room',
++      roomNumber: String(index + 1),
++      occupancy: index === 0 ? '침실' : '서재',
++    }),
++  )
++}
++
++function nodeRecord(
++  nodes: Array<
++    | ReturnType<typeof WallNode.parse>
++    | ReturnType<typeof ZoneNode.parse>
++    | ReturnType<typeof SlabNode.parse>
++  >,
++) {
++  return Object.fromEntries(nodes.map((node) => [node.id, node]))
++}
++
++describe('resolveRelatedZonesForNode', () => {
++  test('returns both rooms that share a partition wall', () => {
++    const walls = sharedRoomWalls()
++    const zones = roomZones()
++    const related = resolveRelatedZonesForNode(nodeRecord([...walls, ...zones]), 'wall_shared')
++
++    expect(related.map((zone) => zone.id).sort()).toEqual(zones.map((zone) => zone.id).sort())
++    expect(related.map((zone) => zone.area)).toEqual([6, 6])
++  })
++
++  test('includes a generic zone when the structural boundary is proven', () => {
++    const walls = sharedRoomWalls()
++    const zone = roomZones()[0]!
++    const genericZone = ZoneNode.parse({ ...zone, spaceRole: 'generic', id: 'zone_generic' })
++    const related = resolveRelatedZonesForNode(
++      nodeRecord([...walls, genericZone]),
++      'wall_left_bottom',
++    )
++
++    expect(related.map((entry) => entry.id)).toEqual(['zone_generic'])
++  })
++
++  test('keeps a stored auto boundary association when a neighboring wall was deleted', () => {
++    const walls = sharedRoomWalls()
++    const zone = roomZones()[0]!
++    const remainingWalls = walls.filter((wall) => wall.id !== 'wall_shared')
++    const related = resolveRelatedZonesForNode(
++      nodeRecord([...remainingWalls, zone]),
++      'wall_left_bottom',
++    )
++
++    expect(related.map((entry) => entry.id)).toEqual([zone.id])
++  })
++
++  test('associates a room inside a containing support slab', () => {
++    const walls = sharedRoomWalls()
++    const zone = roomZones()[0]!
++    const supportSlab = SlabNode.parse({
++      id: 'slab_support',
++      parentId: levelId,
++      polygon: [
++        [-1, -1],
++        [5, -1],
++        [5, 4],
++        [-1, 4],
++      ],
++    })
++    const related = resolveRelatedZonesForNode(
++      nodeRecord([...walls, zone, supportSlab]),
++      supportSlab.id,
++    )
++
++    expect(related.map((entry) => entry.id)).toEqual([zone.id])
++  })
++
++  test('does not associate a slab whose hole crosses the room footprint', () => {
++    const walls = sharedRoomWalls()
++    const zone = roomZones()[0]!
++    const slabWithHole = SlabNode.parse({
++      id: 'slab_hole',
++      parentId: levelId,
++      polygon: zone.polygon,
++      holes: [
++        [
++          [0.5, 0.5],
++          [1.5, 0.5],
++          [1.5, 1.5],
++          [0.5, 1.5],
++        ],
++      ],
++    })
++    const related = resolveRelatedZonesForNode(
++      nodeRecord([...walls, zone, slabWithHole]),
++      slabWithHole.id,
++    )
++
++    expect(related).toEqual([])
++  })
++})
+--- a/packages/editor/src/lib/zone-finish.ts
++++ b/packages/editor/src/lib/zone-finish.ts
+@@ -137,7 +137,7 @@
+   boundaryError?: ZoneFinishBoundaryError
+   floor:
+     | { status: 'existing'; slabId: string }
+-    | { status: 'creatable' }
++    | { status: 'creatable'; baseSlabId?: string }
+     | { status: 'blocked'; reason: string; conflictIds: string[] }
+   ceiling:
+     | { status: 'existing'; ceilingId: string; explicit: boolean }
+@@ -1469,7 +1469,10 @@
+         ? { status: 'blocked', reason: floor.reason, conflictIds: floor.conflictIds }
+         : floor.status === 'existing'
+           ? { status: 'existing', slabId: floor.slab.id }
+-          : { status: 'creatable' },
++          : {
++              status: 'creatable',
++              ...(floor.baseSlab ? { baseSlabId: floor.baseSlab.id } : {}),
++            },
+     ceiling:
+       ceiling.status === 'blocked'
+         ? {
+--- a/packages/mcp/src/modeling-agent-manual.ts
++++ b/packages/mcp/src/modeling-agent-manual.ts
+@@ -27,7 +27,8 @@
+   '- `buildWallSplitAtContacts` is the semantic operation behind the shared 2D/3D wall split control: it finds same-parent straight-wall T/X contacts in the selected wall interior, deduplicates them, and validates all descending splits before one undoable mutation. If it raises `no-wall-contacts`, the UI falls back to the typed `splitWall` distance; crossing an attachment fails atomically. AI/MCP distance splits remain explicit `splitWall` operations.',
+   '- The shared single-wall properties panel can align one uniquely resolved same-parent straight continuation within 2 degrees, preserving the shared corner, reference wall, and selected length while validating linked walls and hosted spans atomically. This is a direct UI capability with no AI/MCP mutation operation.',
+   '- Wall length input in the shared 2D/3D properties panel uses `buildWallLengthUpdates`: shared endpoints follow together, all affected host spans are checked before a single undoable update, and collapsed walls, detached T junctions, or unsupported curved walls are rejected. Single-wall split controls are in that properties panel; multi-selection merge remains in the contextual helper.',
+-  '- Wall-driven zone sync follows confirmed enclosing wall loops, including a uniquely matched approximate apartment room. A split/merge with unchanged room geometry rebinds its boundary wall ids. Lost or ambiguous boundaries preserve room names and finishes and set `metadata.boundaryNeedsReview`; both views display a boundary review warning and 2D suppresses unproven clear dimensions. Undo/redo restores the saved graph without rewriting zone metadata; only derived space detection is refreshed. Open semantic subdivisions are not guessed into physical rooms.',
++  '- Wall-driven zone sync follows confirmed enclosing wall loops, including a uniquely matched approximate apartment room. A split/merge with unchanged room geometry rebinds its boundary wall ids. A deletion-only boundary loss preserves the stored zone polygon, boundary wall ids, names, finishes, and source metadata without merging rooms, while setting `metadata.boundaryNeedsReview`; a valid linked-wall move updates the polygon and clears review, while lost or ambiguous moved boundaries preserve the last valid polygon and set `metadata.boundaryNeedsReview`. Both views display a boundary review warning and 2D suppresses unproven clear dimensions. Undo/redo restores the saved graph without rewriting zone metadata; only derived space detection is refreshed. Open semantic subdivisions are not guessed into physical rooms.',
++  '- Structural wall and slab inspectors expose read-only Zone membership at the same Level. Shared partition walls may list both proven rooms; a containing support Slab may list each proven room; holes, concave boundaries, and ambiguous or invalid finish targets fail closed. The Zone inspector consumes the host finish panel inside a collapsed 마감재 section; all-wall material selection uses four columns for built-in, vendor, favorite, and scene catalogs.',
+   '- Axis-guide stretch is a direct 2D authoring workflow: a Vertical Guide is parallel to model Z and moves X (Left X− or Right X+), while a Horizontal Guide is parallel to model X and moves Z (Up Z− or Down Z+). Use the selected guide distance control; the operation applies one complete plan as one undo step and the committed walls, openings, and zones render consistently in 3D.',
+   '- Axis-guide stretch transforms only same-level walls. Walls wholly on the selected half-plane translate rigidly; a straight wall crossing the guide may change only its movement-axis extent, while fixed endpoints and points on the guide remain exact. Doors, windows, and wall-hosted items follow their host; classify an opening by its world center, preserve its full footprint and metadata, and allow a valid opening footprint to straddle the guide. Auto zones are reconciled from post-stretch walls; manual semantic zones receive the same piecewise transform.',
+   '- Axis-guide stretch rejects diagonal guides, oblique or curved crossing walls, collapsed or reversed walls, detached junctions, invalid final hosted spans, new or worsened hosted collisions, and invalid manual zones atomically. Existing unrelated hosted overlap is retained unless the stretch worsens it. This is a direct UI capability with no AI/MCP mutation operation; agents must not claim to invoke it through a modeling command.',
+--- a/packages/mcp/src/ontology-manual.test.ts
++++ b/packages/mcp/src/ontology-manual.test.ts
+@@ -89,6 +89,13 @@
+     expect(MODELING_AGENT_MANUAL).toContain(
+       'Never synthesize a missing boundary by closing a room polygon',
+     )
++  })
++
++  test('documents preserved Zone boundaries and structural membership UI', () => {
++    expect(MODELING_AGENT_MANUAL).toContain('deletion-only boundary loss preserves')
++    expect(MODELING_AGENT_MANUAL).toContain('read-only Zone membership')
++    expect(MODELING_AGENT_MANUAL).toContain('collapsed 마감재 section')
++    expect(MODELING_AGENT_MANUAL).toContain('four columns')
+   })
+ 
+   test('documents source-backed opening and room boundary contracts', () => {
+--- a/packages/nodes/src/slab/panel.tsx
++++ b/packages/nodes/src/slab/panel.tsx
+@@ -7,6 +7,7 @@
+   holeEditScope,
+   PanelSection,
+   PanelWrapper,
++  RelatedZonePanel,
+   SegmentedControl,
+   SliderControl,
+   triggerSFX,
+@@ -281,6 +282,7 @@
+       title={node.name || 'Slab'}
+       width={320}
+     >
++      <RelatedZonePanel nodeId={node.id} />
+       <PanelSection title={t('panel.elevation')}>
+         <SliderControl
+           label={node.recessed ? 'Floor' : 'Surface'}
+--- a/packages/nodes/src/wall/panel.tsx
++++ b/packages/nodes/src/wall/panel.tsx
+@@ -53,6 +53,7 @@
+   metersToLinearUnit,
+   PanelSection,
+   PanelWrapper,
++  RelatedZonePanel,
+   SegmentedControl,
+   SliderControl,
+   triggerSFX,
+@@ -242,6 +243,7 @@
+       title={node.name || 'Wall'}
+       width={280}
+     >
++      <RelatedZonePanel nodeId={node.id} />
+       <PanelSection title={t('panel.dimensions')}>
+         <SliderControl
+           label={t('common.length')}
+--- a/packages/nodes/src/zone/quantities-panel.tsx
++++ b/packages/nodes/src/zone/quantities-panel.tsx
+@@ -13,6 +13,7 @@
+   formatAreaLabel,
+   formatLinearMeasurement,
+   formatVolumeLabel,
++  InspectorZoneSectionContext,
+   MetricControl,
+   type MetricNotation,
+   PanelSection,
+@@ -20,7 +21,7 @@
+   useT,
+ } from '@pascal-app/editor'
+ import { useViewer } from '@pascal-app/viewer'
+-import { useEffect, useMemo, useRef, useState } from 'react'
++import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+ import { useShallow } from 'zustand/react/shallow'
+ 
+ type Point2D = readonly [number, number]
+@@ -276,21 +277,6 @@
+             onCommit={(occupancy) => update({ occupancy })}
+             value={zone.occupancy}
+           />
+-          <RoomTextField
+-            label={t('panel.floorFinish')}
+-            onCommit={(floorFinish) => update({ floorFinish })}
+-            value={zone.floorFinish}
+-          />
+-          <RoomTextField
+-            label={t('panel.wallFinish')}
+-            onCommit={(wallFinish) => update({ wallFinish })}
+-            value={zone.wallFinish}
+-          />
+-          <RoomTextField
+-            label={t('panel.ceilingFinish')}
+-            onCommit={(ceilingFinish) => update({ ceilingFinish })}
+-            value={zone.ceilingFinish}
+-          />
+           <MetricControl
+             label={t('panel.ceilingHeight')}
+             max={20}
+@@ -361,6 +347,8 @@
+     () => (effectiveZone ? deriveZoneQuantityReport(effectiveZone, effectiveNodes) : null),
+     [effectiveNodes, effectiveZone],
+   )
++  const inspectorZoneSection = useContext(InspectorZoneSectionContext)
++  const embeddedFinishSection = effectiveZone?.spaceRole === 'room' ? inspectorZoneSection : null
+ 
+   if (!effectiveZone || !report) return null
+ 
+@@ -373,6 +361,11 @@
+         </p>
+       ) : null}
+       <RoomDocumentationPanel zone={effectiveZone} />
++      {embeddedFinishSection ? (
++        <PanelSection defaultExpanded={false} title="마감재">
++          {embeddedFinishSection}
++        </PanelSection>
++      ) : null}
+       <PanelSection
+         title={effectiveZone.spaceRole === 'room' ? 'Room quantities' : 'Zone quantities'}
+       >

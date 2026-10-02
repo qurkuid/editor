@@ -1,0 +1,80 @@
+bun test v1.3.11 (af24e281)
+
+packages/core/src/lib/space-detection.test.ts:
+(pass) planAutoCeilingsForLevel > creates auto ceilings height-less so they follow the level top [1.91ms]
+(pass) planAutoCeilingsForLevel > never writes a height onto a matched auto ceiling [1.03ms]
+(pass) planAutoCeilingsForLevel > creates and reconciles an auto ceiling at the enclosing wall top [0.36ms]
+(pass) planAutoCeilingsForLevel > a leftover explicit height on a matched auto ceiling is not rewritten [0.17ms]
+(pass) planAutoCeilingsForLevel > does not replace a manual ceiling with an auto ceiling [0.11ms]
+(pass) planAutoCeilingsForLevel > demotes an orphaned auto ceiling to manual with its polygon untouched
+(pass) planAutoCeilingsForLevel > deletes an unmatched auto ceiling absorbed by a room merge [0.32ms]
+(pass) planAutoCeilingsForLevel > a demoted ceiling suppresses re-creating an auto ceiling when the room re-forms [0.34ms]
+(pass) stage 3-B ceiling clamp bound > height-less auto ceilings resolve under the covering-slab bound at read time [1.56ms]
+(pass) stage 3-B ceiling clamp bound > clamps a manual ceiling above the bound down to it (plane-only degradation) [0.10ms]
+(pass) stage 3-B ceiling clamp bound > never raises a manual ceiling sitting below the bound [0.04ms]
+(pass) stage 3-B ceiling clamp bound > skips follows-mode manual ceilings (never converts them to explicit) [0.07ms]
+(pass) stage 3-B ceiling clamp bound > a flush deck above clamps a manual ceiling at the plane margin to its underside [0.11ms]
+(pass) reactive ceiling re-clamp through the detection sync > a flush deck created on the level above clamps the existing manual ceiling below [2.93ms]
+(pass) raised auto-room surfaces > inherits the enclosing walls construction plane when the room closes [0.99ms]
+(pass) detectSpacesForLevel > detects an isolated four-wall room [0.12ms]
+(pass) detectSpacesForLevel > excludes dangling wall branches from a room boundary [0.20ms]
+(pass) detectSpacesForLevel > detects a room closed against the middle of an existing wall (T-junction) [0.36ms]
+(pass) procedural zones > reactive wall deletion updates imported zone review state without changing its source identity [1.77ms]
+(pass) procedural zones > follows an imported approximate room through a wall edit and marks a removed boundary for review [0.16ms]
+(pass) procedural zones > split wall IDs with unchanged room geometry update the binding without a false warning
+(pass) procedural zones > a deleted imported room boundary reports uncertainty without renaming or merging rooms [0.74ms]
+(pass) procedural zones > adopts an exact room footprint and records its enclosing walls
+(pass) procedural zones > derives the live polygon from effective wall endpoints [0.46ms]
+(pass) procedural zones > leaves an unrelated site zone manual [0.08ms]
+(pass) procedural zones > adopts one inset apartment zone to the exact detected space footprint [0.35ms]
+(pass) procedural zones > keeps ambiguous apartment subdivisions when an exact and inset zone claim one space [0.16ms]
+(pass) procedural zones > requires the import flag and apt-vector provenance before contained adoption [0.14ms]
+(pass) wallClosesRoom > is false while a chain is still open, true once it encloses a room
+(pass) wallClosesRoom > fires when a bay is sealed against the middle of an existing wall [0.33ms]
+(pass) planAutoSlabsForLevel > creates and reconciles an auto slab on the enclosing wall plane
+(pass) planAutoSlabsForLevel > matches two identical rooms to their own existing auto-slabs without churn [0.26ms]
+(pass) planAutoSlabsForLevel > deletes an extra auto-slab when only one identical room is detected
+(pass) planAutoSlabsForLevel > demotes an orphaned auto slab to manual when its room disappears
+(pass) planAutoSlabsForLevel > deletes an unmatched auto slab whose area was absorbed by a room merge [0.16ms]
+(pass) planAutoSlabsForLevel > a demoted slab suppresses re-creating an auto slab when the room re-forms [0.05ms]
+(pass) planAutoSlabsForLevel > manual slabs that split one room suppress a replacement full-room slab
+
+packages/core/src/lib/wall-operations.test.ts:
+(pass) wall operations > merges exact collinear walls and preserves hosted world positions and construction [2.57ms]
+(pass) wall operations > splits inside a wall, retains the first id, and preserves collection membership [0.40ms]
+(pass) wall operations > rejects an opening that would straddle the split [0.07ms]
+(pass) wall operations > supports a three-wall chain when the first selected wall is internal [0.46ms]
+(pass) wall operations > adds a secondary-only collection membership to the retained wall [0.30ms]
+(pass) wall operations > rejects reversed one-sided trims before changing their side [0.35ms]
+(pass) wall operations > rejects reversed walls with unequal front and back side metadata [0.13ms]
+(pass) wall operations > rejects a reversed hosted wall instead of changing its local frame [0.08ms]
+(pass) wall operations > projects rotated item width and depth when validating a split [0.12ms]
+(pass) wall operations > rejects an occupied requested split id [0.02ms]
+(pass) wall operations > splits a wall once per distinct interior T/X contact in descending order
+(pass) wall operations > ignores endpoint-only contacts and contacts on another level
+(pass) wall operations > validates every contact before exposing a mutation when an attachment crosses one [0.60ms]
+
+packages/core/src/lib/space-detection-pause.test.ts:
+(pass) space-detection pause primitive > defaults to not paused [0.10ms]
+(pass) space-detection pause primitive > pauseSpaceDetection flips the flag, resumeSpaceDetection clears it
+(pass) space-detection pause primitive > refcount — pause depth survives mismatched resumes from a second source
+(pass) space-detection pause primitive > resume is a no-op when not currently paused
+
+packages/core/src/lib/space-detection-history.test.ts:
+(pass) undo/redo restores zone review metadata without regenerating the restored snapshot [2.69ms]
+
+packages/core/src/store/use-scene-window-migration.test.ts:
+(pass) scene window migrations > fills schema defaults on windows saved before a field existed [1.90ms]
+
+packages/nodes/src/door/floorplan.test.ts:
+(pass) buildDoorFloorplan documentation symbols > shows hinge, strike, panic hardware, and an arched overhead line [0.91ms]
+(pass) buildDoorFloorplan documentation symbols > documents a rounded frameless opening without swing hardware [0.05ms]
+
+packages/editor/src/components/editor/handles/handle-drag-history.test.ts:
+(pass) commitHandleDragPatch > records the final patch as one undo step after preview history is resumed [1.75ms]
+(pass) commitHandleDragPatch > records a composite multi-node commit as one undo step [0.26ms]
+
+ 60 pass
+ 0 fail
+ 203 expect() calls
+Ran 60 tests across 7 files. [591.00ms]

@@ -1,0 +1,82 @@
+[
+  {
+    "key": "jangjeon",
+    "apartmentId": "3FO4KH7SYCOC",
+    "planId": "3FO3YBET8M3M",
+    "name": "래미안장전",
+    "type": "89B㎡",
+    "cohort": "regression",
+    "previousSceneId": "831134af538d",
+    "sceneId": "57615a3f0aa9"
+  },
+  {
+    "key": "haeundae",
+    "apartmentId": "3FO4KH3VQEHW",
+    "planId": "3FO3Y8VP946W",
+    "name": "해운대자이2차",
+    "type": "109A㎡",
+    "cohort": "regression",
+    "previousSceneId": "cd2724237c2f",
+    "sceneId": "57ce8c9b9c91"
+  },
+  {
+    "key": "hwmyeong",
+    "apartmentId": "3FO4KGYRR0PR",
+    "planId": "3FO3YD1THDWY",
+    "name": "화명롯데캐슬카이저",
+    "type": "177B㎡",
+    "cohort": "regression",
+    "previousSceneId": "377fefabb604",
+    "sceneId": "298d2fab9182"
+  },
+  {
+    "key": "daeyeon",
+    "name": "대연힐스테이트푸르지오",
+    "type": "154B㎡",
+    "apartmentId": "3FO4KH0OJL5I",
+    "planId": "3FO3YBRFCS62",
+    "cohort": "new",
+    "previousSceneId": null,
+    "sceneId": "4bad5b2a0064"
+  },
+  {
+    "key": "centum",
+    "name": "더샵센텀파크1차",
+    "type": "197㎡",
+    "apartmentId": "3FO4KH3VQOJ0",
+    "planId": "3FO3Y8IOXTF4",
+    "cohort": "new",
+    "previousSceneId": null,
+    "sceneId": "9feda7abd7dd"
+  },
+  {
+    "key": "forest",
+    "name": "래미안포레스티지",
+    "type": "101D㎡",
+    "apartmentId": "3FO4KHMSJD8B",
+    "planId": "3FO40NYO9IFT",
+    "cohort": "new",
+    "previousSceneId": null,
+    "sceneId": "9487d6549390"
+  },
+  {
+    "key": "sajik",
+    "name": "사직롯데캐슬더클래식",
+    "type": "148A㎡",
+    "apartmentId": "3FO4KHMS29P7",
+    "planId": "3FO40NS9PWUJ",
+    "cohort": "new",
+    "previousSceneId": null,
+    "sceneId": "5516ebc4332f"
+  },
+  {
+    "key": "beonyeong",
+    "name": "번영로센텀파크에일린의뜰",
+    "type": "81㎡",
+    "apartmentId": "3FO4K9H8O3IR",
+    "planId": "3FO3SY16C3LW",
+    "cohort": "new",
+    "previousSceneId": null,
+    "sceneId": "7b5cb660bb71"
+  }
+]

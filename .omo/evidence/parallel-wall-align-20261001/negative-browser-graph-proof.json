@@ -1,0 +1,25 @@
+[
+  {
+    "case": "perpendicular-only",
+    "geometryAndValuesUnchangedAfterHydration": true,
+    "note": "Optional missing/default fields normalized on panel mount"
+  },
+  {
+    "case": "ambiguous-two-refs",
+    "geometryAndGraphUnchangedAfterHydration": true,
+    "hydrationDefaultLevelHeight": 2.5,
+    "version": 3
+  },
+  {
+    "case": "protected-interior-t",
+    "geometryAndGraphUnchangedAfterHydration": true,
+    "hydrationDefaultLevelHeight": 2.5,
+    "version": 2
+  },
+  {
+    "case": "hosted-overflow-linked",
+    "geometryAndGraphUnchangedAfterHydration": true,
+    "hydrationDefaultLevelHeight": 2.5,
+    "version": 3
+  }
+]

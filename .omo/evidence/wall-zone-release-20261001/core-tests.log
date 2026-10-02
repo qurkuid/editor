@@ -1,0 +1,1486 @@
+bun test v1.3.11 (af24e281)
+
+packages/core/src/material-size.test.ts:
+(pass) material physical size > updates texture repeat when the real material dimensions change
+(pass) material physical size > stores dimensions without inventing a texture for color-only materials
+
+packages/core/src/material-library.test.ts:
+(pass) material references > rejects malformed runtime values instead of calling string methods [0.93ms]
+
+packages/core/src/utils/heal-scene-graph.test.ts:
+(pass) healSceneNodes > strips non-string (null) children entries [0.19ms]
+(pass) healSceneNodes > preserves legacy embedded site children for the scene migration [0.06ms]
+(pass) healSceneNodes > drops childless zero-length walls and removes their parent reference [0.04ms]
+(pass) healSceneNodes > keeps a zero-length wall that still hosts a door/window [0.03ms]
+(pass) healSceneNodes > passes a clean scene through untouched [0.02ms]
+(pass) healSceneNodes > drops a stale child reference left behind by a reparent [0.04ms]
+(pass) healSceneNodes > collapses same-array duplicate child references
+(pass) healSceneNodes > keeps children whose parentId matches or is absent [0.05ms]
+
+packages/core/src/utils/clone-scene-graph.test.ts:
+(pass) forkSceneGraph > strips scan and guide nodes by default [0.58ms]
+(pass) forkSceneGraph > preserves scan and guide nodes when requested [0.14ms]
+(pass) forkSceneGraph > preserves scene materials in whole-scene clones and forks [0.68ms]
+(pass) construction-dimension clone references > remaps controller IDs in whole-scene clones [0.10ms]
+(pass) construction-dimension clone references > remaps controller IDs in level-subtree clones [0.22ms]
+(pass) supportSlabId remap > cloneSceneGraph remaps supportSlabId to the cloned slab id [0.05ms]
+(pass) supportSlabId remap > cloneLevelSubtree remaps in-subtree hosts and preserves external references [0.06ms]
+
+packages/core/src/ontology/semantic-ref.test.ts:
+(pass) SemanticRef boundary > parses stable Pack/class/version ids and rejects unstable values [0.45ms]
+(pass) SemanticRef boundary > resolves built-in node mappings through the registry SSOT [0.05ms]
+
+packages/core/src/modeling/manipulation.test.ts:
+(pass) precise manipulation snap semantics > normalizes endpoint into one candidate and marker token [0.10ms]
+(pass) precise manipulation snap semantics > normalizes midpoint into one candidate and marker token
+(pass) precise manipulation snap semantics > normalizes center into one candidate and marker token
+(pass) precise manipulation snap semantics > normalizes edge into one candidate and marker token
+(pass) precise manipulation snap semantics > normalizes face into one candidate and marker token [0.05ms]
+(pass) precise manipulation snap semantics > leaves non-priority measurement kinds without a manipulation tier [0.01ms]
+
+packages/core/src/modeling/operations.test.ts:
+(pass) modeling operation manifest > declares the existing Body semantic operations with stable ids
+(pass) modeling operation manifest > keeps Push/Pull input units and zero-distance validation canonical [0.34ms]
+(pass) modeling operation manifest > keeps manifest field names and required Paint input aligned with core schemas [0.26ms]
+(pass) modeling operation manifest > declares exactly one signed-metre Offset contract on the canonical surfaces [0.17ms]
+(pass) modeling operation manifest > uses one precise manipulation contract for Move, Rotate, Scale, Push/Pull, Offset, and Sweep
+(pass) modeling operation manifest > rejects the retired Y-only transform shape [0.41ms]
+(pass) modeling operation manifest > returns the canonical typed Push/Pull operation result [2.64ms]
+(pass) modeling operation manifest > returns imprint metadata and optional extrusion metadata from one executor [1.91ms]
+(pass) modeling operation manifest > returns a transform result that preserves Body topology ids [0.38ms]
+(pass) modeling operation manifest > returns a paint result with its scene material ref [0.04ms]
+(pass) modeling operation manifest > returns the canonical signed Body offset operation result [1.05ms]
+(pass) modeling operation manifest > exports the canonical Offset executor from the public core barrel
+
+packages/core/src/schema/material.test.ts:
+(pass) MaterialSchema > preset > valid preset passes through unchanged [0.05ms]
+(pass) MaterialSchema > preset > every enum preset is accepted [0.05ms]
+(pass) MaterialSchema > preset > unknown preset coerces to 'custom' instead of throwing (Sentry MONOREPO-EDITOR-DB) [0.10ms]
+(pass) MaterialSchema > preset > non-string preset coerces to 'custom' [1.89ms]
+(pass) MaterialSchema > preset > missing preset stays undefined [0.06ms]
+(pass) MaterialSchema > preset > explicit undefined preset stays undefined
+(pass) MaterialSchema > preserves external provider provenance and physical size for scene snapshots [0.51ms]
+
+packages/core/src/schema/asset-url.test.ts:
+(pass) AssetUrl > allowed URLs > accepts internal asset handle: asset://abc [0.04ms]
+(pass) AssetUrl > allowed URLs > accepts nested asset handle: asset://catalog/items/chair-1
+(pass) AssetUrl > allowed URLs > accepts blob URL with http inner: blob:http://example.com/uuid-1234
+(pass) AssetUrl > allowed URLs > accepts blob URL with https inner: blob:https://example.com/uuid-5678
+(pass) AssetUrl > allowed URLs > accepts https CDN URL: https://cdn.example.com/a.glb
+(pass) AssetUrl > allowed URLs > accepts https URL with query string: https://cdn.example.com/models/chair.glb?v=2
+(pass) AssetUrl > allowed URLs > accepts http localhost with port: http://localhost:3000/x
+(pass) AssetUrl > allowed URLs > accepts http localhost without port: http://localhost/x
+(pass) AssetUrl > allowed URLs > accepts http 127.0.0.1 loopback: http://127.0.0.1:8080/texture.png
+(pass) AssetUrl > allowed URLs > accepts app-relative path: /public/a.glb
+(pass) AssetUrl > allowed URLs > accepts relative path deep: /material/wood1/albedoMap_basecolor.jpg
+(pass) AssetUrl > allowed URLs > accepts inline PNG data URL: data:image/png;base64,AAA
+(pass) AssetUrl > allowed URLs > accepts inline JPEG data URL: data:image/jpeg;base64,/9j/
+(pass) AssetUrl > allowed URLs > accepts inline WebP data URL: data:image/webp;base64,UklGR
+(pass) AssetUrl > allowed URLs > accepts inline SVG data URL: data:image/svg+xml,%3Csvg%3E
+(pass) AssetUrl > rejected URLs > rejects javascript scheme: javascript:alert(1) [0.07ms]
+(pass) AssetUrl > rejected URLs > rejects javascript scheme uppercase: JAVASCRIPT:alert(1)
+(pass) AssetUrl > rejected URLs > rejects file scheme: file:///etc/passwd
+(pass) AssetUrl > rejected URLs > rejects file scheme Windows: file://C:/Windows/System32/config
+(pass) AssetUrl > rejected URLs > rejects non-loopback http: http://evil.com/
+(pass) AssetUrl > rejected URLs > rejects http on non-loopback host: http://example.com:3000/x
+(pass) AssetUrl > rejected URLs > rejects http on link-local (cloud metadata): http://169.254.169.254/latest/meta-data/
+(pass) AssetUrl > rejected URLs > rejects data text/html: data:text/html,<script>alert(1)</script>
+(pass) AssetUrl > rejected URLs > rejects data application/javascript: data:application/javascript,alert(1)
+(pass) AssetUrl > rejected URLs > rejects data text/plain: data:text/plain,hi
+(pass) AssetUrl > rejected URLs > rejects ftp scheme: ftp://a.b.com
+(pass) AssetUrl > rejected URLs > rejects websocket scheme: ws://example.com/
+(pass) AssetUrl > rejected URLs > rejects vbscript scheme: vbscript:msgbox [0.13ms]
+(pass) AssetUrl > rejected URLs > rejects empty string:  [0.01ms]
+(pass) AssetUrl > rejected URLs > rejects non-url string: not a url at all
+(pass) AssetUrl > rejected URLs > rejects malformed: ://missing-scheme [0.05ms]
+(pass) AssetUrl > env allowlist via PASCAL_ALLOWED_ASSET_ORIGINS > single origin allowlist accepts matching https URL [0.07ms]
+(pass) AssetUrl > env allowlist via PASCAL_ALLOWED_ASSET_ORIGINS > single origin allowlist rejects non-matching https URL [0.04ms]
+(pass) AssetUrl > env allowlist via PASCAL_ALLOWED_ASSET_ORIGINS > multi-origin allowlist accepts any listed origin [0.03ms]
+(pass) AssetUrl > env allowlist via PASCAL_ALLOWED_ASSET_ORIGINS > allowlist ignores trailing / in URL path (origin match only)
+(pass) AssetUrl > env allowlist via PASCAL_ALLOWED_ASSET_ORIGINS > empty allowlist behaves like unset
+(pass) AssetUrl > env allowlist via PASCAL_ALLOWED_ASSET_ORIGINS > allowlist does not restrict non-https schemes
+(pass) AssetUrl > env allowlist via PASCAL_ALLOWED_ASSET_ORIGINS > allowlist rejects subdomain spoofing [0.08ms]
+(pass) AssetUrl > env allowlist via PASCAL_ALLOWED_ASSET_ORIGINS > allowlist respects ports
+
+packages/core/src/registry/relations-resolver.test.ts:
+(pass) cascadeDirty > starting node alone when registry is empty [0.63ms]
+(pass) cascadeDirty > starting node alone when no relations declared [0.17ms]
+(pass) cascadeDirty > hosts cascade marks matching children dirty [0.09ms]
+(pass) cascadeDirty > hosts cascade is recursive but bounded by maxDepth [0.08ms]
+(pass) cascadeDirty > affectsSpatial cascade uses spatialQuery to find neighbors [0.11ms]
+(pass) cascadeDirty > affectsSpatial is a no-op when no spatialQuery is provided [0.04ms]
+(pass) cascadeDirty > cycle in hosts cascade does not loop forever [0.03ms]
+(pass) cascadeDirty > custom childQuery overrides the default node.children lookup [0.10ms]
+(pass) collectDescendants > returns just the start when no children [0.05ms]
+(pass) collectDescendants > returns full subtree regardless of relations declarations [0.03ms]
+(pass) collectDescendants > respects maxDepth [0.02ms]
+
+packages/core/src/registry/subtree.test.ts:
+(pass) collectSubtree > returns null for missing root [0.06ms]
+(pass) collectSubtree > returns just the root for a leaf node [0.05ms]
+(pass) collectSubtree > walks descendants in BFS / declaration order [0.05ms]
+(pass) collectSubtree > returned nodes are live references — no cloning
+(pass) cloneNodesInto > clones a single root with fresh id and supplied position [0.16ms]
+(pass) cloneNodesInto > preserves root position when none is supplied
+(pass) cloneNodesInto > preserves parent/child subtree with remapped ids and relative positions [0.08ms]
+(pass) cloneNodesInto > remaps associative measurement references inside the cloned subtree [0.11ms]
+(pass) cloneNodesInto > remaps associative construction-dimension anchors inside the cloned subtree [0.03ms]
+(pass) cloneNodesInto > remaps a construction dimension foundation controller when both are cloned [0.06ms]
+(pass) cloneNodesInto > parents the cloned root under opts.parentId when supplied [0.02ms]
+(pass) cloneNodesInto > two clones produce disjoint id sets [0.04ms]
+(pass) cloneNodesInto > throws if rootId is missing from the input array [0.08ms]
+
+packages/core/src/registry/registry.test.ts:
+(pass) nodeRegistry > starts empty
+(pass) nodeRegistry > registerNode adds a definition [0.16ms]
+(pass) nodeRegistry > registerNode throws on duplicate kind in production [0.09ms]
+[registry] re-registering node kind "column" (HMR)
+(pass) nodeRegistry > registerNode replaces on duplicate kind in dev (HMR) [0.12ms]
+(pass) nodeRegistry > registerNode rejects empty kind
+(pass) nodeRegistry > registerNode rejects invalid schemaVersion [0.05ms]
+(pass) nodeRegistry > entries() iterates registered definitions [0.12ms]
+(pass) nodeRegistry > schemas() returns all registered schemas
+(pass) isPresettable > explicit true wins
+(pass) isPresettable > explicit false wins even with parametrics
+(pass) isPresettable > defaults to true when parametrics exists [0.12ms]
+(pass) isPresettable > defaults to false without parametrics
+(pass) isPresettable > isPresettableKind looks up the registry [0.04ms]
+(pass) getHostRefFields > returns the declared hostRefFields verbatim
+(pass) getHostRefFields > defaults to an empty array when none declared
+(pass) isDrawnViaTool > true when capability set [0.08ms]
+(pass) isDrawnViaTool > false when unset or not exactly true
+(pass) isDrawnViaTool > isDrawnViaToolKind looks up the registry [0.05ms]
+(pass) loadPlugin > registers all nodes from a plugin [0.10ms]
+(pass) loadPlugin > enables plugin kinds only when the project has the plugin installed [0.06ms]
+(pass) loadPlugin > keeps built-in plugin kinds enabled independently of project installs [0.06ms]
+(pass) loadPlugin > handles plugin with no nodes [0.03ms]
+(pass) loadPlugin > handles plugin with empty nodes array [0.03ms]
+(pass) loadPlugin > throws on apiVersion mismatch [0.05ms]
+(pass) loadPlugin > propagates duplicate-kind error from a single plugin in production [0.09ms]
+(pass) loadPlugin > propagates duplicate-kind error across plugins in production [0.07ms]
+
+packages/core/src/registry/scene-api.test.ts:
+(pass) SceneApi > get reads node from store [0.11ms]
+(pass) SceneApi > update applies patch via store.updateNode [0.15ms]
+(pass) SceneApi > upsert calls createNode and returns the id [0.02ms]
+(pass) SceneApi > delete removes node from store [0.03ms]
+(pass) SceneApi > markDirty forwards to store [0.02ms]
+(pass) SceneApi > pauseHistory and resumeHistory bracket store.temporal pause/resume [0.05ms]
+(pass) SceneApi > nested pause/resume use a depth counter (single pause call to temporal) [0.02ms]
+(pass) SceneApi snapshot / restore > restore returns a touched node to its pre-pause state [0.03ms]
+(pass) SceneApi snapshot / restore > restore on a node never touched is a no-op
+(pass) SceneApi snapshot / restore > restoreAll reverts every touched node
+(pass) SceneApi snapshot / restore > restore re-creates a node that was deleted mid-pause
+(pass) SceneApi snapshot / restore > restore deletes a node that was upserted mid-pause [0.09ms]
+(pass) SceneApi snapshot / restore > snapshot is dropped on resumeHistory; restore after resume is a no-op
+(pass) SceneApi snapshot / restore > only the first mutation in a pause window captures the original [0.04ms]
+
+packages/core/src/lib/slab-polygon.test.ts:
+(pass) getRenderableSlabPolygon > adjacent room slabs share the exact centerline seam without gap or overlap [1.69ms]
+(pass) getRenderableSlabPolygon > exterior edge expands by half of THAT wall thickness [0.13ms]
+(pass) getRenderableSlabPolygon > freehand edges away from any wall render exactly as drawn
+(pass) getRenderableSlabPolygon > manual slabs follow the same per-edge rule as auto slabs [0.22ms]
+(pass) getRenderableSlabPolygon > T-junction: a neighbour edge that is a sub-segment still reads as interior [0.44ms]
+(pass) getRenderableSlabPolygon > an edge on a wall longer than itself still reaches the facade [0.11ms]
+(pass) getRenderableSlabPolygon > legacy edge stored at the inner wall face projects to the outer face [0.05ms]
+(pass) getRenderableSlabPolygon > legacy edge stored at the outer wall face stays at the face (no overshoot) [0.07ms]
+(pass) getRenderableSlabPolygon > a thick wall adopts a face-aligned edge beyond the old fixed tolerance [0.03ms]
+(pass) getRenderableSlabPolygon > edges outside the adoption band stay free [0.05ms]
+(pass) getRenderableSlabPolygon > two parallel close walls: the nearest centerline wins [0.06ms]
+(pass) getRenderableSlabPolygon > span overlap below the minimum leaves the edge free [0.05ms]
+(pass) getRenderableSlabPolygon > legacy face-aligned rooms across a thick wall still tile without overlap [0.14ms]
+(pass) getRenderableSlabPolygon > the higher room carries the wall band to the lower room face [0.33ms]
+(pass) getRenderableSlabPolygon > legacy face-aligned unequal rooms self-heal to the lower room face [0.16ms]
+(pass) getRenderableSlabPolygon > stacked slabs are not mistaken for rooms across a wall [0.08ms]
+(pass) getRenderableSlabPolygon > sibling winding does not change a shared seam decision [0.08ms]
+(pass) getRenderableSlabPolygon > wall-less butted slabs at different elevations keep the midline seam [0.10ms]
+(pass) getRenderableSlabPolygon > offset rooms sharing a partial wall span: interior beside the sibling, facade elsewhere [2.98ms]
+(pass) getRenderableSlabPolygon > offset unequal rooms give the higher slab the full shared wall band [0.18ms]
+(pass) getRenderableSlabPolygon > a wall backing only part of an edge: flush over the wall, as drawn beyond it [0.05ms]
+(pass) getRenderableSlabPolygon > two collinear walls of different thickness along one edge: each face wins its own span [0.02ms]
+(pass) getRenderableSlabPolygon > breakpoints within the minimum sub-edge length merge into one step [0.04ms]
+(pass) getRenderableSlabPolygon > nearly collinear corners do not create unbounded wall-offset miters [0.13ms]
+(pass) getRenderableSlabPolygon > wall adoption keeps the actual apartment slab ring simple [0.42ms]
+(pass) getRenderableSlabPolygon > full apartment wall and sibling context keeps the r0 slab ring simple [4.07ms]
+(pass) grounded adoption gate > a floating deck near walls keeps its drawn polygon exactly
+(pass) grounded adoption gate > boundary case: underside 0.005 still counts as grounded and adopts [0.13ms]
+(pass) grounded adoption gate > a slab floated just past the epsilon stops adopting
+(pass) grounded adoption gate > a recessed pool keeps band adoption (unchanged) [0.05ms]
+(pass) grounded adoption gate > a grounded floor ignores a floating deck sibling as a seam target
+(pass) snapSlabEdgeToWallBand > an edge inside the band snaps onto the wall centerline [0.12ms]
+(pass) snapSlabEdgeToWallBand > an edge outside the band does not snap [0.05ms]
+(pass) snapSlabEdgeToWallBand > maxLateral tightens the stick distance
+(pass) snapSlabEdgeToWallBand > the nearest of two candidate walls wins
+
+packages/core/src/lib/body-csg.test.ts:
+(pass) Body CSG > intersects overlapping boxes with deterministic topology and provenance [7.95ms]
+(pass) Body CSG > supports all operations for a non-axis-aligned triangular prism [34.53ms]
+(pass) Body CSG > supports all operations for overlapping boxes [18.14ms]
+(pass) Body CSG > scopes remap provenance to target faces when operands share feature IDs [8.00ms]
+(pass) Body CSG > supports concave L-prism operations as one valid shell [58.81ms]
+(pass) Body CSG > rejects empty, touching, mismatched-parent, and invalid inputs without mutation [1.41ms]
+(pass) Body CSG > implements outer shell, trim, and split with fixed piece order [10.45ms]
+(pass) Body CSG > split omits only empty pieces and requires at least two results [2.44ms]
+(pass) Body CSG > keeps a representative Solid Tools batch within the focused performance budget [26.72ms]
+
+packages/core/src/lib/body-face-split.test.ts:
+(pass) splitBodyFace > splits a planar host face with an open seam and preserves one side ids [1.40ms]
+(pass) splitBodyFace > splits boundary edge interiors and their solid twins together [0.49ms]
+(pass) splitBodyFace > rejects collapsed, boundary-following, self-crossing, and inner-loop paths [0.45ms]
+(pass) splitBodyFace > arranges a connected coplanar crossing into four push/pullable faces [1.67ms]
+(pass) splitBodyFace > rejects seam overlap and seam-vertex branching [0.41ms]
+
+packages/core/src/lib/body-feature-move.test.ts:
+(pass) moveBodyFeature > moves a persistent vertex without replacing topology ids [0.60ms]
+(pass) moveBodyFeature > moves both endpoints of a persistent edge [0.15ms]
+(pass) moveBodyFeature > moves a closed-solid face and its UV origin as one stable feature [0.44ms]
+(pass) moveBodyFeature > rejects a move atomically when it would make an incident face non-planar [0.36ms]
+(pass) moveBodyFeature > rejects a move that collapses an edge [0.08ms]
+(pass) moveBodyFeature > autofolds a non-planar quad while preserving boundary ids and surface data [0.53ms]
+(pass) moveBodyFeature > autofolds every affected non-planar face of a closed solid [0.44ms]
+(pass) moveBodyFeature > autofold rejects holes atomically [1.00ms]
+(pass) moveBodyFeature > autofold rejects curves atomically [0.78ms]
+
+packages/core/src/lib/body-transform.test.ts:
+(pass) Body transform kernel > moves rotates and scales geometry while preserving semantic topology [0.42ms]
+(pass) Body transform kernel > rejects an identity transform without mutating the Body [0.10ms]
+(pass) Body transform kernel > normalizes arbitrary rotation axes and applies non-uniform scale around the pivot [0.05ms]
+(pass) Body transform kernel > preserves circular arcs for uniform scale and rotates center and normal [0.10ms]
+(pass) Body transform kernel > rejects non-uniform scale when circular arcs are present [0.08ms]
+(pass) Body transform kernel > rebases circular-arc angles after arbitrary-axis rotation and uniform scale [0.73ms]
+(pass) Body transform kernel > transforms only a persistent feature and its fully moved UV frame [0.27ms]
+(pass) Body transform kernel > rejects stale and non-planar feature transforms atomically [0.16ms]
+
+packages/core/src/lib/space-detection.test.ts:
+(pass) planAutoCeilingsForLevel > creates auto ceilings height-less so they follow the level top [1.13ms]
+(pass) planAutoCeilingsForLevel > never writes a height onto a matched auto ceiling [0.18ms]
+(pass) planAutoCeilingsForLevel > creates and reconciles an auto ceiling at the enclosing wall top [0.08ms]
+(pass) planAutoCeilingsForLevel > a leftover explicit height on a matched auto ceiling is not rewritten [0.17ms]
+(pass) planAutoCeilingsForLevel > does not replace a manual ceiling with an auto ceiling [0.14ms]
+(pass) planAutoCeilingsForLevel > demotes an orphaned auto ceiling to manual with its polygon untouched [0.07ms]
+(pass) planAutoCeilingsForLevel > deletes an unmatched auto ceiling absorbed by a room merge [0.31ms]
+(pass) planAutoCeilingsForLevel > a demoted ceiling suppresses re-creating an auto ceiling when the room re-forms [0.11ms]
+(pass) stage 3-B ceiling clamp bound > height-less auto ceilings resolve under the covering-slab bound at read time [0.94ms]
+(pass) stage 3-B ceiling clamp bound > clamps a manual ceiling above the bound down to it (plane-only degradation) [0.05ms]
+(pass) stage 3-B ceiling clamp bound > never raises a manual ceiling sitting below the bound [0.07ms]
+(pass) stage 3-B ceiling clamp bound > skips follows-mode manual ceilings (never converts them to explicit) [0.02ms]
+(pass) stage 3-B ceiling clamp bound > a flush deck above clamps a manual ceiling at the plane margin to its underside [0.13ms]
+(pass) reactive ceiling re-clamp through the detection sync > a flush deck created on the level above clamps the existing manual ceiling below [2.11ms]
+(pass) raised auto-room surfaces > inherits the enclosing walls construction plane when the room closes [0.76ms]
+(pass) detectSpacesForLevel > detects an isolated four-wall room [0.18ms]
+(pass) detectSpacesForLevel > excludes dangling wall branches from a room boundary [0.17ms]
+(pass) detectSpacesForLevel > detects a room closed against the middle of an existing wall (T-junction) [0.27ms]
+(pass) procedural zones > reactive wall deletion updates imported zone review state without changing its source identity [1.36ms]
+(pass) procedural zones > follows an imported approximate room through a wall edit and marks a removed boundary for review [0.24ms]
+(pass) procedural zones > split wall IDs with unchanged room geometry update the binding without a false warning [0.18ms]
+(pass) procedural zones > a deleted imported room boundary reports uncertainty without renaming or merging rooms [0.15ms]
+(pass) procedural zones > adopts an exact room footprint and records its enclosing walls [0.10ms]
+(pass) procedural zones > derives the live polygon from effective wall endpoints [0.15ms]
+(pass) procedural zones > leaves an unrelated site zone manual
+(pass) procedural zones > adopts one inset apartment zone to the exact detected space footprint [0.19ms]
+(pass) procedural zones > keeps ambiguous apartment subdivisions when an exact and inset zone claim one space [0.10ms]
+(pass) procedural zones > requires the import flag and apt-vector provenance before contained adoption [0.09ms]
+(pass) wallClosesRoom > is false while a chain is still open, true once it encloses a room [0.21ms]
+(pass) wallClosesRoom > fires when a bay is sealed against the middle of an existing wall [0.18ms]
+(pass) planAutoSlabsForLevel > creates and reconciles an auto slab on the enclosing wall plane [0.20ms]
+(pass) planAutoSlabsForLevel > matches two identical rooms to their own existing auto-slabs without churn [0.07ms]
+(pass) planAutoSlabsForLevel > deletes an extra auto-slab when only one identical room is detected [0.11ms]
+(pass) planAutoSlabsForLevel > demotes an orphaned auto slab to manual when its room disappears [0.04ms]
+(pass) planAutoSlabsForLevel > deletes an unmatched auto slab whose area was absorbed by a room merge [0.08ms]
+(pass) planAutoSlabsForLevel > a demoted slab suppresses re-creating an auto slab when the room re-forms [0.07ms]
+(pass) planAutoSlabsForLevel > manual slabs that split one room suppress a replacement full-room slab [0.05ms]
+
+packages/core/src/lib/body-containers.test.ts:
+(pass) persistent Body containers > groups only sibling Bodies and returns reparent writes [0.21ms]
+(pass) persistent Body containers > assigns stable part keys and links cloned component instances [0.25ms]
+(pass) persistent Body containers > make unique and explode preserve one-step write intent [0.20ms]
+
+packages/core/src/lib/lighting.test.ts:
+(pass) lighting > an unassigned fixture follows its own enabled state
+(pass) lighting > a circuit controls every assigned fixture and fails closed when missing [0.10ms]
+(pass) lighting > converts point-light lumens to candela
+(pass) lighting > keeps colour temperature channels within display range
+
+packages/core/src/lib/body-solid.test.ts:
+(pass) Body solid inspector > reports open, closed, manifold, orientation, connectivity, planarity, and volume [0.64ms]
+
+packages/core/src/lib/body-face-imprint.test.ts:
+(pass) Body face imprint kernel > creates a stable coplanar inset face and preserves host surface data [0.52ms]
+(pass) Body face imprint kernel > moves an inset face outward and creates reveal faces without replacing ids [0.54ms]
+(pass) Body face imprint kernel > moves an inset face inward for a recess and reaches a through-cut through the shared push/pull path [11.87ms]
+(pass) Body face imprint kernel > turns an exact or modestly overshot recessed imprint into a deterministic through-cut [7.93ms]
+(pass) Body face imprint kernel > keeps an insufficient recess as a pocket and an outward extrusion as a boss [0.67ms]
+(pass) Body face imprint kernel > rejects profiles outside, touching, curved, or self-intersecting [0.25ms]
+
+packages/core/src/lib/terrain-field.test.ts:
+(pass) quantize > rounds onto the step ladder [0.10ms]
+(pass) quantize > clamps to the Int16 range instead of overflowing
+(pass) quantize > non-finite input yields 0 rather than NaN in the buffer [0.03ms]
+(pass) heightAt > a flat field reads its height everywhere, including off-grid points [0.08ms]
+(pass) heightAt > interpolates linearly across a rendered triangle [0.08ms]
+(pass) heightAt > clamps to the edge height outside the field rather than returning a hole
+(pass) heightAt > respects a non-zero origin [0.05ms]
+(pass) heightAtSample > clamps out-of-range indices to the border
+(pass) surfaceHeightAt — explicit alias for the shared surface authority > agrees with heightAt at every sample [0.05ms]
+(pass) surfaceHeightAt — explicit alias for the shared surface authority > heightAt is planar within the rendered triangle [0.01ms]
+(pass) surfaceHeightAt — explicit alias for the shared surface authority > picks the far triangle past the diagonal
+(pass) surfaceHeightAt — explicit alias for the shared surface authority > the compatibility name always delegates to heightAt [0.04ms]
+(pass) surfaceHeightAt — explicit alias for the shared surface authority > clamps outside the field to the border cell plane
+(pass) surfaceHeightAt — explicit alias for the shared surface authority > a degenerate single-sample field falls back to the clamped read
+(pass) slopeAt and normalAt > flat ground is zero slope with a straight-up normal
+(pass) slopeAt and normalAt > a 45-degree ramp reads back as 45 degrees [0.11ms]
+(pass) slopeAt and normalAt > normal tilts against the uphill direction and stays unit length
+(pass) isFlatOver — the placement predicate > true on untouched ground [0.05ms]
+(pass) isFlatOver — the placement predicate > false across a ramp
+(pass) isFlatOver — the placement predicate > true over a flattened pad, false when the rect spills past it [0.07ms]
+(pass) isFlatOver — the placement predicate > a one-step difference is detected — quantization makes this exact
+(pass) applyHeightPatch — the one write seam > does not mutate the input field
+(pass) applyHeightPatch — the one write seam > writes only the patch rect [0.08ms]
+(pass) applyHeightPatch — the one write seam > clips a patch that overhangs the field instead of throwing [0.04ms]
+(pass) applyHeightPatch — the one write seam > a fully out-of-range patch is a no-op [0.02ms]
+(pass) flattenPatch — the first brush > sets an absolute height under the rect [0.05ms]
+(pass) flattenPatch — the first brush > leaves ground outside the rect untouched [0.02ms]
+(pass) flattenPatch — the first brush > returns null when the rect misses the field [0.03ms]
+(pass) flattenPatch — the first brush > the flattened pad satisfies isFlatOver — brush and predicate agree [0.02ms]
+(pass) diffToPatches — the 64 KiB transport contract > no change yields no patches
+(pass) diffToPatches — the 64 KiB transport contract > a one-sample edit yields one small patch, not a full-field rewrite [0.23ms]
+(pass) diffToPatches — the 64 KiB transport contract > round-trips: applying every patch reproduces the target field [0.71ms]
+(pass) diffToPatches — the 64 KiB transport contract > every patch stays under the byte cap, even for a full-field change [0.15ms]
+(pass) diffToPatches — the 64 KiB transport contract > a full-field change still round-trips across the chunk boundary [0.97ms]
+(pass) diffToPatches — the 64 KiB transport contract > two separate dirty regions yield separate patches [0.04ms]
+(pass) diffToPatches — the 64 KiB transport contract > a shape change chunks the whole field rather than diffing mismatched buffers
+
+packages/core/src/lib/terrain-source.test.ts:
+(pass) terrainFieldOf > null for a site with no terrain — the flat-ground fast path [0.51ms]
+(pass) terrainFieldOf > decodes a site with terrain [0.41ms]
+(pass) terrainFieldOf > returns the identical field object on repeat reads — decode runs once [0.16ms]
+(pass) terrainFieldOf > a new terrain object misses the cache — object identity is the version key [0.17ms]
+(pass) terrainFieldOf > null for corrupt terrain, and the failed decode is not retried
+(pass) terrainFieldForEdit > returns the existing field when the site has terrain [0.12ms]
+(pass) terrainFieldForEdit > returns a fresh flat field when the site has none [0.02ms]
+(pass) terrainFieldForEdit > does not fabricate terrain on the site — the caller decides to persist
+(pass) commitTerrainField > the encoded data reads back as the same field, without decoding [0.04ms]
+(pass) commitTerrainField > the encoded data is still independently decodable [0.09ms]
+
+packages/core/src/lib/link-default-construction.test.ts:
+(pass) a new wall names its standard products > the house standards are linked without anyone picking them [0.41ms]
+(pass) a new wall names its standard products > the price rides along so the wall is priceable as drawn
+(pass) a new wall names its standard products > a cavity is never given a product
+(pass) a new wall names its standard products > an empty catalogue leaves the build-up exactly as it was
+(pass) a new wall names its standard products > nothing matching leaves the build-up alone [0.02ms]
+
+packages/core/src/lib/wall-operations.test.ts:
+(pass) wall operations > merges exact collinear walls and preserves hosted world positions and construction [2.49ms]
+(pass) wall operations > splits inside a wall, retains the first id, and preserves collection membership [0.34ms]
+(pass) wall operations > rejects an opening that would straddle the split [0.43ms]
+(pass) wall operations > supports a three-wall chain when the first selected wall is internal [0.39ms]
+(pass) wall operations > adds a secondary-only collection membership to the retained wall [0.15ms]
+(pass) wall operations > rejects reversed one-sided trims before changing their side [0.34ms]
+(pass) wall operations > rejects reversed walls with unequal front and back side metadata [0.16ms]
+(pass) wall operations > rejects a reversed hosted wall instead of changing its local frame [0.10ms]
+(pass) wall operations > projects rotated item width and depth when validating a split [0.12ms]
+(pass) wall operations > rejects an occupied requested split id [0.05ms]
+(pass) wall operations > splits a wall once per distinct interior T/X contact in descending order [0.27ms]
+(pass) wall operations > ignores endpoint-only contacts and contacts on another level [0.10ms]
+(pass) wall operations > validates every contact before exposing a mutation when an attachment crosses one [0.23ms]
+
+packages/core/src/lib/body-sweep.test.ts:
+(pass) sweepBodyFace > bakes a straight sweep with the source face as the moved end cap [1.10ms]
+(pass) sweepBodyFace > preserves the source profile when the path starts opposite the face normal [0.22ms]
+(pass) sweepBodyFace > keeps an L path deterministic and reciprocal [0.61ms]
+(pass) sweepBodyFace > closes a planar path without a cap or open seam [0.41ms]
+(pass) sweepBodyFace > accepts molding/baseboard with deterministic topology [0.32ms]
+(pass) sweepBodyFace > accepts tessellated duct with deterministic topology [1.10ms]
+(pass) sweepBodyFace > accepts U-handle with deterministic topology [0.61ms]
+(pass) sweepBodyFace > rejects unsupported profiles and paths atomically with feature diagnostics [0.15ms]
+(pass) sweepBodyFace > reports exact diagnostic for too few points [0.06ms]
+(pass) sweepBodyFace > reports exact diagnostic for zero-length segment [0.05ms]
+(pass) sweepBodyFace > reports exact diagnostic for non-planar stations [0.03ms]
+(pass) sweepBodyFace > reports exact diagnostic for self-intersecting closed path [0.05ms]
+
+packages/core/src/lib/wall-construction.test.ts:
+(pass) physical wall band construction > builds gypsum + 33 mm studs + gypsum as a physical assembly [0.77ms]
+(pass) physical wall band construction > treats an unconfigured legacy 100 mm wall as explicit empty space [0.03ms]
+(pass) physical wall band construction > fills only the unexplained remainder with a cavity layer
+(pass) physical wall band construction > builds the default stud + gypsum + wallpaper wall with an explicit cavity [0.02ms]
+(pass) physical wall band construction > creates a single solid 100 mm concrete layer by default
+(pass) physical wall band construction > keeps the material sum as the final thickness when no cavity exists [0.07ms]
+(pass) physical wall band construction > builds contiguous layer spans across the exact wall thickness [0.05ms]
+(pass) physical wall band construction > adds a stud and gypsum lining onto the existing wall thickness [0.04ms]
+(pass) physical wall band construction > calculates board sheets and 300 mm stud quantities per height band [0.31ms]
+(pass) physical wall band construction > round-trips the presets exposed by the wall band editor [0.05ms]
+(pass) physical wall band construction > material presets define the physical thickness without cavity fill [0.01ms]
+
+packages/core/src/lib/measurement-geometry.test.ts:
+(pass) measurement geometry > measures full 3D distance [0.04ms]
+(pass) measurement geometry > measures the smaller 3D angle and a closed perimeter [0.07ms]
+(pass) measurement geometry > matches the closest semantic feature with a normalized path position [0.14ms]
+(pass) measurement geometry > computes a Newell area vector, area, and winding-aware normal [0.05ms]
+(pass) measurement geometry > checks coplanarity against the Newell normal [0.07ms]
+(pass) measurement geometry > computes the area-weighted centroid of a planar 3D polygon [0.06ms]
+(pass) measurement geometry > computes area and centroid for a concave polygon [0.03ms]
+(pass) measurement geometry > computes prism volume from normal extrusion and ignores tangential extrusion
+(pass) measurement geometry > remaps and collects references for arbitrary anchor strings [0.07ms]
+(pass) measurement geometry > remaps Body feature anchors for measurements and construction dimensions [1.47ms]
+
+packages/core/src/lib/body-frame-edit.test.ts:
+(pass) rounded rectangular frame editing > changes the top radius while preserving scene identity and painted faces [1.83ms]
+(pass) rounded rectangular frame editing > does not expose frame parameters for an unrelated body [0.19ms]
+(pass) rounded rectangular frame editing > keeps a transformed frame in its existing coordinate frame [1.24ms]
+(pass) rounded rectangular frame editing > moves only the opening from the frame center [0.74ms]
+(pass) rounded rectangular frame editing > reports center-relative opening movement bounds [0.32ms]
+(pass) rounded rectangular frame editing > rejects an opening position outside the wall [0.31ms]
+(pass) rounded rectangular frame editing > rejects a radius that would cut through a moved opening [0.59ms]
+
+packages/core/src/lib/space-detection-pause.test.ts:
+(pass) space-detection pause primitive > defaults to not paused [0.04ms]
+(pass) space-detection pause primitive > pauseSpaceDetection flips the flag, resumeSpaceDetection clears it [0.02ms]
+(pass) space-detection pause primitive > refcount — pause depth survives mismatched resumes from a second source [0.01ms]
+(pass) space-detection pause primitive > resume is a no-op when not currently paused [0.01ms]
+
+packages/core/src/lib/guide-perspective.test.ts:
+(pass) guide perspective projection > maps each corrected rectangle corner to the selected source-image corner [0.08ms]
+(pass) guide perspective projection > keeps an identity rectangle unchanged
+
+packages/core/src/lib/zone-quantities.test.ts:
+(pass) deriveZoneQuantityReport > derives room surfaces and volume only from matching enclosure geometry [5.27ms]
+(pass) deriveZoneQuantityReport > keeps standalone zones honest about unavailable room quantities [0.08ms]
+(pass) deriveZoneQuantityReport > subtracts matching slab openings from floor surface [0.76ms]
+(pass) deriveZoneQuantityReport > derives a concave room from covering surfaces and unequal boundary-wall heights [4.30ms]
+(pass) deriveZoneQuantityReport > subtracts only covering-slab openings that lie inside a concave zone [0.50ms]
+(pass) deriveZoneQuantityReport > uses the closed zone boundary when small wall-end seams prevent loop detection [1.31ms]
+(pass) deriveZoneQuantityReport > uses only the detected boundary-face span of a wall split by T-junctions [1.81ms]
+(pass) deriveZoneQuantityReport > does not mistake an adjacent notched slab for a second covering slab [0.43ms]
+(pass) deriveZoneQuantityReport > combines compatible slabs while rejecting conflicting floor elevations [0.92ms]
+(pass) deriveZoneQuantityReport > counts both indoor-facing sides of a separator inside a multi-room zone [1.66ms]
+(pass) deriveZoneQuantityReport > reports only real indoor wall faces for a semantic sub-zone of a larger room [1.34ms]
+(pass) deriveZoneQuantityReport > supports legacy manual zones offset from detected room boundaries [2.56ms]
+(pass) deriveZoneQuantityReport > accepts legacy face-aligned surfaces with small perimeter drift [0.66ms]
+
+packages/core/src/lib/body-array.test.ts:
+(pass) Body arrays > creates linear instances with fresh node ids and stable topology ids [0.73ms]
+(pass) Body arrays > creates a full circular array with the default 2π angle [0.35ms]
+(pass) Body arrays > uses the endpoint-inclusive signed angle for partial circular arrays [0.17ms]
+(pass) Body arrays > rejects invalid counts, offsets, angles, and axes without changing the source [0.10ms]
+
+packages/core/src/lib/wall-length.test.ts:
+(pass) length input follows shared endpoints and validates all hosts before mutation [2.37ms]
+(pass) length input rejects loss of an interior T junction, collapsed neighbors and curved walls [0.17ms]
+
+packages/core/src/lib/body-offset.test.ts:
+(pass) offsetBodyFace > creates a deterministic inward inset ring with copied surface data [0.47ms]
+(pass) offsetBodyFace > preserves material and UV data with an exact deterministic remap [0.27ms]
+(pass) offsetBodyFace > retains convex vertex order and winding for opposite-winding inward offsets [0.50ms]
+(pass) offsetBodyFace > creates a nested outward annulus through the reciprocal host seam [0.63ms]
+(pass) offsetBodyFace > copies the enclosing host material and UV frame to the outward annulus [0.38ms]
+(pass) offsetBodyFace > keeps a valid concave profile winding and topology under mitered inset [0.37ms]
+(pass) offsetBodyFace > keeps offset metres exact on a tilted planar face [0.25ms]
+(pass) offsetBodyFace > rejects a nonzero short edge atomically with its stable feature id [0.20ms]
+(pass) offsetBodyFace > rejects a parallel or collinear join atomically with both stable feature ids [0.22ms]
+(pass) offsetBodyFace > rejects a non-planar face atomically [0.06ms]
+(pass) offsetBodyFace > rejects a collapsed source edge atomically [0.02ms]
+(pass) offsetBodyFace > rejects a circular-arc curve atomically [0.13ms]
+(pass) offsetBodyFace > rejects concave self-intersection and reversed winding atomically [0.21ms]
+(pass) offsetBodyFace > rejects outward host-boundary contact atomically [0.19ms]
+(pass) offsetBodyFace > rejects outward sibling-hole contact atomically [0.63ms]
+(pass) offsetBodyFace > rejects an ambiguous enclosing host before mutation [0.26ms]
+(pass) offsetBodyFace > rejects invalid or unsupported input without mutating the source [0.21ms]
+(pass) offsetBodyFace > rejects a source face with holes and a collapsing inset [0.23ms]
+
+packages/core/src/lib/construction-material-match.test.ts:
+(pass) reading a product name > 석고보드 9.5T 3x6 (900x1800) states %s m thick [0.04ms]
+(pass) reading a product name > 석고보드 12.5T 4x8 (1220x2440) states %s m thick
+(pass) reading a product name > MDF 9T states %s m thick
+(pass) reading a product name > a name with no thickness states none
+(pass) reading a product name > the sheet size is read in metres
+(pass) reading a product name > the millimetre pair is taken, not the foot shorthand
+(pass) picking the closest product > the default gypsum layer finds 9.5T 900×1800
+(pass) picking the closest product > the default MDF layer finds 9T 600×2400 [0.18ms]
+(pass) picking the closest product > a mismatched thickness is refused outright [0.03ms]
+(pass) picking the closest product > the right thickness in another sheet size is still offered [0.01ms]
+(pass) picking the closest product > a name that says nothing is never offered
+(pass) picking the closest product > nothing to choose from yields nothing [0.02ms]
+(pass) picking the closest product > ties break towards the plainer product name [0.02ms]
+(pass) framing is named by its section > the standard stud finds 33x33 [0.01ms]
+(pass) framing is named by its section > a different section is the wrong timber, not a worse one
+(pass) framing is named by its section > a board never reads as framing: 900x1800 is not a 900×180 section
+(pass) framing is named by its section > a stud section is read in metres
+(pass) framing is named by its section > a sheet layer is unaffected by the section rule
+
+packages/core/src/lib/terrain-support.test.ts:
+(pass) isSiteDatum > the datum is ground; a slab top and a storey base are not [0.11ms]
+(pass) terrainSupportLift > null without terrain — every flat scene keeps its existing path [0.04ms]
+(pass) terrainSupportLift > samples the ground under a node on the storey at grade [0.39ms]
+(pass) terrainSupportLift > null on an upper storey — it has a real floor, not ground [0.17ms]
+(pass) terrainSupportLift > follows the level stack, not the ordinal, when a level sits below 0 [0.01ms]
+(pass) terrainSupportLift > null for an unknown level [0.17ms]
+(pass) terrainSupportLift > the building's own datum offsets the sample instead of double-counting [0.06ms]
+(pass) terrainSupportLift > level-local XZ goes through the building transform [0.14ms]
+(pass) terrainSupportLift > a level with no building still resolves against the legacy stack [0.07ms]
+
+packages/core/src/lib/terrain-raycast.test.ts:
+(pass) raycastTerrain — flat ground > a straight-down ray hits Y=0 at its own XZ [0.33ms]
+(pass) raycastTerrain — flat ground > t is in units of the direction vector, matching Ray.at [0.08ms]
+(pass) raycastTerrain — flat ground > agrees with the flat-plane solve it replaces [0.06ms]
+(pass) raycastTerrain — slopes > hits the analytic point on a 1:1 ramp [0.04ms]
+(pass) raycastTerrain — slopes > the hit is on the surface — y equals the field height there [0.32ms]
+(pass) raycastTerrain — slopes > a downhill ray does NOT report the flat-plane answer [0.04ms]
+(pass) raycastTerrain — slopes > does not step over a single-cell spike
+(pass) raycastTerrain — misses and edges > returns null for a ray pointing away from the field
+(pass) raycastTerrain — misses and edges > returns null when the ray misses the field in XZ
+(pass) raycastTerrain — misses and edges > a ray from outside still hits when it crosses the field
+(pass) raycastTerrain — misses and edges > a zero-length direction returns null instead of looping
+(pass) raycastTerrain — misses and edges > a horizontal ray inside the field terminates [0.20ms]
+(pass) raycastTerrain — misses and edges > a ray fired upward from underground finds the surface above it [0.07ms]
+(pass) raycastTerrain — misses and edges > a downward ray from underground misses — there is no surface below it [0.02ms]
+(pass) raycastTerrain — misses and edges > an origin exactly on the surface hits at t = 0 [0.02ms]
+(pass) raycastTerrain — misses and edges > respects a non-zero field origin [0.03ms]
+(pass) raycastTerrain — consistency with the write path > picks up a flattened pad immediately after applyHeightPatch [0.07ms]
+
+packages/core/src/lib/terrain-codec.test.ts:
+(pass) encodeTerrainField / decodeTerrainField > round-trips every sample exactly
+(pass) encodeTerrainField / decodeTerrainField > round-trips the field metadata [0.32ms]
+(pass) encodeTerrainField / decodeTerrainField > a decoded field reads the same heights as the original [0.13ms]
+(pass) encodeTerrainField / decodeTerrainField > is JSON-safe — survives stringify/parse [0.03ms]
+(pass) encodeTerrainField / decodeTerrainField > encodes byte-identically regardless of the source buffer offset [0.04ms]
+(pass) encodeTerrainField / decodeTerrainField > beats a naive JSON array on realistic terrain [0.50ms]
+(pass) decodeTerrainField — hostile and corrupt input > rejects non-objects and wrong discriminators [0.04ms]
+(pass) decodeTerrainField — hostile and corrupt input > rejects non-integer or non-positive dimensions
+(pass) decodeTerrainField — hostile and corrupt input > rejects dimensions above the authoring ceiling before allocating [0.04ms]
+(pass) decodeTerrainField — hostile and corrupt input > rejects non-base64 characters instead of decoding garbage [0.02ms]
+(pass) decodeTerrainField — hostile and corrupt input > rejects a missing heights string [0.02ms]
+(pass) decodeTerrainField — hostile and corrupt input > rejects truncated and oversized payloads [0.03ms]
+(pass) decodeTerrainField — hostile and corrupt input > rejects missing metadata instead of inventing a different field [0.02ms]
+(pass) decodeTerrainField — hostile and corrupt input > rejects invalid spacing, step, and origin values [0.03ms]
+(pass) decodeTerrainField — hostile and corrupt input > rejects non-canonical base64 instead of accepting trailing garbage [0.04ms]
+(pass) isDatumField > true for a fresh field [0.04ms]
+(pass) isDatumField > false as soon as one sample moves [0.02ms]
+(pass) isDatumField > false for a negative sample — a pit is not the datum
+
+packages/core/src/lib/space-detection-history.test.ts:
+(pass) undo/redo restores zone review metadata without regenerating the restored snapshot [2.68ms]
+
+packages/core/src/lib/terrain-brush.test.ts:
+(pass) weightAt > is 1 at the centre and 0 at the rim [0.04ms]
+(pass) weightAt > has zero derivative at both ends — the anti-ridge property [0.01ms]
+(pass) weightAt > falloff 0 is a hard stamp — full coverage right up to the rim
+(pass) weightAt > square uses Chebyshev distance so the corners are covered [0.03ms]
+(pass) raise > a single dab raises the ground under the brush and nothing outside it [0.30ms]
+(pass) raise > dwelling in one spot does not compound — the saturating invariant [0.13ms]
+(pass) raise > re-crossing your own stroke does not compound either [0.50ms]
+(pass) raise > one full-strength pass is bounded by RAISE_METRES_PER_STROKE [0.03ms]
+(pass) raise > a second stroke goes further — repeats are how you get more [0.01ms]
+(pass) raise > lower is raise with the sign inverted [0.01ms]
+(pass) raise > lower digs below the datum — basements need negative ground [0.05ms]
+(pass) arc-length spacing > a fast drag and a slow drag deposit the same material [0.24ms]
+(pass) arc-length spacing > motion shorter than one dab spacing deposits nothing new [0.09ms]
+(pass) arc-length spacing > a click with no drag still deposits one dab [0.05ms]
+(pass) detachStrokeAnchor > the skipped stretch stays unpainted [0.04ms]
+(pass) detachStrokeAnchor > without it the same gap is bridged, which is the bug [0.07ms]
+(pass) detachStrokeAnchor > both ends of the jump are still painted [0.04ms]
+(pass) detachStrokeAnchor > the stroke stays saturating across the break [0.06ms]
+(pass) flatten > converges on the absolute target without overshoot [0.14ms]
+(pass) flatten > a full-strength hard-edged pass lands exactly on the target
+(pass) flatten > two disjoint pads flattened to the same target are exactly equal [0.05ms]
+(pass) flatten > flatten pulls a raised hill back down as readily as it pushes up [0.05ms]
+(pass) flatten > sampleTarget reads the height the user clicked
+(pass) smooth > reduces the peak of a spike without moving flat ground [0.78ms]
+(pass) smooth > repeated smoothing converges instead of oscillating [1.25ms]
+(pass) field bounds > a stroke entirely off the field returns no patch
+(pass) field bounds > a stroke straddling the edge clips instead of throwing
+(pass) minBrushRadius > a brush at the floor still bites, at every spacing [0.12ms]
+(pass) minBrushRadius > below the floor the ground does not move at all [0.03ms]
+(pass) minBrushRadius > the floor scales with spacing rather than being a constant
+(pass) highestOver > returns the tallest sample in the rect [0.05ms]
+
+packages/core/src/lib/body-topology.test.ts:
+(pass) Body topology kernel contract > creates a hollow frame with exact depth and rounded upper corners [0.66ms]
+(pass) Body topology kernel contract > rejects an opening that does not fit inside the frame [0.02ms]
+(pass) Body topology kernel contract > creates a valid rectangular face with stable topology [0.08ms]
+(pass) Body topology kernel contract > creates a rotated planar face from authored points [0.05ms]
+(pass) Body topology kernel contract > preserves its semantic hash across JSON save and schema reload [0.09ms]
+(pass) Body topology kernel contract > semantic hash ignores collection order but detects geometry changes [0.03ms]
+(pass) Body topology kernel contract > reports broken references with stable diagnostic codes and feature ids [0.20ms]
+(pass) Body topology kernel contract > pushes a rectangular face by exactly 1200 mm into a closed solid [0.10ms]
+(pass) Body topology kernel contract > keeps the moved face identity and material placement [0.12ms]
+(pass) Body topology kernel contract > creates non-degenerate UV frames for the base and side faces [0.18ms]
+(pass) Body topology kernel contract > produces a deterministic remap and reciprocal twins [0.09ms]
+(pass) Body topology kernel contract > rolls back zero-thickness push/pull without mutating the source [0.11ms]
+(pass) Body topology kernel contract > pushes the same solid face repeatedly without replacing topology ids [0.18ms]
+(pass) Body topology kernel contract > rejects a solid face move that would collapse the body [0.14ms]
+(pass) Body topology kernel contract > rejects curved solid face boundaries before mutation [0.16ms]
+
+packages/core/src/lib/body-curves.test.ts:
+(pass) Body circular arc topology > persists two arc edges and one closing chord [0.13ms]
+(pass) Body circular arc topology > samples the same authored boundary for every surface [0.08ms]
+(pass) Body circular arc topology > is deterministic across save-load parsing [0.16ms]
+(pass) Body circular arc topology > fails closed for planar push/pull without mutating curved topology [0.09ms]
+
+packages/core/src/services/opening-guides.test.ts:
+(pass) detectEqualSpacing > returns null for fewer than three openings [0.25ms]
+(pass) detectEqualSpacing > detects a run of equal gaps across three openings [0.08ms]
+(pass) detectEqualSpacing > extends a run across four openings (three gaps) [0.01ms]
+(pass) detectEqualSpacing > returns null when gaps differ beyond tolerance [0.03ms]
+(pass) detectEqualSpacing > returns null when the moving opening is not part of the equal run [0.01ms]
+(pass) detectEqualSpacing > a near-zero (touching) gap breaks a run
+(pass) detectEqualSpacing > honours the equal-spacing tolerance [0.03ms]
+(pass) computeEdgeGaps > measures clearance to the nearest neighbour on each side [0.04ms]
+(pass) computeEdgeGaps > falls back to wall ends with no neighbour [0.04ms]
+(pass) computeEdgeGaps > omits a side that is flush / overlapping (below minGap) [0.04ms]
+(pass) detectAlongWallAlignment > detects edge-to-edge alignment within tolerance [0.07ms]
+(pass) detectAlongWallAlignment > detects centre alignment [0.02ms]
+(pass) detectAlongWallAlignment > returns null when nothing is within tolerance
+(pass) detectVerticalAlignment > detects a shared sill within tolerance [0.07ms]
+(pass) detectVerticalAlignment > returns null when sills/tops differ beyond tolerance
+(pass) computeOpeningGuides > includes sill/head for windows [0.06ms]
+(pass) computeOpeningGuides > omits vertical guides for doors (sit on the floor) [0.04ms]
+(pass) computeOpeningGuides > combines proximity and equal-spacing in one pass [0.03ms]
+(pass) opening-guides — review regressions > detectEqualSpacing finds a run that starts partway through a drifting sequence [0.03ms]
+(pass) opening-guides — review regressions > detectEqualSpacing prefers the leftmost run on a length tie
+(pass) opening-guides — review regressions > computeEdgeGaps suppresses both sides when a sibling overlaps
+(pass) opening-guides — review regressions > alignment detectors ignore the moving opening if present in siblings [0.04ms]
+(pass) opening-guides — review regressions > detectAlongWallAlignment reports a negative snap when the feature is past the target
+
+packages/core/src/services/drag-session.test.ts:
+(pass) createDragSession > start pauses history; commit resumes [0.16ms]
+(pass) createDragSession > cancel resumes history and calls restoreAll [0.02ms]
+(pass) createDragSession > move runs preview + apply and marks the returned id dirty [0.06ms]
+(pass) createDragSession > snap callback is invoked when defined [0.07ms]
+(pass) createDragSession > commit returns false when action.commit returns false; calls action.cancel and restoreAll [0.06ms]
+(pass) createDragSession > move is a no-op when session is not active
+(pass) createDragSession > repeated start is a no-op (re-entry guard) [0.04ms]
+(pass) createDragSession > dispose mid-drag cancels and cleans up [0.05ms]
+(pass) createDragSession > dispose when inactive is a no-op [0.01ms]
+(pass) createDragSession > onCommit callback fires on successful commit
+(pass) createDragSession > onCancel callback fires on explicit cancel
+(pass) createDragSession > dispose does NOT fire onCancel (silent cleanup) [0.07ms]
+(pass) createDragSession > dirty cascade fires once per id even across multiple move ticks [0.08ms]
+(pass) createDragSession > dirty cascade follows hosts relations from the registry [0.16ms]
+
+packages/core/src/services/movement.test.ts:
+(pass) resolveMovable > returns null when no def is registered [0.05ms]
+(pass) resolveMovable > returns null when def declares no movable capability [0.09ms]
+(pass) resolveMovable > returns the declared config
+(pass) resolveMovable > runs override callback when present [0.07ms]
+(pass) resolveMovable > override returning null falls back to base config [0.01ms]
+(pass) applyAxisLock > passes through unlocked axes only [0.04ms]
+(pass) applyAxisLock > empty lock returns current unchanged
+(pass) moveToward > returns null when node is not movable [0.04ms]
+(pass) moveToward > axis-locks and returns the constrained target [0.03ms]
+(pass) moveToward > applies grid snap when capability declares gridSnap: true [0.05ms]
+(pass) moveToward > grid snap can be overridden at call site
+(pass) movePlanToward > returns 2D point with X/Z constrained, Y dropped [0.01ms]
+(pass) movePlanToward > returns null when node is not movable [0.04ms]
+(pass) isMovable > true when movable.axes has entries
+(pass) isMovable > false when no movable capability [0.02ms]
+(pass) isMovable > false when movable.axes is empty [0.02ms]
+
+packages/core/src/services/port-connectivity.test.ts:
+(pass) port connectivity — joint follow (stretch vs translate) > the fitting and sibling run are picked up as carried connections [0.39ms]
+(pass) port connectivity — joint follow (stretch vs translate) > perpendicular drag translates the WHOLE sibling run (no skew) [0.37ms]
+(pass) port connectivity — joint follow (stretch vs translate) > parallel drag stretches the sibling run (only the near end slides) [0.08ms]
+(pass) port connectivity — joint follow (stretch vs translate) > perpendicular slide propagates through the sibling run to its far joint [0.15ms]
+(pass) port connectivity — joint follow (stretch vs translate) > a run reached from both ends applies both endpoint deltas [0.06ms]
+(pass) port connectivity — joint follow (stretch vs translate) > a polyline run reached from both ends preserves interior bend shape [0.07ms]
+(pass) port connectivity — joint follow (stretch vs translate) > a fitting reached from both collars rebroadcasts its final compatible rigid delta [0.38ms]
+(pass) port connectivity — joint follow (stretch vs translate) > a fitting reached from incompatible collars merges constraints deterministically [0.08ms]
+(pass) port connectivity — joint follow (stretch vs translate) > an unrelated run not on the fitting is left alone [0.06ms]
+
+packages/core/src/services/storey.test.ts:
+(pass) getStoredLevelHeight > returns the stored height when present [0.07ms]
+(pass) getStoredLevelHeight > falls back to the default for unmigrated legacy levels [0.10ms]
+(pass) getLevelElevations > single building matches a hand-computed prefix sum [0.08ms]
+(pass) getLevelElevations > stacks two buildings independently with interleaved, unsorted ordinals [0.09ms]
+(pass) getLevelElevations > negative ordinals stack from the lowest level up [0.01ms]
+(pass) getLevelElevations > duplicate and fractional ordinals stack stably without NaN
+(pass) getLevelElevations > levels missing height fall back to 2.5 for both height and stacking
+(pass) getLevelElevations > resolves buildings via parentId, legacy children membership, and non-building parents
+(pass) getLevelElevations > levels with no resolvable building share one legacy stack from 0
+(pass) getLevelAbove > returns the next-higher ordinal in the same building, skipping ordinal gaps [0.05ms]
+(pass) getLevelAbove > never crosses into another building [0.03ms]
+(pass) getLevelAbove > orphan levels resolve within the shared legacy stack [0.02ms]
+(pass) getLevelAbove > returns null for an unknown level id [0.02ms]
+(pass) getLevelBelow > returns the next-lower ordinal in the same building, skipping ordinal gaps [0.06ms]
+(pass) getLevelBelow > never crosses into another building [0.05ms]
+(pass) getLevelBelow > returns null for an unknown level id
+(pass) getCoveringSlabUndersideAt > expresses a flush deck underside in the queried level local Y [0.12ms]
+(pass) getCoveringSlabUndersideAt > returns null outside the slab polygon [0.04ms]
+(pass) getCoveringSlabUndersideAt > a hole in the slab vetoes coverage [0.03ms]
+(pass) getCoveringSlabUndersideAt > recessed pools never cover [0.05ms]
+(pass) getCoveringSlabUndersideAt > the lowest underside wins among overlapping covering slabs
+(pass) getCoveringSlabUndersideAt > returns null when there is no level above
+(pass) getWallPlaneTop > no covering slab → the stored level height [0.11ms]
+(pass) getWallPlaneTop > a flush thick deck above clamps the plane to its underside [0.11ms]
+(pass) getWallPlaneTop > a slab covering only part of the span clamps via the min of the samples
+(pass) getWallPlaneTop > a recessed slab above is ignored
+(pass) getWallPlaneTop > falls back to the default height when the level does not resolve [0.10ms]
+(pass) getWallPlaneTop > repro project: both boundary walls clamp to the covering slab underside [0.05ms]
+(pass) getWallPlaneTop > all four rectangle walls under a same-footprint covering slab clamp [0.06ms]
+(pass) getWallPlaneTop > a diagonal wall under the covering slab clamps [0.05ms]
+(pass) getWallPlaneTop > a wall fully outside the covering slab keeps the storey height [0.04ms]
+(pass) getWallPlaneTop > a wall partially overlapping the covering slab clamps [0.03ms]
+(pass) getCeilingClampBound > with no covering slab the bound is the storey plane minus the margin
+(pass) getCeilingClampBound > a covering deck lowers the bound to its underside minus the margin [0.04ms]
+(pass) getCeilingClampBound > a slab covering only the interior is caught by the centroid sample [0.08ms]
+(pass) getCeilingClampBound > returns Infinity for an unresolvable level
+(pass) getCeilingClampBound > vertices on the covering slab boundary clamp identically on every side [0.05ms]
+
+packages/core/src/services/single-undo-dance.test.ts:
+(pass) Single-undo dance > curve-style commit yields a single undo step [1.10ms]
+(pass) Single-undo dance > StrictMode double-mount: dispose-then-restart preserves history [0.19ms]
+(pass) Single-undo dance > commit-returns-false adds no step; a later standalone undo reaches the prior action [0.09ms]
+(pass) Single-undo dance > full session flow via createDragSession with real action.commit dance [0.32ms]
+(pass) Single-undo dance > REAL bend (draft != original): one Ctrl-Z undoes only the bend [0.10ms]
+(pass) Single-undo dance > a SECOND undo rolls the create step back [0.11ms]
+
+packages/core/src/services/validate-dwv.test.ts:
+(pass) validateDwv — slope > flags a flat waste run [0.26ms]
+(pass) validateDwv — slope > passes a run sloped at quarter-inch per foot [0.04ms]
+(pass) validateDwv — slope > flags an over-steep run (siphoning risk) [0.04ms]
+(pass) validateDwv — slope > ignores vents (level is fine) [0.01ms]
+(pass) validateDwv — trap arm > flags an over-long trap arm [0.02ms]
+(pass) validateDwv — trap arm > passes a trap arm within the limit
+
+packages/core/src/services/alignment.test.ts:
+(pass) resolveAlignment > returns empty when no candidates within threshold [0.45ms]
+(pass) resolveAlignment > snaps moving anchor onto candidate X when within threshold [0.03ms]
+(pass) resolveAlignment > snaps both axes when both match [0.01ms]
+(pass) resolveAlignment > picks closest candidate per axis [0.02ms]
+(pass) resolveAlignment > ties on the matched axis break toward the nearest perpendicular anchor
+(pass) resolveAlignment > threshold = 0 disables alignment
+(pass) resolveAlignment > distance is the perpendicular gap to the matched axis
+(pass) bboxAnchors > returns 9 anchors with correct kinds and positions [0.05ms]
+
+packages/core/src/services/level-height.test.ts:
+(pass) deriveLegacyLevelHeight > derives 2.5 for level_no_slab [0.09ms]
+(pass) deriveLegacyLevelHeight > derives 2.5 for level_standard_slab [0.10ms]
+(pass) deriveLegacyLevelHeight > derives 3.55 for level_tall_wall
+(pass) deriveLegacyLevelHeight > derives 3.4 for level_ceiling [0.03ms]
+(pass) deriveLegacyLevelHeight > derives 2.8 for level_negative_slab
+(pass) deriveLegacyLevelHeight > derives 2.5 for level_empty
+(pass) resolveCeilingHeight > returns the explicit height verbatim when stored [0.09ms]
+(pass) resolveCeilingHeight > resolves an absent height to the level-top clamp bound [0.05ms]
+(pass) resolveCeilingHeight > tracks a level height change without any ceiling write [0.08ms]
+(pass) resolveCeilingHeight > resolves under a covering deck from the level above [0.05ms]
+(pass) resolveCeilingHeight > falls back to the default plane when the level is unresolvable
+(pass) getCeilingAt lowest-wins with mixed follows/explicit > picks the explicit low ceiling under a follows-mode one, and vice versa [0.10ms]
+
+packages/core/src/services/alignment-anchors.test.ts:
+(pass) footprintAABBFrom > unrotated box is centred at position [0.11ms]
+(pass) footprintAABBFrom > 90° rotation swaps width and depth extents [0.01ms]
+(pass) footprintAABB > reads dimensions + rotation from a floor-placed kind [0.14ms]
+(pass) footprintAABB > returns null for a kind without a footprint [0.04ms]
+(pass) footprintAABB > derives an elevator footprint from its OUTER SHAFT, not the cab [0.08ms]
+(pass) footprintAABB > returns null when the kind predicate excludes the node [0.03ms]
+(pass) movingFootprintAnchors > relocates the footprint corners around the proposed centre (edges only, no centre anchor) [0.07ms]
+(pass) movingFootprintAnchors > rotationY override drives the AABB regardless of node rotation [0.04ms]
+(pass) movingFootprintAnchors > returns empty for a footprintless kind
+(pass) movingAlignmentAnchors > relocates a straight stair by its segment-chain footprint [0.22ms]
+(pass) movingAlignmentAnchors > rotation override drives a moving straight stair footprint [0.07ms]
+(pass) wallSegmentAnchors > returns both endpoints as corners and the chord midpoint as center
+(pass) wallSegmentAnchors > adds ±thickness/2 face corners on each endpoint when thickness is given
+(pass) wallSegmentAnchors > skips face corners for zero/degenerate input
+(pass) polygonAnchors > returns each vertex as a corner anchor [0.03ms]
+(pass) collectAlignmentAnchors > unions footprint corners, segment anchors and polygon vertices, excluding the moving node [0.13ms]
+(pass) collectAlignmentAnchors > levelId filter keeps only nodes resolving to that level (incl. nested) [0.11ms]
+(pass) collectAlignmentAnchors > straight stair contributes its segment-chain footprint corners [0.03ms]
+(pass) collectAlignmentAnchors > curved stair contributes its sector bounding-box corners [0.21ms]
+(pass) collectAlignmentAnchors > spiral stair contributes a full-circle bounding box [0.09ms]
+(pass) construction guide alignment anchors > an axis-aligned guide contributes two anchors sharing its fixed coordinate [0.01ms]
+(pass) construction guide alignment anchors > diagonal and hidden guides contribute nothing
+
+packages/core/src/services/wall-flush-snap.test.ts:
+(pass) resolveWallFlushSnap > pulls a near edge flush onto the wall face [0.21ms]
+(pass) resolveWallFlushSnap > does not engage beyond the threshold [0.04ms]
+(pass) resolveWallFlushSnap > pushes an overlapping footprint back out to the face
+(pass) resolveWallFlushSnap > snaps onto the back face when the centre is on the back side [0.01ms]
+(pass) resolveWallFlushSnap > ignores a wall whose span the footprint does not overlap
+(pass) resolveWallFlushSnap > lands flush against both walls of a corner in one snap [0.03ms]
+(pass) resolveWallFlushSnap > touches by the nearest corner when the footprint is rotated [0.01ms]
+(pass) resolveWallFlushSnap > returns null with no level or no walls
+(pass) resolveWallAlignedPlacement > anchors flush into the start end [0.10ms]
+(pass) resolveWallAlignedPlacement > anchors at the wall centre and the end
+(pass) resolveWallAlignedPlacement > uses the face on the footprint side of the wall [0.01ms]
+(pass) resolveWallAlignedPlacement > rotated footprint uses its rotated along-wall extent [0.01ms]
+(pass) resolveWallAlignedPlacement > a wall shorter than the footprint centres it [0.01ms]
+(pass) wallAnchorForViewerSide > facing the back wall from inside the room, left is the -x end [0.04ms]
+(pass) wallAnchorForViewerSide > from the opposite side of the wall, left/right swap
+(pass) wallAnchorForViewerSide > wall drawn in the reverse direction gives the same viewer-relative answer
+
+packages/core/src/services/snap.test.ts:
+(pass) snapScalar > rounds to multiples of step [0.02ms]
+(pass) snapScalar > returns input unchanged when step is non-positive [0.01ms]
+(pass) snapScalar > default step is 0.25m
+(pass) snapPointToGrid > snaps both components independently [0.02ms]
+(pass) snapPointToGrid > preserves exact-grid points
+(pass) snapVec3ToGrid > snaps X and Z, leaves Y untouched
+(pass) snapPointToAngle > snaps to axis (0°) when cursor is near horizontal [0.04ms]
+(pass) snapPointToAngle > snaps to 45° at π/4 step
+(pass) snapPointToAngle > default angle step is π/12 (15°)
+(pass) snapPointToAngle > grid-snaps the projected point when gridStep is provided
+(pass) snapPointToAngle > preserves distance from `from` [0.03ms]
+(pass) snapPointAlongAngleRay > stays exactly on the 15° ray while distance-snapping to the grid step
+(pass) snapPointAlongAngleRay > grid-snapping after the angle projection would pull the point off the ray
+(pass) snapPointAlongAngleRay > 45° back-compat: locks to the diagonal with grid-multiple distance [0.05ms]
+(pass) snapPointAlongAngleRay > preserves the projected distance when no distanceStep is given
+(pass) snapPointAlongAngleRay > returns `from` for a zero-length segment
+(pass) snapPointAlongAngleRay > is idempotent on its own output [0.03ms]
+(pass) snapAngleToList > snaps to the nearest entry within tolerance [0.06ms]
+(pass) snapAngleToList > returns original angle when no target is within tolerance [0.09ms]
+(pass) snapAngleToList > handles wrap-around near ±π
+(pass) snapServices facade > grid.snap matches snapPointToGrid
+(pass) snapServices facade > grid.snapScalar matches snapScalar
+(pass) snapServices facade > angle.snapTo matches snapPointToAngle
+
+packages/core/src/services/system-graph.test.ts:
+(pass) buildPortComponents > chained runs land in one component; a distant run is separate [0.16ms]
+(pass) buildPortComponents > joints within tolerance still join; outside do not
+(pass) buildPortComponents > nodes without ports do not participate
+(pass) summarizeSystemFor > full tree: equipment → run → terminal, stats add up [0.22ms]
+(pass) summarizeSystemFor > orphaned run reports no equipment [0.03ms]
+(pass) summarizeSystemFor > port-less node → null [0.01ms]
+
+packages/core/src/services/hosting.test.ts:
+(pass) canAttach > rejects self-host [0.11ms]
+(pass) canAttach > rejects missing host [0.03ms]
+(pass) canAttach > detects cycle when host is a descendant of child [0.01ms]
+(pass) canAttach > rejects when chain would exceed MAX_HOST_DEPTH [0.06ms]
+(pass) canAttach > accepts attach when chain stays within MAX_HOST_DEPTH
+(pass) canAttach > rejects host kind not in child def.hostable.parents [0.10ms]
+(pass) canAttach > accepts when host kind is in parents [0.02ms]
+(pass) canAttach > no def or no hostable.parents = no kind restriction [0.02ms]
+(pass) canAttach > allows missing child (placement preview before commit) [0.02ms]
+(pass) getSurface / getTopSurfaceHeight > returns null when host has no registered def [0.04ms]
+(pass) getSurface / getTopSurfaceHeight > returns surface config when declared [0.04ms]
+(pass) getSurface / getTopSurfaceHeight > evaluates function-valued height with the node [0.03ms]
+(pass) clampYToHostTop > clamps to top when host has one [0.04ms]
+(pass) clampYToHostTop > passes through when host has no top surface [0.01ms]
+(pass) pickHost > returns first candidate that has hostable capability [0.05ms]
+(pass) pickHost > returns null when nothing in candidates is hostable [0.04ms]
+(pass) pickHost > hitTest can reject hostable candidates [0.03ms]
+(pass) pickHost > excludes ceiling-mounted hosts (ceiling fan cannot be a top surface) [0.04ms]
+(pass) pickHost > keeps wall-mounted hosts (wall shelf still hosts) [0.02ms]
+(pass) canHostOnTop > rejects ceiling-attachTo hosts
+(pass) canHostOnTop > accepts wall / wall-side / floor (undefined) hosts
+
+packages/core/src/services/riser-diagram.test.ts:
+(pass) projectIso > higher elevation maps to smaller screen Y
+(pass) buildRiserDiagram > null when no DWV nodes [0.19ms]
+(pass) buildRiserDiagram > classifies a vertical stack vs a sloped horizontal drain [0.07ms]
+(pass) buildRiserDiagram > emits a vent-termination marker for a vent run
+(pass) buildRiserDiagram > labels traps [0.01ms]
+
+packages/core/src/validation/validate-build-json.test.ts:
+(pass) validateBuildJson > accepts a minimal valid scene [0.46ms]
+(pass) validateBuildJson > preserves document collections and external scene materials for import [0.13ms]
+(pass) validateBuildJson > plugin-typed children do not hard-fail their parent level [0.08ms]
+(pass) validateBuildJson > a genuinely malformed known-type node still blocks import [0.12ms]
+(pass) validateBuildJson with registered plugin kinds > a registered plugin kind is first-class: no unknown-types warning [0.47ms]
+(pass) validateBuildJson with registered plugin kinds > a corrupt registered plugin node is caught by its own schema [0.28ms]
+
+packages/core/src/store/use-scene-plugins.test.ts:
+(pass) scene plugin installation state > loads an explicit installed plugin list with the scene [0.63ms]
+(pass) scene plugin installation state > install changes are de-duplicated and become explicit [0.07ms]
+(pass) scene plugin installation state > clearing geometry preserves project plugin installs [0.39ms]
+(pass) scene plugin installation state > uninstall clears plugin build work and reinstall schedules it again [0.25ms]
+
+packages/core/src/store/use-scene-retired-floorplan-migration.test.ts:
+(pass) retired floor-plan data migration > removes drawing-sheet nodes and their parent references [0.39ms]
+(pass) retired floor-plan data migration > converts wall assembly width to plain thickness and removes the legacy field [0.24ms]
+
+packages/core/src/store/use-scene-construction-dimension-migration.test.ts:
+(pass) scene construction-dimension migrations > normalizes the legacy reference presentation before parsing [0.28ms]
+
+packages/core/src/store/use-scene-commits.test.ts:
+(pass) scene commit boundary > emits one local commit with before/current snapshots and skips semantic no-ops [0.35ms]
+(pass) scene commit boundary > coalesces a compound transaction into one commit and one undo step [0.21ms]
+(pass) scene commit boundary > coalesces a capped empty-baseline transaction without losing its undo target [0.77ms]
+(pass) scene commit boundary > preserves the capped history prefix around a long single-step transaction [0.79ms]
+(pass) scene commit boundary > restores the exact capped baseline when a pressured transaction is a semantic no-op [0.61ms]
+(pass) scene commit boundary > nested single-step wrappers still produce one commit and one undo step [0.11ms]
+(pass) scene commit boundary > clears redo history on the first write after an undo inside a wrapper [0.07ms]
+(pass) scene commit boundary > drops a compound transaction that returns to its semantic baseline [0.04ms]
+(pass) scene commit boundary > applies host patches without local history and marks node and parent dirty [0.41ms]
+(pass) scene commit boundary > applies material patches atomically and dirties nodes that reference them [0.29ms]
+(pass) scene commit boundary > keeps host patches untracked across nested history pauses [0.08ms]
+(pass) scene commit boundary > applies host patches through read-only and restores the UI lock [0.09ms]
+(pass) scene commit boundary > keeps read-only active until every owner releases its lease [0.05ms]
+(pass) scene commit boundary > restores read-only and history tracking when a host patch throws [0.42ms]
+(pass) scene commit boundary > rejects a host patch atomically when any target is missing [0.05ms]
+(pass) scene commit boundary > rejects patches that would change a node identity [0.03ms]
+(pass) scene commit boundary > applies a disjoint host patch while a local interaction has history paused [0.07ms]
+(pass) scene commit boundary > defers a host patch that collides with a live node or structural parent [0.11ms]
+(pass) scene commit boundary > validates registered creates and updates without stripping forward-compatible fields [0.52ms]
+(pass) scene commit boundary > applies exact structural, field, and material changes in one host commit [0.17ms]
+(pass) scene commit boundary > does not leave deleted ancestors in the dirty set after subtree deletion [0.01ms]
+(pass) scene commit boundary > dirties surviving siblings after a remote structural deletion [0.06ms]
+(pass) scene commit boundary > preserves an external tool history pause while applying a remote patch [0.08ms]
+(pass) scene commit boundary > rejects an invalid structural operation before mutating any field or material [0.06ms]
+(pass) scene commit boundary > keeps dirty work bounded when structurally patching a 10k-node scene [8.10ms]
+(pass) scene commit boundary > applies a host snapshot as a history floor and clears live state [0.37ms]
+(pass) scene commit boundary > rejects snapshot replacement during a paused interaction [0.04ms]
+(pass) scene commit boundary > isolates a throwing listener so later listeners and Zundo still run [0.07ms]
+(pass) scene commit boundary > semantic equality short-circuits shared nodes in a large scene [0.47ms]
+
+packages/core/src/store/use-scene-measurement-roundtrip.test.ts:
+(pass) scene measurement round-trip > preserves a complete measurement graph across JSON and setScene [1.92ms]
+
+packages/core/src/store/use-scene-site-child-migration.test.ts:
+(pass) legacy site child migration > keeps a flat building subtree referenced by an embedded site child [0.18ms]
+
+packages/core/src/store/use-scene-saved-views.test.ts:
+(pass) saved views > add / update / remove round-trip [0.15ms]
+(pass) saved views > readOnly blocks all saved-view writes [0.04ms]
+(pass) saved views > setScene loads savedViews from extra and defaults to empty [0.05ms]
+(pass) saved views > geometry undo does not touch saved views [0.08ms]
+
+packages/core/src/store/use-scene-dirty-tracking.test.ts:
+(pass) dirty tracking > markDirty skips kinds whose definition opts out [0.08ms]
+(pass) dirty tracking > markDirty tracks kinds without the opt-out, registered or not [0.02ms]
+(pass) dirty tracking > deleteNodes removes deleted ids from the dirty set
+(pass) dirty tracking > wall merge does not re-mark a deleted secondary wall dirty [0.29ms]
+(pass) dirty tracking > wall topology actions create a direct undo and redo step [0.30ms]
+
+packages/core/src/store/use-scene-elevator-migration.test.ts:
+(pass) scene elevator migrations > normalizes legacy level-parented elevators into building-scoped nodes [1.72ms]
+(pass) scene elevator migrations > migrates level-parented elevators when the level parentId is missing [0.12ms]
+
+packages/core/src/store/use-scene-vertical-migration.test.ts:
+(pass) scene vertical model migration > default legacy storey derives height 2.5 and keeps walls plane-bound [0.58ms]
+(pass) scene vertical model migration > hole pattern: walls within 0.20 of the plane become plane-bound [0.26ms]
+(pass) scene vertical model migration > intentional short walls at or beyond 0.20 keep their explicit height [0.15ms]
+(pass) scene vertical model migration > absent-height wall well short of the plane materializes the 2.5 default [0.08ms]
+(pass) scene vertical model migration > ordinal renumber compacts per building, anchored at zero [0.08ms]
+(pass) scene vertical model migration > near-bound ceiling heights become follows-mode [0.12ms]
+(pass) scene vertical model migration > an intentional low ceiling keeps its explicit height [0.07ms]
+(pass) scene vertical model migration > autoFromWalls ceilings always convert to follows-mode [0.06ms]
+(pass) scene vertical model migration > migrated scene keeps a near-bound ceiling height (gate respected) [0.04ms]
+(pass) scene vertical model migration > legacy scene drops totalRise 2.5 but keeps other rises [1.18ms]
+(pass) scene vertical model migration > migrated scene keeps a deliberately typed totalRise 2.5 [0.09ms]
+(pass) scene vertical model migration > already-migrated level and its walls are untouched [0.08ms]
+(pass) scene vertical model migration > slab split writes thickness = elevation exactly for legacy solids [0.04ms]
+(pass) scene vertical model migration > slab split defaults an absent elevation to the effective 0.05 thickness [0.07ms]
+(pass) scene vertical model migration > legacy pool becomes recessed with its elevation unchanged [0.04ms]
+(pass) scene vertical model migration > slab with thickness already present is untouched [0.07ms]
+(pass) scene vertical model migration > migration is idempotent [0.61ms]
+
+packages/core/src/store/use-scene-window-migration.test.ts:
+(pass) scene window migrations > fills schema defaults on windows saved before a field existed [0.46ms]
+
+packages/core/src/store/use-scene-wall-slot-migration.test.ts:
+(pass) wall surface-material → slots migration > moves legacy library presets into slots and clears the inline fields [0.09ms]
+(pass) wall surface-material → slots migration > mints a scene material for an inline legacy material and references it [0.29ms]
+(pass) wall surface-material → slots migration > legacy catch-all material applies to both faces; identical inline customs share one scene material [0.09ms]
+(pass) wall surface-material → slots migration > leaves an already slot-modelled wall untouched and mints nothing for unpainted walls [0.09ms]
+(pass) procedural kind surface-material → slots migration > slab: legacy preset → slots.surface, legacy cleared [0.10ms]
+(pass) procedural kind surface-material → slots migration > ceiling: inline custom material mints a scene material on slots.surface [0.04ms]
+(pass) procedural kind surface-material → slots migration > fence: legacy preset fans out to every slot id (one shared ref) [0.06ms]
+(pass) procedural kind surface-material → slots migration > stair: per-role legacy fields map tread→treads, side→body, railing→railing [0.05ms]
+(pass) procedural kind surface-material → slots migration > unpainted procedural node mints nothing and stays slot-less [0.12ms]
+
+packages/core/src/store/use-live-terrain.test.ts:
+(pass) useLiveTerrain > begin / advance / end lifecycle [0.36ms]
+(pass) useLiveTerrain > the snapshot survives every dab — the anti-compounding invariant [0.10ms]
+(pass) useLiveTerrain > lastPatch is what the renderer uploads, and is null right after begin
+(pass) useLiveTerrain > a dab with no stroke is ignored rather than inventing a snapshot
+(pass) useLiveTerrain > a second begin adopts the dabs so far as its snapshot — the hazard callers own [0.03ms]
+(pass) useLiveTerrain > strokes are per site — one does not leak into another
+(pass) terrainFieldOf sees the live stroke > a stroke wins over the persisted terrain [0.09ms]
+(pass) terrainFieldOf sees the live stroke > ending the stroke reverts readers to the persisted terrain
+(pass) terrainFieldOf sees the live stroke > a stroke on a site with no persisted terrain is still visible [0.06ms]
+(pass) terrainFieldOf sees the live stroke > a site with no id and no terrain is still null — no crash [0.01ms]
+
+packages/core/src/schema/nodes/roof-segment-surface.test.ts:
+(pass) getRoofSegmentSurfaceY > keeps the Dutch width-axis rake on the upper gable slope [0.95ms]
+(pass) getRoofSegmentSurfaceY > keeps the Dutch depth-axis rake on the upper gable slope [0.07ms]
+
+packages/core/src/schema/nodes/measurement.test.ts:
+(pass) MeasurementNode > accepts exactly two finite distance points [0.80ms]
+(pass) MeasurementNode > accepts semantic feature anchors with finite fallbacks [0.06ms]
+(pass) MeasurementNode > accepts angle and perimeter measurements [0.13ms]
+(pass) MeasurementNode > requires at least three area base points [0.17ms]
+(pass) MeasurementNode > requires a finite extrusion and at least three volume base points [0.12ms]
+
+packages/core/src/schema/nodes/lighting.test.ts:
+(pass) lighting node schemas > creates a circuit, fixture, and switch with stable defaults [1.08ms]
+(pass) lighting node schemas > accepts multi-gang round wall switches [0.06ms]
+(pass) lighting node schemas > rejects invalid photometric values [0.13ms]
+(pass) lighting node schemas > validates a linear fixture with start/end and a default linearWidth [0.03ms]
+(pass) lighting node schemas > point/spot/area fixtures still validate unchanged without start/end [0.04ms]
+(pass) lighting node schemas > rejects linearWidth outside [0.01, 0.5] [0.05ms]
+
+packages/core/src/schema/nodes/roof-segment-walls.test.ts:
+(pass) roof wall face frames > frame z = 0 lands on the nominal footprint (wall mid-plane) [0.15ms]
+(pass) roof wall face frames > frame +z is the outward normal on every face [0.21ms]
+(pass) roof wall face frames > face frame agrees with the hit resolver coordinates [0.04ms]
+(pass) roof wall face frames > resizing the segment moves the frame, not the stored coords [0.05ms]
+(pass) roof wall face frames > frame yaw matches the face descriptor yaw [0.08ms]
+(pass) roof wall face frames > dutch width-axis roofs expose hostable gable-end wall profiles on the short ends [0.07ms]
+(pass) roof wall face frames > dutch long-side faces stay rectangular while only the gable ends rise above the eave
+
+packages/core/src/schema/nodes/construction-dimension.test.ts:
+(pass) ConstructionDimensionNode > creates valid free-anchor defaults
+(pass) ConstructionDimensionNode > accepts semantic anchors and rejects a collapsed baseline direction
+(pass) ConstructionDimensionNode > accepts continuous strings with three or more anchors
+(pass) ConstructionDimensionNode > accepts curved and circular notation settings [0.54ms]
+(pass) ConstructionDimensionNode > accepts dimension-standard overrides and rejects invalid drafting distances [0.17ms]
+(pass) ConstructionDimensionNode > coordinates one associative dimension across persistent drawing types [0.17ms]
+(pass) ConstructionDimensionNode > stores only drawing presentations that differ from the primary defaults
+(pass) ConstructionDimensionNode > stores view-specific suppressed segment indexes without changing default presentation
+
+packages/core/src/schema/nodes/roof-segment-trim.test.ts:
+(pass) roof segment trim > defaults legacy segments to no trim
+(pass) roof segment trim > normalizes impossible side totals without inverting the footprint [0.08ms]
+(pass) roof segment trim > visible top bounds respect asymmetric trims [0.49ms]
+(pass) roof segment trim > visible top bounds stay finite for legacy partial segments [0.05ms]
+(pass) roof segment trim > diagonal trims can shorten the ridge span [0.04ms]
+(pass) roof segment trim > diagonal trims support independent width and depth endpoints [0.06ms]
+
+packages/core/src/schema/nodes/roof-segment-shape.test.ts:
+(pass) roof segment shape > dutch shell is built as one complete non-duplicated face set [0.54ms]
+(pass) roof segment shape > dutch depth-axis shell rotates the upper gable correctly [0.15ms]
+(pass) roof segment shape > dutch end hip slope extends inward until it meets the gable triangle [0.02ms]
+(pass) roof segment shape > excludeDutchEndSlopes pulls the end slopes out into getDutchEndSlopeFaces [0.17ms]
+
+packages/core/src/schema/nodes/level.test.ts:
+(pass) LevelNode > accepts every level-hosted MEP node ID [2.58ms]
+(pass) LevelNode > accepts level child IDs minted by plugins [0.03ms]
+(pass) LevelNode > does not materialize height on parse — absence marks unmigrated legacy data
+
+packages/core/src/schema/nodes/structural-grid.test.ts:
+(pass) StructuralGridNode > fills stable construction-document defaults [0.26ms]
+(pass) StructuralGridNode > is accepted as a level child
+(pass) StructuralGridNode > rejects empty labels and zero-length concerns stay in authoring
+
+packages/core/src/schema/nodes/ridge-vent-defaults.test.ts:
+(pass) createDefaultRidgeVentsForSegment > creates one shingled default ridge vent for gable roofs [1.28ms]
+(pass) createDefaultRidgeVentsForSegment > keeps generated gable ridge vents anchored to the untrimmed ridge [0.14ms]
+(pass) createDefaultRidgeVentsForSegment > creates top ridge plus four hip vents for rectangular hip roofs [0.15ms]
+(pass) createDefaultRidgeVentsForSegment > omits the collapsed top ridge on square hip roofs
+(pass) createDefaultRidgeVentsForSegment > creates a top ridge plus four hip vents for width-axis Dutch roofs [0.22ms]
+(pass) createDefaultRidgeVentsForSegment > treats legacy segments with generated ridge vents as auto-enabled [0.05ms]
+(pass) createDefaultRidgeVentsForSegment > treats legacy preset-white ridge vents as generated defaults
+(pass) createDefaultRidgeVentsForSegment > creates a Z-oriented ridge plus four hip lines for depth-axis Dutch roofs [0.15ms]
+(pass) createDefaultRidgeVentsForSegment > keeps Dutch hip lines on the rendered arris when the roof has overhang [0.07ms]
+(pass) createDefaultRidgeVentsForSegment > creates top ridge plus four upper hip vents plus four lower-slope vents for mansard roofs [0.18ms]
+
+packages/core/src/schema/nodes/zone.test.ts:
+(pass) ZoneNode architectural room data > keeps legacy zones generic while supplying room-safe defaults [0.09ms]
+(pass) ZoneNode architectural room data > persists a complete architectural room profile [0.06ms]
+
+packages/core/src/schema/nodes/guide.test.ts:
+(pass) GuideNode image calibration > defaults legacy guide images to no perspective correction [0.83ms]
+(pass) GuideNode image calibration > parses four normalized source-image corners [0.13ms]
+(pass) GuideNode image calibration > preserves the existing two-point real scale reference [0.22ms]
+
+packages/core/src/schema/nodes/wall.test.ts:
+(pass) wall support offset > stores a finite offset without defaulting it onto ordinary walls
+(pass) wall support offset > stores terrain infill only when explicitly enabled
+(pass) wall face bands > defaults to one band while preserving legacy enabled scenes as three bands
+(pass) wall face bands > four bands adds an upper split below the final top band
+(pass) wall face bands > enabling bands seeds visible solid-color band slots [0.43ms]
+(pass) wall face bands > band count patch enables only the active slots
+(pass) wall face bands > enabling bands replaces stale inactive band slots with solid-color defaults
+(pass) wall face bands > increasing band count paints newly active bands with the solid palette
+(pass) wall face bands > increasing to four bands keeps the previous top material on the new top band [0.16ms]
+(pass) wall kinds > detects a kind only when both faces reference that kind finish [0.02ms]
+(pass) wall kinds > every wall kind ref resolves to a wall-paintable catalog entry [0.15ms]
+(pass) wall kinds > derives the kind from the band composition, bottom band first
+(pass) wall kinds > painting a kind material over the composition changes the derived kind
+(pass) wall kinds > selecting a band kind writes both sides of that band and derives the wall kind
+(pass) wall kinds > selecting a band kind on a single-band wall targets the whole faces [0.12ms]
+(pass) wall kinds > derives the kind from the band construction before painted slots
+(pass) wall kinds > returning a band to solid restores the band palette without touching custom paint
+(pass) wall trim profiles > uses curated defaults while preserving legacy profile values
+(pass) wall trim profiles > declares separate default materials for each trim family
+
+packages/core/src/schema/nodes/site.test.ts:
+(pass) SiteNode.terrain > a scene saved before terrain existed still parses
+(pass) SiteNode.terrain > accepts what the encoder produces, unchanged [0.55ms]
+(pass) SiteNode.terrain > survives a JSON round-trip, which is how it is actually persisted [0.03ms]
+(pass) SiteNode.terrain > rejects terrain with a zero or negative spacing
+(pass) SiteNode.terrain > rejects non-integer dimensions and the wrong discriminator
+(pass) SiteNode.terrain > rejects non-finite metadata and dimensions above the supported ceiling
+
+packages/core/src/hooks/scene-registry/scene-registry.test.ts:
+(pass) sceneRegistry revision > changes only when registered object membership changes [0.08ms]
+(pass) sceneRegistry revision > clear invalidates a populated registry once
+
+packages/core/src/hooks/spatial-grid/wall-slab-overlap.test.ts:
+(pass) wallOverlapsPolygon > excludes perpendicular walls butting into the slab, on every side [0.19ms]
+(pass) wallOverlapsPolygon > includes walls lying on the slab boundary, on every side [0.08ms]
+(pass) wallOverlapsPolygon > includes a wall running past the slab if enough of it lies on the edge
+(pass) wallOverlapsPolygon > excludes corner-only contact [0.04ms]
+(pass) wallOverlapsPolygon > includes walls inside or crossing through the slab [0.02ms]
+(pass) wallOverlapsPolygon > uses wall thickness: a face grazing the slab counts, clear separation does not
+(pass) wallOverlapsPolygon > handles curved walls by their sampled body [0.52ms]
+(pass) wallOverlapsPolygon > supports the legacy (start, end, polygon) call shape [0.03ms]
+(pass) computeWallSlabElevation > lifts a wall standing on an auto slab stored at the centerlines [0.25ms]
+(pass) computeWallSlabElevation > elects a floating deck for a wall standing on its drawn footprint [0.05ms]
+(pass) computeWallSlabElevation > a wall in the adoption band beside a floating deck does not stand on it [0.08ms]
+(pass) computeWallSlabElevation > keeps a house wall on its floor when an elevated deck abuts the outer face [0.10ms]
+(pass) computeWallSlabElevation > lifts a wall whose body a legacy stored polygon falls short of [0.10ms]
+(pass) computeWallSlabElevation > does not lift a wall clearly off the slab [0.04ms]
+(pass) computeWallSlabElevation > ignores a slab when the wall runs entirely inside a hole [0.02ms]
+(pass) computeWallSlabElevation > keeps a wall on the lower slab when a higher slab only reaches one endpoint [0.13ms]
+(pass) computeWallSlabElevation > keeps a curved wall on the lower slab when a higher slab only reaches its end [0.22ms]
+(pass) computeWallSlabElevation > lifts a wall standing fully on a raised platform [0.02ms]
+(pass) computeWallSlabElevation > lifts a wall half on a raised platform, half in the air, onto the platform
+(pass) computeWallSlabElevation > pools same-elevation slabs so a shared wall follows their common level
+(pass) computeWallSlabElevation > prefers the higher of two majority-supporting slabs (platform stacked on a floor)
+(pass) computeWallSlabElevation > keeps a wall pushed up on a raised platform above a coincident floor
+(pass) computeWallSlabElevation > fills down only when a lower support is exposed beyond a partial platform
+(pass) computeWallSlabElevation > keeps a shared wall on the higher slab that carries the full wall band
+(pass) computeWallSlabElevation > profiles an offset-room wall as high-only, shared, then low-only [0.47ms]
+(pass) computeWallSlabElevation > lifts a tiny stub wall standing fully on a slab
+(pass) computeWallSlabElevation > does not lift a wall whose run over a higher slab is mostly inside a hole [0.09ms]
+(pass) computeWallSlabElevation > keeps support for a wall running along a hole rim [0.03ms]
+
+packages/core/src/hooks/spatial-grid/live-override-support.test.ts:
+(pass) support queries honor live node overrides > an item over a live-translated deck keeps electing it at the moved footprint [0.95ms]
+(pass) support queries honor live node overrides > a live elevation change is visible to item and host queries [0.07ms]
+(pass) support queries honor live node overrides > a deck translated via a useLiveTransforms delta supports items at the moved spot [0.17ms]
+(pass) support queries honor live node overrides > wall support follows a live-translated deck [0.07ms]
+
+packages/core/src/hooks/spatial-grid/floor-placed-elevation.test.ts:
+(pass) floor-placed elevation resolver > returns 0 without a floorPlaced capability [0.83ms]
+(pass) floor-placed elevation resolver > canPlaceOnFloorFootprints accepts an L-shaped draft in the open corner gap [0.22ms]
+(pass) floor-placed elevation resolver > canPlaceOnFloorFootprints rejects overlapping draft footprints [0.04ms]
+(pass) floor-placed elevation resolver > canPlaceOnFloorFootprints ignores descendants of an ignored composite node
+(pass) floor-placed elevation resolver > returns 0 when applies returns false [0.12ms]
+(pass) floor-placed elevation resolver > clamps non-finite slab elevation to 0 [0.07ms]
+(pass) floor-placed elevation resolver > returns 0 for a non-level direct parent [0.02ms]
+(pass) floor-placed elevation resolver > returns 0 when the declared parent is missing [0.05ms]
+(pass) floor-placed elevation resolver > uses the pending rotated footprint [0.03ms]
+(pass) floor-placed elevation resolver > returns slab overlap elevation and stacks Y onto canonical position [0.08ms]
+(pass) floor-placed elevation resolver > takes the max elevation across composite footprints [0.03ms]
+(pass) floor-placed elevation resolver > terrain as the level base > the no-winning-support fallback follows the ground [0.18ms]
+(pass) floor-placed elevation resolver > terrain as the level base > an elected slab still wins over the ground under it
+(pass) floor-placed elevation resolver > terrain as the level base > the ground sentinel host resolves to the ground, not to 0 [0.12ms]
+(pass) floor-placed elevation resolver > terrain as the level base > stacks the ground onto the canonical position [0.03ms]
+(pass) floor-placed elevation resolver > terrain as the level base > a composite footprint straddling a recess rests on the higher support [0.07ms]
+(pass) floor-placed elevation resolver > terrain as the level base > the six no-op branches still return exactly 0 over terrain
+
+packages/core/src/hooks/spatial-grid/spatial-grid-sync.test.ts:
+(pass) spatial-grid sync dirty rules (vertical model) > changing a level height marks its wall/stair/ceiling/fence children dirty [0.37ms]
+(pass) spatial-grid sync dirty rules (vertical model) > a slab thickness change marks the walls and ceilings of the level below [0.16ms]
+(pass) spatial-grid sync dirty rules (vertical model) > a slab recessed toggle marks the walls and ceilings of the level below [0.03ms]
+(pass) spatial-grid sync dirty rules (vertical model) > creating a slab on the level above marks the level below, deleting it too [0.25ms]
+(pass) spatial-grid sync dirty rules (deck-attached stairs) > changing a deck elevation marks its attached stair dirty, not other stairs [0.17ms]
+(pass) spatial-grid sync dirty rules (deck-attached stairs) > a deck polygon-only change leaves the attached stair alone [0.05ms]
+(pass) sync dirty helpers (pure) > markLevelHeightDependents marks only wall/stair/ceiling/fence children [0.06ms]
+(pass) sync dirty helpers (pure) > markCoveringDependentsBelow marks walls and ceilings of the level below only [0.03ms]
+(pass) sync dirty helpers (pure) > markCoveringDependentsBelow is a no-op for the lowest level
+(pass) sync dirty helpers (pure) > markSlabChangeDependents covers top, deck, and underside consumers [0.16ms]
+(pass) spatial-grid sync dirty rules (terrain support) > a sculpt stroke marks the nodes standing on the ground it moved [0.28ms]
+(pass) spatial-grid sync dirty rules (terrain support) > live dabs re-elevate dependents without writing the scene graph [0.12ms]
+(pass) spatial-grid sync dirty rules (terrain support) > clearing the terrain marks them too, so they come back down with the ground [0.04ms]
+(pass) spatial-grid sync dirty rules (terrain support) > a site edit that leaves the terrain object alone marks nothing
+(pass) spatial-grid sync dirty rules (terrain support) > only storeys at grade follow the ground
+(pass) spatial-grid sync dirty rules (terrain support) > markTerrainSupportDependents skips nodes hosted on another node
+(pass) spatial-grid sync dirty rules (terrain support) > markTerrainSupportDependents includes ground-hosted and terrain-fill structures [0.22ms]
+
+packages/core/src/hooks/spatial-grid/support-host.test.ts:
+(pass) persisted support hosts (items) > no-host election over stacked slabs keeps returning the highest elevation [1.19ms]
+(pass) persisted support hosts (items) > a persisted host wins over the election, whichever slab it names [0.04ms]
+(pass) persisted support hosts (items) > a host reshaped away falls back without clearing the field, and resumes on return [0.09ms]
+(pass) persisted support hosts (items) > getSlabSupportForItem surfaces the winning slab id
+(pass) persisted support hosts (items) > getSupportCandidatesForFootprint lists distinct overlapping slabs, highest first [0.22ms]
+(pass) persisted support hosts (items) > resolveSupportSlabPatch persists only an ambiguous stacked-slab winner [0.12ms]
+(pass) persisted support hosts (items) > item support follows the RENDERED slab polygon (wall band adoption) [0.33ms]
+(pass) persisted support hosts (walls, via the manager) > preferred slab pins the elected elevation; invalid preference falls back [0.13ms]
+(pass) persisted support hosts (walls, via the manager) > ground host applies the compact construction-plane offset [0.01ms]
+(pass) persisted support hosts (walls, via the manager) > ground host resolves sculpted terrain plus the construction-plane offset [0.10ms]
+(pass) persisted support hosts (walls, via the manager) > an explicitly pointed ground source persists even without slab candidates [0.14ms]
+(pass) persisted support hosts (walls, via the manager) > moving a terrain-hosted wall preserves its explicit ground source
+(pass) persisted support hosts (walls, via the manager) > resolveWallSupportSlabPatch persists the winner over two elevations [0.09ms]
+(pass) persisted support hosts (walls, via the manager) > a wall whose band lies over an elevated deck bases on the deck with a plane-bound top [0.21ms]
+(pass) persisted support hosts (walls, via the manager) > pointer cap: aiming at the floor under the deck elects and persists the floor [0.19ms]
+(pass) deleteNodesAction strips supportSlabId references > deleting the host slab clears the reference and re-elects; undo restores both [0.37ms]
+(pass) deleteNodesAction strips supportSlabId references > deleting a non-host slab leaves the reference alone [0.07ms]
+(pass) deleteNodesAction strips supportSlabId references > deleting the destination deck strips deckSlabId from stairs; undo restores it
+(pass) deleteNodesAction strips supportSlabId references > deleting a slab that is not the destination deck leaves deckSlabId alone
+
+packages/core/src/hooks/spatial-grid/pointer-support-cap.test.ts:
+(pass) pointer-capped slab support election > hit at the floor under the deck elects the floor, not the deck above [0.16ms]
+(pass) pointer-capped slab support election > hit on the deck top still elects the deck
+(pass) pointer-capped slab support election > no cap keeps the historical max election [0.10ms]
+(pass) pointer-capped slab support election > epsilon boundary: a slab within EPS above the cap is elected, beyond EPS is not [0.08ms]
+(pass) getPointedSupportSurface (ray → aimed-at walking surface) > ray aimed at the floor under the deck resolves the floor, aimed at the deck resolves the deck [0.11ms]
+(pass) getPointedSupportSurface (ray → aimed-at walking surface) > a ray through a deck hole falls through to the surface below [0.05ms]
+(pass) getPointedSupportSurface (ray → aimed-at walking surface) > no slab crossing resolves the level base (with the base-plane point) [0.02ms]
+(pass) getPointedSupportSurface (ray → aimed-at walking surface) > a ray that cannot reach any surface has no point
+(pass) pointed point — stacked-deck hop repro (ray ∩ pointed-surface plane) > same ray reconstructed from either plane-height hit: pointed point elects the deck every time [0.08ms]
+(pass) pointed point — stacked-deck hop repro (ray ∩ pointed-surface plane) > electing at the raw floor-height hit flips to the floor — the hop mechanism, kept as documentation
+(pass) pointed point — stacked-deck hop repro (ray ∩ pointed-surface plane) > pointer past the deck edge: pointed point lands on the floor and elects it [0.06ms]
+(pass) getFloorPlacedElevation under a pointer cap > cap at the floor keeps the item on the floor even though the deck overlaps in plan [0.17ms]
+(pass) getFloorPlacedElevation under a pointer cap > the pointer cap bypasses a persisted host — the cursor decides during a drag [0.02ms]
+(pass) getFloorPlacedElevation under a pointer cap > the ground sentinel pins a committed node to the level base under an overlapping deck
+(pass) resolveSupportSlabPatch under a pointer cap (commit determinism) > a commit under the deck persists the elected lower slab [0.05ms]
+(pass) resolveSupportSlabPatch under a pointer cap (commit determinism) > a commit on bare ground under the deck persists the ground sentinel [0.04ms]
+(pass) resolveSupportSlabPatch under a pointer cap (commit determinism) > a single floor slab under the cap stays unpersisted (unambiguous) [0.03ms]
+
+packages/core/src/hooks/spatial-grid/fence-support-patch.test.ts:
+(pass) resolveFenceSupportSlabPatch > a fence drawn over a deck stacked on the floor persists the deck (uncapped max election) [0.17ms]
+(pass) resolveFenceSupportSlabPatch > the pointer cap decides between stacked surfaces [0.02ms]
+(pass) resolveFenceSupportSlabPatch > a lone elevated deck (balcony, nothing underneath) still persists its host [0.06ms]
+(pass) resolveFenceSupportSlabPatch > a plain default ground slab stays unpersisted (fence keeps sitting at the level base) [0.02ms]
+(pass) resolveFenceSupportSlabPatch > capped at bare ground under a deck-only overlap resolves to the floor default [0.02ms]
+(pass) resolveFenceSupportSlabPatch > no slabs / off-slab fence persists nothing [0.04ms]
+(pass) resolveFenceSupportSlabPatch > a spline fence elects through its path band segments [0.05ms]
+(pass) resolveFenceSupportSlabPatch > a fence not parented to a level persists nothing
+
+packages/core/src/lib/furniture/furniture.test.ts:
+(pass) cabinet baseline and furniture Gate 0/1 contracts > legacy cabinet and cabinet-module fixtures still parse and round-trip [2.22ms]
+(pass) cabinet baseline and furniture Gate 0/1 contracts > legacy cabinet normalization produces a deterministic base-run assembly [3.03ms]
+(pass) cabinet baseline and furniture Gate 0/1 contracts > imports all six representative JSON fixtures deterministically and idempotently [5.81ms]
+(pass) cabinet baseline and furniture Gate 0/1 contracts > unsupported fields are returned as stable structured warnings [0.40ms]
+(pass) cabinet baseline and furniture Gate 0/1 contracts > millimetre/metre conversion round-trips within 0.1 mm
+(pass) cabinet baseline and furniture Gate 0/1 contracts > reports malformed JSON and invalid inputs without throwing [0.23ms]
+
+packages/core/src/lib/furniture/operations.test.ts:
+(pass) furniture direct and AI operation contract > creates a deterministic normalized assembly with equal bays [0.49ms]
+(pass) furniture direct and AI operation contract > resizes total dimensions and preserves bay proportions and semantic IDs [0.23ms]
+(pass) furniture direct and AI operation contract > changes kind without changing the rest of the normalized assembly [0.02ms]
+(pass) furniture direct and AI operation contract > rejects invalid dimensions and bay counts [0.28ms]
+(pass) furniture direct and AI operation contract > sets evenly spaced shelves and hanger state by stable bay and tier IDs [0.05ms]
+(pass) furniture direct and AI operation contract > supports zero through eight shelves and treats identical input as a no-op [0.24ms]
+(pass) furniture direct and AI operation contract > rejects invalid counts and missing stable targets [0.02ms]
+(pass) furniture direct and AI operation contract > sets a tier front by stable bay and tier IDs and treats identical input as a no-op [0.05ms]
+(pass) furniture direct and AI operation contract > rejects invalid fronts and missing stable targets [0.19ms]
+(pass) furniture direct and AI operation contract > inserts, resizes, and deletes bays without changing total width or stable IDs [0.59ms]
+(pass) furniture direct and AI operation contract > creates collision-free deterministic IDs across repeated bay inserts [0.32ms]
+(pass) furniture direct and AI operation contract > inserts, resizes, and deletes tiers while scaling interior positions [0.46ms]
+(pass) furniture direct and AI operation contract > rejects missing, invalid, impossible, and final structural edits before mutation [0.09ms]
+(pass) createDefaultFurnitureAssembly per-kind defaults > wardrobe is a full-height plinth cabinet with a hanger and one shelf [0.11ms]
+(pass) createDefaultFurnitureAssembly per-kind defaults > base-run is counter height with a plinth base and one shelf, no hanger
+(pass) createDefaultFurnitureAssembly per-kind defaults > upper-run is a shallow wall-hung cabinet with no plinth or kickplate
+(pass) createDefaultFurnitureAssembly per-kind defaults > tall is a narrow two-tier cabinet with shelves in both tiers
+(pass) createDefaultFurnitureAssembly per-kind defaults > island is counter height with extra depth and one shelf [0.35ms]
+(pass) createDefaultFurnitureAssembly per-kind defaults > set is a full-height cabinet with a lower and upper tier separated by an invisible gap
+(pass) createDefaultFurnitureAssembly per-kind defaults > sink is counter height with an open front
+(pass) createDefaultFurnitureAssembly per-kind defaults > different kinds produce structurally different assemblies [0.32ms]
+(pass) createDefaultFurnitureAssembly per-kind defaults > explicit dimensions and bay count still win over kind defaults
+(pass) island two-sided defaults and face-addressed operations > seeds a mirrored back row and a depthSplit that sums to the overall depth
+(pass) island two-sided defaults and face-addressed operations > other kinds stay front-only — no backBays or depthSplit seeded [0.55ms]
+(pass) island two-sided defaults and face-addressed operations > face-addressed tier interior and front edits mutate only the targeted face
+(pass) island two-sided defaults and face-addressed operations > face-addressed bay insert, resize, and delete mutate only the targeted face
+(pass) island two-sided defaults and face-addressed operations > face-addressed tier insert, resize, and delete mutate only the targeted face [0.54ms]
+(pass) island two-sided defaults and face-addressed operations > resizeFurnitureAssembly scales the back row width in step with the front row [0.07ms]
+
+packages/core/src/lib/furniture/assembly.test.ts:
+(pass) furniture assembly Gate 2 contract > builds the wardrobe carcass with exact counts and bounds [1.85ms]
+(pass) furniture assembly Gate 2 contract > builds all six normalized fixtures deterministically without duplicate IDs [2.12ms]
+(pass) furniture assembly Gate 2 contract > keeps semantic part IDs stable when dimensions change [0.39ms]
+(pass) furniture assembly Gate 2 contract > places hanger rods at 25mm diameter, 30mm side inset, and 60mm top clearance [1.33ms]
+(pass) furniture assembly Gate 2 contract > reports width mismatch and tier overflow in deterministic order [0.47ms]
+(pass) furniture assembly Gate 2 contract > skips invalid solids and reports their paths [0.39ms]
+(pass) furniture assembly Gate 2 contract > rejects invalid construction options [0.26ms]
+(pass) furniture assembly Gate 2 contract > renders every front kind with the documented part count [0.85ms]
+(pass) furniture assembly Gate 2 contract > positions fronts flush with the front face reveal
+(pass) furniture assembly Gate 2 contract > offsets alternating sliding leaves so they read as overlapping panels
+(pass) furniture assembly Gate 2 contract > suppresses front parts for hidden bays and tiers [0.29ms]
+(pass) furniture assembly Gate 2 contract > adds exposed end panels from the outer bays endPanels flags [0.21ms]
+(pass) furniture assembly Gate 2 contract > renders distinct geometry for each bay base type [0.10ms]
+(pass) two-sided island (backBays + depthSplit) > renders parts for both faces with no duplicate IDs [0.33ms]
+(pass) two-sided island (backBays + depthSplit) > back-face fronts sit on the -Z side, front-face fronts on +Z [0.58ms]
+(pass) two-sided island (backBays + depthSplit) > honors an asymmetric depthSplit for front vs back carcass depth [0.27ms]
+(pass) two-sided island (backBays + depthSplit) > emits exactly one shared spine panel per bay, not one per face [0.07ms]
+(pass) two-sided island (backBays + depthSplit) > front-only assemblies never stamp a face onto parts [0.21ms]
+(pass) front open/close pose > a single hinged leaf defaults to a left hinge, swinging toward +Z
+(pass) front open/close pose > a 2-leaf hinged front hinges left/right and opens symmetrically
+(pass) front open/close pose > flap direction picks which edge hinges [0.33ms]
+(pass) front open/close pose > sliding leaves alternate open direction so same-track leaves keep their spacing [0.07ms]
+(pass) front open/close pose > stacked drawer fronts cascade open, the bottom drawer opening furthest [0.05ms]
+(pass) front open/close pose > a pull-out front slides out like a single drawer [0.07ms]
+(pass) front open/close pose > back-face fronts hinge toward their own outward -Z direction [0.29ms]
+(pass) countertop > base-run gets one worktop spanning the full footprint [0.13ms]
+(pass) countertop > island gets one worktop spanning the full footprint [0.03ms]
+(pass) countertop > sink gets one worktop spanning the full footprint [0.07ms]
+(pass) countertop > base-run drops the carcass top — the slab is the top [0.05ms]
+(pass) countertop > island drops the carcass top — the slab is the top [0.04ms]
+(pass) countertop > sink drops the carcass top — the slab is the top [0.02ms]
+(pass) countertop > wardrobe keeps its carcass top and gets no worktop
+(pass) countertop > upper-run keeps its carcass top and gets no worktop
+(pass) countertop > tall keeps its carcass top and gets no worktop [0.10ms]
+(pass) countertop > set keeps its carcass top and gets no worktop
+(pass) countertop > the worktop takes the countertop material slot [0.06ms]
+(pass) countertop > a worktop thicker than half the piece is clamped, not degenerate [0.02ms]
+
+packages/core/src/lib/furniture/front-pose.test.ts:
+(pass) hingedFrontPose > left hinge sits at the left edge and swings toward +Z (front face) [0.02ms]
+(pass) hingedFrontPose > right hinge sits at the right edge and swings toward +Z (front face)
+(pass) hingedFrontPose > a left/right pair opens symmetrically [0.02ms]
+(pass) hingedFrontPose > a back-face hinge (dirSign -1) swings toward -Z instead
+(pass) flapFrontPose > an "up" flap hinges at the top edge
+(pass) flapFrontPose > a "down" flap hinges at the bottom edge
+(pass) flapFrontPose > up/down mirror each other, both opening toward +Z (front face)
+(pass) flapFrontPose > a back-face flap (dirSign -1) opens toward -Z instead
+(pass) slidingFrontPose > even-indexed (near-track) leaves slide one way, odd-indexed (recessed) the other [0.01ms]
+(pass) slidingFrontPose > same-track leaves get the identical distance, so they never converge [0.01ms]
+(pass) drawerFrontPose > a single drawer slides out along +Z, capped at a sensible max [0.02ms]
+(pass) drawerFrontPose > shallow compartments open proportionally less than the cap [0.02ms]
+(pass) drawerFrontPose > stacked drawers cascade — the bottom drawer (index 0) opens furthest
+(pass) drawerFrontPose > a back-face drawer (dirSign -1) slides out along -Z instead [0.02ms]
+
+packages/core/src/systems/wall/wall-top.test.ts:
+(pass) resolveWallTop > explicit height on zero base keeps the stored top
+(pass) resolveWallTop > explicit height on raised base rides the base
+(pass) resolveWallTop > explicit height on sunken base keeps the absolute top
+(pass) resolveWallTop > ground-hosted explicit height remains body-relative in a terrain depression
+(pass) resolveWallTop > plane-bound wall tops out at the storey plane regardless of base
+(pass) resolveWallEffectiveHeight > explicit on raised base extrudes the stored height
+(pass) resolveWallEffectiveHeight > explicit on zero base extrudes the stored height [0.01ms]
+(pass) resolveWallEffectiveHeight > plane-bound on raised base gets shorter, never taller
+(pass) resolveWallEffectiveHeight > plane-bound on zero base spans the full storey
+(pass) resolveWallEffectiveHeight > plane-bound on sunken base fills down while the top stays at the plane
+
+packages/core/src/systems/wall/wall-mitering.test.ts:
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.39ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.15ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.02ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.03ms]
+(pass) wall mitering miter limit > stays bounded at a %s° junction
+(pass) wall mitering miter limit > stays bounded at a %s° junction [0.02ms]
+(pass) wall mitering miter limit > still miters a normal 90° corner [0.02ms]
+(pass) wall mitering miter limit > keeps unequal near-straight continuations at their thickness step [0.06ms]
+(pass) wall mitering miter limit > does not extend a short source fragment beyond its own span [0.02ms]
+(pass) wall miter boundary sides > keeps left and right on the same physical face at both free endpoints
+
+packages/core/src/systems/wall/wall-footprint.test.ts:
+(pass) T branch ends at the physical host face without a wedge inside the host [0.38ms]
+(pass) junctions use construction thickness rather than a stale authored thickness [0.14ms]
+
+packages/core/src/systems/slab/slab-placement.test.ts:
+(pass) resolveSlabPlacementElevation > places the default slab underside on the captured base [0.10ms]
+(pass) resolveSlabPlacementElevation > preserves authored clearance and thickness [0.04ms]
+(pass) resolveSlabPlacementElevation > keeps recessed slabs level-relative [0.01ms]
+(pass) resolveSlabPlacementElevation > keeps authored elevation when no base was resolved [0.02ms]
+
+packages/core/src/systems/slab/slab-support.test.ts:
+(pass) clampSlabElevationForWalls > clamps a slab under plane-bound walls at the plane minus MIN_WALL_HEIGHT [0.40ms]
+(pass) clampSlabElevationForWalls > leaves proposals at or below the bound untouched [0.10ms]
+(pass) clampSlabElevationForWalls > passes negative (recessed-committing) proposals through untouched
+(pass) clampSlabElevationForWalls > does not clamp when the walls all carry explicit heights
+(pass) clampSlabElevationForWalls > does not clamp a slab covering no walls
+(pass) getSlabElevationUpperBound > bounds a slab electable by plane-bound walls [0.19ms]
+(pass) getSlabElevationUpperBound > is unbounded under explicit-height walls [0.06ms]
+(pass) computeWallSlabSupport preferred host > elects the highest supporting elevation without a preference [0.02ms]
+(pass) computeWallSlabSupport preferred host > pins the elected elevation to a still-supporting preferred slab [0.03ms]
+(pass) computeWallSlabSupport preferred host > ignores a preferred slab that no longer supports the wall
+
+packages/core/src/systems/stair/stair-opening-preview.test.ts:
+(pass) stair opening previews > computes auto openings from live stair transforms [1.66ms]
+(pass) stair opening previews > ignores its own live surface overrides as preview inputs
+
+packages/core/src/systems/stair/stair-rise.test.ts:
+(pass) resolveStairTotalRise > derives the rise from the containing level stored height when absent [0.12ms]
+(pass) resolveStairTotalRise > tracks a storey height change without any stair write [0.06ms]
+(pass) resolveStairTotalRise > prefers an explicit totalRise over the storey height
+(pass) resolveStairTotalRise > falls back to the default when the stair has no containing level
+(pass) resolveStairTotalRise > derives the rise from the attached deck elevation [0.11ms]
+(pass) resolveStairTotalRise > tracks a deck elevation change without any stair write
+(pass) resolveStairTotalRise > prefers an explicit totalRise over the attached deck
+(pass) resolveStairTotalRise > falls through a stale deckSlabId to the storey height silently
+(pass) syncStairRises > writes the deck elevation into a single flight segment [0.28ms]
+(pass) syncStairRises > is a no-op when the flights already match the deck elevation [0.04ms]
+(pass) syncStairRises > scales multiple flights proportionally and leaves landings alone [0.04ms]
+(pass) syncStairRises > distributes an explicit custom rise instead of the deck elevation [0.05ms]
+(pass) syncStairRises > falls a stale deckSlabId back to the storey height [0.03ms]
+(pass) syncStairRises > leaves a stale-deck stair with an explicit rise untouched [0.04ms]
+(pass) syncStairRises > converges a level-following straight stair to the storey height [0.05ms]
+(pass) syncStairRises > converges a level-following stair after a storey height change [0.04ms]
+(pass) syncStairRises > rescales level-following flights proportionally, landings untouched
+(pass) syncStairRises > converges back to the storey height after a deck detach [0.08ms]
+(pass) syncStairRises > leaves a detached explicit-rise stair with hand-set segments untouched [0.02ms]
+(pass) deck-attached rise with a floor-lifted base > lands the last step flush: rise = deck elevation − elected base [0.22ms]
+(pass) deck-attached rise with a floor-lifted base > rescales a flight converged under the old rule down to the flush rise [0.05ms]
+(pass) deck-attached rise with a floor-lifted base > keeps the full deck elevation when the stair stands on bare ground
+(pass) deck-attached rise with a floor-lifted base > lets an explicit totalRise win over the base-adjusted deck rise
+(pass) deck-attached rise with a floor-lifted base > re-converges to flush after a deck elevation change
+(pass) deck-attached rise with a floor-lifted base > re-converges to flush after the base slab elevation changes [0.24ms]
+(pass) deck-attached rise with a floor-lifted base > rescales flights proportionally from the lifted base, landings untouched
+(pass) deck-attached rise with a floor-lifted base > honors a persisted ground host over the floor slab election
+
+packages/core/src/systems/stair/stair-opening-sync.test.ts:
+(pass) syncAutoStairOpenings > only applies stair holes to destination slabs that overlap the opening [0.30ms]
+(pass) syncAutoStairOpenings > applies stair holes to a later destination slab when the configured offset overhangs the slab edge [0.24ms]
+(pass) syncAutoStairOpenings > does not apply stair holes to slabs on another building with a matching level number [0.18ms]
+(pass) syncAutoStairOpenings > uses the parent level when a stair has stale from-level data [0.09ms]
+(pass) syncAutoStairOpenings > infers the destination level when a destination stair has blank level fields [0.07ms]
+(pass) syncAutoStairOpenings > infers the destination level when a destination stair targets its source level [0.23ms]
+(pass) syncAutoStairOpenings > does not add stair holes when a manual surface hole already covers them [0.45ms]
+(pass) syncAutoStairOpenings > adds stair holes when an existing manual hole is too small [0.11ms]
+(pass) syncAutoStairOpenings > removes stale auto stair holes when a manual hole overlaps the stair opening [0.11ms]
+(pass) syncAutoStairOpenings > does not add a separate rectangular hole for an integrated spiral top landing [0.19ms]
+
+packages/core/src/systems/fence/fence-spline.test.ts:
+(pass) isSplineFence > false without a path or with < 2 points [0.03ms]
+(pass) isSplineFence > true with >= 2 points [0.03ms]
+(pass) sampleFenceSpline > honors the control points as on-curve anchors [0.15ms]
+(pass) sampleFenceSpline > two-point path with no tangents is a straight segment
+(pass) sampleFenceSpline > a stored tangent bends an otherwise straight two-point span [0.05ms]
+(pass) sampleFenceSpline > generated two-point curve tangents create a gentle arc [0.09ms]
+(pass) sampleFenceSpline > produces a smooth (no-cusp) curve on uneven spacing
+(pass) getFenceControlHandle > returns the stored tangent when present [0.07ms]
+(pass) getFenceControlHandle > falls back to the automatic distance-aware tangent
+(pass) getFenceSplineFrameAt > t=0 / t=1 land on the endpoints [0.10ms]
+(pass) getFenceSplineFrameAt > returns a unit tangent and perpendicular normal [0.03ms]
+(pass) getFenceSplineLength > roughly matches the straight distance for a straight path
+(pass) getFenceSplineLength > a curved path is longer than its endpoint chord [0.05ms]
+
+packages/core/src/systems/elevator/elevator-opening-system.test.ts:
+(pass) ElevatorOpeningSystem scene commit boundary > includes the elevator edit and derived slab opening in one commit and undo step [1.13ms]
+(pass) ElevatorOpeningSystem scene commit boundary > processes a second relevant elevator mutation in the same turn [0.41ms]
+
+packages/core/src/systems/elevator/elevator-runtime.test.ts:
+(pass) elevator runtime helpers > queues level requests without duplicating the target [0.56ms]
+(pass) elevator runtime helpers > opens doors only when the elevator is not moving
+(pass) elevator runtime helpers > moves to a queued level and clears the served request on arrival [0.16ms]
+
+packages/core/src/systems/elevator/elevator-opening-sync.test.ts:
+(pass) syncAutoElevatorOpenings > does not add elevator holes when a manual surface hole already covers them [0.35ms]
+(pass) syncAutoElevatorOpenings > adds elevator holes when an existing manual hole is too small [0.10ms]
+(pass) syncAutoElevatorOpenings > removes stale auto elevator holes when a manual hole overlaps the elevator opening [0.07ms]
+
+packages/core/src/store/actions/node-mutation-sanitize.test.ts:
+[Scene] Sanitized invalid numeric node update shelf_sanitize thickness: NaN dropped -> 0.04
+(pass) node mutation numeric sanitization > drops NaN numeric updates while preserving other fields in the patch [1.10ms]
+[Scene] Sanitized invalid numeric node update shelf_sanitize width: Infinity dropped -> 1.2
+(pass) node mutation numeric sanitization > drops Infinity numeric updates while preserving later normal updates [0.16ms]
+[Scene] Sanitized invalid numeric node update shelf_sanitize width: 99 clamped -> 3; thickness: -1 clamped -> 0.01
+(pass) node mutation numeric sanitization > clamps out-of-range numeric updates to the node schema bounds [0.10ms]
+[Scene] Sanitized invalid numeric node update shelf_sanitize width: Infinity dropped -> 1.2
+(pass) node mutation numeric sanitization > preserves extra fields while sanitizing numeric updates [0.07ms]
+(pass) node mutation numeric sanitization > allows non-canonical ids to receive updates [0.52ms]
+[Scene] Sanitized invalid numeric node create shelf_created width: Infinity dropped -> 1.2; thickness: NaN dropped -> 0.04
+(pass) node mutation numeric sanitization > sanitizes non-finite numeric values during create [0.06ms]
+(pass) node update explicit-undefined key removal > an undefined value in update data removes the key from the stored node [0.20ms]
+(pass) node update explicit-undefined key removal > undo restores a key removed via an undefined update value [0.04ms]
+(pass) node update explicit-undefined key removal > other keys in the same patch still apply when one is removed
+
+packages/core/src/store/actions/ridge-vent-update.test.ts:
+(pass) roof segment default ridge vents > regenerates default ridge vents when the host ridge geometry changes [0.95ms]
+(pass) roof segment default ridge vents > does not regenerate default ridge vents when only trim changes [0.15ms]
+(pass) roof segment default ridge vents > creates default ridge vents after a geometry change when auto ridge vent is enabled
+(pass) roof segment default ridge vents > regenerates default ridge vents when Dutch auto-vent fields change [0.31ms]
+(pass) roof segment default ridge vents > refresh replaces legacy default vents that still use preset-white [0.13ms]
+(pass) roof segment default ridge vents > refresh preserves user-created default-looking ridge vents without legacy preset metadata [0.09ms]
+(pass) roof segment default ridge vents > does not create default ridge vents after a geometry change when auto ridge vent is disabled [0.12ms]
+
+packages/core/src/store/actions/reparent.test.ts:
+(pass) node-actions reparent — repeated segment-hopping > initial state: vent listed once in A.children, absent from B.children [0.05ms]
+(pass) node-actions reparent — repeated segment-hopping > A→B: auto-reparent moves vent without leaving duplicates [0.75ms]
+(pass) node-actions reparent — repeated segment-hopping > A→B→A→B: three hops leave children lists clean (regression: vent crash)
+(pass) node-actions reparent — repeated segment-hopping > A→B→A→B for chimney: chimney-style auto-reparent leaves children clean [1.67ms]
+(pass) node-actions reparent — repeated segment-hopping > A→B→A→B for skylight: chimney-style auto-reparent leaves children clean [0.63ms]
+(pass) node-actions reparent — repeated segment-hopping > A→B→A→B for dormer: chimney-style auto-reparent leaves children clean [0.55ms]
+(pass) node-actions reparent — repeated segment-hopping > A→B→A→B for solar-panel: chimney-style auto-reparent leaves children clean
+(pass) node-actions reparent — repeated segment-hopping > A→B→A→B for ridge-vent: chimney-style auto-reparent leaves children clean [0.26ms]
+(pass) node-actions reparent — repeated segment-hopping > A→B→A→B with redundant manual children edits (vent move-tool pattern, pre-fix)
+
+ 1244 pass
+ 0 fail
+ 4555 expect() calls
+Ran 1244 tests across 115 files. [670.00ms]

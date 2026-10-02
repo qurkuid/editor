@@ -1,0 +1,38 @@
+▲ Next.js 16.2.12 (webpack)
+- Experiments (use with caution):
+  · serverActions
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Failed to compile.
+
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/react-scan@0.5.7+0eaddef47259c940/node_modules/react-scan/dist/index.mjs
+Can't import the named export 'version' (imported as 'REACT_GRAB_VERSION') from default-exporting module (only default export is available)
+
+Import trace for requested module:
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/react-scan@0.5.7+0eaddef47259c940/node_modules/react-scan/dist/index.mjs
+./app/client-bootstrap.tsx
+
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/react-scan@0.5.7+0eaddef47259c940/node_modules/react-scan/dist/index.mjs
+Can't import the named export 'version' (imported as 'REACT_GRAB_VERSION') from default-exporting module (only default export is available)
+
+Import trace for requested module:
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/react-scan@0.5.7+0eaddef47259c940/node_modules/react-scan/dist/index.mjs
+./app/client-bootstrap.tsx
+
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/react-scan@0.5.7+0eaddef47259c940/node_modules/react-scan/dist/index.mjs
+Can't import the named export 'version' (imported as 'REACT_GRAB_VERSION') from default-exporting module (only default export is available)
+
+Import trace for requested module:
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/react-scan@0.5.7+0eaddef47259c940/node_modules/react-scan/dist/index.mjs
+./app/client-bootstrap.tsx
+
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/react-scan@0.5.7+0eaddef47259c940/node_modules/react-scan/dist/index.mjs
+Can't import the named export 'version' (imported as 'REACT_GRAB_VERSION') from default-exporting module (only default export is available)
+
+Import trace for requested module:
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/react-scan@0.5.7+0eaddef47259c940/node_modules/react-scan/dist/index.mjs
+./app/client-bootstrap.tsx
+
+
+> Build failed because of webpack errors

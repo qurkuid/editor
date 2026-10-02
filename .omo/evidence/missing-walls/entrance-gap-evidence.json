@@ -1,0 +1,28 @@
+{
+  "image": ".omo/evidence/missing-walls/source-plan.jpg",
+  "rawSegments": 55,
+  "assignedSegments": 51,
+  "candidate": {
+    "startSourcePx": [
+      624.73,
+      222.5
+    ],
+    "endSourcePx": [
+      557.5,
+      220.18
+    ],
+    "widthAnalysisPx": 11.46,
+    "source": "entrance-transverse",
+    "endpointErrorPx": 0.03,
+    "arcScore": 0.842,
+    "profileRange": 85.0,
+    "whiteFraction": 0.344,
+    "separates": true,
+    "classifiedAs": "door"
+  },
+  "negativeChecks": [
+    "no-ocr",
+    "non-entrance-ocr",
+    "parallel-open-floor"
+  ]
+}

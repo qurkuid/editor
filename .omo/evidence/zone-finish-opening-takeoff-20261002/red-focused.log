@@ -1,0 +1,388 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/quantity-takeoff.test.ts:
+(pass) board takeoff > a module counts sides, top, bottom, back and shelves [0.42ms]
+(pass) board takeoff > door and drawer faces are counted as front board, open shelving is not [0.29ms]
+(pass) board takeoff > a degenerate module contributes nothing rather than a zero-area line
+(pass) furniture and countertop > a run reports itself, its bays, and its worktop area
+(pass) furniture and countertop > a run without a worktop reports no countertop [0.18ms]
+(pass) areas and finishes > floor and ceiling areas come from their polygons [0.07ms]
+(pass) areas and finishes > ceiling drop zones add their reveal faces, skipping open edges [0.05ms]
+(pass) areas and finishes > painted wall faces group by material, not by wall [0.77ms]
+(pass) areas and finishes > unpainted walls contribute no finish line [0.12ms]
+(pass) areas and finishes > a straight wall splits an unbanded partial finish between its region and base [0.14ms]
+(pass) areas and finishes > a partial finish without a base material leaves uncovered area unpriced [0.09ms]
+(pass) areas and finishes > active two, three and four band spans use their exact heights and side fallback [0.29ms]
+(pass) areas and finishes > band regions match only their active role and fall back to the whole side [0.13ms]
+(pass) areas and finishes > adjacent and disjoint regions recombine by material and keep one wall id [0.11ms]
+(pass) areas and finishes > curved walls keep arc-length base area and ignore partial regions [2.93ms]
+447 |         { id: 'door_a', type: 'door', parentId: 'wall_a' },
+448 |         { id: 'window_a', type: 'window', parentId: 'wall_a' },
+449 |       ),
+450 |     )
+451 | 
+452 |     expect(line(report, 'finish', 'library:base')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "grossQuantity": 10,
+-   "openingAdjustment": "unsupported",
+-   "openingDeductedQuantity": 0,
++   "category": "finish",
++   "key": "library:base",
++   "label": "벽 마감 library:base",
++   "materialRef": "library:base",
++   "nodeIds": [
++     "wall_a",
++   ],
+    "quantity": 10,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 3
++ Received  + 9
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:452:52)
+(fail) areas and finishes > wall-hosted openings with no modeled geometry remain conservative gross [0.38ms]
+479 |           openingShape: 'rectangle',
+480 |         },
+481 |       ),
+482 |     )
+483 | 
+484 |     expect(line(report, 'finish', 'library:base')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "grossQuantity": 20,
+-   "openingAdjustment": "deducted",
+-   "openingDeductedQuantity": 3.78,
+-   "quantity": 16.22,
++   "category": "finish",
++   "key": "library:base",
++   "label": "벽 마감 library:base",
++   "materialRef": "library:base",
++   "nodeIds": [
++     "wall_a",
++   ],
++   "quantity": 20,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 4
++ Received  + 10
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:484:52)
+(fail) areas and finishes > a modeled rectangle opening is deducted from both painted faces [0.47ms]
+525 |           openingShape: 'rectangle',
+526 |         },
+527 |       ),
+528 |     )
+529 | 
+530 |     expect(line(report, 'finish', 'library:zone')).toMatchObject({ quantity: 1.2 })
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "quantity": 1.2,
++   "category": "finish",
++   "key": "library:zone",
++   "label": "벽 마감 library:zone",
++   "materialRef": "library:zone",
++   "nodeIds": [
++     "wall_a",
++   ],
++   "quantity": 2,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 1
++ Received  + 10
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:530:52)
+(fail) areas and finishes > band and exact-role region clip one opening into each active cell [0.25ms]
+558 |           openingShape: 'rectangle',
+559 |         },
+560 |       ),
+561 |     )
+562 | 
+563 |     expect(line(report, 'finish', 'library:left')).toMatchObject({ quantity: 4.5 })
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "quantity": 4.5,
++   "category": "finish",
++   "key": "library:left",
++   "label": "벽 마감 library:left",
++   "materialRef": "library:left",
++   "nodeIds": [
++     "wall_a",
++   ],
++   "quantity": 5,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 1
++ Received  + 10
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:563:52)
+(fail) areas and finishes > an opening crossing a region boundary is split between material cells [0.14ms]
+595 |           openingShape: 'rectangle',
+596 |         },
+597 |       ),
+598 |     )
+599 | 
+600 |     expect(line(report, 'finish', 'library:base')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "openingDeductedQuantity": 3,
+-   "quantity": 17,
++   "category": "finish",
++   "key": "library:base",
++   "label": "벽 마감 library:base",
++   "materialRef": "library:base",
++   "nodeIds": [
++     "wall_a",
++   ],
++   "quantity": 10,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 2
++ Received  + 10
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:600:52)
+(fail) areas and finishes > overlapping openings are unioned before deduction [0.16ms]
+(pass) areas and finishes > ignores a hosted opening that is absent from wall children [0.07ms]
+648 |       ...wallExtra,
+649 |     }
+650 |     const report = deriveTakeoff(
+651 |       scene(wall, ...(child ? [child] : [])),
+652 |     )
+653 |     expect(line(report, 'finish', 'library:base')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "grossQuantity": 10,
+-   "openingAdjustment": "unsupported",
+-   "openingDeductedQuantity": 0,
+-   "quantity": 10,
++   "category": "finish",
++   "key": "library:base",
++   "label": "벽 마감 library:base",
++   "materialRef": "library:base",
++   "nodeIds": [
++     "wall_a",
++   ],
++   "quantity": 11.588306472925412,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 4
++ Received  + 10
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:653:52)
+(fail) areas and finishes > curved wall keeps the affected finish gross and marks it unsupported [0.24ms]
+648 |       ...wallExtra,
+649 |     }
+650 |     const report = deriveTakeoff(
+651 |       scene(wall, ...(child ? [child] : [])),
+652 |     )
+653 |     expect(line(report, 'finish', 'library:base')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "grossQuantity": 10,
+-   "openingAdjustment": "unsupported",
+-   "openingDeductedQuantity": 0,
++   "category": "finish",
++   "key": "library:base",
++   "label": "벽 마감 library:base",
++   "materialRef": "library:base",
++   "nodeIds": [
++     "wall_a",
++   ],
+    "quantity": 10,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 3
++ Received  + 9
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:653:52)
+(fail) areas and finishes > invalid geometry keeps the affected finish gross and marks it unsupported [0.26ms]
+648 |       ...wallExtra,
+649 |     }
+650 |     const report = deriveTakeoff(
+651 |       scene(wall, ...(child ? [child] : [])),
+652 |     )
+653 |     expect(line(report, 'finish', 'library:base')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "grossQuantity": 10,
+-   "openingAdjustment": "unsupported",
+-   "openingDeductedQuantity": 0,
++   "category": "finish",
++   "key": "library:base",
++   "label": "벽 마감 library:base",
++   "materialRef": "library:base",
++   "nodeIds": [
++     "wall_a",
++   ],
+    "quantity": 10,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 3
++ Received  + 9
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:653:52)
+(fail) areas and finishes > missing child keeps the affected finish gross and marks it unsupported [0.21ms]
+648 |       ...wallExtra,
+649 |     }
+650 |     const report = deriveTakeoff(
+651 |       scene(wall, ...(child ? [child] : [])),
+652 |     )
+653 |     expect(line(report, 'finish', 'library:base')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "grossQuantity": 10,
+-   "openingAdjustment": "unsupported",
+-   "openingDeductedQuantity": 0,
++   "category": "finish",
++   "key": "library:base",
++   "label": "벽 마감 library:base",
++   "materialRef": "library:base",
++   "nodeIds": [
++     "wall_a",
++   ],
+    "quantity": 10,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 3
++ Received  + 9
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:653:52)
+(fail) areas and finishes > item cutout keeps the affected finish gross and marks it unsupported [0.15ms]
+689 |         },
+690 |         { id: 'item_a', type: 'item' },
+691 |       ),
+692 |     )
+693 | 
+694 |     expect(line(report, 'finish', 'library:base')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "grossQuantity": 20,
+-   "openingAdjustment": "mixed",
+-   "openingDeductedQuantity": 1.89,
+-   "quantity": 18.11,
++   "category": "finish",
++   "key": "library:base",
++   "label": "벽 마감 library:base",
++   "materialRef": "library:base",
++   "nodeIds": [
++     "wall_supported",
++     "wall_unsupported",
++   ],
++   "quantity": 20,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 4
++ Received  + 11
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:694:52)
+(fail) areas and finishes > a supported and unsupported wall aggregate as mixed with known deduction audit [0.23ms]
+(pass) areas and finishes > wall finish takeoff does not mutate frozen scene input [0.19ms]
+(pass) lighting > fixtures aggregate per light type [0.06ms]
+(pass) lighting > a divided run counts its full fixture count from one node [0.02ms]
+(pass) lighting > a linked product groups by its ref and carries it as materialRef [0.02ms]
+(pass) lighting > linear fixtures add a run-length measure [0.03ms]
+(pass) scoping > a level filter excludes other levels [0.05ms]
+(pass) walls are a quantity even before anyone picks a finish > an unpainted wall still reports face area and length [0.06ms]
+(pass) walls are a quantity even before anyone picks a finish > painting it adds finish lines without removing the wall quantity [0.04ms]
+(pass) walls are a quantity even before anyone picks a finish > wall areas aggregate across walls [0.06ms]
+(pass) a wall expands into what actually gets ordered > an explicit stud build-up yields its materials, not just an area [0.09ms]
+(pass) a wall expands into what actually gets ordered > 각재 is ordered by the metre and 석고보드 by the sheet [0.07ms]
+(pass) a wall expands into what actually gets ordered > a cavity is not ordered — it is empty space [0.04ms]
+(pass) a wall expands into what actually gets ordered > the same layer aggregates across walls [0.08ms]
+(pass) a wall expands into what actually gets ordered > face area and run length are marked as measures, materials are not [0.05ms]
+(pass) a wall expands into what actually gets ordered > a wall with no build-up recorded still reports its area [0.04ms]
+(pass) a wall expands into what actually gets ordered > a wall with no height set is measured at the same default core uses [0.01ms]
+(pass) placed models > items count per product, aggregating duplicates [0.03ms]
+(pass) placed models > an item with no asset metadata still gets counted [0.02ms]
+(pass) furniture run make-up > reports total run length alongside the bay count [0.06ms]
+(pass) furniture run make-up > bays group by width [0.05ms]
+(pass) furniture run make-up > a run with no bays reports no length or make-up [0.01ms]
+(pass) floor and ceiling openings > area comes from the polygon field [0.03ms]
+(pass) floor and ceiling openings > holes are deducted — a stairwell is not floor [0.03ms]
+(pass) floor and ceiling openings > holes larger than the slab clamp at zero rather than going negative [0.10ms]
+(pass) floor and ceiling build-up > a ceiling expands into furring and board, under the ceiling heading [0.23ms]
+(pass) floor and ceiling build-up > floor screed is measured by volume
+(pass) floor and ceiling build-up > holes reduce the build-up too, not just the headline area
+(pass) floor and ceiling build-up > a surface with no construction still reports its area
+
+packages/viewer/src/lib/polygon-union.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'clipPolygonToRect' not found in module '/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/packages/viewer/src/lib/polygon-union.ts'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+packages/viewer/src/systems/wall/opening-cutout-geometry.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'buildOpeningCutoutProfile' not found in module '/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/packages/viewer/src/systems/wall/opening-cutout-geometry.ts'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+12 tests failed:
+(fail) areas and finishes > wall-hosted openings with no modeled geometry remain conservative gross [0.38ms]
+(fail) areas and finishes > a modeled rectangle opening is deducted from both painted faces [0.47ms]
+(fail) areas and finishes > band and exact-role region clip one opening into each active cell [0.25ms]
+(fail) areas and finishes > an opening crossing a region boundary is split between material cells [0.14ms]
+(fail) areas and finishes > overlapping openings are unioned before deduction [0.16ms]
+(fail) areas and finishes > curved wall keeps the affected finish gross and marks it unsupported [0.24ms]
+(fail) areas and finishes > invalid geometry keeps the affected finish gross and marks it unsupported [0.26ms]
+(fail) areas and finishes > missing child keeps the affected finish gross and marks it unsupported [0.21ms]
+(fail) areas and finishes > item cutout keeps the affected finish gross and marks it unsupported [0.15ms]
+(fail) areas and finishes > a supported and unsupported wall aggregate as mixed with known deduction audit [0.23ms]
+
+ 44 pass
+ 12 fail
+ 2 errors
+ 109 expect() calls
+Ran 56 tests across 3 files. [132.00ms]

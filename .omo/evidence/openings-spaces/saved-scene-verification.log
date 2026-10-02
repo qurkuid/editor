@@ -1,0 +1,406 @@
+{
+  "status": "PASS",
+  "scenePath": "/Users/changseok/editor/.omo/evidence/openings-spaces/scene-final-redo.json",
+  "apiPath": "/Users/changseok/editor/.omo/evidence/openings-spaces/api-vector-after.json",
+  "fixturePath": "/Users/changseok/editor/.omo/evidence/openings-spaces/space-probes.json",
+  "frame": {
+    "source": "api-wall-matches",
+    "analysisScale": 2,
+    "mmPerPx": 10.992,
+    "sceneTranslationM": [
+      -13.651647157236988,
+      -9.100962048353129
+    ]
+  },
+  "counts": {
+    "nodes": 100,
+    "walls": 47,
+    "zones": 15,
+    "openings": 16
+  },
+  "rooms": {
+    "expected": 15,
+    "matched": 15,
+    "recognised": 14,
+    "matches": [
+      {
+        "id": "bedroom-left-upper",
+        "zoneId": "zone_l99tvdoalgd0xwtq",
+        "source": [
+          388,
+          370
+        ],
+        "scene": [
+          -5.121855157236988,
+          -0.9668820483531277
+        ],
+        "name": "방",
+        "cls": "bedroom"
+      },
+      {
+        "id": "bedroom-left-lower",
+        "zoneId": "zone_mq0kcqzc6zr8utr1",
+        "source": [
+          477,
+          451
+        ],
+        "scene": [
+          -3.165279157236988,
+          0.8138219516468705
+        ],
+        "name": "안방",
+        "cls": "bedroom"
+      },
+      {
+        "id": "bedroom-master",
+        "zoneId": "zone_9mn25ju5uous72qf",
+        "source": [
+          850,
+          286
+        ],
+        "scene": [
+          5.034752842763011,
+          -2.813538048353129
+        ],
+        "name": "안방",
+        "cls": "bedroom"
+      },
+      {
+        "id": "bath-left",
+        "zoneId": "zone_mliduu7rkst6pa0v",
+        "source": [
+          488,
+          239
+        ],
+        "scene": [
+          -2.9234551572369885,
+          -3.8467860483531284
+        ],
+        "name": "욕실",
+        "cls": "bath"
+      },
+      {
+        "id": "bath-right",
+        "zoneId": "zone_2nn2aoqksmfd9ol2",
+        "source": [
+          710,
+          226
+        ],
+        "scene": [
+          1.956992842763011,
+          -4.132578048353128
+        ],
+        "name": "욕실",
+        "cls": "bath"
+      },
+      {
+        "id": "dress-upper-left",
+        "zoneId": "zone_roofevcbtnz2n1xa",
+        "source": [
+          528,
+          268
+        ],
+        "scene": [
+          -2.0440951572369883,
+          -3.2092500483531285
+        ],
+        "name": "드레스룸",
+        "cls": "dress"
+      },
+      {
+        "id": "dress-middle-left",
+        "zoneId": "zone_pjk31k6kssp3i5pu",
+        "source": [
+          506,
+          339
+        ],
+        "scene": [
+          -2.527743157236989,
+          -1.648386048353129
+        ],
+        "name": "드레스룸",
+        "cls": "dress"
+      },
+      {
+        "id": "dress-center",
+        "zoneId": "zone_gyg52643589vieas",
+        "source": [
+          585,
+          360
+        ],
+        "scene": [
+          -0.7910071572369883,
+          -1.1867220483531282
+        ],
+        "name": "드레스룸",
+        "cls": "dress"
+      },
+      {
+        "id": "dress-right",
+        "zoneId": "zone_c2fop4z8ssnghbi1",
+        "source": [
+          692,
+          338
+        ],
+        "scene": [
+          1.5612808427630114,
+          -1.6703700483531287
+        ],
+        "name": "드레스룸",
+        "cls": "dress"
+      },
+      {
+        "id": "dress-upper-right",
+        "zoneId": "zone_0dixxn406yqqifpn",
+        "source": [
+          934,
+          158
+        ],
+        "scene": [
+          6.88140884276301,
+          -5.6274900483531285
+        ],
+        "name": "드레스룸",
+        "cls": "dress"
+      },
+      {
+        "id": "entrance",
+        "zoneId": "zone_4mkpdvnj1yxgswzp",
+        "source": [
+          590,
+          272
+        ],
+        "scene": [
+          -0.6810871572369877,
+          -3.1213140483531285
+        ],
+        "name": "현관",
+        "cls": "entrance"
+      },
+      {
+        "id": "living",
+        "zoneId": "zone_wrhsjsdwgdv4qnv3",
+        "source": [
+          844,
+          483
+        ],
+        "scene": [
+          4.902848842763012,
+          1.5173099516468707
+        ],
+        "name": "거실",
+        "cls": "living"
+      },
+      {
+        "id": "kitchen",
+        "zoneId": "zone_1npkht9ivvvu3kia",
+        "source": [
+          600,
+          527
+        ],
+        "scene": [
+          -0.46124715723698806,
+          2.4846059516468717
+        ],
+        "name": "부엌",
+        "cls": "kitchen"
+      },
+      {
+        "id": "balcony-left",
+        "zoneId": "zone_li42hwkxe5ndvn32",
+        "source": [
+          750,
+          606
+        ],
+        "scene": [
+          2.836352842763011,
+          4.221341951646872
+        ],
+        "name": "발코니",
+        "cls": "balcony"
+      },
+      {
+        "id": "balcony-right",
+        "zoneId": "zone_62kb20vcotlouzp2",
+        "source": [
+          850,
+          606
+        ],
+        "scene": [
+          5.034752842763011,
+          4.221341951646872
+        ],
+        "name": "발코니",
+        "cls": "balcony"
+      }
+    ]
+  },
+  "openings": {
+    "expected": 16,
+    "matched": 16,
+    "matches": [
+      {
+        "id": "entrance-door",
+        "nodeId": "door_dgbvec7xy8ysm4al",
+        "kind": "door",
+        "source": [
+          591.0855130147438,
+          221.59538191738434
+        ],
+        "distancePx": 0.19591826454568803
+      },
+      {
+        "id": "old-bath-door",
+        "nodeId": "door_6er38vfclxp6pr54",
+        "kind": "door",
+        "source": [
+          471.67228596523006,
+          294.3593300894842
+        ],
+        "distancePx": 0.13403326564170664
+      },
+      {
+        "id": "bedroom-dress-door",
+        "nodeId": "door_o4xl1gggss911wmq",
+        "kind": "door",
+        "source": [
+          717.7303110096882,
+          276.48226202479657
+        ],
+        "distancePx": 0.07191099453484308
+      },
+      {
+        "id": "dress-living-door",
+        "nodeId": "door_9fwjobcakm7wxjvs",
+        "kind": "door",
+        "source": [
+          765.4809478364714,
+          409.3334265080571
+        ],
+        "distancePx": 0.13477988717693837
+      },
+      {
+        "id": "balcony-partition",
+        "nodeId": "door_5oo0d8p21h4kk2dx",
+        "kind": "door",
+        "source": [
+          778.9794012571408,
+          601.7733828399347
+        ],
+        "distancePx": 0.03365681828870107
+      },
+      {
+        "id": "kitchen-passage",
+        "nodeId": "window_qljyoozstr5uji6c",
+        "kind": "opening",
+        "source": [
+          674.2304929601977,
+          535.0748748341124
+        ],
+        "distancePx": 0.03951068947128463
+      },
+      {
+        "id": "internal-fixture-upper",
+        "nodeId": "window_f87tjqo1gj9n51n3",
+        "kind": "opening",
+        "source": [
+          597.9775802822614,
+          321.3468629459139
+        ],
+        "distancePx": 0.4536913416953116
+      },
+      {
+        "id": "internal-fixture-lower",
+        "nodeId": "window_em4ch9j9x37kgu84",
+        "kind": "opening",
+        "source": [
+          589.0412644303578,
+          409.3334265080571
+        ],
+        "distancePx": 0.2407027249635942
+      },
+      {
+        "id": "entrance-dress-fixture",
+        "nodeId": "door_9oj8h4pgndhr1uq6",
+        "kind": "door",
+        "source": [
+          557.4819485642735,
+          273.2298966681735
+        ],
+        "distancePx": 0.07239013375428875
+      },
+      {
+        "id": "dress-bedroom-fixture",
+        "nodeId": "window_1xi3zo9j7zevgw0c",
+        "kind": "opening",
+        "source": [
+          774.480674910707,
+          311.98080642072085
+        ],
+        "distancePx": 0.027236970494690142
+      },
+      {
+        "id": "top-dress-door",
+        "nodeId": "door_x6wq8aqc0eo0umk0",
+        "kind": "door",
+        "source": [
+          935.7297651581598,
+          174.48080642072088
+        ],
+        "distancePx": 0.5328853930355256
+      },
+      {
+        "id": "living-balcony-glazing",
+        "nodeId": "window_3ol6vpqz4xz522j9",
+        "kind": "window",
+        "source": [
+          844.3269267302122,
+          584.5654134076203
+        ],
+        "distancePx": 0.08084513052691172
+      },
+      {
+        "id": "balcony-glazing-left",
+        "nodeId": "window_ueoikz08g6ckhy7k",
+        "kind": "window",
+        "source": [
+          752.4714864099793,
+          631.4017489243598
+        ],
+        "distancePx": 0.10230492989254905
+      },
+      {
+        "id": "balcony-glazing-right",
+        "nodeId": "window_zxdbp48wfblrbzu6",
+        "kind": "window",
+        "source": [
+          849.9696669048848,
+          631.1492925924821
+        ],
+        "distancePx": 0.05908754383507497
+      },
+      {
+        "id": "left-upper-bedroom-door",
+        "nodeId": "door_inatx0qdrlcl3958",
+        "kind": "door",
+        "source": [
+          473.6117918668238,
+          351.6347135599525
+        ],
+        "distancePx": 0.04115260247096141
+      },
+      {
+        "id": "left-lower-bedroom-door",
+        "nodeId": "door_c6ba2764rk06y47n",
+        "kind": "door",
+        "source": [
+          497.0539099907654,
+          375.55204004517503
+        ],
+        "distancePx": 0.046135135586253415
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": []
+}

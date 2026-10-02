@@ -1,0 +1,69 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/ai-provider.test.ts:
+(pass) AI provider boundary > modeling prompt exposes persistent Body sub-entity selection [15.27ms]
+(pass) AI provider boundary > uses the authenticated Codex CLI when no API key is configured
+(pass) AI provider boundary > modeling prompt exposes the deterministic offsetBodyFace contract [1.64ms]
+(pass) AI provider boundary > prefers the bundled Codex bin over PATH and the Node sibling [2.66ms]
+(pass) AI provider boundary > recognizes a ChatGPT OAuth CLI session [0.03ms]
+(pass) AI provider boundary > prefers the bundled Claude bin over the server PATH [0.64ms]
+(pass) AI provider boundary > prefers an explicit CLAUDE_CLI_PATH override [0.02ms]
+(pass) AI provider boundary > recognizes an authenticated Claude CLI session from `claude auth status --json` [0.17ms]
+(pass) AI provider boundary > does not report a Claude CLI session as connected unless loggedIn is true [0.07ms]
+(pass) AI provider boundary > validates supported image data URLs, count, and decoded byte size [9.03ms]
+(pass) AI provider boundary > serializes transformed node schemas for the model context
+(pass) AI provider boundary > scopes the node schema to core types, scene types, and keyword matches [1.84ms]
+(pass) AI provider boundary > the prompt names every node type even when its schema is scoped out [0.43ms]
+(pass) AI provider boundary > defaults the request provider to codex and accepts an explicit claude selection [0.16ms]
+(pass) AI provider boundary > gives the CLI structured scene data instead of viewport pixels [1.53ms]
+(pass) AI provider boundary > instructs dimension-driven floor-plan extraction instead of eyeballing [0.52ms]
+(pass) AI provider boundary > numbers every attached reference image with its filename and MIME type [0.53ms]
+(pass) AI provider boundary > omits the reference image manifest when no images are attached [0.58ms]
+
+apps/editor/lib/apt-vector-scene.test.ts:
+(pass) buildVectorNodes > connects X and T crossings without overlapping wall footprints and preserves openings [5.76ms]
+(pass) buildVectorNodes > uses solid concrete for apartment walls while preserving detected thickness [0.99ms]
+(pass) buildVectorNodes > keeps an opening whole when a detected branch meets its span [0.19ms]
+(pass) buildVectorNodes > merges gap-flanking walls and maps to centred level metres [0.37ms]
+(pass) buildVectorNodes > hosts openings inside the merged wall with wall-local positions [0.33ms]
+(pass) buildVectorNodes > uses the semantic opening span and preserves source provenance [0.33ms]
+(pass) buildVectorNodes > preserves a narrow source opening and rejects invalid tiny spans [1.12ms]
+(pass) buildVectorNodes > creates room zones from labeled polygons [0.63ms]
+(pass) buildVectorNodes > snaps corner and tee gaps closed along each wall axis [0.39ms]
+(pass) buildVectorNodes > deduplicates overlapping opening detections on one wall [0.21ms]
+(pass) buildVectorNodes > reports what the conversion left out [0.27ms]
+(pass) buildVectorNodes > extends a single flank across a corner-door gap [0.13ms]
+(pass) buildVectorNodes > refuses untrustworthy documents [0.02ms]
+
+packages/mcp/src/ontology-manual.test.ts:
+(pass) Phase 2 ontology manual contract > documents ontology discovery and evidence requirements [0.09ms]
+(pass) Phase 2 ontology manual contract > documents the canonical Body transform and direct scale interactions [0.03ms]
+(pass) Phase 2 ontology manual contract > documents apartment wall extraction and junction continuity
+(pass) Phase 2 ontology manual contract > documents source-backed opening and room boundary contracts
+(pass) Phase 2 ontology manual contract > documents persistent Body sub-entity selection
+(pass) Phase 2 ontology manual contract > documents Body Autofold constraints
+(pass) Phase 2 ontology manual contract > documents whole-Body array operations [0.27ms]
+(pass) Phase 2 ontology manual contract > documents editor-only Body container edit routing [0.05ms]
+(pass) Phase 2 ontology manual contract > documents solid inspection and Body boolean operations [0.08ms]
+(pass) Phase 2 ontology manual contract > documents Solid Tools ordering and tool lifetime [0.08ms]
+(pass) Phase 2 ontology manual contract > documents the canonical Body offset operation and signed interaction [0.05ms]
+(pass) Phase 2 ontology manual contract > documents signed imprint through-cuts and the 2D render-only boundary [0.06ms]
+(pass) Phase 2 ontology manual contract > documents sampled Arc parity through existing Body operations [0.06ms]
+
+packages/mcp/src/resources/resources.test.ts:
+(pass) pascal://scene/current > returns the full scene JSON [6.27ms]
+(pass) pascal://scene/current > reflects mutations to the store [1.79ms]
+(pass) pascal://scene/current/summary > returns markdown with counts and bbox [0.65ms]
+(pass) pascal://scene/current/summary > estimated floor area sums zone polygon areas [0.76ms]
+(pass) pascal://scene/current/summary > empty scene returns a markdown skeleton without crashing [0.68ms]
+(pass) pascal://catalog/items > returns built-in catalog subset [0.68ms]
+(pass) pascal://agent-guide > agent guide returns MCP-first project guidance [1.34ms]
+(pass) pascal://agent-guide > keeps the legacy agent guide URI as an alias [0.43ms]
+(pass) pascal://constraints/{levelId} > returns slabs + wall footprints for a known level [0.99ms]
+(pass) pascal://constraints/{levelId} > returns {error:"level_not_found"} for unknown levelId [0.36ms]
+(pass) pascal://debug/state > returns structural diagnostics without viewport data [0.70ms]
+
+ 55 pass
+ 0 fail
+ 422 expect() calls
+Ran 55 tests across 4 files. [337.00ms]

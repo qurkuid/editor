@@ -1,0 +1,41 @@
+{
+  "walls": 47,
+  "doors": 9,
+  "coverage": {
+    "leftBedroom": {
+      "maxDistance": 0.0009116586308478414,
+      "covered": true
+    },
+    "kitchenLiving": {
+      "maxDistance": 0.0011111999999986466,
+      "covered": true
+    },
+    "entranceDress": {
+      "maxDistance": 0.0008276071650297999,
+      "covered": true
+    }
+  },
+  "entranceDoors": [
+    {
+      "id": "door_dgbvec7xy8ysm4al",
+      "width": 1.4788796435139675,
+      "wallId": "wall_jhyt92torfw22fli"
+    }
+  ],
+  "bathroomDoors": [
+    {
+      "id": "door_6er38vfclxp6pr54",
+      "width": 0.5245912789972775,
+      "wallId": "wall_5i4azwj5b13ua804"
+    }
+  ],
+  "kitchenOpenings": [
+    {
+      "id": "window_qljyoozstr5uji6c",
+      "type": "window",
+      "width": 1.5745999999999987,
+      "wallId": "wall_uju10sd6pinmk603"
+    }
+  ],
+  "kitchenGapClear": true
+}

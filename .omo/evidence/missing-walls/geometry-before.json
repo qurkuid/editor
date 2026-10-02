@@ -1,0 +1,19 @@
+{
+  "walls": 41,
+  "doors": 3,
+  "coverage": {
+    "leftBedroom": {
+      "maxDistance": 1.9727189677968204,
+      "covered": false
+    },
+    "kitchenLiving": {
+      "maxDistance": 1.3411396358848844,
+      "covered": false
+    },
+    "entranceDress": {
+      "maxDistance": 0.33257794971336546,
+      "covered": false
+    }
+  },
+  "entranceDoors": []
+}

@@ -1,0 +1,108 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/quantity-takeoff.test.ts:
+(pass) board takeoff > a module counts sides, top, bottom, back and shelves [0.59ms]
+(pass) board takeoff > door and drawer faces are counted as front board, open shelving is not [2.03ms]
+(pass) board takeoff > a degenerate module contributes nothing rather than a zero-area line
+(pass) furniture and countertop > a run reports itself, its bays, and its worktop area
+(pass) furniture and countertop > a run without a worktop reports no countertop
+(pass) areas and finishes > floor and ceiling areas come from their polygons
+(pass) areas and finishes > ceiling drop zones add their reveal faces, skipping open edges
+(pass) areas and finishes > painted wall faces group by material, not by wall [1.33ms]
+(pass) areas and finishes > unpainted walls contribute no finish line [0.24ms]
+(pass) areas and finishes > a straight wall splits an unbanded partial finish between its region and base [0.12ms]
+(pass) areas and finishes > a partial finish without a base material leaves uncovered area unpriced [0.17ms]
+(pass) areas and finishes > active two, three and four band spans use their exact heights and side fallback [0.50ms]
+(pass) areas and finishes > band regions match only their active role and fall back to the whole side [0.10ms]
+(pass) areas and finishes > adjacent and disjoint regions recombine by material and keep one wall id
+(pass) areas and finishes > curved walls keep arc-length base area and ignore partial regions [0.38ms]
+(pass) areas and finishes > wall-hosted openings with no modeled geometry remain conservative gross [0.16ms]
+(pass) areas and finishes > a modeled rectangle opening is deducted from both painted faces [1.10ms]
+(pass) areas and finishes > merges a fully deducted wall audit into a positive same-material line [4.54ms]
+(pass) areas and finishes > band and exact-role region clip one opening into each active cell [0.44ms]
+(pass) areas and finishes > an opening crossing a region boundary is split between material cells [0.16ms]
+(pass) areas and finishes > overlapping openings are unioned before deduction [0.33ms]
+(pass) areas and finishes > ignores a hosted opening that is absent from wall children
+(pass) areas and finishes > curved wall keeps the affected finish gross and marks it unsupported [0.20ms]
+(pass) areas and finishes > invalid geometry keeps the affected finish gross and marks it unsupported [0.04ms]
+(pass) areas and finishes > missing child keeps the affected finish gross and marks it unsupported [0.03ms]
+(pass) areas and finishes > item cutout keeps the affected finish gross and marks it unsupported
+(pass) areas and finishes > a supported and unsupported wall aggregate as mixed with known deduction audit
+(pass) areas and finishes > wall finish takeoff does not mutate frozen scene input [0.43ms]
+(pass) lighting > fixtures aggregate per light type
+(pass) lighting > a divided run counts its full fixture count from one node [0.08ms]
+(pass) lighting > a linked product groups by its ref and carries it as materialRef [0.01ms]
+(pass) lighting > linear fixtures add a run-length measure
+(pass) scoping > a level filter excludes other levels
+(pass) walls are a quantity even before anyone picks a finish > an unpainted wall still reports face area and length [0.11ms]
+(pass) walls are a quantity even before anyone picks a finish > painting it adds finish lines without removing the wall quantity
+(pass) walls are a quantity even before anyone picks a finish > wall areas aggregate across walls [0.12ms]
+(pass) a wall expands into what actually gets ordered > an explicit stud build-up yields its materials, not just an area [0.17ms]
+(pass) a wall expands into what actually gets ordered > 각재 is ordered by the metre and 석고보드 by the sheet [0.06ms]
+(pass) a wall expands into what actually gets ordered > a cavity is not ordered — it is empty space [0.08ms]
+(pass) a wall expands into what actually gets ordered > the same layer aggregates across walls [0.08ms]
+(pass) a wall expands into what actually gets ordered > face area and run length are marked as measures, materials are not [0.04ms]
+(pass) a wall expands into what actually gets ordered > a wall with no build-up recorded still reports its area [0.05ms]
+(pass) a wall expands into what actually gets ordered > a wall with no height set is measured at the same default core uses [0.05ms]
+(pass) placed models > items count per product, aggregating duplicates
+(pass) placed models > an item with no asset metadata still gets counted [0.06ms]
+(pass) furniture run make-up > reports total run length alongside the bay count [0.09ms]
+(pass) furniture run make-up > bays group by width [0.02ms]
+(pass) furniture run make-up > a run with no bays reports no length or make-up [0.04ms]
+(pass) floor and ceiling openings > area comes from the polygon field [0.03ms]
+(pass) floor and ceiling openings > holes are deducted — a stairwell is not floor
+(pass) floor and ceiling openings > holes larger than the slab clamp at zero rather than going negative
+(pass) floor and ceiling build-up > a ceiling expands into furring and board, under the ceiling heading
+(pass) floor and ceiling build-up > floor screed is measured by volume
+(pass) floor and ceiling build-up > holes reduce the build-up too, not just the headline area
+(pass) floor and ceiling build-up > a surface with no construction still reports its area
+
+apps/editor/lib/estimate-submit.test.ts:
+(pass) line items > a priced line becomes an INTM item with its converted quantity [0.31ms]
+(pass) line items > the description traces the line back to the drawing
+(pass) line items > a no-material line is left out
+(pass) line items > a no-coverage line is left out
+(pass) line items > a no-price line is left out
+(pass) line items > a priced line with zero quantity is left out too
+(pass) line items > a mixed draft submits only what is resolved
+(pass) line items > carries the deducted opening basis into the INTM description
+(pass) line items > carries the mixed opening basis into the INTM description
+(pass) line items > carries the unsupported opening basis into the INTM description
+(pass) submission > posts the items to INTM with the caller session
+(pass) submission > creates the document first, then posts each item to it
+(pass) submission > counts item failures instead of discarding the estimate
+(pass) submission > keeps a link when every item fails after the document is created
+(pass) submission > normalizes the configured base and encodes the estimate id in the link
+(pass) submission > refuses with no project before any request
+(pass) submission > refuses with no title before any request
+(pass) submission > refuses to create an estimate with nothing resolved
+(pass) submission > reports a refusal instead of pretending it worked
+(pass) submission > a 200 with no estimate id is still a failure [0.93ms]
+(pass) submission > no session and no INTM both refuse before any request
+
+packages/viewer/src/lib/polygon-union.test.ts:
+(pass) unionPolygons > collapses a contained polygon into the containing polygon [0.40ms]
+(pass) unionPolygons > combines overlapping rectangles into one boundary [0.21ms]
+(pass) unionPolygons > keeps disjoint polygons as separate boundaries
+(pass) unionPolygons > does not count a retained centre inside a frame-shaped union [0.67ms]
+(pass) unionPolygons > fails instead of accepting a degenerate partial boundary
+(pass) unionPolygons > rejects self-crossing and concave input rings
+(pass) unionPolygons > rejects rings whose coordinates collide at the boundary key scale [0.17ms]
+(pass) unionPolygons > classifies a thin frame from ring vertices instead of an arbitrary offset [0.21ms]
+(pass) unionPolygons > proves contained, overlapping, and disjoint rectangle areas [0.30ms]
+(pass) unionPolygons > rejects point-touching rings whose containment is ambiguous
+(pass) unionPolygons > proves shared-edge rectangles without double counting the seam [0.01ms]
+(pass) clipPolygonToRect > clips a polygon crossing each rectangle edge [0.15ms]
+(pass) clipPolygonToRect > returns an empty polygon when there is no intersection
+(pass) subtractPolygonsFromPolygon > returns an outer contour and an enclosed window hole [0.20ms]
+(pass) subtractPolygonsFromPolygon > turns a boundary-overlapping cutter into an indentation [0.08ms]
+(pass) subtractPolygonsFromPolygon > returns separate contours when a cutter splits the subject [0.07ms]
+(pass) subtractPolygonsFromPolygon > keeps two disjoint window holes as three contours [0.04ms]
+(pass) subtractPolygonsFromPolygon > clips an opening crossing the footprint cap
+(pass) subtractPolygonsFromPolygon > handles an opening ending exactly on the footprint boundary [0.12ms]
+(pass) subtractPolygonsFromPolygon > extends a floor-level door notch to the exact semantic padding
+
+ 96 pass
+ 0 fail
+ 193 expect() calls
+Ran 96 tests across 3 files. [368.00ms]

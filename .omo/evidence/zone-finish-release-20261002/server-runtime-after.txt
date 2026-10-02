@@ -1,0 +1,48 @@
+Window: "UNIX 명령 보내기  2026. 10. 2. 오후 1:33", App: Remote Desktop.
+0 표준 윈도우 UNIX 명령 보내기  2026. 10. 2. 오후 1:33, Secondary Actions: Raise
+	1 자르기 그룹
+		2 스크롤 영역
+			3 표
+				4 row (selected)
+					5 이미지 computer
+					6 텍스트 필드 백창석’s Mac mini
+					7 이미지 complete
+				8 container
+					9 정렬 버튼
+					10 정렬 버튼 대상 컴퓨터
+					11 정렬 버튼 상태
+		12 자르기 도구 (disabled, settable, float) 197
+		13 스크롤 영역 Secondary Actions: Scroll Up, Scroll Down
+			14 텍스트 엔트리 영역 **백창석’s Mac mini (100.88.144.46)**
+{"id":"qa-zone-finish-999b2771","version":1,"nodeCount":8,"graphHash":"a8a084845d5fc1f49507eadb408c74a488507465e4e1e51edcf48221efe228f6"}
+Source commit: 999b2771b3a0f1aa84f18d74fda82c77b29aad08
+Runtime BUILD_ID: teZZYbe0c3JXeZCui2Wr5
+{"name":"apt-subdomain","pid":48938,"status":"online","cwd":"/Volumes/DATABASE/floorplan-releases/20261002-999b2771/apps/editor","port":"3024"}
+Public HTTP: 200
+**
+**
+
+			15 스크롤 막대 (disabled, settable, float) 1
+	16 도구 막대
+		17 버튼 프린트, Secondary Actions: 다음으로 이동, 도구 막대에서 제거
+		18 버튼 내보내기, Help: 윈도우 내용을 파일로 내보내기, Secondary Actions: 이전으로 이동, 도구 막대에서 제거
+	19 닫기 버튼
+	20 전체 화면 버튼 Help: 이 버튼을 누르면 윈도우를 확대/축소합니다., Secondary Actions: 윈도우 확대/축소
+	21 최소화 버튼
+	22 텍스트 UNIX 명령 보내기  2026. 10. 2. 오후 1:33
+23 menu bar
+	24 Remote Desktop
+	25 파일
+	26 편집
+	27 보기
+	28 리포트
+	29 관리
+	30 대화식 기능
+	31 작업
+	32 윈도우
+	33 도움말
+
+Selected:
+	4 row (selected)
+
+Note: Pay special attention to the content selected by the user. If the user asks a question or refers to the content they are looking at on-screen, they might be referring to the selected content (but they might be referring to something else that's visible, too).

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "perpendicular-only",
+    "selectedWallId": "wall_neg_perpendicular_selected",
+    "expectedError": "no-parallel-continuation",
+    "purpose": "A single endpoint branch is perpendicular and must not qualify.",
+    "sceneId": "156af8e16457"
+  },
+  {
+    "id": "ambiguous-two-refs",
+    "selectedWallId": "wall_neg_ambiguous_selected",
+    "expectedError": "ambiguous-parallel-continuation",
+    "purpose": "Two opposite parallel continuations share the selected start.",
+    "sceneId": "0adc4517126f"
+  },
+  {
+    "id": "protected-interior-t",
+    "selectedWallId": "wall_neg_t_selected",
+    "expectedError": "detached-wall-junction",
+    "purpose": "A branch starts on the selected wall interior and would detach.",
+    "sceneId": "06d9fb106a96"
+  },
+  {
+    "id": "hosted-overflow-linked",
+    "selectedWallId": "wall_neg_overflow_selected",
+    "expectedError": "attachment-outside-wall",
+    "purpose": "A linked wall shortens and its hosted opening no longer fits.",
+    "sceneId": "d0a17016df96"
+  }
+]

@@ -1,0 +1,7 @@
+timestamp=2026-10-02T17:44:50+09:00
+command=python3 test_recovery.py (recovery_test apply)
+exit_code=0
+manifest_count=60
+changed_files=65
+idempotent=true
+result=only permitted category fields/list_hash changed; detail/assets preserved; SQLite integrity checked

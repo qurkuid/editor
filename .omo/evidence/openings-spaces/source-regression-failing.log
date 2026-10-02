@@ -1,0 +1,8 @@
+metrics {"doors": 5, "openings": 0, "planId": "source-plan", "rooms": 11, "scale": null, "style": "standard", "wallIoU": 0.81, "walls": 51, "windows": 8}
+Traceback (most recent call last):
+  File "/Users/changseok/editor/.omo/evidence/openings-spaces/source-regression.py", line 188, in <module>
+    run(Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_IMAGE)
+  File "/Users/changseok/editor/.omo/evidence/openings-spaces/source-regression.py", line 134, in run
+    assert all(len(matches) == 1 for matches in owners.values()), owners
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'드레스룸@935.0': [], '욕실@712.0': [1], '욕실@477.0': [2], '드레스룸@530.0': [4], '현관@590.0': [3], '안방@857.0': [0], '드레스룸@505.0': [5], '드레스룸@699.0': [6], '드레스룸@585.0': [5], '안방@471.0': [5], '거실@784.0': [7], '부엌@585.0': [8], '발코니@752.0': [10], '발코니@843.0': [9]}

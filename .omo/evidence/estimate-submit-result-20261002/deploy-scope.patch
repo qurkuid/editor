@@ -1,0 +1,243 @@
+diff --git a/apps/editor/components/stats-tab.tsx b/apps/editor/components/stats-tab.tsx
+index 94207deb..4ceb03af 100644
+--- a/apps/editor/components/stats-tab.tsx
++++ b/apps/editor/components/stats-tab.tsx
+@@ -14,7 +14,7 @@ import {
+ import { useCallback, useEffect, useMemo, useState } from 'react'
+ import { withBasePath } from '@/lib/base-path'
+ import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
+-import { toEstimateItems } from '@/lib/estimate-submit'
++import { type SubmitResult, toEstimateItems } from '@/lib/estimate-submit'
+ import { constructionKindsFor } from '@/lib/intm-construction-materials'
+ import { canEditCoverage, type IntmMaterial, type IntmMaterialCategory } from '@/lib/intm-materials'
+ import { type IntmProject, projectSubtitle, searchProjects } from '@/lib/intm-projects'
+@@ -95,7 +95,7 @@ export function StatsTab() {
+   const projectId = projectIdDraft ?? linkedProjectId ?? ''
+   const [projectName, setProjectName] = useState('')
+   const [submitting, setSubmitting] = useState(false)
+-  const [submitResult, setSubmitResult] = useState<string | null>(null)
++  const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null)
+ 
+   const load = useCallback(async () => {
+     setLoading(true)
+@@ -249,18 +249,35 @@ export function StatsTab() {
+         headers: { 'content-type': 'application/json' },
+         body: JSON.stringify({ draft, projectId, title: projectName }),
+       })
+-      const result = (await response.json()) as
+-        | { ok: true; estimateId: string; itemCount: number }
+-        | { ok: false; error: string }
+-      setSubmitResult(
+-        result.ok ? t('stats.submitted').replace('{n}', String(result.itemCount)) : result.error,
+-      )
++      const result = (await response.json()) as SubmitResult
++      setSubmitResult(result)
+     } catch (error) {
+-      setSubmitResult(error instanceof Error ? error.message : '견적 생성 실패')
++      setSubmitResult({
++        ok: false,
++        error: error instanceof Error ? error.message : '견적 생성 실패',
++      })
+     } finally {
+       setSubmitting(false)
+     }
+-  }, [draft, projectId, projectName, linkedProjectId, rootNodeIds, t])
++  }, [draft, projectId, projectName, linkedProjectId, rootNodeIds])
++
++  const successfulSubmit = submitResult?.ok ? submitResult : null
++  const attemptedItems = successfulSubmit
++    ? successfulSubmit.itemCount + successfulSubmit.failedItems
++    : 0
++  const submitMessage = successfulSubmit
++    ? successfulSubmit.failedItems === 0
++      ? t('stats.submitted').replace('{n}', String(successfulSubmit.itemCount))
++      : successfulSubmit.itemCount > 0
++        ? t('stats.submitted.partial')
++            .replace('{added}', String(successfulSubmit.itemCount))
++            .replace('{failed}', String(successfulSubmit.failedItems))
++            .replace('{total}', String(attemptedItems))
++        : t('stats.submitted.allFailed')
++            .replace('{added}', String(successfulSubmit.itemCount))
++            .replace('{failed}', String(successfulSubmit.failedItems))
++            .replace('{total}', String(attemptedItems))
++    : null
+ 
+   return (
+     <div className="flex h-full min-h-0 flex-col overflow-y-auto p-3 text-sm">
+@@ -372,9 +389,28 @@ export function StatsTab() {
+               {submitting ? t('stats.estimate.creating') : t('stats.estimate.create')}
+             </button>
+             {submitResult && (
+-              <p className="rounded border border-border/50 bg-[#252527] p-2 text-[11px] text-foreground">
+-                {submitResult}
+-              </p>
++              <div
++                aria-live="polite"
++                className={`space-y-1.5 rounded border p-2 text-[11px] ${
++                  successfulSubmit
++                    ? successfulSubmit.failedItems > 0
++                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
++                      : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
++                    : 'border-red-500/40 bg-red-500/10 text-red-200'
++                }`}
++              >
++                <p>{submitResult.ok ? submitMessage : submitResult.error}</p>
++                {successfulSubmit && (
++                  <a
++                    className="inline-block underline underline-offset-2 hover:no-underline"
++                    href={successfulSubmit.estimateUrl}
++                    rel="noopener noreferrer"
++                    target="_blank"
++                  >
++                    {t('stats.submitted.open')}
++                  </a>
++                )}
++              </div>
+             )}
+           </div>
+         </section>
+diff --git a/apps/editor/lib/estimate-submit.test.ts b/apps/editor/lib/estimate-submit.test.ts
+index 4bf7cc11..6bc95332 100644
+--- a/apps/editor/lib/estimate-submit.test.ts
++++ b/apps/editor/lib/estimate-submit.test.ts
+@@ -79,7 +79,7 @@ describe('submission', () => {
+     withIntm()
+     let seen: { url: string; init: RequestInit } | null = null
+     const result = await submitEstimate(
+-      draft(line()),
++      draft(line(), line(), line()),
+       { projectId: 'prj_1', title: '방배동 견적' },
+       'session_token=abc',
+       (async (url: string, init: RequestInit) => {
+@@ -90,7 +90,13 @@ describe('submission', () => {
+ 
+     expect(seen!.url).toBe('https://intm.kr/api/estimates/est_1/items')
+     expect((seen!.init.headers as Record<string, string>).cookie).toBe('session_token=abc')
+-    expect(result).toEqual({ ok: true, estimateId: 'est_1', itemCount: 1, failedItems: 0 })
++    expect(result).toEqual({
++      ok: true,
++      estimateId: 'est_1',
++      itemCount: 3,
++      failedItems: 0,
++      estimateUrl: 'https://intm.kr/newportal/estimates/est_1/edit',
++    })
+   })
+ 
+   // Two calls, because that is INTM's shape: the document, then each item.
+@@ -131,7 +137,60 @@ describe('submission', () => {
+       }) as unknown as typeof fetch,
+     )
+ 
+-    expect(result).toEqual({ ok: true, estimateId: 'est_1', itemCount: 1, failedItems: 1 })
++    expect(result).toEqual({
++      ok: true,
++      estimateId: 'est_1',
++      itemCount: 1,
++      failedItems: 1,
++      estimateUrl: 'https://intm.kr/newportal/estimates/est_1/edit',
++    })
++  })
++
++  test('keeps a link when every item fails after the document is created', async () => {
++    withIntm()
++    let call = 0
++    const result = await submitEstimate(
++      draft(line(), line(), line()),
++      { projectId: 'prj_1', title: 't' },
++      'session_token=abc',
++      (async () => {
++        call += 1
++        if (call === 1) return new Response(JSON.stringify({ id: 'est_1' }), { status: 200 })
++        return new Response('nope', { status: 500 })
++      }) as unknown as typeof fetch,
++    )
++
++    expect(result).toEqual({
++      ok: true,
++      estimateId: 'est_1',
++      itemCount: 0,
++      failedItems: 3,
++      estimateUrl: 'https://intm.kr/newportal/estimates/est_1/edit',
++    })
++  })
++
++  test('normalizes the configured base and encodes the estimate id in the link', async () => {
++    process.env.INTM_BASE_URL = 'https://intm.example.test///'
++    let call = 0
++    const result = await submitEstimate(
++      draft(line()),
++      { projectId: 'prj_1', title: 't' },
++      'session_token=abc',
++      (async () => {
++        call += 1
++        if (call === 1)
++          return new Response(JSON.stringify({ id: 'quote/2026 final' }), { status: 200 })
++        return new Response('{}', { status: 200 })
++      }) as unknown as typeof fetch,
++    )
++
++    expect(result).toEqual({
++      ok: true,
++      estimateId: 'quote/2026 final',
++      itemCount: 1,
++      failedItems: 0,
++      estimateUrl: 'https://intm.example.test/newportal/estimates/quote%2F2026%20final/edit',
++    })
+   })
+ 
+   test.each([
+diff --git a/apps/editor/lib/estimate-submit.ts b/apps/editor/lib/estimate-submit.ts
+index d1eb1c98..cf849f09 100644
+--- a/apps/editor/lib/estimate-submit.ts
++++ b/apps/editor/lib/estimate-submit.ts
+@@ -70,7 +70,13 @@ function unitLabel(unit: string): string {
+ }
+ 
+ export type SubmitResult =
+-  | { ok: true; estimateId: string; itemCount: number; failedItems: number }
++  | {
++      ok: true
++      estimateId: string
++      estimateUrl: string
++      itemCount: number
++      failedItems: number
++    }
+   | { ok: false; error: string }
+ 
+ /**
+@@ -143,5 +149,11 @@ export async function submitEstimate(
+     }
+   }
+ 
+-  return { ok: true, estimateId, itemCount: added, failedItems: failed }
++  return {
++    ok: true,
++    estimateId,
++    estimateUrl: `${base}/newportal/estimates/${encodeURIComponent(estimateId)}/edit`,
++    itemCount: added,
++    failedItems: failed,
++  }
+ }
+diff --git a/packages/editor/src/i18n/dictionary/furniture.ts b/packages/editor/src/i18n/dictionary/furniture.ts
+index cca7500b..aee58510 100644
+--- a/packages/editor/src/i18n/dictionary/furniture.ts
++++ b/packages/editor/src/i18n/dictionary/furniture.ts
+@@ -161,6 +161,18 @@ export const statsDictionary = {
+     ko: '견적서를 만들었습니다 ({n}개 항목).',
+     en: 'Estimate created ({n} items).',
+   },
++  'stats.submitted.partial': {
++    ko: '{added}개 항목이 추가됐고 {failed}개가 실패했습니다 (전체 {total}개). INTM에서 확인하고 완성하세요.',
++    en: '{added} of {total} items were added and {failed} failed. Review and finish it in INTM.',
++  },
++  'stats.submitted.allFailed': {
++    ko: '빈 견적서는 생성됐지만 항목 추가에 전부 실패했습니다 ({added}개 성공, {failed}개 실패 / 전체 {total}개).',
++    en: 'An empty estimate was created, but all item additions failed ({added} added, {failed} failed / {total} total).',
++  },
++  'stats.submitted.open': {
++    ko: 'INTM에서 견적서 열기',
++    en: 'Open estimate in INTM',
++  },
+   'stats.sharedReadOnly': {
+     ko: '공용 자재는 INTM에서 관리자만 수정할 수 있습니다.',
+     en: 'Shared materials are admin-only in INTM.',

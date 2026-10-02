@@ -1,0 +1,10 @@
+packages/core/src/lib/wall-operations.ts
+packages/core/src/index.ts
+packages/core/src/lib/wall-parallel-alignment.test.ts
+packages/core/src/lib/wall-length.test.ts
+packages/core/src/store/use-scene-dirty-tracking.test.ts
+packages/editor/src/components/ui/helpers/wall-edit-controls.tsx
+packages/mcp/src/modeling-agent-manual.ts
+packages/mcp/src/ontology-manual.test.ts
+packages/mcp/src/resources/resources.test.ts
+apps/editor/lib/ai-provider.test.ts

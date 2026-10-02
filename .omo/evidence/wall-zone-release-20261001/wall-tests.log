@@ -1,0 +1,121 @@
+bun test v1.3.11 (af24e281)
+
+packages/core/src/lib/wall-operations.test.ts:
+(pass) wall operations > merges exact collinear walls and preserves hosted world positions and construction [7.41ms]
+(pass) wall operations > splits inside a wall, retains the first id, and preserves collection membership [0.52ms]
+(pass) wall operations > rejects an opening that would straddle the split [0.64ms]
+(pass) wall operations > supports a three-wall chain when the first selected wall is internal [0.26ms]
+(pass) wall operations > adds a secondary-only collection membership to the retained wall [0.17ms]
+(pass) wall operations > rejects reversed one-sided trims before changing their side [0.42ms]
+(pass) wall operations > rejects reversed walls with unequal front and back side metadata [0.15ms]
+(pass) wall operations > rejects a reversed hosted wall instead of changing its local frame [0.09ms]
+(pass) wall operations > projects rotated item width and depth when validating a split [0.18ms]
+(pass) wall operations > rejects an occupied requested split id [0.03ms]
+(pass) wall operations > splits a wall once per distinct interior T/X contact in descending order [0.35ms]
+(pass) wall operations > ignores endpoint-only contacts and contacts on another level [0.16ms]
+(pass) wall operations > validates every contact before exposing a mutation when an attachment crosses one [0.06ms]
+
+packages/nodes/src/wall/floorplan-affordances.test.ts:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) wall center curve handle release > weak endpoint inference releases freely, keeps connections, and honors Off and Shift [7.15ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) wall center curve handle release > an existing endpoint wins over weak angle inference [0.21ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) wall center curve handle release > uses same-level linked straight outer endpoints as a collinear junction datum [0.56ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) wall center curve handle release > Shift preserves endpoint direction through preview, commit and undo [0.24ms]
+(pass) wall center curve handle release > persists the previewed curve offset after commit clears the override [0.21ms]
+
+packages/editor/src/components/tools/wall/wall-drafting.test.ts:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > a direction-locked wall keeps its endpoint near a host corner [2.45ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > endpoint near an existing corner attaches to the corner instead of splitting [0.05ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > new walls start with a single 100 mm concrete layer
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > committed wall preserves the ghost construction elevation on ground [0.46ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > 2D terrain construction options freeze the first-point elevation and wall height [0.60ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > endpoint near the host start corner snaps there without splitting [0.11ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > genuine mid-wall endpoint still splits the host (T junction) [0.17ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > exact duplicate segment is rejected
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > grid mode: endpoint resolved onto a wall body still splits the host [0.46ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > grid mode: endpoint beyond the connect radius is left alone (no residual snap) [0.01ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > mid-span split migrates the host attachments to the covering half [0.69ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > a splitting commit lands as a single undo step [0.17ms]
+(pass) resolveEndpointWallSplit > endpoint dropped mid-span splits the host and returns the projection [0.31ms]
+(pass) resolveEndpointWallSplit > mid-span split migrates host attachments to the covering half [0.26ms]
+(pass) resolveEndpointWallSplit > a drop near an existing corner resolves to the corner without splitting [0.15ms]
+(pass) resolveEndpointWallSplit > an opening straddling the drop point skips the split but still resolves the point [0.10ms]
+(pass) resolveEndpointWallSplit > a drop beyond the connect radius resolves nothing and splits nothing
+(pass) resolveEndpointWallSplit > ignored walls (the moved wall and its commit siblings) are never split
+(pass) resolveEndpointWallSplit > split + endpoint write compose into a single history step
+(pass) snapWallDraftPointDetailed > bypassSnap returns the raw point without endpoint or angle snap
+(pass) snapWallDraftPointDetailed > a stale linked-wall corner swallows a sub-connect-radius correction unless ignored
+(pass) construction guide snapping > sticks a nearby point to the guide line foot
+(pass) construction guide snapping > ignores guides outside the stick radius
+(pass) construction guide snapping > a guide intersection beats the nearest single line
+(pass) construction guide snapping > an angle-locked ray slides along the ray to the guide
+(pass) construction guide snapping > snapWallDraftPointDetailed lands the drafted point on an off-grid guide
+(pass) construction guide snapping > Alt bypass skips guides too
+(pass) guide snapping is on by default from the scene store > auto-collects the active level guides when none are passed
+(pass) shared wall inference keeps guides and corners ahead of weak angles and respects modes
+(pass) resolveWallEndpointPoint > fixed-corner right-angle inference wins over an off-ray endpoint
+(pass) resolveWallEndpointPoint > captures a thick target face at the inferred-ray intersection [0.74ms]
+(pass) resolveWallEndpointPoint > keeps an outside-envelope cursor free on the inferred ray [0.03ms]
+(pass) resolveWallEndpointPoint > captures a physical face for an arbitrary-angle endpoint approach [0.04ms]
+(pass) resolveWallEndpointPoint > preserves an exact endpoint hit before direction inference [0.01ms]
+(pass) resolveWallEndpointPoint > keeps an explicit construction guide ahead of weak direction inference
+(pass) resolveWallEndpointPoint > keeps an explicit construction guide on a locked ray
+(pass) resolveWallEndpointPoint > does not infer a weak ray in Off mode [0.06ms]
+(pass) resolveWallEndpointPoint > does not capture a distant on-ray endpoint outside the physical envelope [0.05ms]
+(pass) resolveWallEndpointPoint > captures a target corner only when the inferred ray reaches that corner [0.02ms]
+(pass) resolveWallEndpointPoint > uses an explicit locked ray for thick-face capture
+(pass) resolveWallEndpointPoint > captures a thick face on the explicit 15 degree angle ray [0.06ms]
+(pass) resolveWallEndpointPoint > captures a linked straight-junction datum without moving the inferred ray [0.07ms]
+(pass) resolveWallEndpointPoint > uses the outer endpoint datum regardless of order and ignores invalid captures [0.07ms]
+(pass) resolveWallEndpointPoint > keeps guide, Off, and Angles precedence over a linked datum [0.03ms]
+(pass) resolveWallEndpointPoint > combines a locked ray with a linked datum only inside the capture radius [0.07ms]
+(pass) resolveWallEndpointPoint > uses the linked datum ray for a competing face only when no primary ray exists [0.08ms]
+(pass) resolveWallEndpointPoint > accepts a linked pair inside the 2 degree window and rejects one outside it
+
+packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts:
+(pass) floorplan selection handle sizing > caps visual handle growth at extreme zoom-out [3.78ms]
+(pass) floorplan affordance ownership > keeps the wall center curve drag owned by the floorplan dispatcher [0.06ms]
+(pass) floorplan affordance cancellation > tool:cancel reverts the drag and makes a later pointerup inert [0.20ms]
+(pass) floorplan opening placement interaction routing > passes entries through only while an opening tool or moving opening is active
+(pass) floorplan vertex double-click routing > routes polygon vertex handles to the kind-owned delete affordance
+(pass) floorplan annotation overlay routing > keeps explicitly layered selection chrome above selected body fills [0.06ms]
+(pass) floorplan annotation overlay routing > registers upright zone labels for rotation-only presentation updates [0.21ms]
+(pass) floorplan annotation overlay routing > keeps automatic dimension strings left-to-right and top-to-bottom after rotation [1.22ms]
+(pass) floorplan annotation overlay routing > keeps a fixed mark pill together in the overlay pass [0.03ms]
+(pass) floorplan annotation overlay routing > keeps fixed annotation symbols in the overlay pass for collision layout
+(pass) floorplan registry overlay ordering > renders a selected wall entry after unselected wall entries [0.05ms]
+(pass) computeAffectedSiblingIds > propagates cabinet live overrides through the cabinet family [0.34ms]
+(pass) computeAffectedSiblingIds > propagates a live-moving cabinet module back to its owning run [0.09ms]
+(pass) collectFloorplanDependencyNodes > includes referenced hosts and their transform-owning parents [0.08ms]
+(pass) collectFloorplanLinkedLevelNodes > projects a node onto a linked destination level with its real children [0.07ms]
+
+packages/editor/src/components/editor/handles/handle-arrow.test.ts:
+(pass) InvisibleHandleHitArea raycast priority > puts a priority handle before a nearer wall while preserving the hit data [1.06ms]
+(pass) InvisibleHandleHitArea raycast priority > keeps normal hit distances by default
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) InvisibleHandleHitArea raycast priority > does not raycast while placement drag owns the pointer
+
+ 83 pass
+ 0 fail
+ 293 expect() calls
+Ran 83 tests across 5 files. [750.00ms]

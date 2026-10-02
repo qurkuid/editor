@@ -1,0 +1,67 @@
+sync-original.py -> sync-patched.py
+
+diff --git a/.omo/evidence/wallpaper-category-recovery-20261002/sync-original.py b/.omo/evidence/wallpaper-category-recovery-20261002/sync-patched.py
+index 8a331616..110d2246 100644
+--- a/.omo/evidence/wallpaper-category-recovery-20261002/sync-original.py
++++ b/.omo/evidence/wallpaper-category-recovery-20261002/sync-patched.py
+@@ -33,6 +33,52 @@ ASSET_FIELDS = {
+ }
+ 
+ 
++WALLPAPER_CATEGORY_ID = 108
++WALLPAPER_CATEGORY_NAME = "벽지"
++WALLPAPER_BRANDS = frozenset(("LX Z:IN(LX지인)", "서울벽지"))
++
++
++def wallpaper_category_id(categories):
++    matches = [
++        category for category in categories
++        if category.get("name") == WALLPAPER_CATEGORY_NAME
++    ]
++    if len(matches) != 1:
++        raise RuntimeError(
++            "expected one canonical wallpaper category named 벽지, found {}".format(len(matches))
++        )
++    category_id = matches[0].get("id")
++    if category_id != WALLPAPER_CATEGORY_ID:
++        raise RuntimeError(
++            "wallpaper category id mismatch: expected {}, got {}".format(
++                WALLPAPER_CATEGORY_ID, category_id
++            )
++        )
++    return category_id
++
++
++def normalize_wallpaper_products(products, categories):
++    category_id = wallpaper_category_id(categories)
++    repaired = 0
++    for product in products:
++        if product.get("categoryId") is not None:
++            continue
++        product_id = product.get("id")
++        try:
++            negative_id = int(product_id) < 0
++        except (TypeError, ValueError):
++            negative_id = False
++        if (
++            negative_id
++            and product.get("category") == WALLPAPER_CATEGORY_NAME
++            and product.get("brand") in WALLPAPER_BRANDS
++        ):
++            product["categoryId"] = category_id
++            repaired += 1
++    logging.info("normalized wallpaper products=%s category_id=%s", repaired, category_id)
++    return products
++
++
+ def utc_now():
+     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+ 
+@@ -205,6 +251,7 @@ class MaterialClone:
+             started = utc_now()
+             categories = self.client.post("/category/filter", {})
+             products = self.fetch_products()
++            normalize_wallpaper_products(products, categories)
+             if self.args.limit:
+                 products = products[: self.args.limit]
+             self.stats["listed"] = len(products)

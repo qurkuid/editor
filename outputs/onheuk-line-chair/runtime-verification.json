@@ -1,0 +1,40 @@
+{
+  "path": "/Users/changseok/editor/outputs/onheuk-line-chair/onheuk-line-chair-350x365x570mm.skp",
+  "bounds_mm": [
+    350.0,
+    365.0,
+    570.0
+  ],
+  "groups": [
+    {
+      "name": "01 앞판 350×435×15 · 중앙 슬롯",
+      "solid": true,
+      "volume_mm3": 2236462.62390493
+    },
+    {
+      "name": "02 뒤판·등받이 350×570×15 · 중앙 슬롯",
+      "solid": true,
+      "volume_mm3": 2936325.247809864
+    },
+    {
+      "name": "03 좌면 좌 171×350×15",
+      "solid": true,
+      "volume_mm3": 897750.0000000012
+    },
+    {
+      "name": "03 좌면 우 171×350×15",
+      "solid": true,
+      "volume_mm3": 897750.000000001
+    },
+    {
+      "name": "04 하부 보강재 좌 15×335×60",
+      "solid": true,
+      "volume_mm3": 301499.9999999998
+    },
+    {
+      "name": "04 하부 보강재 우 15×335×60",
+      "solid": true,
+      "volume_mm3": 301499.9999999994
+    }
+  ]
+}

@@ -1,0 +1,4503 @@
+{
+  "summary": {
+    "walls": 65,
+    "openings": 16,
+    "zones": 12,
+    "autoZones": 9,
+    "zoneVertexMaxError": 0,
+    "shortWalls": 14,
+    "diagnostics": {
+      "unhostedOpeningIds": [],
+      "dedupedOpeningIds": [
+        "o12",
+        "o17"
+      ],
+      "droppedWallIds": [
+        "w74"
+      ]
+    }
+  },
+  "graph": {
+    "wall_gbv2qeg404ipdu8u": {
+      "object": "node",
+      "id": "wall_gbv2qeg404ipdu8u",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.2425,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.2425,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -6.275298647289337,
+        3.752434235140441
+      ],
+      "end": [
+        -6.275298647289337,
+        2.366934235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_bm38xn0r46hupwy5": {
+      "object": "node",
+      "id": "wall_bm38xn0r46hupwy5",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.2425,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.2425,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -6.275298647289337,
+        2.366934235140441
+      ],
+      "end": [
+        -6.275298647289337,
+        -0.9063657648595584
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_yt5utcm19pw4s4r9": {
+      "object": "node",
+      "id": "wall_yt5utcm19pw4s4r9",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.2425,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.2425,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -6.275298647289337,
+        -0.9063657648595584
+      ],
+      "end": [
+        -6.275298647289337,
+        -4.688465764859559
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_89cwgv7b2gqew1c5": {
+      "object": "node",
+      "id": "wall_89cwgv7b2gqew1c5",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.2425,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.2425,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        6.284601352710665,
+        3.754434235140441
+      ],
+      "end": [
+        6.284601352710665,
+        0.22673423514044222
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_ia3dyobzomkxqmwn": {
+      "object": "node",
+      "id": "wall_ia3dyobzomkxqmwn",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        1.1336013527106625,
+        3.752434235140441
+      ],
+      "end": [
+        1.1336013527106625,
+        0.22673423514044222
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_0xl2ase49moe6ktv": {
+      "object": "node",
+      "id": "wall_0xl2ase49moe6ktv",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -4.761098647289337,
+        -4.688465764859559
+      ],
+      "end": [
+        -2.453498647289338,
+        -4.688465764859559
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_cjlu8hdjxvhmmdd9": {
+      "object": "node",
+      "id": "wall_cjlu8hdjxvhmmdd9",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_ee292450f9kq15tq"
+      ],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.453498647289338,
+        -4.688465764859559
+      ],
+      "end": [
+        0.5351013527106625,
+        -4.688465764859559
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_erp3kfe0a7d4c7wx": {
+      "object": "node",
+      "id": "wall_erp3kfe0a7d4c7wx",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_zs42m7x33bpya7cf"
+      ],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        0.5351013527106625,
+        -4.688465764859559
+      ],
+      "end": [
+        1.9679013527106637,
+        -4.688465764859559
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_wo0czhk127wopr8g": {
+      "object": "node",
+      "id": "wall_wo0czhk127wopr8g",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.09409999999999999,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.09409999999999999,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -4.648198647289337,
+        -2.892865764859558
+      ],
+      "end": [
+        -2.469069996568149,
+        -2.8929657615854545
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_641r0ty2n9nd2n4w": {
+      "object": "node",
+      "id": "wall_641r0ty2n9nd2n4w",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.610501352710662,
+        3.754434235140441
+      ],
+      "end": [
+        3.610501352710662,
+        0.22673423514044222
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_0kj9cgaghkol1xt5": {
+      "object": "node",
+      "id": "wall_0kj9cgaghkol1xt5",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_v28jf32uzokdjto7"
+      ],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        1.1336013527106625,
+        0.22673423514044225
+      ],
+      "end": [
+        3.610501352710662,
+        0.22673423514044222
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_xy7gdowtfqraq0pq": {
+      "object": "node",
+      "id": "wall_xy7gdowtfqraq0pq",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_qqw98ca50jdybdtn"
+      ],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.610501352710662,
+        0.22673423514044222
+      ],
+      "end": [
+        4.989201352710663,
+        0.22673423514044225
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_d28mzro88esme8ab": {
+      "object": "node",
+      "id": "wall_d28mzro88esme8ab",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.901998647289338,
+        3.7748974700233213
+      ],
+      "end": [
+        -2.901998647289338,
+        3.752434235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_1ymwkuq93dfazbus": {
+      "object": "node",
+      "id": "wall_1ymwkuq93dfazbus",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.901998647289338,
+        3.752434235140441
+      ],
+      "end": [
+        -2.901998647289338,
+        2.47281824616732
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_ujbwvyftm98jtrt4": {
+      "object": "node",
+      "id": "wall_ujbwvyftm98jtrt4",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.901998647289338,
+        2.47281824616732
+      ],
+      "end": [
+        -2.901998647289338,
+        2.366934235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_4tmwq0ggfhihjs7i": {
+      "object": "node",
+      "id": "wall_4tmwq0ggfhihjs7i",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_4r06rr2gmxoaud0q"
+      ],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.901998647289338,
+        2.366934235140441
+      ],
+      "end": [
+        -2.901998647289338,
+        -0.906365764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_in2nhj7johwik63z": {
+      "object": "node",
+      "id": "wall_in2nhj7johwik63z",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        4.989201352710663,
+        0.22673423514044225
+      ],
+      "end": [
+        4.989201352710663,
+        -2.475765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_nr68h4qpm7j9vq88": {
+      "object": "node",
+      "id": "wall_nr68h4qpm7j9vq88",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_idhuwla9to888r1z"
+      ],
+      "thickness": 0.15130000000000002,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.15130000000000002,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -6.275298647289337,
+        -0.9063657648595581
+      ],
+      "end": [
+        -4.648198647289337,
+        -0.9063657648595581
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_mlr6iyt0il9pl0wu": {
+      "object": "node",
+      "id": "wall_mlr6iyt0il9pl0wu",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.15130000000000002,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.15130000000000002,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -4.648198647289337,
+        -0.9063657648595581
+      ],
+      "end": [
+        -2.901998647289338,
+        -0.9063657648595584
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_4tfykccizpi8saq9": {
+      "object": "node",
+      "id": "wall_4tfykccizpi8saq9",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.15130000000000002,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.15130000000000002,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.901998647289338,
+        -0.9063657648595584
+      ],
+      "end": [
+        -2.4862986472893374,
+        -0.9063657648595581
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_li8evu33f7zxme62": {
+      "object": "node",
+      "id": "wall_li8evu33f7zxme62",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.15130000000000002,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.15130000000000002,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.4862986472893374,
+        -0.9063657648595581
+      ],
+      "end": [
+        0.5351013527106625,
+        -0.9063657648595581
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_xg4fmjz3bh4wq8fm": {
+      "object": "node",
+      "id": "wall_xg4fmjz3bh4wq8fm",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_jkmdd49c3uelnvz0"
+      ],
+      "thickness": 0.15130000000000002,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.15130000000000002,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        0.5351013527106625,
+        -0.9063657648595581
+      ],
+      "end": [
+        3.266601352710663,
+        -0.9063657648595581
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_u9ww1263s1vf2zeq": {
+      "object": "node",
+      "id": "wall_u9ww1263s1vf2zeq",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1212,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1212,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.4862986472893374,
+        -0.9063657648595581
+      ],
+      "end": [
+        -2.4690699965681486,
+        -2.8929657615854545
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_dq4maqyjazlnk983": {
+      "object": "node",
+      "id": "wall_dq4maqyjazlnk983",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1212,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1212,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.4690699965681486,
+        -2.8929657615854545
+      ],
+      "end": [
+        -2.453498647289338,
+        -4.688465764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_9q0fvbo25mpvx824": {
+      "object": "node",
+      "id": "wall_9q0fvbo25mpvx824",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_a8qra4kbb6o5zyda"
+      ],
+      "thickness": 0.1461,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1461,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        0.5351013527106625,
+        -4.688465764859559
+      ],
+      "end": [
+        0.5351013527106625,
+        -2.9973807254894798
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_risjuyjv0omg5l17": {
+      "object": "node",
+      "id": "wall_risjuyjv0omg5l17",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1461,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1461,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        0.5351013527106625,
+        -2.9973807254894798
+      ],
+      "end": [
+        0.5351013527106625,
+        -2.878765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_ilca5rxrv6x5i9fd": {
+      "object": "node",
+      "id": "wall_ilca5rxrv6x5i9fd",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1461,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1461,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        0.5351013527106625,
+        -2.878765764859558
+      ],
+      "end": [
+        0.5351013527106625,
+        -0.906365764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_9byrqqcmd83bae0h": {
+      "object": "node",
+      "id": "wall_9byrqqcmd83bae0h",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1212,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1212,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        0.5351013527106625,
+        -2.878765764859558
+      ],
+      "end": [
+        0.761515681367977,
+        -2.878765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_pfiy9g5hmcs1m79m": {
+      "object": "node",
+      "id": "wall_pfiy9g5hmcs1m79m",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1212,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1212,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        0.761515681367977,
+        -2.878765764859558
+      ],
+      "end": [
+        1.7937013527106629,
+        -2.878765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_6yeps5pqkvrikd8c": {
+      "object": "node",
+      "id": "wall_6yeps5pqkvrikd8c",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1212,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1212,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        1.7937013527106629,
+        -2.878765764859558
+      ],
+      "end": [
+        2.7932013527106627,
+        -2.878765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_keu2xb7m6l46fot8": {
+      "object": "node",
+      "id": "wall_keu2xb7m6l46fot8",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        1.7937013527106629,
+        -0.9063657648595581
+      ],
+      "end": [
+        1.7937013527106629,
+        -2.878765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_ke3czyqhfc40e7i4": {
+      "object": "node",
+      "id": "wall_ke3czyqhfc40e7i4",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_u0l546u1oejees2x"
+      ],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        1.5598013527106631,
+        3.754434235140441
+      ],
+      "end": [
+        3.610501352710662,
+        3.754434235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_gfpgtee8qh8g75x4": {
+      "object": "node",
+      "id": "wall_gfpgtee8qh8g75x4",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_dzgcofbkkvz01hm3"
+      ],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.610501352710662,
+        3.754434235140441
+      ],
+      "end": [
+        6.284601352710665,
+        3.754434235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_xeim8dhdkjts77um": {
+      "object": "node",
+      "id": "wall_xeim8dhdkjts77um",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        2.7932013527106627,
+        -2.878765764859558
+      ],
+      "end": [
+        2.7932013527106627,
+        -4.035565764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_x8z93mwv3mnn7pjb": {
+      "object": "node",
+      "id": "wall_x8z93mwv3mnn7pjb",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_vi0pxhxg6bvzjnw8"
+      ],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -6.275298647289337,
+        2.366934235140441
+      ],
+      "end": [
+        -3.0560986472893363,
+        2.366934235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_ynzzynpxonu018wj": {
+      "object": "node",
+      "id": "wall_ynzzynpxonu018wj",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -3.0560986472893363,
+        2.366934235140441
+      ],
+      "end": [
+        -2.901998647289338,
+        2.366934235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_suqhy1c0yw34238y": {
+      "object": "node",
+      "id": "wall_suqhy1c0yw34238y",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1559,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1559,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        2.6481013527106625,
+        -0.8977657648595577
+      ],
+      "end": [
+        3.2666013527106625,
+        -0.8977657648595577
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_t2p9nx39xebltbrv": {
+      "object": "node",
+      "id": "wall_t2p9nx39xebltbrv",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.2666013527106625,
+        -0.8977657648595577
+      ],
+      "end": [
+        3.266601352710663,
+        -0.9063657648595581
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_a31hp6auag6zi6c4": {
+      "object": "node",
+      "id": "wall_a31hp6auag6zi6c4",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.266601352710663,
+        -0.9063657648595581
+      ],
+      "end": [
+        3.2666013527106625,
+        -2.475765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_g13kfxyvqlfjs4cl": {
+      "object": "node",
+      "id": "wall_g13kfxyvqlfjs4cl",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.2666013527106625,
+        -2.475765764859558
+      ],
+      "end": [
+        3.279301352710663,
+        -2.475765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_fxuvxkr2j5dhpmfm": {
+      "object": "node",
+      "id": "wall_fxuvxkr2j5dhpmfm",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.279301352710663,
+        -2.475765764859558
+      ],
+      "end": [
+        3.328201352710663,
+        -2.475765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_2jt0lrmgwfcs67ek": {
+      "object": "node",
+      "id": "wall_2jt0lrmgwfcs67ek",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.328201352710663,
+        -2.475765764859558
+      ],
+      "end": [
+        3.4461013527106625,
+        -2.475765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_qddihkqyzjp9lsr0": {
+      "object": "node",
+      "id": "wall_qddihkqyzjp9lsr0",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_fcbsqbv7yobxh9k2"
+      ],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.4461013527106625,
+        -2.475765764859558
+      ],
+      "end": [
+        4.989201352710663,
+        -2.475765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_3ylawnoq8pncryea": {
+      "object": "node",
+      "id": "wall_3ylawnoq8pncryea",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "door_icm7hgncxcf15n8i"
+      ],
+      "thickness": 0.1039,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1039,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -4.648198647289337,
+        -0.9063657648595581
+      ],
+      "end": [
+        -4.648198647289337,
+        -2.892865764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_5ka7z17r0f65092j": {
+      "object": "node",
+      "id": "wall_5ka7z17r0f65092j",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.22519999999999998,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.22519999999999998,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        1.9679013527106635,
+        -4.035565764859558
+      ],
+      "end": [
+        2.7932013527106627,
+        -4.035565764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_x3tcaczjao7v7vuf": {
+      "object": "node",
+      "id": "wall_x3tcaczjao7v7vuf",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.2425,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.2425,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        1.9679013527106635,
+        -4.035565764859558
+      ],
+      "end": [
+        1.9679013527106635,
+        -4.688465764859559
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_h404p63citg9294v": {
+      "object": "node",
+      "id": "wall_h404p63citg9294v",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_fipww4c1udeo53kc"
+      ],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -6.275298647289337,
+        -4.688465764859559
+      ],
+      "end": [
+        -4.761098647289337,
+        -4.688465764859559
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_psr1gh4gdu6yv3iz": {
+      "object": "node",
+      "id": "wall_psr1gh4gdu6yv3iz",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.22519999999999998,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.22519999999999998,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        4.989201352710663,
+        0.22673423514044225
+      ],
+      "end": [
+        6.284601352710665,
+        0.22673423514044225
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_e81qk9gco606i3jf": {
+      "object": "node",
+      "id": "wall_e81qk9gco606i3jf",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_ougwgajshtkz8qb3"
+      ],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -6.275298647289337,
+        3.752434235140441
+      ],
+      "end": [
+        -2.901998647289338,
+        3.752434235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_uw31nfgbjfmc5vyv": {
+      "object": "node",
+      "id": "wall_uw31nfgbjfmc5vyv",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "window_i9yrtwxasmdbfws5"
+      ],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.901998647289338,
+        3.752434235140441
+      ],
+      "end": [
+        1.1336013527106625,
+        3.752434235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_y86hkkzmp5u39g7k": {
+      "object": "node",
+      "id": "wall_y86hkkzmp5u39g7k",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        1.1336013527106625,
+        3.752434235140441
+      ],
+      "end": [
+        1.5598013527106631,
+        3.752434235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_031dtlbktv06zzj2": {
+      "object": "node",
+      "id": "wall_031dtlbktv06zzj2",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.256621646873569,
+        -2.884311150829128
+      ],
+      "end": [
+        3.2730578407161497,
+        -2.588234508322365
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_yiq0veaivd3rtnni": {
+      "object": "node",
+      "id": "wall_yiq0veaivd3rtnni",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.2730578407161497,
+        -2.588234508322365
+      ],
+      "end": [
+        3.2736819771248493,
+        -2.5769915031519592
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_r9vbch4x7ia29q9k": {
+      "object": "node",
+      "id": "wall_r9vbch4x7ia29q9k",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.2736819771248493,
+        -2.5769915031519592
+      ],
+      "end": [
+        3.279301352710663,
+        -2.475765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_hpnpv5bojrbnza3t": {
+      "object": "node",
+      "id": "wall_hpnpv5bojrbnza3t",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.279301352710663,
+        -2.475765764859558
+      ],
+      "end": [
+        3.283104453799753,
+        -2.4072578479807465
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_mdigm68cz1tkom63": {
+      "object": "node",
+      "id": "wall_mdigm68cz1tkom63",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.2425,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.2425,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        2.7932013527106627,
+        -2.878765764859558
+      ],
+      "end": [
+        3.256621646873569,
+        -2.884311150829128
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_rka45nnof4odr9h7": {
+      "object": "node",
+      "id": "wall_rka45nnof4odr9h7",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        0.761515681367977,
+        -2.878765764859558
+      ],
+      "end": [
+        0.5351013527106625,
+        -2.9973807254894798
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_mcjihkdc3f4zu1j6": {
+      "object": "node",
+      "id": "wall_mcjihkdc3f4zu1j6",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.259,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.259,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.2647013527106634,
+        -2.593665764859558
+      ],
+      "end": [
+        3.2736819771248493,
+        -2.5769915031519592
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_bjelo78yt4m91lm6": {
+      "object": "node",
+      "id": "wall_bjelo78yt4m91lm6",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.259,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.259,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.2736819771248493,
+        -2.5769915031519592
+      ],
+      "end": [
+        3.328201352710663,
+        -2.475765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_t48fuumujddun7y2": {
+      "object": "node",
+      "id": "wall_t48fuumujddun7y2",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.259,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.259,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.2666013527106625,
+        -2.592430869600463
+      ],
+      "end": [
+        3.2730578407161497,
+        -2.588234508322365
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_hn7lesmcqxc3kzqs": {
+      "object": "node",
+      "id": "wall_hn7lesmcqxc3kzqs",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.259,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.259,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.2730578407161497,
+        -2.588234508322365
+      ],
+      "end": [
+        3.4461013527106625,
+        -2.475765764859558
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_pph4uo4atfbyo78q": {
+      "object": "node",
+      "id": "wall_pph4uo4atfbyo78q",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.2327,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.2327,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.916349395870938,
+        3.7772013279451224
+      ],
+      "end": [
+        -2.920325485524631,
+        3.752434235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_ngxuzpbxkxusxuq0": {
+      "object": "node",
+      "id": "wall_ngxuzpbxkxusxuq0",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.2327,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.2327,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.920325485524631,
+        3.752434235140441
+      ],
+      "end": [
+        -2.9563986472893373,
+        3.5277342351404424
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_a2ttep5cgy8qzd74": {
+      "object": "node",
+      "id": "wall_a2ttep5cgy8qzd74",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.1386,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.1386,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        -2.901998647289338,
+        2.47281824616732
+      ],
+      "end": [
+        -3.0560986472893363,
+        2.366934235140441
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "wall_1l3fa425nybyyhzp": {
+      "object": "node",
+      "id": "wall_1l3fa425nybyyhzp",
+      "type": "wall",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "thickness": 0.25980000000000003,
+      "faceBands": {
+        "enabled": false,
+        "count": 1,
+        "lowerHeight": 0.84,
+        "middleHeight": 0.61,
+        "upperHeight": 0.61,
+        "construction": {
+          "upper": {
+            "mode": "assembly",
+            "layers": [
+              {
+                "kind": "concrete",
+                "thickness": 0.25980000000000003,
+                "wasteFactor": 0
+              }
+            ]
+          }
+        }
+      },
+      "start": [
+        3.283104453799753,
+        -2.4072578479807465
+      ],
+      "end": [
+        3.483088715939867,
+        -2.4517260177552402
+      ],
+      "frontSide": "unknown",
+      "backSide": "unknown"
+    },
+    "door_ee292450f9kq15tq": {
+      "object": "node",
+      "id": "door_ee292450f9kq15tq",
+      "type": "door",
+      "parentId": "wall_cjlu8hdjxvhmmdd9",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o4",
+        "sourceOpeningType": "door",
+        "sourceWidthMm": 643.9308192655478,
+        "sourceOpeningSource": "pair",
+        "sourceHinge": [
+          10120.6,
+          2818.9
+        ],
+        "sourceRadius": 353.7
+      },
+      "position": [
+        1.632750000000001,
+        1.05,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_cjlu8hdjxvhmmdd9",
+      "width": 0.6439308192655478,
+      "height": 2.1,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "doorCategory": "interior",
+      "doorType": "hinged",
+      "leafCount": 1,
+      "operationState": 0,
+      "slideDirection": "left",
+      "trackStyle": "none",
+      "garagePanelCount": 4,
+      "openingKind": "door",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingTopRadii": [
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.45,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "threshold": true,
+      "thresholdHeight": 0.02,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "swingAngle": 0,
+      "segments": [
+        {
+          "type": "panel",
+          "heightRatio": 0.4,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        },
+        {
+          "type": "panel",
+          "heightRatio": 0.6,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        }
+      ],
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "contentPadding": [
+        0.04,
+        0.04
+      ],
+      "doorCloser": false,
+      "panicBar": false,
+      "panicBarHeight": 1
+    },
+    "window_zs42m7x33bpya7cf": {
+      "object": "node",
+      "id": "window_zs42m7x33bpya7cf",
+      "type": "window",
+      "parentId": "wall_erp3kfe0a7d4c7wx",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o2",
+        "sourceOpeningType": "window",
+        "sourceWidthMm": 625.8369436203004,
+        "sourceOpeningSource": "pair"
+      },
+      "position": [
+        0.43070000000000075,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_erp3kfe0a7d4c7wx",
+      "width": 0.6258369436203004,
+      "height": 1.5,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "openingKind": "window",
+      "windowType": "fixed",
+      "operationState": 0,
+      "awningDirection": "up",
+      "casementStyle": "single",
+      "hingesSide": "left",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingCornerRadii": [
+        0.15,
+        0.15,
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.35,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "columnRatios": [
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.08,
+      "sillThickness": 0.03
+    },
+    "door_v28jf32uzokdjto7": {
+      "object": "node",
+      "id": "door_v28jf32uzokdjto7",
+      "type": "door",
+      "parentId": "wall_0kj9cgaghkol1xt5",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o15",
+        "sourceOpeningType": "door",
+        "sourceWidthMm": 662,
+        "sourceOpeningSource": "ray",
+        "sourceHinge": [
+          12469.4,
+          7735.6
+        ],
+        "sourceRadius": 662
+      },
+      "position": [
+        0.40349999999999997,
+        1.05,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_0kj9cgaghkol1xt5",
+      "width": 0.6619999999999999,
+      "height": 2.1,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "doorCategory": "interior",
+      "doorType": "hinged",
+      "leafCount": 1,
+      "operationState": 0,
+      "slideDirection": "left",
+      "trackStyle": "none",
+      "garagePanelCount": 4,
+      "openingKind": "door",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingTopRadii": [
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.45,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "threshold": true,
+      "thresholdHeight": 0.02,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "swingAngle": 0,
+      "segments": [
+        {
+          "type": "panel",
+          "heightRatio": 0.4,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        },
+        {
+          "type": "panel",
+          "heightRatio": 0.6,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        }
+      ],
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "contentPadding": [
+        0.04,
+        0.04
+      ],
+      "doorCloser": false,
+      "panicBar": false,
+      "panicBarHeight": 1
+    },
+    "door_qqw98ca50jdybdtn": {
+      "object": "node",
+      "id": "door_qqw98ca50jdybdtn",
+      "type": "door",
+      "parentId": "wall_xy7gdowtfqraq0pq",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o1",
+        "sourceOpeningType": "door",
+        "sourceWidthMm": 647.5,
+        "sourceOpeningSource": "pair",
+        "sourceHinge": [
+          14950.6,
+          7735.6
+        ],
+        "sourceRadius": 643.9
+      },
+      "position": [
+        0.4005500000000004,
+        1.05,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_xy7gdowtfqraq0pq",
+      "width": 0.6475,
+      "height": 2.1,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "doorCategory": "interior",
+      "doorType": "hinged",
+      "leafCount": 1,
+      "operationState": 0,
+      "slideDirection": "left",
+      "trackStyle": "none",
+      "garagePanelCount": 4,
+      "openingKind": "door",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingTopRadii": [
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.45,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "threshold": true,
+      "thresholdHeight": 0.02,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "swingAngle": 0,
+      "segments": [
+        {
+          "type": "panel",
+          "heightRatio": 0.4,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        },
+        {
+          "type": "panel",
+          "heightRatio": 0.6,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        }
+      ],
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "contentPadding": [
+        0.04,
+        0.04
+      ],
+      "doorCloser": false,
+      "panicBar": false,
+      "panicBarHeight": 1
+    },
+    "door_4r06rr2gmxoaud0q": {
+      "object": "node",
+      "id": "door_4r06rr2gmxoaud0q",
+      "type": "door",
+      "parentId": "wall_4tmwq0ggfhihjs7i",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o14",
+        "sourceOpeningType": "door",
+        "sourceWidthMm": 661.5,
+        "sourceOpeningSource": "ray",
+        "sourceHinge": [
+          8361.3,
+          6666
+        ],
+        "sourceRadius": 662
+      },
+      "position": [
+        2.879049999999999,
+        1.05,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_4tmwq0ggfhihjs7i",
+      "width": 0.6615,
+      "height": 2.1,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "doorCategory": "interior",
+      "doorType": "hinged",
+      "leafCount": 1,
+      "operationState": 0,
+      "slideDirection": "left",
+      "trackStyle": "none",
+      "garagePanelCount": 4,
+      "openingKind": "door",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingTopRadii": [
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.45,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "threshold": true,
+      "thresholdHeight": 0.02,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "swingAngle": 0,
+      "segments": [
+        {
+          "type": "panel",
+          "heightRatio": 0.4,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        },
+        {
+          "type": "panel",
+          "heightRatio": 0.6,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        }
+      ],
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "contentPadding": [
+        0.04,
+        0.04
+      ],
+      "doorCloser": false,
+      "panicBar": false,
+      "panicBarHeight": 1
+    },
+    "window_idhuwla9to888r1z": {
+      "object": "node",
+      "id": "window_idhuwla9to888r1z",
+      "type": "window",
+      "parentId": "wall_nr68h4qpm7j9vq88",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o7",
+        "sourceOpeningType": "window",
+        "sourceWidthMm": 1242.4001006117157,
+        "sourceOpeningSource": "pair"
+      },
+      "position": [
+        0.9384000000000006,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_nr68h4qpm7j9vq88",
+      "width": 1.242400100611716,
+      "height": 1.5,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "openingKind": "window",
+      "windowType": "fixed",
+      "operationState": 0,
+      "awningDirection": "up",
+      "casementStyle": "single",
+      "hingesSide": "left",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingCornerRadii": [
+        0.15,
+        0.15,
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.35,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "columnRatios": [
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.08,
+      "sillThickness": 0.03
+    },
+    "door_jkmdd49c3uelnvz0": {
+      "object": "node",
+      "id": "door_jkmdd49c3uelnvz0",
+      "type": "door",
+      "parentId": "wall_xg4fmjz3bh4wq8fm",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o0",
+        "sourceOpeningType": "door",
+        "sourceWidthMm": 1476.2704697988097,
+        "sourceOpeningSource": "entrance-transverse",
+        "sourceHinge": [
+          13057,
+          6592.9
+        ],
+        "sourceRadius": 698.3
+      },
+      "position": [
+        1.993364765100596,
+        1.05,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_xg4fmjz3bh4wq8fm",
+      "width": 1.47627046979881,
+      "height": 2.1,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "doorCategory": "interior",
+      "doorType": "hinged",
+      "leafCount": 1,
+      "operationState": 0,
+      "slideDirection": "left",
+      "trackStyle": "none",
+      "garagePanelCount": 4,
+      "openingKind": "door",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingTopRadii": [
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.45,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "threshold": true,
+      "thresholdHeight": 0.02,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "swingAngle": 0,
+      "segments": [
+        {
+          "type": "panel",
+          "heightRatio": 0.4,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        },
+        {
+          "type": "panel",
+          "heightRatio": 0.6,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        }
+      ],
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "contentPadding": [
+        0.04,
+        0.04
+      ],
+      "doorCloser": false,
+      "panicBar": false,
+      "panicBarHeight": 1
+    },
+    "door_a8qra4kbb6o5zyda": {
+      "object": "node",
+      "id": "door_a8qra4kbb6o5zyda",
+      "type": "door",
+      "parentId": "wall_9q0fvbo25mpvx824",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o6",
+        "sourceOpeningType": "door",
+        "sourceWidthMm": 643.9209967068942,
+        "sourceOpeningSource": "pair",
+        "sourceHinge": [
+          11801.6,
+          4226
+        ],
+        "sourceRadius": 643.9
+      },
+      "position": [
+        1.0836500000000004,
+        1.05,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_9q0fvbo25mpvx824",
+      "width": 0.6439209967068945,
+      "height": 2.1,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "doorCategory": "interior",
+      "doorType": "hinged",
+      "leafCount": 1,
+      "operationState": 0,
+      "slideDirection": "left",
+      "trackStyle": "none",
+      "garagePanelCount": 4,
+      "openingKind": "door",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingTopRadii": [
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.45,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "threshold": true,
+      "thresholdHeight": 0.02,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "swingAngle": 0,
+      "segments": [
+        {
+          "type": "panel",
+          "heightRatio": 0.4,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        },
+        {
+          "type": "panel",
+          "heightRatio": 0.6,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        }
+      ],
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "contentPadding": [
+        0.04,
+        0.04
+      ],
+      "doorCloser": false,
+      "panicBar": false,
+      "panicBarHeight": 1
+    },
+    "window_u0l546u1oejees2x": {
+      "object": "node",
+      "id": "window_u0l546u1oejees2x",
+      "type": "window",
+      "parentId": "wall_ke3czyqhfc40e7i4",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o9",
+        "sourceOpeningType": "window",
+        "sourceWidthMm": 1514.5008451631845,
+        "sourceOpeningSource": "pair"
+      },
+      "position": [
+        0.9386499999999995,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_ke3czyqhfc40e7i4",
+      "width": 1.5145008451631843,
+      "height": 1.5,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "openingKind": "window",
+      "windowType": "fixed",
+      "operationState": 0,
+      "awningDirection": "up",
+      "casementStyle": "single",
+      "hingesSide": "left",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingCornerRadii": [
+        0.15,
+        0.15,
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.35,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "columnRatios": [
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.08,
+      "sillThickness": 0.03
+    },
+    "window_dzgcofbkkvz01hm3": {
+      "object": "node",
+      "id": "window_dzgcofbkkvz01hm3",
+      "type": "window",
+      "parentId": "wall_gfpgtee8qh8g75x4",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o10",
+        "sourceOpeningType": "window",
+        "sourceWidthMm": 1514.5,
+        "sourceOpeningSource": "pair"
+      },
+      "position": [
+        1.3727499999999995,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_gfpgtee8qh8g75x4",
+      "width": 1.5145000000000008,
+      "height": 1.5,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "openingKind": "window",
+      "windowType": "fixed",
+      "operationState": 0,
+      "awningDirection": "up",
+      "casementStyle": "single",
+      "hingesSide": "left",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingCornerRadii": [
+        0.15,
+        0.15,
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.35,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "columnRatios": [
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.08,
+      "sillThickness": 0.03
+    },
+    "window_vi0pxhxg6bvzjnw8": {
+      "object": "node",
+      "id": "window_vi0pxhxg6bvzjnw8",
+      "type": "window",
+      "parentId": "wall_x8z93mwv3mnn7pjb",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o8",
+        "sourceOpeningType": "window",
+        "sourceWidthMm": 1242.4000000000005,
+        "sourceOpeningSource": "pair"
+      },
+      "position": [
+        2.3530999999999995,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_x8z93mwv3mnn7pjb",
+      "width": 1.2424000000000004,
+      "height": 1.5,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "openingKind": "window",
+      "windowType": "fixed",
+      "operationState": 0,
+      "awningDirection": "up",
+      "casementStyle": "single",
+      "hingesSide": "left",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingCornerRadii": [
+        0.15,
+        0.15,
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.35,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "columnRatios": [
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.08,
+      "sillThickness": 0.03
+    },
+    "door_fcbsqbv7yobxh9k2": {
+      "object": "node",
+      "id": "door_fcbsqbv7yobxh9k2",
+      "type": "door",
+      "parentId": "wall_qddihkqyzjp9lsr0",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o3",
+        "sourceOpeningType": "door",
+        "sourceWidthMm": 662,
+        "sourceOpeningSource": "pair",
+        "sourceHinge": [
+          14990.5,
+          5033.1
+        ],
+        "sourceRadius": 598.5
+      },
+      "position": [
+        0.6121000000000003,
+        1.05,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_qddihkqyzjp9lsr0",
+      "width": 0.6620000000000004,
+      "height": 2.1,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "doorCategory": "interior",
+      "doorType": "hinged",
+      "leafCount": 1,
+      "operationState": 0,
+      "slideDirection": "left",
+      "trackStyle": "none",
+      "garagePanelCount": 4,
+      "openingKind": "door",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingTopRadii": [
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.45,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "threshold": true,
+      "thresholdHeight": 0.02,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "swingAngle": 0,
+      "segments": [
+        {
+          "type": "panel",
+          "heightRatio": 0.4,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        },
+        {
+          "type": "panel",
+          "heightRatio": 0.6,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        }
+      ],
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "contentPadding": [
+        0.04,
+        0.04
+      ],
+      "doorCloser": false,
+      "panicBar": false,
+      "panicBarHeight": 1
+    },
+    "door_icm7hgncxcf15n8i": {
+      "object": "node",
+      "id": "door_icm7hgncxcf15n8i",
+      "type": "door",
+      "parentId": "wall_3ylawnoq8pncryea",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o13",
+        "sourceOpeningType": "door",
+        "sourceWidthMm": 644.2999999999993,
+        "sourceOpeningSource": "ray",
+        "sourceHinge": [
+          6615.1,
+          6529.9
+        ],
+        "sourceRadius": 643.9
+      },
+      "position": [
+        0.39475000000000005,
+        1.05,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_3ylawnoq8pncryea",
+      "width": 0.6442999999999992,
+      "height": 2.1,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "doorCategory": "interior",
+      "doorType": "hinged",
+      "leafCount": 1,
+      "operationState": 0,
+      "slideDirection": "left",
+      "trackStyle": "none",
+      "garagePanelCount": 4,
+      "openingKind": "door",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingTopRadii": [
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.45,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "threshold": true,
+      "thresholdHeight": 0.02,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "swingAngle": 0,
+      "segments": [
+        {
+          "type": "panel",
+          "heightRatio": 0.4,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        },
+        {
+          "type": "panel",
+          "heightRatio": 0.6,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        }
+      ],
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "contentPadding": [
+        0.04,
+        0.04
+      ],
+      "doorCloser": false,
+      "panicBar": false,
+      "panicBarHeight": 1
+    },
+    "window_fipww4c1udeo53kc": {
+      "object": "node",
+      "id": "window_fipww4c1udeo53kc",
+      "type": "window",
+      "parentId": "wall_h404p63citg9294v",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o5",
+        "sourceOpeningType": "window",
+        "sourceWidthMm": 643.8999999999996,
+        "sourceOpeningSource": "pair"
+      },
+      "position": [
+        1.0290500000000007,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_h404p63citg9294v",
+      "width": 0.6438999999999995,
+      "height": 1.5,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "openingKind": "window",
+      "windowType": "fixed",
+      "operationState": 0,
+      "awningDirection": "up",
+      "casementStyle": "single",
+      "hingesSide": "left",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingCornerRadii": [
+        0.15,
+        0.15,
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.35,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "columnRatios": [
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.08,
+      "sillThickness": 0.03
+    },
+    "window_ougwgajshtkz8qb3": {
+      "object": "node",
+      "id": "window_ougwgajshtkz8qb3",
+      "type": "window",
+      "parentId": "wall_e81qk9gco606i3jf",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o11",
+        "sourceOpeningType": "window",
+        "sourceWidthMm": 2294.3999999999996,
+        "sourceOpeningSource": "pair"
+      },
+      "position": [
+        1.5096999999999996,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_e81qk9gco606i3jf",
+      "width": 2.2943999999999996,
+      "height": 1.5,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "openingKind": "window",
+      "windowType": "fixed",
+      "operationState": 0,
+      "awningDirection": "up",
+      "casementStyle": "single",
+      "hingesSide": "left",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingCornerRadii": [
+        0.15,
+        0.15,
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.35,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "columnRatios": [
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.08,
+      "sillThickness": 0.03
+    },
+    "window_i9yrtwxasmdbfws5": {
+      "object": "node",
+      "id": "window_i9yrtwxasmdbfws5",
+      "type": "window",
+      "parentId": "wall_uw31nfgbjfmc5vyv",
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceOpeningId": "o16",
+        "sourceOpeningType": "window",
+        "sourceWidthMm": 3491.3999999999996,
+        "sourceOpeningSource": "ray"
+      },
+      "position": [
+        1.8364000000000007,
+        1.65,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_uw31nfgbjfmc5vyv",
+      "width": 3.4913999999999996,
+      "height": 1.5,
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "openingKind": "window",
+      "windowType": "fixed",
+      "operationState": 0,
+      "awningDirection": "up",
+      "casementStyle": "single",
+      "hingesSide": "left",
+      "openingShape": "rectangle",
+      "openingRadiusMode": "all",
+      "openingCornerRadii": [
+        0.15,
+        0.15,
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.35,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "columnRatios": [
+        1
+      ],
+      "rowRatios": [
+        1
+      ],
+      "columnDividerThickness": 0.03,
+      "rowDividerThickness": 0.03,
+      "sill": true,
+      "sillDepth": 0.08,
+      "sillThickness": 0.03
+    },
+    "zone_xicmr1e1sd0d8csx": {
+      "object": "node",
+      "id": "zone_xicmr1e1sd0d8csx",
+      "type": "zone",
+      "name": "드레스룸",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r0",
+        "cls": "dress",
+        "areaM2": 8.55
+      },
+      "polygon": [
+        [
+          -6.275298647289337,
+          -0.9063657648595584
+        ],
+        [
+          -6.275298647289337,
+          -4.688465764859559
+        ],
+        [
+          -4.761098647289337,
+          -4.688465764859559
+        ],
+        [
+          -2.453498647289338,
+          -4.688465764859558
+        ],
+        [
+          -2.469069996568149,
+          -2.8929657615854545
+        ],
+        [
+          -4.648198647289337,
+          -2.892865764859558
+        ],
+        [
+          -4.648198647289337,
+          -0.9063657648595581
+        ]
+      ],
+      "autoFromWalls": true,
+      "boundaryWallIds": [
+        "wall_yt5utcm19pw4s4r9",
+        "wall_h404p63citg9294v",
+        "wall_0xl2ase49moe6ktv",
+        "wall_dq4maqyjazlnk983",
+        "wall_wo0czhk127wopr8g",
+        "wall_3ylawnoq8pncryea",
+        "wall_nr68h4qpm7j9vq88"
+      ],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#b08d55"
+    },
+    "zone_57axwadst8t5q7iu": {
+      "object": "node",
+      "id": "zone_57axwadst8t5q7iu",
+      "type": "zone",
+      "name": "방",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r1",
+        "cls": "bedroom",
+        "areaM2": 2.51
+      },
+      "polygon": [
+        [
+          0.5351013527106625,
+          -4.688465764859559
+        ],
+        [
+          1.9679013527106635,
+          -4.688465764859559
+        ],
+        [
+          1.9679013527106635,
+          -4.035565764859558
+        ],
+        [
+          2.7932013527106627,
+          -4.035565764859558
+        ],
+        [
+          2.7932013527106627,
+          -2.878765764859558
+        ],
+        [
+          1.7937013527106629,
+          -2.878765764859558
+        ],
+        [
+          0.761515681367977,
+          -2.878765764859558
+        ],
+        [
+          0.5351013527106625,
+          -2.9973807254894798
+        ]
+      ],
+      "autoFromWalls": true,
+      "boundaryWallIds": [
+        "wall_erp3kfe0a7d4c7wx",
+        "wall_x3tcaczjao7v7vuf",
+        "wall_5ka7z17r0f65092j",
+        "wall_xeim8dhdkjts77um",
+        "wall_6yeps5pqkvrikd8c",
+        "wall_pfiy9g5hmcs1m79m",
+        "wall_rka45nnof4odr9h7",
+        "wall_9q0fvbo25mpvx824"
+      ],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#c98f4e"
+    },
+    "zone_s0npetlmtqdycz2a": {
+      "object": "node",
+      "id": "zone_s0npetlmtqdycz2a",
+      "type": "zone",
+      "name": "부엌",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r2",
+        "cls": "kitchen",
+        "areaM2": 10.04
+      },
+      "polygon": [
+        [
+          -2.453498647289338,
+          -4.688465764859559
+        ],
+        [
+          0.5351013527106625,
+          -4.688465764859559
+        ],
+        [
+          0.5351013527106625,
+          -2.9973807254894798
+        ],
+        [
+          0.5351013527106625,
+          -2.878765764859558
+        ],
+        [
+          0.5351013527106625,
+          -0.9063657648595581
+        ],
+        [
+          -2.4862986472893374,
+          -0.9063657648595581
+        ],
+        [
+          -2.4690699965681486,
+          -2.8929657615854545
+        ]
+      ],
+      "autoFromWalls": true,
+      "boundaryWallIds": [
+        "wall_cjlu8hdjxvhmmdd9",
+        "wall_9q0fvbo25mpvx824",
+        "wall_risjuyjv0omg5l17",
+        "wall_ilca5rxrv6x5i9fd",
+        "wall_li8evu33f7zxme62",
+        "wall_u9ww1263s1vf2zeq",
+        "wall_dq4maqyjazlnk983"
+      ],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#a09a8b"
+    },
+    "zone_1c2t433oxepkgx66": {
+      "object": "node",
+      "id": "zone_1c2t433oxepkgx66",
+      "type": "zone",
+      "name": "욕실",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r3",
+        "cls": "bath",
+        "areaM2": 2.23
+      },
+      "polygon": [
+        [
+          2.6481013527106625,
+          -0.8977657648595577
+        ],
+        [
+          1.7937013527106629,
+          -0.9063657648595581
+        ],
+        [
+          1.7937013527106629,
+          -2.878765764859558
+        ],
+        [
+          2.7932013527106627,
+          -2.878765764859558
+        ],
+        [
+          3.256621646873569,
+          -2.884311150829128
+        ],
+        [
+          3.2730578407161497,
+          -2.588234508322365
+        ],
+        [
+          3.2736819771248493,
+          -2.5769915031519592
+        ],
+        [
+          3.279301352710663,
+          -2.475765764859558
+        ],
+        [
+          3.2666013527106625,
+          -2.475765764859558
+        ],
+        [
+          3.266601352710663,
+          -0.9063657648595581
+        ]
+      ],
+      "autoFromWalls": true,
+      "boundaryWallIds": [
+        "wall_xg4fmjz3bh4wq8fm",
+        "wall_keu2xb7m6l46fot8",
+        "wall_6yeps5pqkvrikd8c",
+        "wall_mdigm68cz1tkom63",
+        "wall_031dtlbktv06zzj2",
+        "wall_yiq0veaivd3rtnni",
+        "wall_r9vbch4x7ia29q9k",
+        "wall_g13kfxyvqlfjs4cl",
+        "wall_a31hp6auag6zi6c4"
+      ],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#6fa7c7"
+    },
+    "zone_b9w4n5h8nl3r0edu": {
+      "object": "node",
+      "id": "zone_b9w4n5h8nl3r0edu",
+      "type": "zone",
+      "name": "현관",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r4",
+        "cls": "entrance",
+        "areaM2": 1.96
+      },
+      "polygon": [
+        [
+          3.3373013527106634,
+          -2.3351657648595583
+        ],
+        [
+          3.3373013527106634,
+          -1.0247657648595578
+        ],
+        [
+          4.838101352710662,
+          -1.0247657648595578
+        ],
+        [
+          4.838101352710662,
+          -2.339765764859558
+        ],
+        [
+          3.7227013527106627,
+          -2.258065764859558
+        ],
+        [
+          3.7227013527106627,
+          -2.3351657648595583
+        ]
+      ],
+      "autoFromWalls": false,
+      "boundaryWallIds": [],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#9b8f7f"
+    },
+    "zone_39yxqska6c84u7bq": {
+      "object": "node",
+      "id": "zone_39yxqska6c84u7bq",
+      "type": "zone",
+      "name": "욕실",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r5",
+        "cls": "bath",
+        "areaM2": 2.67
+      },
+      "polygon": [
+        [
+          -4.648198647289337,
+          -2.892865764859558
+        ],
+        [
+          -2.4690699965681486,
+          -2.8929657615854545
+        ],
+        [
+          -2.4862986472893374,
+          -0.9063657648595581
+        ],
+        [
+          -2.901998647289338,
+          -0.9063657648595584
+        ],
+        [
+          -4.648198647289337,
+          -0.9063657648595581
+        ]
+      ],
+      "autoFromWalls": true,
+      "boundaryWallIds": [
+        "wall_wo0czhk127wopr8g",
+        "wall_u9ww1263s1vf2zeq",
+        "wall_4tfykccizpi8saq9",
+        "wall_mlr6iyt0il9pl0wu",
+        "wall_3ylawnoq8pncryea"
+      ],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#6fa7c7"
+    },
+    "zone_mm758hwh6t3sbgj6": {
+      "object": "node",
+      "id": "zone_mm758hwh6t3sbgj6",
+      "type": "zone",
+      "name": "창고",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r6",
+        "cls": "storage",
+        "areaM2": 1.35
+      },
+      "polygon": [
+        [
+          1.7937013527106629,
+          -0.9063657648595581
+        ],
+        [
+          0.5351013527106625,
+          -0.906365764859558
+        ],
+        [
+          0.5351013527106625,
+          -2.878765764859558
+        ],
+        [
+          0.761515681367977,
+          -2.878765764859558
+        ],
+        [
+          1.7937013527106629,
+          -2.878765764859558
+        ]
+      ],
+      "autoFromWalls": true,
+      "boundaryWallIds": [
+        "wall_xg4fmjz3bh4wq8fm",
+        "wall_ilca5rxrv6x5i9fd",
+        "wall_9byrqqcmd83bae0h",
+        "wall_pfiy9g5hmcs1m79m",
+        "wall_keu2xb7m6l46fot8"
+      ],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#8d8577"
+    },
+    "zone_2tw8v2b16jfxcb0r": {
+      "object": "node",
+      "id": "zone_2tw8v2b16jfxcb0r",
+      "type": "zone",
+      "name": "안방",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r7",
+        "cls": "bedroom",
+        "areaM2": 9.83
+      },
+      "polygon": [
+        [
+          -6.275298647289337,
+          2.366934235140441
+        ],
+        [
+          -6.275298647289337,
+          -0.9063657648595581
+        ],
+        [
+          -4.648198647289337,
+          -0.9063657648595581
+        ],
+        [
+          -2.901998647289338,
+          -0.906365764859558
+        ],
+        [
+          -2.901998647289338,
+          2.366934235140441
+        ],
+        [
+          -3.0560986472893363,
+          2.366934235140441
+        ]
+      ],
+      "autoFromWalls": true,
+      "boundaryWallIds": [
+        "wall_bm38xn0r46hupwy5",
+        "wall_nr68h4qpm7j9vq88",
+        "wall_mlr6iyt0il9pl0wu",
+        "wall_4tmwq0ggfhihjs7i",
+        "wall_ynzzynpxonu018wj",
+        "wall_x8z93mwv3mnn7pjb"
+      ],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#c98f4e"
+    },
+    "zone_9ychma9ywm76q1di": {
+      "object": "node",
+      "id": "zone_9ychma9ywm76q1di",
+      "type": "zone",
+      "name": "거실",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r8",
+        "cls": "living",
+        "areaM2": 20.46
+      },
+      "polygon": [
+        [
+          -2.797698647289337,
+          3.5368342351404425
+        ],
+        [
+          1.0520013527106622,
+          3.600234235140442
+        ],
+        [
+          1.0520013527106622,
+          0.17233423514044172
+        ],
+        [
+          1.1336013527106625,
+          0.12693423514044208
+        ],
+        [
+          3.6773013527106633,
+          0.12693423514044208
+        ],
+        [
+          3.6773013527106633,
+          0.06343423514044207
+        ],
+        [
+          4.339401352710664,
+          0.06343423514044207
+        ],
+        [
+          4.339401352710664,
+          0.14963423514044188
+        ],
+        [
+          4.842701352710663,
+          0.14963423514044188
+        ],
+        [
+          4.842701352710663,
+          -0.7980657648595579
+        ],
+        [
+          -2.797698647289337,
+          -0.7980657648595579
+        ]
+      ],
+      "autoFromWalls": false,
+      "boundaryWallIds": [],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#8f8878"
+    },
+    "zone_5ylc5xc8043sbhgx": {
+      "object": "node",
+      "id": "zone_5ylc5xc8043sbhgx",
+      "type": "zone",
+      "name": "안방",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r9",
+        "cls": "bedroom",
+        "areaM2": 7.64
+      },
+      "polygon": [
+        [
+          1.2152013527106629,
+          0.32643423514044206
+        ],
+        [
+          1.2152013527106629,
+          3.6093342351404427
+        ],
+        [
+          3.532201352710663,
+          3.6093342351404427
+        ],
+        [
+          3.532201352710663,
+          0.32643423514044206
+        ]
+      ],
+      "autoFromWalls": false,
+      "boundaryWallIds": [],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#c98f4e"
+    },
+    "zone_tb7nv0fqnpbp76ew": {
+      "object": "node",
+      "id": "zone_tb7nv0fqnpbp76ew",
+      "type": "zone",
+      "name": "안방",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r10",
+        "cls": "bedroom",
+        "areaM2": 8.03
+      },
+      "polygon": [
+        [
+          6.284601352710665,
+          0.22673423514044222
+        ],
+        [
+          6.284601352710665,
+          3.754434235140441
+        ],
+        [
+          3.610501352710662,
+          3.754434235140441
+        ],
+        [
+          3.610501352710662,
+          0.22673423514044222
+        ],
+        [
+          4.989201352710663,
+          0.22673423514044225
+        ]
+      ],
+      "autoFromWalls": true,
+      "boundaryWallIds": [
+        "wall_89cwgv7b2gqew1c5",
+        "wall_gfpgtee8qh8g75x4",
+        "wall_641r0ty2n9nd2n4w",
+        "wall_xy7gdowtfqraq0pq",
+        "wall_psr1gh4gdu6yv3iz"
+      ],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#c98f4e"
+    },
+    "zone_coevgwxsl7mc2ed7": {
+      "object": "node",
+      "id": "zone_coevgwxsl7mc2ed7",
+      "type": "zone",
+      "name": "발코니",
+      "parentId": null,
+      "visible": true,
+      "metadata": {
+        "source": "apt-vector",
+        "sourceRoomId": "r11",
+        "cls": "balcony",
+        "areaM2": 2.83
+      },
+      "polygon": [
+        [
+          -6.275298647289337,
+          3.752434235140441
+        ],
+        [
+          -6.275298647289337,
+          2.366934235140441
+        ],
+        [
+          -3.0560986472893363,
+          2.366934235140441
+        ],
+        [
+          -2.901998647289338,
+          2.47281824616732
+        ],
+        [
+          -2.9563986472893373,
+          3.5277342351404424
+        ],
+        [
+          -2.901998647289338,
+          3.752434235140441
+        ]
+      ],
+      "autoFromWalls": true,
+      "boundaryWallIds": [
+        "wall_gbv2qeg404ipdu8u",
+        "wall_x8z93mwv3mnn7pjb",
+        "wall_a2ttep5cgy8qzd74",
+        "wall_1ymwkuq93dfazbus",
+        "wall_e81qk9gco606i3jf"
+      ],
+      "spaceRole": "room",
+      "roomNumber": "",
+      "enclosureStatus": "auto",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.7,
+      "occupancy": "",
+      "clearDimensionPolicy": "none",
+      "color": "#b0a468"
+    }
+  }
+}

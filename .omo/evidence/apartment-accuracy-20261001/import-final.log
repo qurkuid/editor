@@ -1,0 +1,26 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/apt-vector-scene.test.ts:
+(pass) buildVectorNodes > connects X and T crossings without overlapping wall footprints and preserves openings [8.42ms]
+(pass) buildVectorNodes > uses solid concrete for apartment walls while preserving detected thickness [1.21ms]
+(pass) buildVectorNodes > keeps an opening whole when a detected branch meets its span [0.39ms]
+(pass) buildVectorNodes > merges gap-flanking walls and maps to centred level metres [0.37ms]
+(pass) buildVectorNodes > hosts openings inside the merged wall with wall-local positions [0.41ms]
+(pass) buildVectorNodes > uses the semantic opening span and preserves source provenance [0.47ms]
+(pass) buildVectorNodes > recovers an ordered fixture-split door only onto an anchored sibling host [0.87ms]
+(pass) buildVectorNodes > preserves a narrow source opening and rejects invalid tiny spans [0.25ms]
+(pass) buildVectorNodes > creates room zones from labeled polygons [0.69ms]
+(pass) buildVectorNodes > snaps corner and tee gaps closed along each wall axis [0.11ms]
+(pass) buildVectorNodes > deduplicates overlapping opening detections on one wall [0.32ms]
+(pass) buildVectorNodes > reports what the conversion left out [0.12ms]
+(pass) buildVectorNodes > extends a single flank across a corner-door gap [0.11ms]
+(pass) buildVectorNodes > refuses untrustworthy documents [0.13ms]
+(pass) buildVectorNodes > hosts an opening embedded in an already continuous source wall [0.10ms]
+(pass) buildVectorNodes > absorbs a short angled duplicate fully inside a longer source wall body [0.09ms]
+(pass) buildVectorNodes > admits a wood render only with measured walls and predominantly labeled polygons
+(pass) buildVectorNodes > anchors a measured window to both short crossing-wall endpoints [0.48ms]
+
+ 18 pass
+ 0 fail
+ 113 expect() calls
+Ran 18 tests across 1 file. [116.00ms]

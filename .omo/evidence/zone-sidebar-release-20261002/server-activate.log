@@ -1,0 +1,30 @@
+{"preflightCwd":"/Volumes/DATABASE/floorplan-releases/20261002-999b2771/apps/editor","buildId":"teZZYbe0c3JXeZCui2Wr5"}
+{"preflightCwd":"/Volumes/DATABASE/floorplan-releases/20261002-2528a9b0/apps/editor","buildId":"FcohPi3uE3mBIRUWgnWRW"}
+[PM2] Applying action deleteProcessId on app [apt-subdomain](ids: [ 15 ])
+[PM2] [apt-subdomain](15) ✓
+┌────┬────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name           │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ agentflow      │ default     │ 1.1.0   │ fork    │ 6686     │ 30D    │ 573  │ online    │ 0.5%     │ 40.8mb   │ baegcha… │ disabled │
+│ 1  │ intm-cmp339    │ default     │ N/A     │ fork    │ 3037     │ 30D    │ 0    │ online    │ 0%       │ 4.9mb    │ baegcha… │ disabled │
+│ 5  │ paperclip      │ default     │ 0.3.1   │ fork    │ 61779    │ 29D    │ 3    │ online    │ 0.5%     │ 920.0mb  │ baegcha… │ disabled │
+│ 2  │ pnpm-start     │ default     │ 16.0.10 │ fork    │ 8216     │ 59m    │ 16   │ online    │ 0%       │ 495.4mb  │ baegcha… │ disabled │
+│ 7  │ social-desk    │ default     │ 1.0.0   │ fork    │ 21948    │ 2D     │ 24   │ online    │ 0.5%     │ 50.6mb   │ baegcha… │ disabled │
+└────┴────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2][WARN] Applications apt-subdomain not running, starting...
+[PM2] App [apt-subdomain] launched (1 instances)
+┌────┬──────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name             │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ agentflow        │ default     │ 1.1.0   │ fork    │ 6686     │ 30D    │ 573  │ online    │ 0%       │ 40.8mb   │ baegcha… │ disabled │
+│ 16 │ apt-subdomain    │ default     │ 16.2.12 │ fork    │ 36944    │ 0s     │ 0    │ online    │ 0%       │ 1008.0k… │ baegcha… │ disabled │
+│ 1  │ intm-cmp339      │ default     │ N/A     │ fork    │ 3037     │ 30D    │ 0    │ online    │ 0%       │ 4.9mb    │ baegcha… │ disabled │
+│ 5  │ paperclip        │ default     │ 0.3.1   │ fork    │ 61779    │ 29D    │ 3    │ online    │ 0%       │ 920.0mb  │ baegcha… │ disabled │
+│ 2  │ pnpm-start       │ default     │ 16.0.10 │ fork    │ 8216     │ 59m    │ 16   │ online    │ 0%       │ 495.4mb  │ baegcha… │ disabled │
+│ 7  │ social-desk      │ default     │ 1.0.0   │ fork    │ 21948    │ 2D     │ 24   │ online    │ 0%       │ 50.6mb   │ baegcha… │ disabled │
+└────┴──────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+{"name":"apt-subdomain","pid":36944,"status":"online","cwd":"/Volumes/DATABASE/floorplan-releases/20261002-2528a9b0/apps/editor","script":"/Volumes/DATABASE/floorplan-releases/20261002-2528a9b0/apps/editor/node_modules/next/dist/bin/next"}
+curl: (7) Failed to connect to 127.0.0.1 port 3024 after 0 ms: Couldn't connect to server
+Local HTTP: 200
+[PM2] Saving current process list...
+[PM2] Successfully saved in /Users/baegchangseog/.pm2/dump.pm2

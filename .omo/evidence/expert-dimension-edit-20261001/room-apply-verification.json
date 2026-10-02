@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "nodeCount": 87,
+  "updateCount": 34,
+  "currentDistance": 1.1162500000000002,
+  "targetDistance": 1.2162500000000003,
+  "maxNumericDelta": 8.881784197001252e-16,
+  "otherRoomSpan": {
+    "semanticKey": "level_aw8kqyoj7ugmgm9t:room-clear:zone_ay2nmt8at4dd9zkc:span:wall_6imzgii6yyu57mnj:front|wall_73u9o1ybbrrqopay:front|wall_b2vej621huqgh1st:back",
+    "before": 1.8361500000000002,
+    "after": 1.8361499999999997,
+    "delta": 4.440892098500626e-16
+  },
+  "diffs": []
+}

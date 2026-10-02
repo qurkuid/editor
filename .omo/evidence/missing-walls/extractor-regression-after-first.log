@@ -1,0 +1,11 @@
+real segments: raw=55 kept=40
+kept: left bedroom divider
+Traceback (most recent call last):
+  File "/Users/changseok/editor/.omo/evidence/missing-walls/test_vectorize_regression.py", line 113, in <module>
+    main()
+  File "/Users/changseok/editor/.omo/evidence/missing-walls/test_vectorize_regression.py", line 78, in main
+    require_segment(vectorize, kept, np.array(start) * vectorize.UP,
+  File "/Users/changseok/editor/.omo/evidence/missing-walls/test_vectorize_regression.py", line 41, in require_segment
+    assert error <= tolerance, f"missing segment {start}->{end}; nearest error={error:.2f}px"
+           ^^^^^^^^^^^^^^^^^^
+AssertionError: missing segment [1348.6 1168. ]->[1348.6  926. ]; nearest error=240.95px

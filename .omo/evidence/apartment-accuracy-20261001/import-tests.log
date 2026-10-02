@@ -1,0 +1,24 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/apt-vector-scene.test.ts:
+(pass) buildVectorNodes > connects X and T crossings without overlapping wall footprints and preserves openings [9.34ms]
+(pass) buildVectorNodes > uses solid concrete for apartment walls while preserving detected thickness [1.43ms]
+(pass) buildVectorNodes > keeps an opening whole when a detected branch meets its span [0.35ms]
+(pass) buildVectorNodes > merges gap-flanking walls and maps to centred level metres [0.32ms]
+(pass) buildVectorNodes > hosts openings inside the merged wall with wall-local positions [0.55ms]
+(pass) buildVectorNodes > uses the semantic opening span and preserves source provenance [0.75ms]
+(pass) buildVectorNodes > recovers an ordered fixture-split door only onto an anchored sibling host [1.67ms]
+(pass) buildVectorNodes > preserves a narrow source opening and rejects invalid tiny spans [0.79ms]
+(pass) buildVectorNodes > creates room zones from labeled polygons
+(pass) buildVectorNodes > snaps corner and tee gaps closed along each wall axis [0.67ms]
+(pass) buildVectorNodes > deduplicates overlapping opening detections on one wall [0.20ms]
+(pass) buildVectorNodes > reports what the conversion left out [0.28ms]
+(pass) buildVectorNodes > extends a single flank across a corner-door gap [0.19ms]
+(pass) buildVectorNodes > refuses untrustworthy documents
+(pass) buildVectorNodes > hosts an opening embedded in an already continuous source wall [0.40ms]
+(pass) buildVectorNodes > admits a wood render only with measured walls and predominantly labeled polygons [0.46ms]
+
+ 16 pass
+ 0 fail
+ 103 expect() calls
+Ran 16 tests across 1 file. [118.00ms]

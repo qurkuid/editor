@@ -1,0 +1,297 @@
+{
+  "sourceImageSize": [
+    1242,
+    828
+  ],
+  "origin": "원본 도면 육안 대조로 지정한 기준점. 자동 분석 결과에서 추출하지 않음.",
+  "expectedRooms": 14,
+  "roomProbes": [
+    {
+      "id": "balcony-top-left",
+      "label": "상부 좌측 발코니",
+      "source": [
+        440,
+        189
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-top-mid",
+      "label": "상부 중앙 발코니",
+      "source": [
+        562,
+        193
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-top-right",
+      "label": "상부 우측 발코니",
+      "source": [
+        740,
+        191
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "bath-left",
+      "label": "좌측 욕실",
+      "source": [
+        315,
+        250
+      ],
+      "cls": "bath",
+      "acceptedNames": [
+        "욕실"
+      ]
+    },
+    {
+      "id": "bed-top-left",
+      "label": "상부 좌측 안방",
+      "source": [
+        423,
+        292
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "kitchen",
+      "label": "부엌",
+      "source": [
+        600,
+        299
+      ],
+      "cls": "kitchen",
+      "acceptedNames": [
+        "부엌",
+        "주방"
+      ]
+    },
+    {
+      "id": "bed-top-right",
+      "label": "상부 우측 안방",
+      "source": [
+        744,
+        294
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "bath-right",
+      "label": "우측 욕실",
+      "source": [
+        842,
+        310
+      ],
+      "cls": "bath",
+      "acceptedNames": [
+        "욕실"
+      ]
+    },
+    {
+      "id": "dress",
+      "label": "드레스룸",
+      "source": [
+        332,
+        376
+      ],
+      "cls": "dress",
+      "acceptedNames": [
+        "드레스룸"
+      ]
+    },
+    {
+      "id": "entrance",
+      "label": "현관",
+      "source": [
+        896,
+        426
+      ],
+      "cls": "entrance",
+      "acceptedNames": [
+        "현관"
+      ]
+    },
+    {
+      "id": "living",
+      "label": "거실",
+      "source": [
+        545,
+        491
+      ],
+      "cls": "living",
+      "acceptedNames": [
+        "거실"
+      ]
+    },
+    {
+      "id": "bed-bottom-left",
+      "label": "하부 좌측 안방",
+      "source": [
+        368,
+        499
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "bed-bottom-right",
+      "label": "하부 우측 안방",
+      "source": [
+        709,
+        495
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "balcony-bottom",
+      "label": "하부 발코니",
+      "source": [
+        560,
+        602
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    }
+  ],
+  "wallProbes": [
+    {
+      "id": "kitchen-west",
+      "label": "부엌 좌측 벽",
+      "a": [
+        488,
+        253
+      ],
+      "b": [
+        488,
+        348
+      ]
+    },
+    {
+      "id": "kitchen-east",
+      "label": "부엌 우측 벽",
+      "a": [
+        675,
+        234
+      ],
+      "b": [
+        675,
+        348
+      ]
+    },
+    {
+      "id": "living-left",
+      "label": "거실 좌측 안방 구획벽",
+      "a": [
+        445,
+        425
+      ],
+      "b": [
+        445,
+        563
+      ]
+    },
+    {
+      "id": "living-right",
+      "label": "거실 우측 안방 구획벽",
+      "a": [
+        632,
+        429
+      ],
+      "b": [
+        632,
+        563
+      ]
+    },
+    {
+      "id": "entrance-diagonal",
+      "label": "현관 상부 대각 외벽·문 호스트",
+      "a": [
+        914,
+        378
+      ],
+      "b": [
+        955,
+        419
+      ]
+    },
+    {
+      "id": "bath-left-northwest",
+      "label": "좌측 욕실 외벽 북서 접합부",
+      "a": [
+        298,
+        202
+      ],
+      "b": [
+        298,
+        238
+      ]
+    },
+    {
+      "id": "bed-top-left-balcony-host",
+      "label": "상부 좌측 안방·발코니 경계 호스트",
+      "a": [
+        362,
+        216
+      ],
+      "b": [
+        482,
+        216
+      ]
+    },
+    {
+      "id": "kitchen-balcony-host",
+      "label": "부엌·상부 중앙 발코니 경계 호스트",
+      "a": [
+        491,
+        242
+      ],
+      "b": [
+        568,
+        242
+      ]
+    }
+  ],
+  "forbiddenWallProbes": [],
+  "tolerances": {
+    "wallBodyDistanceM": 0.06,
+    "overlapInteriorAreaM2": 0.005,
+    "endpointGapM": 0.02
+  },
+  "closedHostPairs": [
+    [
+      "bed-top-left",
+      "balcony-top-left"
+    ],
+    [
+      "kitchen",
+      "balcony-top-mid"
+    ]
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "baseUrl": "http://127.0.0.1:3002",
+  "pageBaseUrl": "http://localhost:3002",
+  "sceneId": "zonetakeoff1790919670484",
+  "initialGraph": {
+    "nodes": {
+      "site_zone_qa": {
+        "object": "node",
+        "id": "site_zone_qa",
+        "type": "site",
+        "parentId": null,
+        "visible": true,
+        "metadata": {},
+        "children": [
+          "building_zone_qa"
+        ],
+        "polygon": {
+          "type": "polygon",
+          "points": [
+            [
+              -2,
+              -2
+            ],
+            [
+              6,
+              -2
+            ],
+            [
+              6,
+              6
+            ],
+            [
+              -2,
+              6
+            ]
+          ]
+        }
+      },
+      "building_zone_qa": {
+        "object": "node",
+        "id": "building_zone_qa",
+        "type": "building",
+        "parentId": "site_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "children": [
+          "level_zone_qa"
+        ],
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "level_zone_qa": {
+        "object": "node",
+        "id": "level_zone_qa",
+        "type": "level",
+        "parentId": "building_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "level": 0,
+        "height": 2.5,
+        "children": [
+          "wall_zone_qa",
+          "zone_zone_qa"
+        ]
+      },
+      "wall_zone_qa": {
+        "object": "node",
+        "id": "wall_zone_qa",
+        "type": "wall",
+        "parentId": "level_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          0,
+          0
+        ],
+        "end": [
+          4,
+          0
+        ],
+        "thickness": 0.2,
+        "height": 2.5,
+        "frontSide": "interior",
+        "backSide": "exterior",
+        "slots": {
+          "interior": "library:flooring-rusticbrick",
+          "lowerInterior": "library:flooring-rusticbrick",
+          "upperInterior": "library:wood-finewood27"
+        },
+        "faceBands": {
+          "enabled": true,
+          "count": 2,
+          "lowerHeight": 1,
+          "middleHeight": 0.5,
+          "upperHeight": 0.5
+        }
+      },
+      "zone_zone_qa": {
+        "object": "node",
+        "id": "zone_zone_qa",
+        "type": "zone",
+        "name": "Half Wall Zone",
+        "parentId": "level_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ],
+        "autoFromWalls": false,
+        "boundaryWallIds": [],
+        "spaceRole": "room",
+        "roomNumber": "Z-001",
+        "enclosureStatus": "open",
+        "floorFinish": "",
+        "wallFinish": "",
+        "ceilingFinish": "",
+        "ceilingHeight": 2.5,
+        "occupancy": "",
+        "clearDimensionPolicy": "inside-faces",
+        "color": "#3b82f6"
+      }
+    },
+    "rootNodeIds": [
+      "site_zone_qa"
+    ]
+  },
+  "failedResponses": [],
+  "apply": null,
+  "appliedRef": null,
+  "stats": null,
+  "undo": null,
+  "redo": null,
+  "reload": null,
+  "saveRequests": 1,
+  "sceneResponses": [
+    {
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "externalRequests": [
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/charm.json?icons=stack-push"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=grid-2x2%2Csquare"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=arrow-fat-up%2Cmouse-left-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/flooring/brick_wall_rustic/brick_wall_rustic_basecolor.jpg"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/concrete/prepared_drywall/prepared_drywall_basecolor_512.ktx2"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/wood/finewood_27/finewood_27_basecolor.webp"
+    }
+  ],
+  "externalMutations": [],
+  "failure": "Error: locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '장면', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-label=\"장면\" data-state=\"closed\" data-slot=\"tooltip-trigger\" class=\"group flex h-14 w-12 flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 [&_img]:h-8 [&_img]:w-8 [&_img]:transition-[opacity,filter] [&_img]:duration-200 text-muted-foreground hover:bg-accent/50 hover:text-foreground [&_img]:opacity-60 [&_img]:grayscale hover:[&_img]:opacity-100 hover:[&_img]:grayscale-0\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div class=\"z-100 flex items-center justify-center backdrop-blur-md transition-opacity duration-300 absolute inset-0 bg-background\">…</div> from <div class=\"fixed inset-0 z-60\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <div class=\"z-100 flex items-center justify-center backdrop-blur-md transition-opacity duration-300 absolute inset-0 bg-background\">…</div> from <div class=\"fixed inset-0 z-60\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 100ms\u001b[22m\n"
+}

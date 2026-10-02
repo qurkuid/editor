@@ -1,0 +1,38 @@
+bun test v1.3.11 (af24e281)
+
+packages/nodes/src/wall/paint.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '@pascal-app/core' from '/private/tmp/pascal-zone-finish-release/packages/nodes/src/wall/paint.test.ts'
+-------------------------------
+
+
+packages/nodes/src/wall/construction-preview.test.tsx:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '@pascal-app/core' from '/private/tmp/pascal-zone-finish-release/packages/nodes/src/wall/construction-preview.test.tsx'
+-------------------------------
+
+
+packages/viewer/src/lib/materials.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '@pascal-app/core' from '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/materials.ts'
+-------------------------------
+
+
+packages/viewer/src/systems/wall/wall-material-override.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '@pascal-app/core' from '/private/tmp/pascal-zone-finish-release/packages/viewer/src/systems/wall/wall-material-override.test.ts'
+-------------------------------
+
+
+ 0 pass
+ 4 fail
+ 4 errors
+Ran 4 tests across 4 files. [20.00ms]

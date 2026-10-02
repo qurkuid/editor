@@ -1,0 +1,55 @@
+38 p1 [540.  322.3] p2 [587.5 321.5] srcL 47.52 on 48 / 48 cov 1.0 med 2.865 samples 48 best 0.04 entrance
+7 p1 [366.6 477.1] p2 [481.9 361.9] srcL 162.99 on 163 / 163 cov 1.0 med 3.694 samples 163 best 0.05 left
+21 p1 [674.3 584. ] p2 [674.3 463. ] srcL 121.0 on 51 / 121 cov 0.421 med 5.73 samples 51 best 0.05 kitchen
+41 p1 [557.5 322. ] p2 [557.5 295.5] srcL 26.5 on 27 / 27 cov 1.0 med 4.775 samples 27 best 32.01 entrance
+30 p1 [485.9 281.1] p2 [528.7 321.8] srcL 59.05 on 60 / 60 cov 1.0 med 3.279 samples 60 best 68.0 entrance
+52 p1 [609. 322.] p2 [622. 322.] srcL 13.0 on 13 / 13 cov 1.0 med 4.775 samples 13 best 69.0 entrance
+49 p1 [547.5 402. ] p2 [547.5 387. ] srcL 15.0 on 15 / 15 cov 1.0 med 2.865 samples 15 best 80.05 entrance
+32 p1 [625.5 332.5] p2 [669.5 332.5] srcL 44.0 on 44 / 44 cov 1.0 med 4.775 samples 44 best 86.11 entrance
+31 p1 [541.5 409. ] p2 [574. 409.] srcL 32.5 on 33 / 33 cov 1.0 med 4.775 samples 33 best 88.54 entrance
+29 p1 [510.4 389.1] p2 [529.1 407.9] srcL 26.52 on 27 / 27 cov 1.0 med 3.694 samples 27 best 102.58 entrance
+48 p1 [538.5 220. ] p2 [565.  220.5] srcL 26.5 on 27 / 27 cov 1.0 med 7.64 samples 27 best 103.48 entrance
+26 p1 [557.5 250.5] p2 [557.5 220. ] srcL 30.5 on 31 / 31 cov 1.0 med 4.775 samples 31 best 103.79 entrance
+16 p1 [482.5 282.5] p2 [539.7 219.8] srcL 84.93 on 85 / 85 cov 1.0 med 4.108 samples 85 best 111.99 entrance
+46 p1 [536.5 415. ] p2 [555.5 434.5] srcL 27.23 on 28 / 28 cov 1.0 med 5.063 samples 28 best 113.27 entrance
+43 p1 [647.5 275. ] p2 [648.  259.5] srcL 15.51 on 16 / 16 cov 1.0 med 9.073 samples 16 best 117.45 entrance
+17 p1 [556.7 570. ] p2 [556.7 437. ] srcL 133.0 on 133 / 133 cov 1.0 med 4.775 samples 133 best 120.47 kitchen
+9 p1 [624.7 409. ] p2 [624.7 222.5] srcL 186.5 on 187 / 187 cov 1.0 med 5.73 samples 187 best 121.23 entrance
+5 p1 [557.5 462.5] p2 [673.5 462.5] srcL 116.0 on 116 / 116 cov 1.0 med 5.73 samples 116 best 121.5 kitchen
+34 p1 [650.  276.5] p2 [702.5 276.5] srcL 52.5 on 53 / 53 cov 1.0 med 4.775 samples 53 best 123.49 entrance
+33 p1 [699.  626.5] p2 [699.  586.5] srcL 40.0 on 40 / 40 cov 1.0 med 3.82 samples 40 best 125.95 kitchen
+39 p1 [447.4 325.1] p2 [459.6 337.4] srcL 17.32 on 18 / 18 cov 1.0 med 3.694 samples 18 best 128.85 entrance
+53 p1 [447.  321.5] p2 [456. 311.] srcL 13.83 on 14 / 14 cov 1.0 med 3.486 samples 14 best 131.92 entrance
+12 p1 [726.  631.5] p2 [726. 585.] srcL 46.5 on 47 / 47 cov 1.0 med 5.73 samples 47 best 132.5 kitchen
+40 p1 [674.5 277. ] p2 [674.5 316.5] srcL 39.5 on 40 / 40 cov 1.0 med 4.775 samples 40 best 134.62 entrance
+23 p1 [416. 267.] p2 [457.  306.5] srcL 56.93 on 57 / 57 cov 1.0 med 4.108 samples 57 best 135.77 entrance
+14 p1 [491.2 539.7] p2 [550.4 476.4] srcL 86.66 on 87 / 87 cov 1.0 med 4.108 samples 87 best 139.41 left
+45 p1 [502.6 186.9] p2 [540.6 219.9] srcL 50.33 on 51 / 51 cov 1.0 med 8.216 samples 51 best 140.47 entrance
+50 p1 [446.5 498.5] p2 [463.5 515. ] srcL 23.69 on 24 / 24 cov 1.0 med 4.649 samples 24 best 141.11 left
+44 p1 [418.  524.5] p2 [443.  498.5] srcL 36.07 on 37 / 37 cov 1.0 med 4.108 samples 37 best 142.03 left
+22 p1 [647.6 175.5] p2 [647.6 250. ] srcL 74.5 on 75 / 75 cov 1.0 med 8.595 samples 75 best 157.9 entrance
+25 p1 [470.4 522.6] p2 [487.6 539.9] srcL 24.4 on 25 / 25 cov 1.0 med 4.108 samples 25 best 161.14 left
+42 p1 [441.  547.5] p2 [466. 523.] srcL 35.0 on 36 / 36 cov 1.0 med 5.063 samples 36 best 161.88 left
+6 p1 [518.  629.5] p2 [697.  629.5] srcL 179.0 on 179 / 179 cov 1.0 med 8.595 samples 179 best 168.04 kitchen
+18 p1 [594.  409.4] p2 [735.  409.4] srcL 141.0 on 140 / 141 cov 0.993 med 4.775 samples 140 best 171.68 entrance
+2 p1 [287.9 392.9] p2 [494.9 185.9] srcL 292.74 on 293 / 293 cov 1.0 med 7.801 samples 293 best 176.46 left
+11 p1 [287.1 399.9] p2 [412.4 525.1] srcL 177.13 on 178 / 178 cov 1.0 med 7.801 samples 178 best 177.41 left
+37 p1 [725.7 409. ] p2 [725.7 356.5] srcL 52.5 on 53 / 53 cov 1.0 med 3.82 samples 53 best 182.4 kitchen
+54 p1 [779.  617.5] p2 [779.  631.5] srcL 14.0 on 14 / 14 cov 1.0 med 5.73 samples 14 best 186.63 kitchen
+35 p1 [726.5 354. ] p2 [772. 354.] srcL 45.5 on 46 / 46 cov 1.0 med 3.82 samples 46 best 189.17 entrance
+15 p1 [733.5 276.5] p2 [774.  276.5] srcL 40.5 on 41 / 41 cov 1.0 med 4.775 samples 41 best 198.85 entrance
+4 p1 [675.5 584.6] p2 [873.5 584.6] srcL 198.0 on 143 / 198 cov 0.722 med 5.73 samples 143 best 199.2 kitchen
+19 p1 [439.9 552.6] p2 [514.5 628. ] srcL 106.07 on 107 / 107 cov 1.0 med 8.216 samples 107 best 211.29 left
+20 p1 [797.  409.1] p2 [873.  409.1] srcL 76.0 on 76 / 76 cov 1.0 med 4.775 samples 76 best 213.68 kitchen
+51 p1 [774.5 348. ] p2 [774.5 338.5] srcL 9.5 on 10 / 10 cov 1.0 med 3.82 samples 10 best 235.06 entrance
+8 p1 [774.5 286. ] p2 [774.5 175.5] srcL 110.5 on 111 / 111 cov 1.0 med 4.775 samples 111 best 237.29 entrance
+47 p1 [890.  584.5] p2 [911.  584.5] srcL 21.0 on 21 / 21 cov 1.0 med 5.73 samples 21 best 247.57 kitchen
+10 p1 [911.5 630. ] p2 [911.5 559.5] srcL 70.5 on 71 / 71 cov 1.0 med 9.55 samples 71 best 256.08 kitchen
+24 p1 [913.  558.5] p2 [958.5 558.5] srcL 45.5 on 46 / 46 cov 1.0 med 9.55 samples 46 best 285.34 kitchen
+13 p1 [959.5 557.5] p2 [959.5 409.5] srcL 148.0 on 148 / 148 cov 1.0 med 9.55 samples 148 best 290.17 kitchen
+1 p1 [881.5 408.9] p2 [959.5 408.9] srcL 78.0 on 78 / 78 cov 1.0 med 9.55 samples 78 best 290.29 kitchen
+36 p1 [912.  407.5] p2 [912. 376.] srcL 31.5 on 32 / 32 cov 1.0 med 8.469 samples 32 best 296.06 kitchen
+28 p1 [913.5 375. ] p2 [958.5 375. ] srcL 45.0 on 45 / 45 cov 1.0 med 8.595 samples 45 best 317.64 kitchen
+0 p1 [650.5 174.5] p2 [906.  174.5] srcL 255.5 on 256 / 256 cov 1.0 med 8.595 samples 256 best 350.79 entrance
+3 p1 [960. 374.] p2 [960.  189.5] srcL 184.5 on 185 / 185 cov 1.0 med 8.595 samples 185 best 395.51 kitchen
+27 p1 [911.5 146. ] p2 [960. 146.] srcL 48.5 on 49 / 49 cov 1.0 med 7.64 samples 49 best 411.77 entrance

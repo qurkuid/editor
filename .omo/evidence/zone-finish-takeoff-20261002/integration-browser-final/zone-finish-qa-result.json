@@ -1,0 +1,324 @@
+{
+  "baseUrl": "http://127.0.0.1:3002",
+  "pageBaseUrl": "http://localhost:3002",
+  "sceneId": "zonetakeoff1790919611234",
+  "initialGraph": {
+    "nodes": {
+      "site_zone_qa": {
+        "object": "node",
+        "id": "site_zone_qa",
+        "type": "site",
+        "parentId": null,
+        "visible": true,
+        "metadata": {},
+        "children": [
+          "building_zone_qa"
+        ],
+        "polygon": {
+          "type": "polygon",
+          "points": [
+            [
+              -2,
+              -2
+            ],
+            [
+              6,
+              -2
+            ],
+            [
+              6,
+              6
+            ],
+            [
+              -2,
+              6
+            ]
+          ]
+        }
+      },
+      "building_zone_qa": {
+        "object": "node",
+        "id": "building_zone_qa",
+        "type": "building",
+        "parentId": "site_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "children": [
+          "level_zone_qa"
+        ],
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "level_zone_qa": {
+        "object": "node",
+        "id": "level_zone_qa",
+        "type": "level",
+        "parentId": "building_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "level": 0,
+        "height": 2.5,
+        "children": [
+          "wall_zone_qa",
+          "zone_zone_qa"
+        ]
+      },
+      "wall_zone_qa": {
+        "object": "node",
+        "id": "wall_zone_qa",
+        "type": "wall",
+        "parentId": "level_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          0,
+          0
+        ],
+        "end": [
+          4,
+          0
+        ],
+        "thickness": 0.2,
+        "height": 2.5,
+        "frontSide": "interior",
+        "backSide": "exterior",
+        "slots": {
+          "interior": "library:flooring-rusticbrick",
+          "lowerInterior": "library:flooring-rusticbrick",
+          "upperInterior": "library:wood-finewood27"
+        },
+        "faceBands": {
+          "enabled": true,
+          "count": 2,
+          "lowerHeight": 1,
+          "middleHeight": 0.5,
+          "upperHeight": 0.5
+        }
+      },
+      "zone_zone_qa": {
+        "object": "node",
+        "id": "zone_zone_qa",
+        "type": "zone",
+        "name": "Half Wall Zone",
+        "parentId": "level_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ],
+        "autoFromWalls": false,
+        "boundaryWallIds": [],
+        "spaceRole": "room",
+        "roomNumber": "Z-001",
+        "enclosureStatus": "open",
+        "floorFinish": "",
+        "wallFinish": "",
+        "ceilingFinish": "",
+        "ceilingHeight": 2.5,
+        "occupancy": "",
+        "clearDimensionPolicy": "inside-faces",
+        "color": "#3b82f6"
+      }
+    },
+    "rootNodeIds": [
+      "site_zone_qa"
+    ]
+  },
+  "failedResponses": [],
+  "apply": {
+    "finishRegions": [
+      {
+        "id": "zone-finish:zone_zone_qa:wall_zone_qa:front:0.000000:0.500000",
+        "side": "interior",
+        "start": 0,
+        "end": 0.5,
+        "slots": {
+          "interior": "scene:mat_wb8d4h5sfcqkxacd",
+          "lowerInterior": "scene:mat_wb8d4h5sfcqkxacd",
+          "upperInterior": "scene:mat_wb8d4h5sfcqkxacd"
+        }
+      }
+    ],
+    "wall": {
+      "object": "node",
+      "id": "wall_zone_qa",
+      "type": "wall",
+      "parentId": "level_zone_qa",
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "slots": {
+        "interior": "library:flooring-rusticbrick",
+        "lowerInterior": "library:flooring-rusticbrick",
+        "upperInterior": "library:wood-finewood27"
+      },
+      "finishRegions": [
+        {
+          "id": "zone-finish:zone_zone_qa:wall_zone_qa:front:0.000000:0.500000",
+          "side": "interior",
+          "start": 0,
+          "end": 0.5,
+          "slots": {
+            "interior": "scene:mat_wb8d4h5sfcqkxacd",
+            "lowerInterior": "scene:mat_wb8d4h5sfcqkxacd",
+            "upperInterior": "scene:mat_wb8d4h5sfcqkxacd"
+          }
+        }
+      ],
+      "thickness": 0.2,
+      "height": 2.5,
+      "faceBands": {
+        "enabled": true,
+        "count": 2,
+        "lowerHeight": 1,
+        "middleHeight": 0.5,
+        "upperHeight": 0.5
+      },
+      "start": [
+        0,
+        0
+      ],
+      "end": [
+        4,
+        0
+      ],
+      "frontSide": "interior",
+      "backSide": "exterior"
+    }
+  },
+  "appliedRef": "scene:mat_wb8d4h5sfcqkxacd",
+  "stats": {
+    "concrete": "벽 마감 scene:mat_wb8d4h5sfcqkxacd\n5.00 ㎡\n자재 미연결",
+    "brick": "벽 마감 library:flooring-rusticbrick\n2.00 ㎡\n자재 미연결",
+    "wood": "벽 마감 library:wood-finewood27\n3.00 ㎡\n자재 미연결",
+    "bodyIncludesExpected": true
+  },
+  "undo": {
+    "concreteVisible": false,
+    "finishRegions": []
+  },
+  "redo": {
+    "saveCount": 4,
+    "finishRegions": [
+      {
+        "id": "zone-finish:zone_zone_qa:wall_zone_qa:front:0.000000:0.500000",
+        "side": "interior",
+        "start": 0,
+        "end": 0.5,
+        "slots": {
+          "interior": "scene:mat_wb8d4h5sfcqkxacd",
+          "lowerInterior": "scene:mat_wb8d4h5sfcqkxacd",
+          "upperInterior": "scene:mat_wb8d4h5sfcqkxacd"
+        }
+      }
+    ],
+    "body": "아파트 지도\nAll scenes\n장면\n아파트\n모델링\n가구\n조명\n아이템\n도장\n통계\nAI\n뷰\n설정\nNature\n플러그인\n통계 · 산출\n\n씬에서 뽑은 수량을 INTM 자재 단가로 계산합니다.\n\n현재 레벨\n\n이 서버에 INTM이 설정되지 않았습니다 (로컬 개발). 수량만 표시합니다.\n\n합계 (확정 항목만)\n0원\n\n3개 항목이 확정되지 않았습니다. 아래에서 규격을 보정하세요.\n\n마감재\n\n발주 자재 · 3\n\n벽 마감 scene:mat_wb8d4h5sfcqkxacd\n5.00 ㎡\n자재 미연결\n벽 마감 library:wood-finewood27\n3.00 ㎡\n자재 미연결\n벽 마감 library:flooring-rusticbrick\n2.00 ㎡\n자재 미연결\n벽체\n\n산출 물량 · 2\n\n벽면 (양면)\n20.00 ㎡\n벽 길이\n4.00 m\n3D\n2D\n분할\n적층\n전체 높이\n표시\n미리보기\n화면 이동\n스페이스\n+\n왼쪽 클릭\n/\n가운데 클릭\n회전\n오른쪽 클릭\n줌\n스크롤 휠\nHalf Wall Zone\nGround Floor\n2500 mm\nV\nQ\nZ\nM\nX\n호 분할 수 (2–256)\n다각형 변 수 (3–256)\n0\n구역\n실 정보\n건축 실\n실 이름\n실 번호\n구획\n자동 감지\n구획됨\n열기\n용도\n바닥 마감\n벽 마감\n천장 마감\n천장고\n2500.00\nmm\n유효 치수\n없음\n안쪽 면\n마감면\nRoom quantities\nHalf Wall Zone\nFootprint only\nA\n8.00m²\nP\n12000mm\n2000mm\n4000mm\n2000mm\n4000mm\nAw\n벽 면적\nNot proven\nNo indoor-facing wall surface is proven within this zone.\nAf\n바닥 면적\nNot proven\nNo slab coverage proves this zone.\nV\n체적\nNot proven\nNo slab coverage proves this zone.\n동작\n삭제\n내용물까지 삭제\n실제 마감 자재\n\nHalf Wall Zone · Z-001\n\n전체 벽면\nConcrete Plate\n완료\n천장\n미지정 · 선택 시 생성\n미완료\n바닥\n미지정 · 선택 시 생성\n미완료\n\nHalf Wall Zone · 전체 벽면에 적용했습니다. Undo 한 번으로 되돌릴 수 있습니다."
+  },
+  "reload": null,
+  "saveRequests": 4,
+  "sceneResponses": [
+    {
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "externalRequests": [
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/charm.json?icons=stack-push"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=grid-2x2%2Csquare"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=arrow-fat-up%2Cmouse-left-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/flooring/brick_wall_rustic/brick_wall_rustic_basecolor.jpg"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/concrete/prepared_drywall/prepared_drywall_basecolor_512.ktx2"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/wood/finewood_27/finewood_27_basecolor.webp"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.gstatic.com/draco/versioned/decoders/1.5.5/draco_wasm_wrapper.js"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.gstatic.com/draco/versioned/decoders/1.5.5/draco_decoder.wasm"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/concrete/concrete_plate/concrete_plate_basecolor_512.ktx2"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/concrete/concrete_plate/concrete_plate_basecolor_512.ktx2"
+    }
+  ],
+  "externalMutations": [],
+  "failure": "Error: locator.waitFor: Target page, context or browser has been closed"
+}

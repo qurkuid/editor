@@ -1,0 +1,362 @@
+diff --git a/apps/editor/lib/ai-contract.test.ts b/apps/editor/lib/ai-contract.test.ts
+index e26ba791..93a9ee1b 100644
+--- a/apps/editor/lib/ai-contract.test.ts
++++ b/apps/editor/lib/ai-contract.test.ts
+@@ -105,6 +105,11 @@ describe('AI modeling operation contract', () => {
+     expect(prompt).toContain('"material"')
+     expect(prompt).toContain('adoptContainedApartmentZones')
+     expect(prompt).toContain('covers at least 90% of exactly one current enclosed space')
++    expect(prompt).toContain('overlapping projected thickness bands')
++    expect(prompt).toContain(
++      'endpoint-touching clusters trim to their nearest actual contact when safe',
++    )
++    expect(prompt).toContain('opening guards are applied before clustering')
+     expect(prompt).not.toContain('For Body face finishes')
+   })
+ })
+diff --git a/apps/editor/lib/apt-vector-scene.test.ts b/apps/editor/lib/apt-vector-scene.test.ts
+index 2795eea0..62eb85f8 100644
+--- a/apps/editor/lib/apt-vector-scene.test.ts
++++ b/apps/editor/lib/apt-vector-scene.test.ts
+@@ -1,7 +1,12 @@
+ import { describe, expect, test } from 'bun:test'
+-import { calculateLevelMiters, detectSpacesForLevel, getWallPlanFootprint } from '@pascal-app/core'
++import {
++  calculateLevelMiters,
++  detectSpacesForLevel,
++  getWallPlanFootprint,
++  WallNode,
++} from '@pascal-app/core'
+ import { unionPolygons } from '../../../packages/viewer/src/lib/polygon-union'
+-import { type AptVectorDoc, buildVectorNodes } from './apt-vector-scene'
++import { type AptVectorDoc, buildVectorNodes, connectWallJunctions } from './apt-vector-scene'
+ 
+ // 10000 x 8000 mm plan on a 1000 x 800 px image (10 mm/px), centre (5000, 4000).
+ // The vectorizer emits openings as GAPS between wall segments, so the north
+@@ -108,6 +113,113 @@ describe('buildVectorNodes', () => {
+     }
+   })
+ 
++  test('clusters overlapping physical corner contacts while keeping disjoint cuts', () => {
++    const cornerContacts: AptVectorDoc = {
++      ...doc,
++      rooms: [],
++      walls: [
++        { id: 'host', kind: 'exterior', start: [1000, 4000], end: [9000, 4000], thickness: 200 },
++        { id: 'near-a', kind: 'interior', start: [5000, 3000], end: [5000, 5000], thickness: 200 },
++        { id: 'near-b', kind: 'interior', start: [5070, 3000], end: [5070, 5000], thickness: 100 },
++        { id: 'far', kind: 'interior', start: [8000, 3000], end: [8000, 5000], thickness: 100 },
++        {
++          id: 'authored-short-a',
++          kind: 'interior',
++          start: [1000, 7000],
++          end: [1133.913, 7000],
++          thickness: 100,
++        },
++        {
++          id: 'authored-short-b',
++          kind: 'interior',
++          start: [2000, 7300],
++          end: [2214.082, 7300],
++          thickness: 100,
++        },
++        {
++          id: 'authored-short-c',
++          kind: 'interior',
++          start: [3000, 7600],
++          end: [3252.661, 7600],
++          thickness: 100,
++        },
++      ],
++      openings: [],
++    }
++    const built = buildVectorNodes(cornerContacts)!
++    const horizontal = built.walls
++      .filter(
++        (wall) =>
++          wall.thickness === 0.2 &&
++          Math.abs(wall.start[1]) < 1e-7 &&
++          Math.abs(wall.end[1] - wall.start[1]) < 1e-7,
++      )
++      .sort((a, b) => a.start[0] - b.start[0])
++
++    expect(horizontal).toHaveLength(3)
++    expect(segLenOf(horizontal[0]!)).toBeCloseTo(4)
++    expect(segLenOf(horizontal[1]!)).toBeCloseTo(3)
++    expect(segLenOf(horizontal[2]!)).toBeCloseTo(1)
++    expect(built.walls.every((wall) => segLenOf(wall) >= 0.12)).toBe(true)
++    expect(horizontal[1]?.start[0]).toBeCloseTo(0)
++    expect(horizontal[1]?.end[0]).toBeCloseTo(3)
++    const authoredShorts = built.walls
++      .filter((wall) => wall.thickness === 0.1 && segLenOf(wall) < 0.3)
++      .map(segLenOf)
++      .sort((a, b) => a - b)
++    expect(authoredShorts).toHaveLength(3)
++    expect(authoredShorts[0]).toBeCloseTo(0.133913, 5)
++    expect(authoredShorts[1]).toBeCloseTo(0.214082, 5)
++    expect(authoredShorts[2]).toBeCloseTo(0.252661, 5)
++  })
++
++  test('keeps a short host whole when one corner band touches both endpoints', () => {
++    const host = WallNode.parse({ start: [-0.25, 0], end: [0.25, 0], thickness: 0.2 })
++    const vertical = WallNode.parse({ start: [-0.1, -0.15], end: [-0.1, 0.15], thickness: 0.3 })
++    const diagonal = WallNode.parse({ start: [0.025, -0.075], end: [0.175, 0.075], thickness: 0.3 })
++    const connected = connectWallJunctions([host, vertical, diagonal], [])
++    const hostSegments = connected.walls.filter((wall) => wall.thickness === 0.2)
++    expect(hostSegments).toHaveLength(1)
++    expect(hostSegments[0]!.start[0]).toBeCloseTo(-0.25)
++    expect(hostSegments[0]!.end[0]).toBeCloseTo(0.25)
++    expect(segLenOf(hostSegments[0]!)).toBeCloseTo(0.5)
++  })
++
++  test('keeps an opening guard local to the affected contact cluster', () => {
++    const built = buildVectorNodes({
++      ...doc,
++      rooms: [],
++      walls: [
++        { id: 'host', kind: 'exterior', start: [1000, 4000], end: [9000, 4000], thickness: 200 },
++        { id: 'near-a', kind: 'interior', start: [5000, 3000], end: [5000, 5000], thickness: 200 },
++        { id: 'near-b', kind: 'interior', start: [5070, 3000], end: [5070, 5000], thickness: 100 },
++        { id: 'far', kind: 'interior', start: [8000, 3000], end: [8000, 5000], thickness: 100 },
++      ],
++      openings: [
++        { id: 'door', type: 'door', a: [4600, 4000], b: [5400, 4000], wallThickness: 200 },
++      ],
++    })!
++    const host = built.walls.find(
++      (wall) => wall.thickness === 0.2 && Math.abs(wall.start[1]) < 1e-7,
++    )!
++    const horizontal = built.walls
++      .filter(
++        (wall) =>
++          wall.thickness === 0.2 &&
++          Math.abs(wall.start[1]) < 1e-7 &&
++          Math.abs(wall.end[1] - wall.start[1]) < 1e-7,
++      )
++      .sort((a, b) => a.start[0] - b.start[0])
++    expect(horizontal).toHaveLength(2)
++    expect(segLenOf(horizontal[0]!)).toBeCloseTo(7)
++    expect(segLenOf(horizontal[1]!)).toBeCloseTo(1)
++    expect(segLenOf(host)).toBeCloseTo(7)
++    expect(host.children).toHaveLength(1)
++    const opening = built.openings[0]!
++    expect(opening.parentId).toBe(host.id)
++    expect(opening.wallId).toBe(host.id)
++  })
++
+   test('uses solid concrete for apartment walls while preserving detected thickness', () => {
+     const { walls, openings } = buildVectorNodes(doc)!
+     expect(new Set(walls.map((wall) => wall.thickness))).toEqual(new Set([0.1, 0.2]))
+diff --git a/apps/editor/lib/apt-vector-scene.ts b/apps/editor/lib/apt-vector-scene.ts
+index c78b89ae..700fb56b 100644
+--- a/apps/editor/lib/apt-vector-scene.ts
++++ b/apps/editor/lib/apt-vector-scene.ts
+@@ -2,6 +2,7 @@ import {
+   createDefaultWallFaceBands,
+   DoorNode,
+   detectSpacesForLevel,
++  getWallConstructionEnvelopeThickness,
+   planAutoZonesForLevel,
+   WallNode,
+   WindowNode,
+@@ -534,9 +535,16 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
+   }
+ }
+ 
+-function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNode)[]) {
++export function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNode)[]) {
+   const segments = walls.map((wall) => ({ ...wall, th: wall.thickness ?? 0.1 }))
+-  const cuts = segments.map(() => [] as { at: number; point: Vec2 }[])
++  type JunctionCut = {
++    at: number
++    point: Vec2
++    band: number
++    order: number
++  }
++  const candidates = segments.map(() => [] as JunctionCut[])
++  let cutOrder = 0
+   for (let i = 0; i < segments.length; i++) {
+     const a = segments[i]!
+     for (let j = i + 1; j < segments.length; j++) {
+@@ -546,23 +554,132 @@ function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNod
+       const ta = along(point, a.start, segDir(a))
+       const tb = along(point, b.start, segDir(b))
+       if (ta < -1e-6 || ta > segLen(a) + 1e-6 || tb < -1e-6 || tb > segLen(b) + 1e-6) continue
+-      for (const [index, at, otherThickness] of [
+-        [i, ta, b.th],
+-        [j, tb, a.th],
++      for (const [index, at] of [
++        [i, ta],
++        [j, tb],
+       ] as const) {
+         const wall = segments[index]!
+-        if (at < 0.001 || at > segLen(wall) - 0.001) continue
++        const hostDir = segDir(wall)
++        const otherDir = segDir(index === i ? b : a)
++        const cross = Math.abs(hostDir[0] * otherDir[1] - hostDir[1] * otherDir[0])
++        if (cross <= 1e-6) continue
++        const constructionThickness = getWallConstructionEnvelopeThickness(index === i ? b : a)
+         if (
+           openings.some(
+             (opening) =>
+               opening.wallId === wall.id &&
+-              Math.abs(opening.position[0] - at) < (opening.width + otherThickness) / 2 + 0.001,
++              Math.abs(opening.position[0] - at) <
++                (opening.width + constructionThickness) / 2 + 0.001,
+           )
+-        )
++        ) {
+           continue
+-        if (!cuts[index]!.some((cut) => Math.abs(cut.at - at) < 0.001))
+-          cuts[index]!.push({ at, point })
++        }
++        candidates[index]!.push({
++          at,
++          point,
++          band: constructionThickness / (2 * cross),
++          order: cutOrder++,
++        })
++      }
++    }
++  }
++
++  const cuts = segments.map(() => [] as { at: number; point: Vec2 }[])
++  const endpointBounds = segments.map((segment) => ({
++    start: { at: 0, point: segment.start },
++    end: { at: segLen(segment), point: segment.end },
++  }))
++  for (let index = 0; index < segments.length; index += 1) {
++    const wall = segments[index]!
++    const length = segLen(wall)
++    const sorted = [...candidates[index]!].sort(
++      (a, b) => a.at - a.band - (b.at - b.band) || a.at - b.at || a.order - b.order,
++    )
++    let cluster: JunctionCut[] = []
++    let clusterEnd = Number.NEGATIVE_INFINITY
++    let startTrim: JunctionCut | undefined
++    let endTrim: JunctionCut | undefined
++    const flush = () => {
++      if (cluster.length === 0) return
++      const clusterStart = Math.min(...cluster.map((cut) => cut.at - cut.band))
++      const end = Math.max(...cluster.map((cut) => cut.at + cut.band))
++      const touchesStart = clusterStart <= 1e-6
++      const touchesEnd = end >= length - 1e-6
++      if (touchesStart || touchesEnd) {
++        if (touchesStart && touchesEnd) {
++          cluster = []
++          return
++        }
++        if (touchesStart) {
++          startTrim = cluster.reduce(
++            (best, cut) => {
++              if (!best || cut.at < best.at || (cut.at === best.at && cut.order < best.order)) {
++                return cut
++              }
++              return best
++            },
++            undefined as JunctionCut | undefined,
++          )
++        }
++        if (touchesEnd) {
++          endTrim = cluster.reduce(
++            (best, cut) => {
++              if (!best || cut.at > best.at || (cut.at === best.at && cut.order < best.order)) {
++                return cut
++              }
++              return best
++            },
++            undefined as JunctionCut | undefined,
++          )
++        }
++        cluster = []
++        return
+       }
++      const center = (clusterStart + end) / 2
++      const chosen = cluster.reduce((best, cut) => {
++        const distance = Math.abs(cut.at - center)
++        const bestDistance = Math.abs(best.at - center)
++        return distance < bestDistance || (distance === bestDistance && cut.order < best.order)
++          ? cut
++          : best
++      })
++      cuts[index]!.push({ at: chosen.at, point: chosen.point })
++      cluster = []
++    }
++    for (const candidate of sorted) {
++      const start = candidate.at - candidate.band
++      if (cluster.length > 0 && start > clusterEnd + 1e-9) flush()
++      cluster.push(candidate)
++      clusterEnd = Math.max(clusterEnd, candidate.at + candidate.band)
++    }
++    flush()
++
++    const openingSpansTrimmed = (from: number, to: number) =>
++      openings.some((opening) => {
++        if (opening.wallId !== wall.id) return false
++        const openingStart = opening.position[0] - opening.width / 2
++        const openingEnd = opening.position[0] + opening.width / 2
++        return openingStart < to + 0.001 && openingEnd > from - 0.001
++      })
++    const proposedStart = startTrim?.at ?? 0
++    const proposedEnd = endTrim?.at ?? length
++    const canTrimStart =
++      startTrim !== undefined && proposedStart > 1e-6 && !openingSpansTrimmed(0, proposedStart)
++    const canTrimEnd =
++      endTrim !== undefined &&
++      proposedEnd < length - 1e-6 &&
++      !openingSpansTrimmed(proposedEnd, length)
++    const nextStart = canTrimStart ? startTrim!.at : 0
++    const nextEnd = canTrimEnd ? endTrim!.at : length
++    if (nextEnd - nextStart >= MIN_WALL_LENGTH_M) {
++      if (canTrimStart)
++        endpointBounds[index]!.start =
++          startTrim!.at < length
++            ? { at: startTrim!.at, point: startTrim!.point }
++            : endpointBounds[index]!.start
++      if (canTrimEnd)
++        endpointBounds[index]!.end =
++          endTrim!.at > 0 ? { at: endTrim!.at, point: endTrim!.point } : endpointBounds[index]!.end
+     }
+   }
+ 
+@@ -570,11 +687,8 @@ function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNod
+   const hostedOpenings: (DoorNode | WindowNode)[] = []
+   for (let i = 0; i < walls.length; i++) {
+     const wall = walls[i]!
+-    const endpoints = [
+-      { at: 0, point: wall.start },
+-      ...cuts[i]!.sort((a, b) => a.at - b.at),
+-      { at: segLen(segments[i]!), point: wall.end },
+-    ]
++    const bounds = endpointBounds[i]!
++    const endpoints = [bounds.start, ...cuts[i]!.sort((a, b) => a.at - b.at), bounds.end]
+     for (let k = 0; k < endpoints.length - 1; k++) {
+       const start = endpoints[k]!
+       const end = endpoints[k + 1]!
+diff --git a/packages/mcp/src/modeling-agent-manual.ts b/packages/mcp/src/modeling-agent-manual.ts
+index fe3a8461..e4829bda 100644
+--- a/packages/mcp/src/modeling-agent-manual.ts
++++ b/packages/mcp/src/modeling-agent-manual.ts
+@@ -17,7 +17,7 @@ export const MODELING_AGENT_MANUAL = [
+   '- X/Z are the ground plane, Y is up, lengths are metres, and rotations are radians.',
+   '- New walls default to one solid concrete construction layer, 0.1 m (100 mm) thick, with no cavity, studs, or board finish. Explicitly requested wall thickness overrides 100 mm; preserve existing saved constructions unless asked to change them.',
+   '- Apartment floor-plan auto-modeling uses the same single concrete layer for every generated wall, including door/window hosts, and preserves the wall thickness detected from the plan. Its explicit undo restores the pre-import graph, including a guide-only scene, and the restored graph remains saveable; load transients must still be blocked by accidental-wipe protection.',
+-  '- Apartment auto-modeling splits a straight host at every interior T/X contact into separately selectable wall segments; the pieces use shared endpoints and mitered footprints. Hosted doors/windows keep their world positions and parent relationships; do not split a host through an opening. Wall junctions use the physical construction envelope thickness.',
++  '- Apartment auto-modeling splits a straight host at every interior T/X contact into separately selectable wall segments; the pieces use shared endpoints and mitered footprints. Hosted doors/windows keep their world positions and parent relationships; do not split a host through an opening. Wall junctions use the physical construction envelope thickness: overlapping projected thickness bands at one physical corner are transitively clustered into one deterministic interior intersection, endpoint-touching clusters trim to their nearest actual contact when safe, while clusters touching both endpoints or leaving an authored wall below minimum stay whole, and opening guards are applied before clustering.',
+   '- Apartment raster extraction retains source-backed thin wall runs as maximal connected, non-branching source-gray wall chains when measured pixel support, finite thickness, and two independently anchored outer endpoints validate them; interior gray corners are allowed, while bright fixture gaps remain source openings. A contained OCR crop retry accepts exactly one known room label and fails closed on absent, unknown, or conflicting text. Never synthesize a missing boundary by closing a room polygon or by extending a room label.',
+   '- Apartment raster extraction classifies a door only with source-backed local swing-arc evidence; exterior or repeated glazing may be a window, while uncertain internal fixtures remain `opening`. Preserve the source opening id, type, hinge, radius, room id, and measured semantic width in node metadata. Reject non-finite or below-minimum measured widths instead of inflating a tiny gap. Use semantic opening endpoints for host geometry; an optional full room barrier and barrier thickness protect source room extraction only and must not widen the rendered opening. Keep source-backed boundaries, protect small labeled rooms from area filtering, and treat conflicting OCR labels as distinct source evidence or fail closed; labels never create wall boundaries.',
+   '- Apartment extraction separates contained room labels into semantic zones without creating physical walls. Such open-space zone divisions are approximate. Window frames require a bright ridge between darker rails; a gray silhouette edge or an open floor line is insufficient. Openings already inside a retained wall use that wall as their host, and measured crossing-wall hosts may close short endpoint gaps only after both ends are validated. A wood render is accepted only with measured wall coverage and predominantly labeled valid room polygons. Nearly straight wall continuations with different thicknesses use a thickness step instead of a long miter taper.',
+diff --git a/packages/mcp/src/ontology-manual.test.ts b/packages/mcp/src/ontology-manual.test.ts
+index 23068631..33b431d4 100644
+--- a/packages/mcp/src/ontology-manual.test.ts
++++ b/packages/mcp/src/ontology-manual.test.ts
+@@ -44,6 +44,9 @@ describe('Phase 2 ontology manual contract', () => {
+ 
+   test('documents apartment wall extraction and junction continuity', () => {
+     expect(MODELING_AGENT_MANUAL).toContain('splits a straight host at every interior T/X contact')
++    expect(MODELING_AGENT_MANUAL).toContain('overlapping projected thickness bands')
++    expect(MODELING_AGENT_MANUAL).toContain('clusters touching both endpoints')
++    expect(MODELING_AGENT_MANUAL).toContain('opening guards are applied before clustering')
+     expect(MODELING_AGENT_MANUAL).toContain('`buildWallSplitAtContacts`')
+     expect(MODELING_AGENT_MANUAL).toContain('`no-wall-contacts`')
+     expect(MODELING_AGENT_MANUAL).toContain('retains source-backed thin wall runs')

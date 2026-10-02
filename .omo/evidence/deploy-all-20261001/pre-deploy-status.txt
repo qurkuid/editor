@@ -1,0 +1,100 @@
+ M apps/editor/app/api/apartments/[id]/plans/[planId]/vector/route.ts
+ M apps/editor/components/ai-chat-panel.tsx
+ M apps/editor/components/apt-search-panel.tsx
+ M apps/editor/components/apt-trace.tsx
+ M apps/editor/components/scene-loader.tsx
+ M apps/editor/lib/ai-cli-plan.ts
+ M apps/editor/lib/ai-contract.ts
+ M apps/editor/lib/ai-control.test.ts
+ M apps/editor/lib/ai-control.ts
+ M apps/editor/lib/ai-provider.test.ts
+ M apps/editor/lib/ai-provider.ts
+ M apps/editor/lib/apt-vector-scene.test.ts
+ M apps/editor/lib/apt-vector-scene.ts
+ M apps/editor/lib/intm-construction-materials.ts
+ M packages/core/src/index.ts
+ M packages/core/src/lib/link-default-construction.test.ts
+ M packages/core/src/lib/slab-polygon.test.ts
+ M packages/core/src/lib/slab-polygon.ts
+ M packages/core/src/lib/space-detection.test.ts
+ M packages/core/src/lib/space-detection.ts
+ M packages/core/src/lib/wall-construction.test.ts
+ M packages/core/src/lib/wall-construction.ts
+ M packages/core/src/registry/types.ts
+ M packages/core/src/schema/nodes/wall.ts
+ M packages/core/src/store/history-control.ts
+ M packages/core/src/store/use-scene-commits.test.ts
+ M packages/core/src/store/use-scene-dirty-tracking.test.ts
+ M packages/core/src/store/use-scene.ts
+ M packages/core/src/systems/wall/wall-footprint.ts
+ M packages/core/src/systems/wall/wall-mitering.test.ts
+ M packages/core/src/systems/wall/wall-mitering.ts
+ M packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
+ M packages/editor/src/components/editor/export-manager.tsx
+ M packages/editor/src/components/editor/floorplan-panel.tsx
+ M packages/editor/src/components/editor/use-floorplan-background-placement.ts
+ M packages/editor/src/components/tools/wall/wall-drafting.test.ts
+ M packages/editor/src/components/tools/wall/wall-drafting.ts
+ M packages/editor/src/components/tools/wall/wall-snap-geometry.ts
+ M packages/editor/src/components/ui/helpers/contextual-helper-panel.tsx
+ M packages/editor/src/components/ui/sidebar/panels/settings-panel/index.tsx
+ M packages/editor/src/hooks/use-auto-save.test.ts
+ M packages/editor/src/hooks/use-auto-save.ts
+ M packages/editor/src/hooks/use-keyboard.ts
+ M packages/editor/src/i18n/dictionary/ai-chat.ts
+ M packages/editor/src/i18n/dictionary/settings.ts
+ M packages/editor/src/index.tsx
+ M packages/editor/src/lib/glb-export.test.ts
+ M packages/editor/src/lib/glb-export.ts
+ M packages/editor/src/store/use-editor.tsx
+ M packages/mcp/src/bridge/index.ts
+ M packages/mcp/src/bridge/scene-bridge.test.ts
+ M packages/mcp/src/bridge/scene-bridge.ts
+ M packages/mcp/src/modeling-agent-manual.ts
+ M packages/mcp/src/ontology-manual.test.ts
+ M packages/mcp/src/resources/resources.test.ts
+ M packages/mcp/src/tools/construction-tools.test.ts
+ M packages/mcp/src/tools/create-wall.test.ts
+ M packages/mcp/src/tools/room-tools.test.ts
+ M packages/nodes/src/wall/construction-preview.tsx
+ M packages/nodes/src/wall/construction-visual.test.ts
+ M packages/nodes/src/wall/construction-visual.ts
+ M packages/nodes/src/wall/floorplan-affordances.test.ts
+ M packages/nodes/src/wall/floorplan-affordances.ts
+ M packages/nodes/src/wall/move-endpoint-tool.tsx
+ M packages/nodes/src/wall/panel.tsx
+ M packages/nodes/src/wall/renderer.tsx
+ M packages/nodes/src/wall/tool.tsx
+ M packages/nodes/src/zone/floorplan.test.ts
+ M packages/nodes/src/zone/floorplan.ts
+ M packages/nodes/src/zone/quantities-panel.tsx
+ M packages/nodes/src/zone/renderer.tsx
+ M packages/viewer/src/index.ts
+ M packages/viewer/src/lib/polygon-union.test.ts
+ M packages/viewer/src/store/use-viewer.ts
+ M packages/viewer/src/systems/wall/wall-cutout.tsx
+ M packages/viewer/src/systems/wall/wall-system.tsx
+?? .debug-journal.md
+?? .omo/
+?? packages/core/src/lib/space-detection-history.test.ts
+?? packages/core/src/lib/wall-length.test.ts
+?? packages/core/src/lib/wall-operations.test.ts
+?? packages/core/src/lib/wall-operations.ts
+?? packages/core/src/store/actions/wall-actions.ts
+?? packages/core/src/systems/wall/wall-footprint.test.ts
+?? packages/editor/src/components/ui/helpers/wall-edit-controls.tsx
+?? packages/editor/src/lib/conform-wall-geometry.ts
+?? packages/editor/src/lib/dxf-export.test.ts
+?? packages/editor/src/lib/dxf-export.ts
+?? packages/editor/src/lib/floorplan-image-export.test.ts
+?? packages/editor/src/lib/floorplan-image-export.ts
+?? packages/editor/src/lib/glb-wall-topology.test.ts
+?? packages/editor/src/lib/sketchup-wall-contract.test.ts
+?? packages/editor/src/lib/sketchup-wall-contract.ts
+?? packages/editor/src/lib/stl-export.test.ts
+?? packages/editor/src/lib/stl-export.ts
+?? packages/editor/src/lib/wall-direction-lock.test.ts
+?? packages/editor/src/lib/wall-direction-lock.ts
+?? packages/nodes/src/wall/construction-geometry.test.ts
+?? packages/nodes/src/wall/construction-geometry.ts
+?? packages/nodes/src/wall/construction-preview.test.tsx

@@ -1,0 +1,33 @@
+{
+  "inputHashes": {
+    "/tmp/wall-missing-vector.json": "8de674a1587a236bc8a0a8f5c3bb93bbaace346f981c7c5c71fe6fb9faca5ff1",
+    "/tmp/wall-missing-scene.json": "d0800a50c0bf002574f0e582921bc9cdb39592d7bc7c197a2823cb2dd5f36240",
+    "/tmp/wall-missing-plan.jpg": "94c0bd24aaa0dfb1c35546687c277fea65ec9cef1f6b09a7dfebbfc282a9b24a"
+  },
+  "raw": {
+    "walls": 43,
+    "openings": 11
+  },
+  "built": {
+    "walls": 41,
+    "openings": 10,
+    "diagnostics": {
+      "unhostedOpeningIds": [
+        "o6"
+      ],
+      "dedupedOpeningIds": [],
+      "droppedWallIds": []
+    }
+  },
+  "scene": {
+    "walls": 41
+  },
+  "originalImageSize": [
+    1242,
+    828
+  ],
+  "vectorAnalysisImageSize": [
+    2484,
+    1656
+  ]
+}

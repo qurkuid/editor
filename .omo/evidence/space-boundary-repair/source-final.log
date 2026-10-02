@@ -1,0 +1,5 @@
+metrics {"doors": 9, "openings": 5, "planId": "source-plan", "rooms": 15, "scale": 10.992, "style": "standard", "wallIoU": 0.825, "walls": 75, "windows": 3}
+PASS boundaries=7 samples=63 bedrooms=3 openings=17 crop=1 negative=1
+real 18.90
+user 18.58
+sys 0.45

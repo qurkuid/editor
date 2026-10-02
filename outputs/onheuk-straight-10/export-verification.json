@@ -1,0 +1,633 @@
+{
+  "product_count": 10,
+  "straight_only": true,
+  "products": [
+    {
+      "id": "2693326",
+      "name": "라인 스툴 Low",
+      "file": "01-low.skp",
+      "source": "https://store.ohou.se/goods/2693326",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. ",
+      "parts": [
+        {
+          "name": "좌 측판 0",
+          "faces": 6
+        },
+        {
+          "name": "좌 측판 179",
+          "faces": 6
+        },
+        {
+          "name": "우 측판 0",
+          "faces": 6
+        },
+        {
+          "name": "우 측판 179",
+          "faces": 6
+        },
+        {
+          "name": "좌판 0",
+          "faces": 6
+        },
+        {
+          "name": "좌판 179",
+          "faces": 6
+        },
+        {
+          "name": "하부 연결 선반",
+          "faces": 6
+        },
+        {
+          "name": "좌판 지지대 0",
+          "faces": 6
+        },
+        {
+          "name": "좌판 지지대 335",
+          "faces": 6
+        }
+      ],
+      "part_count": 9,
+      "bounds_mm": [
+        350.0,
+        350.0,
+        450.0
+      ],
+      "target_size_mm": [
+        350.0,
+        350.0,
+        450.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 9
+      }
+    },
+    {
+      "id": "2698645",
+      "name": "스텝 스툴",
+      "file": "02-2698645.skp",
+      "source": "https://store.ohou.se/goods/2698645",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. ",
+      "parts": [
+        {
+          "name": "좌 계단 측판",
+          "faces": 8
+        },
+        {
+          "name": "우 계단 측판",
+          "faces": 8
+        },
+        {
+          "name": "상단 디딤판",
+          "faces": 6
+        },
+        {
+          "name": "하단 디딤판",
+          "faces": 6
+        },
+        {
+          "name": "디딤판 지지대 0",
+          "faces": 6
+        },
+        {
+          "name": "디딤판 지지대 225",
+          "faces": 6
+        },
+        {
+          "name": "후면 연결판",
+          "faces": 6
+        }
+      ],
+      "part_count": 7,
+      "bounds_mm": [
+        450.0,
+        450.0,
+        500.0
+      ],
+      "target_size_mm": [
+        450.0,
+        450.0,
+        500.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 7
+      }
+    },
+    {
+      "id": "2692899",
+      "name": "라인 선반 Low",
+      "file": "03-low.skp",
+      "source": "https://store.ohou.se/goods/2692899",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. ",
+      "parts": [
+        {
+          "name": "좌 측판 0",
+          "faces": 6
+        },
+        {
+          "name": "좌 측판 144",
+          "faces": 6
+        },
+        {
+          "name": "우 측판 0",
+          "faces": 6
+        },
+        {
+          "name": "우 측판 144",
+          "faces": 6
+        },
+        {
+          "name": "선반 93",
+          "faces": 6
+        },
+        {
+          "name": "선반 지지대 93-30",
+          "faces": 6
+        },
+        {
+          "name": "선반 지지대 93-235",
+          "faces": 6
+        },
+        {
+          "name": "선반 355",
+          "faces": 6
+        },
+        {
+          "name": "선반 지지대 355-30",
+          "faces": 6
+        },
+        {
+          "name": "선반 지지대 355-235",
+          "faces": 6
+        },
+        {
+          "name": "선반 617",
+          "faces": 6
+        },
+        {
+          "name": "선반 지지대 617-30",
+          "faces": 6
+        },
+        {
+          "name": "선반 지지대 617-235",
+          "faces": 6
+        }
+      ],
+      "part_count": 13,
+      "bounds_mm": [
+        490.0,
+        280.0,
+        670.0
+      ],
+      "target_size_mm": [
+        490.0,
+        280.0,
+        670.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 13
+      }
+    },
+    {
+      "id": "2919206",
+      "name": "라인 티비 선반",
+      "file": "04-2919206.skp",
+      "source": "https://store.ohou.se/goods/2919206",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. 상품에 표시된 상판 1420×280 및 내부 높이 270 반영.",
+      "parts": [
+        {
+          "name": "좌 측판 0",
+          "faces": 6
+        },
+        {
+          "name": "좌 측판 169",
+          "faces": 6
+        },
+        {
+          "name": "중앙 측판 0",
+          "faces": 6
+        },
+        {
+          "name": "중앙 측판 169",
+          "faces": 6
+        },
+        {
+          "name": "우 측판 0",
+          "faces": 6
+        },
+        {
+          "name": "우 측판 169",
+          "faces": 6
+        },
+        {
+          "name": "선반 45-15",
+          "faces": 6
+        },
+        {
+          "name": "선반 45-732.5",
+          "faces": 6
+        },
+        {
+          "name": "선반 330-15",
+          "faces": 6
+        },
+        {
+          "name": "상판 지지대 15-25",
+          "faces": 6
+        },
+        {
+          "name": "상판 지지대 15-290",
+          "faces": 6
+        },
+        {
+          "name": "상판 지지대 732.5-25",
+          "faces": 6
+        },
+        {
+          "name": "상판 지지대 732.5-290",
+          "faces": 6
+        }
+      ],
+      "part_count": 13,
+      "bounds_mm": [
+        1450.0,
+        330.0,
+        360.0
+      ],
+      "target_size_mm": [
+        1450.0,
+        330.0,
+        360.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 13
+      }
+    },
+    {
+      "id": "2698766",
+      "name": "벼루 벽선반 01",
+      "file": "05-01.skp",
+      "source": "https://store.ohou.se/goods/2698766",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. ",
+      "parts": [
+        {
+          "name": "선반",
+          "faces": 6
+        },
+        {
+          "name": "상부 후면판",
+          "faces": 6
+        },
+        {
+          "name": "교차판 하부",
+          "faces": 6
+        },
+        {
+          "name": "교차판 상부",
+          "faces": 6
+        }
+      ],
+      "part_count": 4,
+      "bounds_mm": [
+        850.0,
+        165.0,
+        152.0
+      ],
+      "target_size_mm": [
+        850.0,
+        165.0,
+        152.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 4
+      }
+    },
+    {
+      "id": "2698773",
+      "name": "데스크 오거나이저",
+      "file": "06-2698773.skp",
+      "source": "https://store.ohou.se/goods/2698773",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. 높이별 칸막이와 트레이 위치는 추정. 실제 조립 전 홈 가공 검토 필요.",
+      "parts": [
+        {
+          "name": "긴 후면판",
+          "faces": 6
+        },
+        {
+          "name": "중간 칸막이",
+          "faces": 6
+        },
+        {
+          "name": "전면판",
+          "faces": 6
+        },
+        {
+          "name": "좌측 세로 칸막이",
+          "faces": 6
+        },
+        {
+          "name": "좌측 트레이",
+          "faces": 6
+        },
+        {
+          "name": "전면 트레이",
+          "faces": 6
+        },
+        {
+          "name": "후면 트레이",
+          "faces": 6
+        },
+        {
+          "name": "좌측 전면 띠",
+          "faces": 6
+        },
+        {
+          "name": "좌측 후면 띠",
+          "faces": 6
+        }
+      ],
+      "part_count": 9,
+      "bounds_mm": [
+        470.0,
+        180.0,
+        140.0
+      ],
+      "target_size_mm": [
+        470.0,
+        180.0,
+        140.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 9
+      }
+    },
+    {
+      "id": "2693045",
+      "name": "로우 체어 01 쿠션 제외",
+      "file": "07-01.skp",
+      "source": "https://store.ohou.se/goods/2693045",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. 좌면 높이 450. 쿠션 제외 옵션 기준.",
+      "parts": [
+        {
+          "name": "좌 측판",
+          "faces": 6
+        },
+        {
+          "name": "우 측판",
+          "faces": 6
+        },
+        {
+          "name": "좌판",
+          "faces": 6
+        },
+        {
+          "name": "등받이",
+          "faces": 6
+        },
+        {
+          "name": "좌판 지지대 0",
+          "faces": 6
+        },
+        {
+          "name": "좌판 지지대 450",
+          "faces": 6
+        }
+      ],
+      "part_count": 6,
+      "bounds_mm": [
+        468.0,
+        465.0,
+        500.0
+      ],
+      "target_size_mm": [
+        468.0,
+        465.0,
+        500.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 6
+      }
+    },
+    {
+      "id": "2698626",
+      "name": "로우 체어 02 쿠션 제외",
+      "file": "08-02.skp",
+      "source": "https://store.ohou.se/goods/2698626",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. 좌면 높이 450. 좌판 접합부는 직선 홈을 가정한 추정 구조.",
+      "parts": [
+        {
+          "name": "좌 홈 측판",
+          "faces": 10
+        },
+        {
+          "name": "우 홈 측판",
+          "faces": 10
+        },
+        {
+          "name": "홈 좌판",
+          "faces": 14
+        },
+        {
+          "name": "등받이",
+          "faces": 6
+        },
+        {
+          "name": "후면 하부판",
+          "faces": 6
+        },
+        {
+          "name": "전면 좌판 지지대",
+          "faces": 6
+        }
+      ],
+      "part_count": 6,
+      "bounds_mm": [
+        555.0,
+        415.0,
+        510.0
+      ],
+      "target_size_mm": [
+        555.0,
+        415.0,
+        510.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 6
+      }
+    },
+    {
+      "id": "3487574",
+      "name": "라인 암체어 쿠션 제외",
+      "file": "09-3487574.skp",
+      "source": "https://store.ohou.se/goods/3487574",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. 좌면 높이 450. 쿠션 제외 옵션 기준.",
+      "parts": [
+        {
+          "name": "좌 앞다리",
+          "faces": 6
+        },
+        {
+          "name": "좌 좌판 지지대",
+          "faces": 6
+        },
+        {
+          "name": "우 앞다리",
+          "faces": 6
+        },
+        {
+          "name": "우 좌판 지지대",
+          "faces": 6
+        },
+        {
+          "name": "좌 등받이 겸 뒷다리",
+          "faces": 6
+        },
+        {
+          "name": "우 등받이 겸 뒷다리",
+          "faces": 6
+        },
+        {
+          "name": "좌판",
+          "faces": 6
+        },
+        {
+          "name": "전면 가로대 0",
+          "faces": 6
+        },
+        {
+          "name": "전면 가로대 385",
+          "faces": 6
+        },
+        {
+          "name": "좌 팔걸이",
+          "faces": 6
+        },
+        {
+          "name": "우 팔걸이",
+          "faces": 6
+        },
+        {
+          "name": "등받이 상부 연결대",
+          "faces": 6
+        }
+      ],
+      "part_count": 12,
+      "bounds_mm": [
+        575.0,
+        500.0,
+        665.0
+      ],
+      "target_size_mm": [
+        575.0,
+        500.0,
+        665.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 12
+      }
+    },
+    {
+      "id": "4023401",
+      "name": "베이직 미니 스툴",
+      "file": "10-4023401.skp",
+      "source": "https://store.ohou.se/goods/4023401",
+      "dimensions_status": "전체 치수·기본 판재 두께: 상품 상세 기준. 내부 부재 치수·홈·결합 방식: 사진을 참고한 제작 검토용 추정. 30T 상판·다리는 15T 두 겹 적층으로 가정. 다리 벌어짐은 좌우 방향만 반영한 직선 제작 검토 모델.",
+      "parts": [
+        {
+          "name": "적층 상판 220",
+          "faces": 6
+        },
+        {
+          "name": "적층 상판 235",
+          "faces": 6
+        },
+        {
+          "name": "좌 적층 다리 15-0",
+          "faces": 6
+        },
+        {
+          "name": "우 적층 다리 15-0",
+          "faces": 6
+        },
+        {
+          "name": "좌 적층 다리 15-15",
+          "faces": 6
+        },
+        {
+          "name": "우 적층 다리 15-15",
+          "faces": 6
+        },
+        {
+          "name": "좌 적층 다리 145-0",
+          "faces": 6
+        },
+        {
+          "name": "우 적층 다리 145-0",
+          "faces": 6
+        },
+        {
+          "name": "좌 적층 다리 145-15",
+          "faces": 6
+        },
+        {
+          "name": "우 적층 다리 145-15",
+          "faces": 6
+        }
+      ],
+      "part_count": 10,
+      "bounds_mm": [
+        280.0,
+        190.0,
+        250.0
+      ],
+      "target_size_mm": [
+        280.0,
+        190.0,
+        250.0
+      ],
+      "straight_only": true,
+      "reload_counts": {
+        "root_groups": 10
+      }
+    }
+  ],
+  "gallery": {
+    "file": "onheuk-straight-10-gallery.skp",
+    "layout": {
+      "columns": 5,
+      "rows": 2,
+      "x_spacing_mm": 1800,
+      "y_spacing_mm": 2200
+    },
+    "product_count": 10,
+    "bounds_mm": [
+      8050.0,
+      2700.0,
+      670.0
+    ],
+    "straight_only": true,
+    "reload_counts": {
+      "root_groups": 10,
+      "panel_groups": [
+        9,
+        7,
+        13,
+        13,
+        4,
+        9,
+        6,
+        6,
+        12,
+        10
+      ]
+    }
+  }
+}

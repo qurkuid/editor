@@ -1,0 +1,65 @@
+bun test v1.3.11 (af24e281)
+
+packages/core/src/lib/wall-operations.test.ts:
+(pass) wall operations > merges exact collinear walls and preserves hosted world positions and construction [6.19ms]
+(pass) wall operations > splits inside a wall, retains the first id, and preserves collection membership [0.07ms]
+(pass) wall operations > rejects an opening that would straddle the split [0.72ms]
+(pass) wall operations > supports a three-wall chain when the first selected wall is internal [0.29ms]
+(pass) wall operations > adds a secondary-only collection membership to the retained wall [0.17ms]
+(pass) wall operations > rejects reversed one-sided trims before changing their side [0.37ms]
+(pass) wall operations > rejects reversed walls with unequal front and back side metadata [0.07ms]
+(pass) wall operations > rejects a reversed hosted wall instead of changing its local frame [0.17ms]
+(pass) wall operations > projects rotated item width and depth when validating a split [0.16ms]
+(pass) wall operations > rejects an occupied requested split id [0.08ms]
+
+packages/editor/src/lib/wall-direction-lock.test.ts:
+(pass) wall direction holds the current ray while length follows a 1 mm step [0.18ms]
+
+packages/editor/src/components/tools/wall/wall-drafting.test.ts:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > a direction-locked wall keeps its endpoint near a host corner [7.99ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > endpoint near an existing corner attaches to the corner instead of splitting [0.21ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > new walls start with a single 100 mm concrete layer [0.28ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > committed wall preserves the ghost construction elevation on ground [0.04ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > 2D terrain construction options freeze the first-point elevation and wall height [0.38ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > endpoint near the host start corner snaps there without splitting [0.29ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > genuine mid-wall endpoint still splits the host (T junction) [0.34ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > exact duplicate segment is rejected [0.02ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > grid mode: endpoint resolved onto a wall body still splits the host [0.17ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > grid mode: endpoint beyond the connect radius is left alone (no residual snap) [0.32ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > mid-span split migrates the host attachments to the covering half [0.68ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > a splitting commit lands as a single undo step [0.27ms]
+(pass) resolveEndpointWallSplit > endpoint dropped mid-span splits the host and returns the projection [0.06ms]
+(pass) resolveEndpointWallSplit > mid-span split migrates host attachments to the covering half [0.17ms]
+(pass) resolveEndpointWallSplit > a drop near an existing corner resolves to the corner without splitting
+(pass) resolveEndpointWallSplit > an opening straddling the drop point skips the split but still resolves the point [0.33ms]
+(pass) resolveEndpointWallSplit > a drop beyond the connect radius resolves nothing and splits nothing [0.05ms]
+(pass) resolveEndpointWallSplit > ignored walls (the moved wall and its commit siblings) are never split [0.04ms]
+(pass) resolveEndpointWallSplit > split + endpoint write compose into a single history step [0.07ms]
+(pass) snapWallDraftPointDetailed > bypassSnap returns the raw point without endpoint or angle snap
+(pass) snapWallDraftPointDetailed > a stale linked-wall corner swallows a sub-connect-radius correction unless ignored [0.57ms]
+(pass) construction guide snapping > sticks a nearby point to the guide line foot [0.10ms]
+(pass) construction guide snapping > ignores guides outside the stick radius [0.02ms]
+(pass) construction guide snapping > a guide intersection beats the nearest single line [0.03ms]
+(pass) construction guide snapping > an angle-locked ray slides along the ray to the guide
+(pass) construction guide snapping > snapWallDraftPointDetailed lands the drafted point on an off-grid guide
+(pass) construction guide snapping > Alt bypass skips guides too
+(pass) guide snapping is on by default from the scene store > auto-collects the active level guides when none are passed
+
+ 39 pass
+ 0 fail
+ 118 expect() calls
+Ran 39 tests across 3 files. [533.00ms]

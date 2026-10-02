@@ -1,0 +1,6 @@
+timestamp=2026-10-02T17:44:50+09:00
+command=python3 test_recovery.py (mocked_sync_export_test)
+exit_code=0
+first_detail_calls=2
+second_detail_calls=0
+result=normalized list survived record, state list_hash, products-list, NDJSON, and SQLite export; second sync reused detail

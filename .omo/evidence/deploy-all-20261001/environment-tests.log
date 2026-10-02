@@ -1,0 +1,29 @@
+bun test v1.3.11 (af24e281)
+
+packages/mcp/src/transports/http.test.ts:
+(pass) connectHttp listens on the given port and accepts MCP traffic [97.78ms]
+(pass) connectHttp close() stops the server [3.55ms]
+(pass) connectHttp requires auth when binding a non-loopback host [0.70ms]
+(pass) connectHttp rejects unauthenticated requests when a token is configured [3.06ms]
+(pass) connectHttp handles allowed CORS preflight [2.90ms]
+
+packages/viewer/src/store/use-viewer.test.ts:
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) measurement display preferences > stores global visibility per project and defaults new projects to visible
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) measurement display preferences > changes display units without changing measurement visibility preferences
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) measurement display preferences > selects millimeters as a metric display notation
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) external selection highlights > tracks host-owned highlights without changing the local selection
+
+ 9 pass
+ 0 fail
+ 16 expect() calls
+Ran 9 tests across 2 files. [284.00ms]

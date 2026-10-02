@@ -1,0 +1,19 @@
+{
+  "status": "online",
+  "pid": 41794,
+  "cwd": "/Volumes/DATABASE/floorplan-releases/20261002-2528a9b0/apps/editor",
+  "buildId": "FcohPi3uE3mBIRUWgnWRW",
+  "wallpaperTotal": 1010,
+  "restoredBrands": {
+    "LX Z:IN(LX지인)": 30,
+    "서울벽지": 30
+  },
+  "cacheBrands": {
+    "LX Z:IN(LX지인)": 30,
+    "서울벽지": 30
+  },
+  "updaterHashes": [
+    "cac4f87635e6801ac6c6916c5c836c92588c995e113b139f8a5c9cb46cfc79da",
+    "cac4f87635e6801ac6c6916c5c836c92588c995e113b139f8a5c9cb46cfc79da"
+  ]
+}

@@ -1,0 +1,656 @@
+{
+  "path": "/Users/changseok/editor/outputs/onheuk-straight-10/onheuk-straight-10-gallery.skp",
+  "product_count": 10,
+  "part_count": 89,
+  "all_solid": true,
+  "all_straight": true,
+  "scenes": [
+    "00 전체 10개",
+    "01 라인 스툴 Low",
+    "02 스텝 스툴",
+    "03 라인 선반 Low",
+    "04 라인 티비 선반",
+    "05 벼루 벽선반 01",
+    "06 데스크 오거나이저",
+    "07 로우 체어 01 쿠션 제외",
+    "08 로우 체어 02 쿠션 제외",
+    "09 라인 암체어 쿠션 제외",
+    "10 베이직 미니 스툴"
+  ],
+  "products": [
+    {
+      "name": "01 라인 스툴 Low",
+      "dimensions_mm": [
+        350.0,
+        350.0,
+        450.0
+      ],
+      "parts": [
+        {
+          "name": "좌 측판 0",
+          "solid": true,
+          "volume_mm3": 1115775.0,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 측판 179",
+          "solid": true,
+          "volume_mm3": 1115774.9999999998,
+          "curve_count": 0
+        },
+        {
+          "name": "우 측판 0",
+          "solid": true,
+          "volume_mm3": 1115774.9999999984,
+          "curve_count": 0
+        },
+        {
+          "name": "우 측판 179",
+          "solid": true,
+          "volume_mm3": 1115774.9999999972,
+          "curve_count": 0
+        },
+        {
+          "name": "좌판 0",
+          "solid": true,
+          "volume_mm3": 897750.0000000014,
+          "curve_count": 0
+        },
+        {
+          "name": "좌판 179",
+          "solid": true,
+          "volume_mm3": 897750.000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "하부 연결 선반",
+          "solid": true,
+          "volume_mm3": 1535999.9999999998,
+          "curve_count": 0
+        },
+        {
+          "name": "좌판 지지대 0",
+          "solid": true,
+          "volume_mm3": 239999.99999999985,
+          "curve_count": 0
+        },
+        {
+          "name": "좌판 지지대 335",
+          "solid": true,
+          "volume_mm3": 239999.99999999942,
+          "curve_count": 0
+        }
+      ]
+    },
+    {
+      "name": "02 스텝 스툴",
+      "dimensions_mm": [
+        450.0,
+        450.0,
+        500.0
+      ],
+      "parts": [
+        {
+          "name": "좌 계단 측판",
+          "solid": true,
+          "volume_mm3": 2429999.9999999995,
+          "curve_count": 0
+        },
+        {
+          "name": "우 계단 측판",
+          "solid": true,
+          "volume_mm3": 2430000.0000000005,
+          "curve_count": 0
+        },
+        {
+          "name": "상단 디딤판",
+          "solid": true,
+          "volume_mm3": 1518750.0000000014,
+          "curve_count": 0
+        },
+        {
+          "name": "하단 디딤판",
+          "solid": true,
+          "volume_mm3": 1417499.999999998,
+          "curve_count": 0
+        },
+        {
+          "name": "디딤판 지지대 0",
+          "solid": true,
+          "volume_mm3": 283500.00000000023,
+          "curve_count": 0
+        },
+        {
+          "name": "디딤판 지지대 225",
+          "solid": true,
+          "volume_mm3": 283500.0000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "후면 연결판",
+          "solid": true,
+          "volume_mm3": 567000.0000000007,
+          "curve_count": 0
+        }
+      ]
+    },
+    {
+      "name": "03 라인 선반 Low",
+      "dimensions_mm": [
+        490.0,
+        280.0,
+        670.0
+      ],
+      "parts": [
+        {
+          "name": "좌 측판 0",
+          "solid": true,
+          "volume_mm3": 1366800.0000000002,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 측판 144",
+          "solid": true,
+          "volume_mm3": 1366800.0,
+          "curve_count": 0
+        },
+        {
+          "name": "우 측판 0",
+          "solid": true,
+          "volume_mm3": 1366800.0000000016,
+          "curve_count": 0
+        },
+        {
+          "name": "우 측판 144",
+          "solid": true,
+          "volume_mm3": 1366800.0000000012,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 93",
+          "solid": true,
+          "volume_mm3": 1518000.0000000007,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 지지대 93-30",
+          "solid": true,
+          "volume_mm3": 172500.0,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 지지대 93-235",
+          "solid": true,
+          "volume_mm3": 172499.99999999974,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 355",
+          "solid": true,
+          "volume_mm3": 1518000.0000000007,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 지지대 355-30",
+          "solid": true,
+          "volume_mm3": 172500.00000000006,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 지지대 355-235",
+          "solid": true,
+          "volume_mm3": 172499.99999999974,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 617",
+          "solid": true,
+          "volume_mm3": 1518000.0000000026,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 지지대 617-30",
+          "solid": true,
+          "volume_mm3": 172500.00000000003,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 지지대 617-235",
+          "solid": true,
+          "volume_mm3": 172499.9999999998,
+          "curve_count": 0
+        }
+      ]
+    },
+    {
+      "name": "04 라인 티비 선반",
+      "dimensions_mm": [
+        1450.0,
+        330.0,
+        360.0
+      ],
+      "parts": [
+        {
+          "name": "좌 측판 0",
+          "solid": true,
+          "volume_mm3": 869400.0000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 측판 169",
+          "solid": true,
+          "volume_mm3": 869399.9999999999,
+          "curve_count": 0
+        },
+        {
+          "name": "중앙 측판 0",
+          "solid": true,
+          "volume_mm3": 796950.0000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "중앙 측판 169",
+          "solid": true,
+          "volume_mm3": 796950.0,
+          "curve_count": 0
+        },
+        {
+          "name": "우 측판 0",
+          "solid": true,
+          "volume_mm3": 869400.0000000016,
+          "curve_count": 0
+        },
+        {
+          "name": "우 측판 169",
+          "solid": true,
+          "volume_mm3": 869400.0000000016,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 45-15",
+          "solid": true,
+          "volume_mm3": 2950500.0,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 45-732.5",
+          "solid": true,
+          "volume_mm3": 2950500.0,
+          "curve_count": 0
+        },
+        {
+          "name": "선반 330-15",
+          "solid": true,
+          "volume_mm3": 5964000.000000006,
+          "curve_count": 0
+        },
+        {
+          "name": "상판 지지대 15-25",
+          "solid": true,
+          "volume_mm3": 263437.49999999994,
+          "curve_count": 0
+        },
+        {
+          "name": "상판 지지대 15-290",
+          "solid": true,
+          "volume_mm3": 263437.4999999995,
+          "curve_count": 0
+        },
+        {
+          "name": "상판 지지대 732.5-25",
+          "solid": true,
+          "volume_mm3": 263437.50000000006,
+          "curve_count": 0
+        },
+        {
+          "name": "상판 지지대 732.5-290",
+          "solid": true,
+          "volume_mm3": 263437.4999999996,
+          "curve_count": 0
+        }
+      ]
+    },
+    {
+      "name": "05 벼루 벽선반 01",
+      "dimensions_mm": [
+        850.0,
+        165.0,
+        152.0
+      ],
+      "parts": [
+        {
+          "name": "선반",
+          "solid": true,
+          "volume_mm3": 2103750.0000000005,
+          "curve_count": 0
+        },
+        {
+          "name": "상부 후면판",
+          "solid": true,
+          "volume_mm3": 1048799.9999999993,
+          "curve_count": 0
+        },
+        {
+          "name": "교차판 하부",
+          "solid": true,
+          "volume_mm3": 101249.99999999997,
+          "curve_count": 0
+        },
+        {
+          "name": "교차판 상부",
+          "solid": true,
+          "volume_mm3": 173249.99999999994,
+          "curve_count": 0
+        }
+      ]
+    },
+    {
+      "name": "06 데스크 오거나이저",
+      "dimensions_mm": [
+        470.00000000000006,
+        180.0,
+        140.0
+      ],
+      "parts": [
+        {
+          "name": "긴 후면판",
+          "solid": true,
+          "volume_mm3": 601440.0000000005,
+          "curve_count": 0
+        },
+        {
+          "name": "중간 칸막이",
+          "solid": true,
+          "volume_mm3": 429600.0000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "전면판",
+          "solid": true,
+          "volume_mm3": 207599.99999999997,
+          "curve_count": 0
+        },
+        {
+          "name": "좌측 세로 칸막이",
+          "solid": true,
+          "volume_mm3": 201600.00000000003,
+          "curve_count": 0
+        },
+        {
+          "name": "좌측 트레이",
+          "solid": true,
+          "volume_mm3": 117600.00000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "전면 트레이",
+          "solid": true,
+          "volume_mm3": 406896.0,
+          "curve_count": 0
+        },
+        {
+          "name": "후면 트레이",
+          "solid": true,
+          "volume_mm3": 190992.00000000003,
+          "curve_count": 0
+        },
+        {
+          "name": "좌측 전면 띠",
+          "solid": true,
+          "volume_mm3": 28800.000000000004,
+          "curve_count": 0
+        },
+        {
+          "name": "좌측 후면 띠",
+          "solid": true,
+          "volume_mm3": 28800.000000000007,
+          "curve_count": 0
+        }
+      ]
+    },
+    {
+      "name": "07 로우 체어 01 쿠션 제외",
+      "dimensions_mm": [
+        468.00000000000006,
+        465.0,
+        500.0
+      ],
+      "parts": [
+        {
+          "name": "좌 측판",
+          "solid": true,
+          "volume_mm3": 3487500.0,
+          "curve_count": 0
+        },
+        {
+          "name": "우 측판",
+          "solid": true,
+          "volume_mm3": 3487500.0000000033,
+          "curve_count": 0
+        },
+        {
+          "name": "좌판",
+          "solid": true,
+          "volume_mm3": 2956500.0000000023,
+          "curve_count": 0
+        },
+        {
+          "name": "등받이",
+          "solid": true,
+          "volume_mm3": 427050.00000000093,
+          "curve_count": 0
+        },
+        {
+          "name": "좌판 지지대 0",
+          "solid": true,
+          "volume_mm3": 328499.9999999997,
+          "curve_count": 0
+        },
+        {
+          "name": "좌판 지지대 450",
+          "solid": true,
+          "volume_mm3": 328500.0000000002,
+          "curve_count": 0
+        }
+      ]
+    },
+    {
+      "name": "08 로우 체어 02 쿠션 제외",
+      "dimensions_mm": [
+        555.0,
+        415.0,
+        509.99999999999994
+      ],
+      "parts": [
+        {
+          "name": "좌 홈 측판",
+          "solid": true,
+          "volume_mm3": 2973375.0,
+          "curve_count": 0
+        },
+        {
+          "name": "우 홈 측판",
+          "solid": true,
+          "volume_mm3": 2973374.9999999935,
+          "curve_count": 0
+        },
+        {
+          "name": "홈 좌판",
+          "solid": true,
+          "volume_mm3": 3448125.00000001,
+          "curve_count": 0
+        },
+        {
+          "name": "등받이",
+          "solid": true,
+          "volume_mm3": 436500.0000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "후면 하부판",
+          "solid": true,
+          "volume_mm3": 3164625.000000002,
+          "curve_count": 0
+        },
+        {
+          "name": "전면 좌판 지지대",
+          "solid": true,
+          "volume_mm3": 363749.99999999977,
+          "curve_count": 0
+        }
+      ]
+    },
+    {
+      "name": "09 라인 암체어 쿠션 제외",
+      "dimensions_mm": [
+        575.0,
+        500.0,
+        665.0
+      ],
+      "parts": [
+        {
+          "name": "좌 앞다리",
+          "solid": true,
+          "volume_mm3": 536250.0000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 좌판 지지대",
+          "solid": true,
+          "volume_mm3": 322499.99999999965,
+          "curve_count": 0
+        },
+        {
+          "name": "우 앞다리",
+          "solid": true,
+          "volume_mm3": 536249.9999999971,
+          "curve_count": 0
+        },
+        {
+          "name": "우 좌판 지지대",
+          "solid": true,
+          "volume_mm3": 322499.99999999837,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 등받이 겸 뒷다리",
+          "solid": true,
+          "volume_mm3": 2471625.000000002,
+          "curve_count": 0
+        },
+        {
+          "name": "우 등받이 겸 뒷다리",
+          "solid": true,
+          "volume_mm3": 2471625.000000003,
+          "curve_count": 0
+        },
+        {
+          "name": "좌판",
+          "solid": true,
+          "volume_mm3": 3746625.000000005,
+          "curve_count": 0
+        },
+        {
+          "name": "전면 가로대 0",
+          "solid": true,
+          "volume_mm3": 347625.0000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "전면 가로대 385",
+          "solid": true,
+          "volume_mm3": 386249.99999999965,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 팔걸이",
+          "solid": true,
+          "volume_mm3": 337500.0000000002,
+          "curve_count": 0
+        },
+        {
+          "name": "우 팔걸이",
+          "solid": true,
+          "volume_mm3": 337500.0000000003,
+          "curve_count": 0
+        },
+        {
+          "name": "등받이 상부 연결대",
+          "solid": true,
+          "volume_mm3": 327375.0000000003,
+          "curve_count": 0
+        }
+      ]
+    },
+    {
+      "name": "10 베이직 미니 스툴",
+      "dimensions_mm": [
+        280.0,
+        190.0,
+        250.0
+      ],
+      "parts": [
+        {
+          "name": "적층 상판 220",
+          "solid": true,
+          "volume_mm3": 798000.0000000007,
+          "curve_count": 0
+        },
+        {
+          "name": "적층 상판 235",
+          "solid": true,
+          "volume_mm3": 797999.9999999984,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 적층 다리 15-0",
+          "solid": true,
+          "volume_mm3": 99000.00000000003,
+          "curve_count": 0
+        },
+        {
+          "name": "우 적층 다리 15-0",
+          "solid": true,
+          "volume_mm3": 99000.00000000009,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 적층 다리 15-15",
+          "solid": true,
+          "volume_mm3": 99000.00000000003,
+          "curve_count": 0
+        },
+        {
+          "name": "우 적층 다리 15-15",
+          "solid": true,
+          "volume_mm3": 99000.00000000009,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 적층 다리 145-0",
+          "solid": true,
+          "volume_mm3": 99000.00000000003,
+          "curve_count": 0
+        },
+        {
+          "name": "우 적층 다리 145-0",
+          "solid": true,
+          "volume_mm3": 99000.00000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "좌 적층 다리 145-15",
+          "solid": true,
+          "volume_mm3": 99000.00000000001,
+          "curve_count": 0
+        },
+        {
+          "name": "우 적층 다리 145-15",
+          "solid": true,
+          "volume_mm3": 99000.00000000001,
+          "curve_count": 0
+        }
+      ]
+    }
+  ]
+}

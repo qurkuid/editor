@@ -1,0 +1,701 @@
+diff --git a/apps/editor/app/api/intm/materials/route.ts b/apps/editor/app/api/intm/materials/route.ts
+index f3c56594..aaed450d 100644
+--- a/apps/editor/app/api/intm/materials/route.ts
++++ b/apps/editor/app/api/intm/materials/route.ts
+@@ -4,7 +4,7 @@ import {
+   fetchIntmMaterials,
+   saveIntmMaterialCoverage,
+ } from '@/lib/intm-materials'
+-import { fetchIntmUser, intmAuthEnabled } from '@/lib/intm-session'
++import { fetchIntmUser, intmAuthEnabled, intmBaseUrl } from '@/lib/intm-session'
+ 
+ /**
+  * The browser's window onto INTM's catalogue.
+@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
+       categories: [],
+       connected: false,
+       reason: 'not-configured',
++      intmBaseUrl: intmBaseUrl(),
+     })
+   }
+ 
+@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
+     materials,
+     categories,
+     connected: materials.length > 0,
++    intmBaseUrl: intmBaseUrl(),
+     account: user?.email ?? null,
+     ...(materials.length === 0 ? { reason: user ? 'empty' : 'signed-out' } : {}),
+   })
+diff --git a/apps/editor/components/stats-tab.tsx b/apps/editor/components/stats-tab.tsx
+index 4ceb03af..4927a85c 100644
+--- a/apps/editor/components/stats-tab.tsx
++++ b/apps/editor/components/stats-tab.tsx
+@@ -1,7 +1,7 @@
+ 'use client'
+ 
+ import { useScene } from '@pascal-app/core'
+-import { useT } from '@pascal-app/editor'
++import { useLocale, useT } from '@pascal-app/editor'
+ import { useViewer } from '@pascal-app/viewer'
+ import {
+   BarChart3,
+@@ -11,7 +11,7 @@ import {
+   Loader2,
+   TriangleAlert,
+ } from 'lucide-react'
+-import { useCallback, useEffect, useMemo, useState } from 'react'
++import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+ import { withBasePath } from '@/lib/base-path'
+ import { buildEstimateDraft, type EstimateLine } from '@/lib/estimate-lines'
+ import { type SubmitResult, toEstimateItems } from '@/lib/estimate-submit'
+@@ -22,7 +22,14 @@ import { layerMaterialPatches } from '@/lib/link-layer-material'
+ import { buildCoveragePatch, COVERAGE_UNIT_LABEL } from '@/lib/material-coverage'
+ import { deriveTakeoff, type TakeoffCategory } from '@/lib/quantity-takeoff'
+ import { intmOverridesFromSceneMaterials } from '@/lib/scene-material-overrides'
+-import { readSceneProjectId, sceneProjectPatch } from '@/lib/scene-project-link'
++import {
++  canonicalSceneEstimateUrl,
++  projectLinkHost,
++  readSceneEstimateSubmissions,
++  readSceneProjectId,
++  sceneEstimateSubmissionPatch,
++  sceneProjectPatch,
++} from '@/lib/scene-project-link'
+ 
+ const CATEGORY_LABEL: Record<TakeoffCategory, string> = {
+   board: '목자재',
+@@ -53,6 +60,13 @@ function formatTakeoff(quantity: number, unit: string): string {
+   return `${quantity.toFixed(2)} ${unit === 'm2' ? '㎡' : unit}`
+ }
+ 
++function formatHistoryTimestamp(value: string, locale: string): string {
++  return new Intl.DateTimeFormat(locale === 'ko' ? 'ko-KR' : 'en-US', {
++    dateStyle: 'medium',
++    timeStyle: 'short',
++  }).format(new Date(value))
++}
++
+ /**
+  * `reason` says why there are no prices, which the panel shows verbatim. A bare
+  * "not connected" is the same message whether INTM is unconfigured, the session
+@@ -68,6 +82,8 @@ type Catalogue = {
+   status?: number
+   /** Which INTM account the server resolved the session to, if any. */
+   account?: string | null
++  /** Trusted server origin used to validate persisted estimate links. */
++  intmBaseUrl: string | null
+ }
+ 
+ /**
+@@ -79,6 +95,7 @@ type Catalogue = {
+  */
+ export function StatsTab() {
+   const t = useT()
++  const locale = useLocale((state) => state.locale)
+   const nodes = useScene((state) => state.nodes)
+   const levelId = useViewer((state) => state.selection.levelId)
+   const [catalogue, setCatalogue] = useState<Catalogue | null>(null)
+@@ -93,9 +110,18 @@ export function StatsTab() {
+   )
+   const [projectIdDraft, setProjectIdDraft] = useState<string | null>(null)
+   const projectId = projectIdDraft ?? linkedProjectId ?? ''
++  const history = useMemo(
++    () =>
++      readSceneEstimateSubmissions(nodes, rootNodeIds).filter(
++        (record) => record.projectId === projectId,
++      ),
++    [nodes, rootNodeIds, projectId],
++  )
+   const [projectName, setProjectName] = useState('')
+   const [submitting, setSubmitting] = useState(false)
+   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null)
++  const [submitProjectId, setSubmitProjectId] = useState<string | null>(null)
++  const submitRunRef = useRef(0)
+ 
+   const load = useCallback(async () => {
+     setLoading(true)
+@@ -112,10 +138,17 @@ export function StatsTab() {
+           connected: false,
+           reason: response.status === 401 ? 'signed-out' : 'error',
+           status: response.status,
++          intmBaseUrl: null,
+         })
+       }
+     } catch {
+-      setCatalogue({ materials: [], categories: [], connected: false, reason: 'error' })
++      setCatalogue({
++        materials: [],
++        categories: [],
++        connected: false,
++        intmBaseUrl: null,
++        reason: 'error',
++      })
+     } finally {
+       setLoading(false)
+     }
+@@ -231,13 +264,24 @@ export function StatsTab() {
+ 
+   /** Hand the resolved lines to INTM, which owns the estimate document. */
+   const createEstimate = useCallback(async () => {
++    const runId = submitRunRef.current + 1
++    submitRunRef.current = runId
++    const submittedProjectId = projectId
++    const submissionState = useScene.getState()
++    const submittedHostId = projectLinkHost(submissionState.nodes, submissionState.rootNodeIds)?.id
+     setSubmitting(true)
+     setSubmitResult(null)
++    setSubmitProjectId(submittedProjectId)
++    const attemptedPayload = toEstimateItems(draft)
+     try {
+       // Remember the project on the scene before submitting, so the next
+       // estimate from this drawing doesn't ask again.
+-      if (projectId && projectId !== linkedProjectId) {
+-        const patch = sceneProjectPatch(useScene.getState().nodes, projectId, rootNodeIds)
++      if (submittedProjectId && submittedProjectId !== linkedProjectId) {
++        const patch = sceneProjectPatch(
++          submissionState.nodes,
++          submittedProjectId,
++          submissionState.rootNodeIds,
++        )
+         if (patch)
+           useScene.getState().updateNode(patch.nodeId as never, {
+             metadata: patch.metadata as never,
+@@ -250,18 +294,46 @@ export function StatsTab() {
+         body: JSON.stringify({ draft, projectId, title: projectName }),
+       })
+       const result = (await response.json()) as SubmitResult
+-      setSubmitResult(result)
++      if (submitRunRef.current === runId) setSubmitResult(result)
++      if (result.ok && submittedHostId) {
++        const snapshot = useScene.getState()
++        const currentHost = projectLinkHost(snapshot.nodes, snapshot.rootNodeIds)
++        if (currentHost?.id !== submittedHostId) return
++        const patch = sceneEstimateSubmissionPatch(
++          snapshot.nodes,
++          {
++            estimateId: result.estimateId,
++            estimateUrl: result.estimateUrl,
++            failedItems: result.failedItems,
++            itemCount: result.itemCount,
++            items: attemptedPayload,
++            projectId: submittedProjectId,
++            schemaVersion: 1,
++            submittedAt: new Date().toISOString(),
++            title: projectName,
++          },
++          snapshot.rootNodeIds,
++        )
++        if (patch) {
++          snapshot.updateNode(patch.nodeId as never, {
++            metadata: patch.metadata as never,
++          })
++        }
++      }
+     } catch (error) {
+-      setSubmitResult({
+-        ok: false,
+-        error: error instanceof Error ? error.message : '견적 생성 실패',
+-      })
++      if (submitRunRef.current === runId) {
++        setSubmitResult({
++          ok: false,
++          error: error instanceof Error ? error.message : '견적 생성 실패',
++        })
++      }
+     } finally {
+-      setSubmitting(false)
++      if (submitRunRef.current === runId) setSubmitting(false)
+     }
+-  }, [draft, projectId, projectName, linkedProjectId, rootNodeIds])
++  }, [draft, projectId, projectName, linkedProjectId])
+ 
+-  const successfulSubmit = submitResult?.ok ? submitResult : null
++  const visibleSubmitResult = submitProjectId === projectId ? submitResult : null
++  const successfulSubmit = visibleSubmitResult?.ok ? visibleSubmitResult : null
+   const attemptedItems = successfulSubmit
+     ? successfulSubmit.itemCount + successfulSubmit.failedItems
+     : 0
+@@ -370,6 +442,8 @@ export function StatsTab() {
+             <ProjectPicker
+               onSelect={(project) => {
+                 setProjectIdDraft(project.id)
++                setSubmitProjectId(null)
++                setSubmitResult(null)
+                 if (!projectName) setProjectName(project.name)
+               }}
+               selectedId={projectId}
+@@ -388,7 +462,7 @@ export function StatsTab() {
+             >
+               {submitting ? t('stats.estimate.creating') : t('stats.estimate.create')}
+             </button>
+-            {submitResult && (
++            {visibleSubmitResult && (
+               <div
+                 aria-live="polite"
+                 className={`space-y-1.5 rounded border p-2 text-[11px] ${
+@@ -399,7 +473,7 @@ export function StatsTab() {
+                     : 'border-red-500/40 bg-red-500/10 text-red-200'
+                 }`}
+               >
+-                <p>{submitResult.ok ? submitMessage : submitResult.error}</p>
++                <p>{visibleSubmitResult.ok ? submitMessage : visibleSubmitResult.error}</p>
+                 {successfulSubmit && (
+                   <a
+                     className="inline-block underline underline-offset-2 hover:no-underline"
+@@ -415,6 +489,57 @@ export function StatsTab() {
+           </div>
+         </section>
+       )}
++
++      {!loading && projectId && history.length > 0 && (
++        <section className="mt-3 rounded-xl border border-border bg-background/40 p-3">
++          <h2 className="mb-2 text-[11px] font-semibold text-foreground">
++            {t('stats.history.title')}
++          </h2>
++          <div className="space-y-1.5">
++            {history.map((record) => {
++              const href = canonicalSceneEstimateUrl(catalogue?.intmBaseUrl, record)
++              const total = record.itemCount + record.failedItems
++              return (
++                <div
++                  className="rounded border border-border/40 bg-[#252527] px-2 py-1.5"
++                  data-estimate-id={record.estimateId}
++                  key={`${record.projectId}:${record.estimateId}`}
++                >
++                  <div className="flex items-baseline justify-between gap-2">
++                    <span className="min-w-0 truncate text-xs text-foreground">{record.title}</span>
++                    <time
++                      className="shrink-0 text-[10px] text-muted-foreground"
++                      dateTime={record.submittedAt}
++                    >
++                      {formatHistoryTimestamp(record.submittedAt, locale)}
++                    </time>
++                  </div>
++                  <div className="mt-0.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
++                    <span>
++                      {t('stats.history.counts')
++                        .replace('{added}', String(record.itemCount))
++                        .replace('{failed}', String(record.failedItems))
++                        .replace('{total}', String(total))}
++                    </span>
++                    {href ? (
++                      <a
++                        className="shrink-0 underline underline-offset-2 hover:no-underline"
++                        href={href}
++                        rel="noopener noreferrer"
++                        target="_blank"
++                      >
++                        {t('stats.submitted.open')}
++                      </a>
++                    ) : (
++                      <span className="shrink-0">{t('stats.history.unavailable')}</span>
++                    )}
++                  </div>
++                </div>
++              )
++            })}
++          </div>
++        </section>
++      )}
+     </div>
+   )
+ }
+diff --git a/apps/editor/lib/scene-project-link.test.ts b/apps/editor/lib/scene-project-link.test.ts
+index 3584570c..a38329f0 100644
+--- a/apps/editor/lib/scene-project-link.test.ts
++++ b/apps/editor/lib/scene-project-link.test.ts
+@@ -1,9 +1,15 @@
+ import { describe, expect, test } from 'bun:test'
+ import type { AnyNode } from '@pascal-app/core'
++import type { EstimateItemPayload } from './estimate-submit'
+ import {
++  canonicalSceneEstimateUrl,
+   projectLinkHost,
++  readSceneEstimateSubmissions,
+   readSceneProjectId,
++  SCENE_ESTIMATE_SUBMISSIONS_KEY,
+   SCENE_PROJECT_KEY,
++  type SceneEstimateSubmissionV1,
++  sceneEstimateSubmissionPatch,
+   sceneProjectPatch,
+ } from './scene-project-link'
+ 
+@@ -11,6 +17,30 @@ function scene(...nodes: Array<Record<string, unknown>>): Record<string, AnyNode
+   return Object.fromEntries(nodes.map((n) => [n.id as string, n as unknown as AnyNode]))
+ }
+ 
++function item(index: number): EstimateItemPayload {
++  return {
++    description: `item-${index}`,
++    materialId: `material-${index}`,
++    quantity: index + 1,
++    unitPrice: 1000 + index,
++  }
++}
++
++function submission(overrides: Partial<SceneEstimateSubmissionV1> = {}): SceneEstimateSubmissionV1 {
++  return {
++    estimateId: 'estimate-1',
++    estimateUrl: 'https://intm.kr/newportal/estimates/estimate-1/edit',
++    failedItems: 0,
++    itemCount: 1,
++    items: [item(1)],
++    projectId: 'project-1',
++    schemaVersion: 1,
++    submittedAt: '2026-10-02T00:00:00.000Z',
++    title: 'Kitchen estimate',
++    ...overrides,
++  }
++}
++
+ describe('where the link lives', () => {
+   test('the building node holds it when there is one', () => {
+     const nodes = scene({ id: 'level_1', type: 'level' }, { id: 'building_1', type: 'building' })
+@@ -68,3 +98,144 @@ describe('reading and writing', () => {
+     expect(readSceneProjectId(next)).toBe('prj_3')
+   })
+ })
++
++describe('estimate submission history', () => {
++  test('preserves the project link and unrelated metadata through a JSON round trip', () => {
++    const nodes = scene({
++      id: 'building_1',
++      type: 'building',
++      metadata: { color: 'blue', [SCENE_PROJECT_KEY]: 'project-1' },
++    })
++    const patch = sceneEstimateSubmissionPatch(nodes, submission())!
++    const next = scene({
++      id: 'building_1',
++      type: 'building',
++      metadata: JSON.parse(JSON.stringify(patch.metadata)),
++    })
++
++    expect(patch.metadata).toMatchObject({ color: 'blue', [SCENE_PROJECT_KEY]: 'project-1' })
++    expect(readSceneEstimateSubmissions(next)).toEqual([submission()])
++    expect(readSceneProjectId(next)).toBe('project-1')
++  })
++
++  test('keeps full, partial, and all-failed attempted item snapshots', () => {
++    let nodes = scene({ id: 'building_1', type: 'building' })
++    const results = [
++      submission({ estimateId: 'full', title: 'Full', itemCount: 2, items: [item(1), item(2)] }),
++      submission({
++        estimateId: 'partial',
++        title: 'Partial',
++        itemCount: 1,
++        failedItems: 1,
++        items: [item(3), item(4)],
++      }),
++      submission({
++        estimateId: 'all-failed',
++        title: 'All failed',
++        itemCount: 0,
++        failedItems: 2,
++        items: [item(5), item(6)],
++      }),
++    ]
++
++    for (const result of results) {
++      const patch = sceneEstimateSubmissionPatch(nodes, result)!
++      nodes = scene({ id: 'building_1', type: 'building', metadata: patch.metadata })
++    }
++
++    expect(readSceneEstimateSubmissions(nodes)).toEqual([...results].reverse())
++  })
++
++  test('filters by project and de-duplicates before capping at ten newest records', () => {
++    let nodes = scene({ id: 'building_1', type: 'building' })
++    for (let index = 0; index < 12; index += 1) {
++      const patch = sceneEstimateSubmissionPatch(
++        nodes,
++        submission({
++          estimateId: `estimate-${index}`,
++          submittedAt: `2026-10-02T00:${String(index).padStart(2, '0')}:00.000Z`,
++        }),
++      )!
++      nodes = scene({ id: 'building_1', type: 'building', metadata: patch.metadata })
++    }
++
++    const capped = readSceneEstimateSubmissions(nodes)
++    expect(capped).toHaveLength(10)
++    expect(capped.map((record) => record.estimateId)).toEqual(
++      Array.from({ length: 10 }, (_, index) => `estimate-${11 - index}`),
++    )
++
++    const directlyStored = scene({
++      id: 'building_1',
++      type: 'building',
++      metadata: {
++        [SCENE_ESTIMATE_SUBMISSIONS_KEY]: Array.from({ length: 12 }, (_, index) =>
++          submission({ estimateId: `direct-${index}` }),
++        ),
++      },
++    })
++    expect(readSceneEstimateSubmissions(directlyStored)).toHaveLength(10)
++
++    const replacement = submission({ estimateId: 'estimate-5', title: 'Updated title' })
++    const replacementPatch = sceneEstimateSubmissionPatch(nodes, replacement)!
++    const replaced = readSceneEstimateSubmissions(
++      scene({ id: 'building_1', type: 'building', metadata: replacementPatch.metadata }),
++    )
++    expect(replaced[0]).toEqual(replacement)
++    expect(replaced.filter((record) => record.estimateId === 'estimate-5')).toHaveLength(1)
++
++    const projectFiltered = replaced.filter((record) => record.projectId === 'project-1')
++    expect(projectFiltered.every((record) => record.projectId === 'project-1')).toBe(true)
++    expect(replaced.filter((record) => record.projectId === 'other-project')).toHaveLength(0)
++  })
++
++  test('drops malformed history records without throwing', () => {
++    const valid = submission()
++    const nodes = scene({
++      id: 'building_1',
++      type: 'building',
++      metadata: {
++        [SCENE_ESTIMATE_SUBMISSIONS_KEY]: [
++          valid,
++          { ...valid, schemaVersion: 2 },
++          { ...valid, submittedAt: 'yesterday' },
++          { ...valid, itemCount: 2 },
++          { ...valid, items: [{ description: '', quantity: 1, unitPrice: 100 }] },
++          null,
++        ],
++      },
++    })
++
++    expect(readSceneEstimateSubmissions(nodes)).toEqual([valid])
++  })
++
++  test('does not append a pre-document failure result', () => {
++    const nodes = scene({ id: 'building_1', type: 'building' })
++    const failedResult = { error: 'INTM refused the document', ok: false }
++    expect(
++      sceneEstimateSubmissionPatch(nodes, failedResult as unknown as SceneEstimateSubmissionV1),
++    ).toBeNull()
++    expect(readSceneEstimateSubmissions(nodes)).toEqual([])
++  })
++
++  test('only trusts canonical server-origin estimate links', () => {
++    const valid = submission()
++    expect(canonicalSceneEstimateUrl('https://intm.kr', valid)).toBe(valid.estimateUrl)
++    expect(canonicalSceneEstimateUrl('https://apt.intm.kr/editor', valid)).toBeNull()
++    expect(canonicalSceneEstimateUrl('https://intm.kr/anything?x=1#hash', valid)).toBeNull()
++    expect(canonicalSceneEstimateUrl('https://user:pass@intm.kr', valid)).toBeNull()
++    expect(canonicalSceneEstimateUrl('ftp://intm.kr', valid)).toBeNull()
++    expect(canonicalSceneEstimateUrl('not a url', valid)).toBeNull()
++
++    for (const estimateUrl of [
++      'https://evil.example/newportal/estimates/estimate-1/edit',
++      'https://user:pass@intm.kr/newportal/estimates/estimate-1/edit',
++      'https://intm.kr/newportal/estimates/estimate-1/edit?x=1',
++      'https://intm.kr/newportal/estimates/estimate-1/edit#hash',
++      'https://intm.kr/newportal/estimates/other/edit',
++      'https://intm.kr/estimates/estimate-1/edit',
++    ]) {
++      expect(canonicalSceneEstimateUrl('https://intm.kr', { ...valid, estimateUrl })).toBeNull()
++    }
++  })
++})
+diff --git a/apps/editor/lib/scene-project-link.ts b/apps/editor/lib/scene-project-link.ts
+index 5bf08ea0..9a8cca59 100644
+--- a/apps/editor/lib/scene-project-link.ts
++++ b/apps/editor/lib/scene-project-link.ts
+@@ -1,4 +1,5 @@
+ import type { AnyNode } from '@pascal-app/core'
++import type { EstimateItemPayload } from './estimate-submit'
+ 
+ /**
+  * Which INTM project a scene belongs to.
+@@ -15,6 +16,20 @@ import type { AnyNode } from '@pascal-app/core'
+  */
+ 
+ export const SCENE_PROJECT_KEY = 'intmProjectId'
++export const SCENE_ESTIMATE_SUBMISSIONS_KEY = 'intmEstimateSubmissions'
++const MAX_SCENE_ESTIMATE_SUBMISSIONS = 10
++
++export type SceneEstimateSubmissionV1 = {
++  schemaVersion: 1
++  projectId: string
++  title: string
++  estimateId: string
++  estimateUrl: string
++  submittedAt: string
++  itemCount: number
++  failedItems: number
++  items: EstimateItemPayload[]
++}
+ 
+ /** `metadata` is `JSONType` on the node; narrow it to the record we store. */
+ type MetadataRecord = Record<string, unknown>
+@@ -26,6 +41,69 @@ function asRecord(value: unknown): MetadataRecord {
+     : {}
+ }
+ 
++function isPlainRecord(value: unknown): value is Record<string, unknown> {
++  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
++  const prototype = Object.getPrototypeOf(value)
++  return prototype === Object.prototype || prototype === null
++}
++
++function nonEmptyString(value: unknown): value is string {
++  return typeof value === 'string' && value.trim().length > 0
++}
++
++function isIsoTimestamp(value: unknown): value is string {
++  return (
++    nonEmptyString(value) &&
++    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) &&
++    !Number.isNaN(Date.parse(value))
++  )
++}
++
++function isEstimateItem(value: unknown): value is EstimateItemPayload {
++  if (!isPlainRecord(value)) return false
++  const item = value
++  if (
++    typeof item.quantity !== 'number' ||
++    !Number.isFinite(item.quantity) ||
++    item.quantity < 0 ||
++    typeof item.unitPrice !== 'number' ||
++    !Number.isFinite(item.unitPrice) ||
++    item.unitPrice < 0 ||
++    !nonEmptyString(item.description)
++  ) {
++    return false
++  }
++  return (
++    (item.materialId === undefined || nonEmptyString(item.materialId)) &&
++    (item.productCategoryId === undefined || nonEmptyString(item.productCategoryId))
++  )
++}
++
++function isSceneEstimateSubmission(value: unknown): value is SceneEstimateSubmissionV1 {
++  if (!isPlainRecord(value)) return false
++  const record = value
++  if (
++    record.schemaVersion !== 1 ||
++    !nonEmptyString(record.projectId) ||
++    !nonEmptyString(record.title) ||
++    !nonEmptyString(record.estimateId) ||
++    !nonEmptyString(record.estimateUrl) ||
++    !isIsoTimestamp(record.submittedAt) ||
++    !Number.isSafeInteger(record.itemCount) ||
++    !Number.isSafeInteger(record.failedItems) ||
++    (record.itemCount as number) < 0 ||
++    (record.failedItems as number) < 0 ||
++    !Array.isArray(record.items)
++  ) {
++    return false
++  }
++  const items = record.items as unknown[]
++  return (
++    items.length === (record.itemCount as number) + (record.failedItems as number) &&
++    items.every(isEstimateItem)
++  )
++}
++
+ /** The node that should carry the link, or null for an empty scene. */
+ export function projectLinkHost(
+   nodes: Readonly<Record<string, AnyNode>>,
+@@ -70,3 +148,77 @@ export function sceneProjectPatch(
+ 
+   return { nodeId: host.id, metadata }
+ }
++
++export function readSceneEstimateSubmissions(
++  nodes: Readonly<Record<string, AnyNode>>,
++  rootNodeIds: readonly string[] = [],
++): SceneEstimateSubmissionV1[] {
++  const host = projectLinkHost(nodes, rootNodeIds) as NodeWithMetadata | null
++  const value = host?.metadata?.[SCENE_ESTIMATE_SUBMISSIONS_KEY]
++  if (!Array.isArray(value)) return []
++  return value.filter(isSceneEstimateSubmission).slice(0, MAX_SCENE_ESTIMATE_SUBMISSIONS)
++}
++
++/**
++ * The patch that appends a created estimate to the scene's audit history.
++ * Invalid records are ignored so old or hand-edited scene metadata cannot
++ * make the editor throw while opening a scene.
++ */
++export function sceneEstimateSubmissionPatch(
++  nodes: Readonly<Record<string, AnyNode>>,
++  record: SceneEstimateSubmissionV1,
++  rootNodeIds: readonly string[] = [],
++): { nodeId: string; metadata: MetadataRecord } | null {
++  if (!isSceneEstimateSubmission(record)) return null
++  const host = projectLinkHost(nodes, rootNodeIds) as NodeWithMetadata | null
++  if (!host) return null
++
++  const metadata = asRecord(host.metadata)
++  const existing = readSceneEstimateSubmissions(nodes, rootNodeIds)
++  metadata[SCENE_ESTIMATE_SUBMISSIONS_KEY] = [
++    record,
++    ...existing.filter(
++      (item) => !(item.projectId === record.projectId && item.estimateId === record.estimateId),
++    ),
++  ].slice(0, MAX_SCENE_ESTIMATE_SUBMISSIONS)
++
++  return { nodeId: host.id, metadata }
++}
++
++function trustedOrigin(value: string | null | undefined): string | null {
++  if (!nonEmptyString(value)) return null
++  try {
++    const url = new URL(value)
++    if (
++      (url.protocol !== 'http:' && url.protocol !== 'https:') ||
++      url.username ||
++      url.password ||
++      url.search ||
++      url.hash
++    ) {
++      return null
++    }
++    return url.origin
++  } catch {
++    return null
++  }
++}
++
++export function canonicalSceneEstimateUrl(
++  serverBaseUrl: string | null | undefined,
++  record: Pick<SceneEstimateSubmissionV1, 'estimateId' | 'estimateUrl'>,
++): string | null {
++  const origin = trustedOrigin(serverBaseUrl)
++  if (!origin || !nonEmptyString(record.estimateId) || !nonEmptyString(record.estimateUrl)) {
++    return null
++  }
++
++  const canonical = `${origin}/newportal/estimates/${encodeURIComponent(record.estimateId)}/edit`
++  try {
++    const stored = new URL(record.estimateUrl)
++    if (stored.username || stored.password || stored.search || stored.hash) return null
++    return stored.href === canonical ? canonical : null
++  } catch {
++    return null
++  }
++}
+diff --git a/packages/editor/src/i18n/dictionary/furniture.ts b/packages/editor/src/i18n/dictionary/furniture.ts
+index aee58510..6b795a43 100644
+--- a/packages/editor/src/i18n/dictionary/furniture.ts
++++ b/packages/editor/src/i18n/dictionary/furniture.ts
+@@ -173,6 +173,18 @@ export const statsDictionary = {
+     ko: 'INTM에서 견적서 열기',
+     en: 'Open estimate in INTM',
+   },
++  'stats.history.title': {
++    ko: '이 프로젝트의 이전 견적서',
++    en: 'Previous estimates for this project',
++  },
++  'stats.history.counts': {
++    ko: '성공 {added} · 실패 {failed} · 전체 {total}',
++    en: '{added} added · {failed} failed · {total} total',
++  },
++  'stats.history.unavailable': {
++    ko: 'INTM 링크를 확인할 수 없습니다.',
++    en: 'INTM link unavailable.',
++  },
+   'stats.sharedReadOnly': {
+     ko: '공용 자재는 INTM에서 관리자만 수정할 수 있습니다.',
+     en: 'Shared materials are admin-only in INTM.',

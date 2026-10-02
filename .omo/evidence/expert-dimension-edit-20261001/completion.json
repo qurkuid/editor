@@ -1,0 +1,19 @@
+{
+  "commit": "d121617a5a9bc6b3f53f6d1811fb8d17d01e69a0",
+  "buildId": "YvZIVrAyk36xVh_6L4aNX",
+  "publicUrl": "https://apt.intm.kr",
+  "publicHttp": 200,
+  "publicFeatureBundleHash": "25bf0800fb8fb53893e64603d67223aab7a65a87c7b4f4f9e9cc2721978b2bfc",
+  "mainTests": 120,
+  "isolatedReleaseTests": 117,
+  "biomeFiles": 25,
+  "appTypes": "PASS",
+  "productionBuild": "PASS",
+  "productionApply": "PASS",
+  "productionUndoExact": "PASS",
+  "roomApply": "PASS",
+  "localUndoExact": "PASS",
+  "productionConsoleErrors": [],
+  "githubActions": "No workflow runs on deployment branch",
+  "preexistingDirtyHunks": "PRESERVED"
+}

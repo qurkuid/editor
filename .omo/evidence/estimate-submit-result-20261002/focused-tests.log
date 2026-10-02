@@ -1,0 +1,26 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/estimate-submit.test.ts:
+(pass) line items > a priced line becomes an INTM item with its converted quantity [0.31ms]
+(pass) line items > the description traces the line back to the drawing [0.04ms]
+(pass) line items > a no-material line is left out [0.02ms]
+(pass) line items > a no-coverage line is left out
+(pass) line items > a no-price line is left out
+(pass) line items > a priced line with zero quantity is left out too [0.01ms]
+(pass) line items > a mixed draft submits only what is resolved [0.01ms]
+(pass) submission > posts the items to INTM with the caller session [0.37ms]
+(pass) submission > creates the document first, then posts each item to it [0.09ms]
+(pass) submission > counts item failures instead of discarding the estimate [0.12ms]
+(pass) submission > keeps a link when every item fails after the document is created [0.06ms]
+(pass) submission > normalizes the configured base and encodes the estimate id in the link [0.02ms]
+(pass) submission > refuses with no project before any request [0.06ms]
+(pass) submission > refuses with no title before any request [0.02ms]
+(pass) submission > refuses to create an estimate with nothing resolved [0.01ms]
+(pass) submission > reports a refusal instead of pretending it worked [0.03ms]
+(pass) submission > a 200 with no estimate id is still a failure [0.07ms]
+(pass) submission > no session and no INTM both refuse before any request [0.03ms]
+
+ 18 pass
+ 0 fail
+ 27 expect() calls
+Ran 18 tests across 1 file. [22.00ms]

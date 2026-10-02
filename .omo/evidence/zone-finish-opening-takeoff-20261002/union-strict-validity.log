@@ -1,0 +1,28 @@
+bun test v1.3.11 (af24e281)
+
+packages/viewer/src/lib/polygon-union.test.ts:
+(pass) unionPolygons > collapses a contained polygon into the containing polygon [0.84ms]
+(pass) unionPolygons > combines overlapping rectangles into one boundary [0.35ms]
+(pass) unionPolygons > keeps disjoint polygons as separate boundaries [0.18ms]
+(pass) unionPolygons > does not count a retained centre inside a frame-shaped union [0.65ms]
+(pass) unionPolygons > fails instead of accepting a degenerate partial boundary
+(pass) unionPolygons > rejects self-crossing and concave input rings
+(pass) unionPolygons > rejects rings whose coordinates collide at the boundary key scale [0.33ms]
+(pass) unionPolygons > classifies a thin frame from ring vertices instead of an arbitrary offset [0.16ms]
+(pass) unionPolygons > proves contained, overlapping, and disjoint rectangle areas [0.17ms]
+(pass) unionPolygons > rejects point-touching rings whose containment is ambiguous [0.08ms]
+(pass) unionPolygons > proves shared-edge rectangles without double counting the seam [0.06ms]
+(pass) clipPolygonToRect > clips a polygon crossing each rectangle edge
+(pass) clipPolygonToRect > returns an empty polygon when there is no intersection [0.16ms]
+(pass) subtractPolygonsFromPolygon > returns an outer contour and an enclosed window hole
+(pass) subtractPolygonsFromPolygon > turns a boundary-overlapping cutter into an indentation
+(pass) subtractPolygonsFromPolygon > returns separate contours when a cutter splits the subject
+(pass) subtractPolygonsFromPolygon > keeps two disjoint window holes as three contours [0.30ms]
+(pass) subtractPolygonsFromPolygon > clips an opening crossing the footprint cap
+(pass) subtractPolygonsFromPolygon > handles an opening ending exactly on the footprint boundary [0.10ms]
+(pass) subtractPolygonsFromPolygon > extends a floor-level door notch to the exact semantic padding
+
+ 20 pass
+ 0 fail
+ 44 expect() calls
+Ran 20 tests across 1 file. [27.00ms]

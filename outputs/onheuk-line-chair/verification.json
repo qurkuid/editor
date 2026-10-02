@@ -1,0 +1,44 @@
+{
+  "file": "/Users/changseok/editor/outputs/onheuk-line-chair/onheuk-line-chair-350x365x570mm.skp",
+  "source": "https://store.ohou.se/goods/2692901",
+  "bounds_mm": [
+    350,
+    365,
+    570
+  ],
+  "seat_height_mm": 450,
+  "plywood_mm": 15,
+  "groups": [
+    {
+      "part": "01 앞판 350×435×15 · 중앙 슬롯",
+      "faces": 17
+    },
+    {
+      "part": "02 뒤판·등받이 350×570×15 · 중앙 슬롯",
+      "faces": 24
+    },
+    {
+      "part": "03 좌면 좌 171×350×15",
+      "faces": 6
+    },
+    {
+      "part": "03 좌면 우 171×350×15",
+      "faces": 6
+    },
+    {
+      "part": "04 하부 보강재 좌 15×335×60",
+      "faces": 6
+    },
+    {
+      "part": "04 하부 보강재 우 15×335×60",
+      "faces": 6
+    }
+  ],
+  "reload_verified": true,
+  "estimated": {
+    "slot_width_mm": 8,
+    "slot_bottom_mm": 40,
+    "rear_slot_top_mm": 510,
+    "rail_height_mm": 60
+  }
+}

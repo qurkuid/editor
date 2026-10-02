@@ -1,0 +1,360 @@
+{
+  "sourceImage": "../missing-walls/source-plan.jpg",
+  "sourceImageSize": [
+    1242,
+    828
+  ],
+  "frameFallback": {
+    "analysisScale": 2,
+    "mmPerPx": 10.992,
+    "sceneTranslationM": [
+      -13.652064,
+      -9.101376
+    ],
+    "derivedFrom": "api-vector-before.json exact-length matches for w0, w2, and w7"
+  },
+  "roomProbes": [
+    {
+      "id": "bedroom-left-upper",
+      "name": "안방",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ],
+      "cls": "bedroom",
+      "source": [
+        388,
+        370
+      ],
+      "ocrRecognized": false
+    },
+    {
+      "id": "bedroom-left-lower",
+      "name": "안방",
+      "cls": "bedroom",
+      "source": [
+        477,
+        451
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "bedroom-master",
+      "name": "안방",
+      "cls": "bedroom",
+      "source": [
+        850,
+        286
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "bath-left",
+      "name": "욕실",
+      "cls": "bath",
+      "source": [
+        488,
+        239
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "bath-right",
+      "name": "욕실",
+      "cls": "bath",
+      "source": [
+        710,
+        226
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "dress-upper-left",
+      "name": "드레스룸",
+      "cls": "dress",
+      "source": [
+        528,
+        268
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "dress-middle-left",
+      "name": "드레스룸",
+      "cls": "dress",
+      "source": [
+        506,
+        339
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "dress-center",
+      "name": "드레스룸",
+      "cls": "dress",
+      "source": [
+        585,
+        360
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "dress-right",
+      "name": "드레스룸",
+      "cls": "dress",
+      "source": [
+        692,
+        338
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "dress-upper-right",
+      "name": "드레스룸",
+      "cls": "dress",
+      "source": [
+        934,
+        158
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "entrance",
+      "name": "현관",
+      "cls": "entrance",
+      "source": [
+        590,
+        272
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "living",
+      "name": "거실",
+      "cls": "living",
+      "source": [
+        844,
+        483
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "kitchen",
+      "name": "부엌",
+      "cls": "kitchen",
+      "source": [
+        600,
+        527
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "balcony-left",
+      "name": "발코니",
+      "cls": "balcony",
+      "source": [
+        750,
+        606
+      ],
+      "ocrRecognized": true
+    },
+    {
+      "id": "balcony-right",
+      "name": "발코니",
+      "cls": "balcony",
+      "source": [
+        850,
+        606
+      ],
+      "ocrRecognized": true
+    }
+  ],
+  "openingProbes": [
+    {
+      "id": "entrance-door",
+      "source": [
+        591.1,
+        221.4
+      ],
+      "acceptedKinds": [
+        "door"
+      ]
+    },
+    {
+      "id": "old-bath-door",
+      "source": [
+        471.8,
+        294.4
+      ],
+      "acceptedKinds": [
+        "door"
+      ]
+    },
+    {
+      "id": "bedroom-dress-door",
+      "source": [
+        717.8,
+        276.5
+      ],
+      "acceptedKinds": [
+        "door"
+      ]
+    },
+    {
+      "id": "dress-living-door",
+      "source": [
+        765.5,
+        409.2
+      ],
+      "acceptedKinds": [
+        "door"
+      ]
+    },
+    {
+      "id": "balcony-partition",
+      "source": [
+        779,
+        601.8
+      ],
+      "acceptedKinds": [
+        "door"
+      ]
+    },
+    {
+      "id": "kitchen-passage",
+      "source": [
+        674.2,
+        535.1
+      ],
+      "acceptedKinds": [
+        "opening"
+      ]
+    },
+    {
+      "id": "internal-fixture-upper",
+      "source": [
+        598,
+        321.8
+      ],
+      "acceptedKinds": [
+        "opening"
+      ]
+    },
+    {
+      "id": "internal-fixture-lower",
+      "source": [
+        589.1,
+        409.1
+      ],
+      "acceptedKinds": [
+        "opening"
+      ]
+    },
+    {
+      "id": "entrance-dress-fixture",
+      "source": [
+        557.5,
+        273.3
+      ],
+      "acceptedKinds": [
+        "door"
+      ]
+    },
+    {
+      "id": "dress-bedroom-fixture",
+      "source": [
+        774.5,
+        312
+      ],
+      "acceptedKinds": [
+        "opening"
+      ]
+    },
+    {
+      "id": "top-dress-door",
+      "source": [
+        935.5,
+        174
+      ],
+      "acceptedKinds": [
+        "door"
+      ]
+    },
+    {
+      "id": "living-balcony-glazing",
+      "source": [
+        844.4,
+        584.6
+      ],
+      "acceptedKinds": [
+        "window"
+      ]
+    },
+    {
+      "id": "balcony-glazing-left",
+      "source": [
+        752.5,
+        631.5
+      ],
+      "acceptedKinds": [
+        "window"
+      ]
+    },
+    {
+      "id": "balcony-glazing-right",
+      "source": [
+        850,
+        631.2
+      ],
+      "acceptedKinds": [
+        "window"
+      ]
+    },
+    {
+      "id": "left-upper-bedroom-door",
+      "source": [
+        473.65,
+        351.65
+      ],
+      "acceptedKinds": [
+        "door"
+      ]
+    },
+    {
+      "id": "left-lower-bedroom-door",
+      "source": [
+        497.1,
+        375.55
+      ],
+      "acceptedKinds": [
+        "door"
+      ]
+    }
+  ],
+  "forbiddenOpenings": [
+    {
+      "id": "false-vertical-top-dress",
+      "source": [
+        960,
+        157
+      ],
+      "radiusPx": 24
+    },
+    {
+      "id": "phantom-floor-door",
+      "source": [
+        650,
+        322
+      ],
+      "radiusPx": 10
+    }
+  ],
+  "tolerances": {
+    "roomProbePx": 12,
+    "openingCenterPx": 22,
+    "forbiddenOpeningPx": 24,
+    "frameTranslationM": 0.025,
+    "frameLengthM": 0.012,
+    "polygonAreaM2": 1e-06
+  }
+}

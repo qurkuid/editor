@@ -1,0 +1,175 @@
+- link "아파트 지도":
+  - /url: /apt
+- link "All scenes":
+  - /url: /scenes
+- button "장면":
+  - generic: 장면
+- button "아파트":
+  - generic: 아파트
+- button "모델링":
+  - generic: 모델링
+- button "가구":
+  - generic: 가구
+- button "조명":
+  - generic: 조명
+- button "아이템":
+  - generic: 아이템
+- button "도장":
+  - generic: 도장
+- button "통계":
+  - generic: 통계
+- button "AI":
+  - generic: AI
+- button "뷰":
+  - generic: 뷰
+- button "설정":
+  - generic: 설정
+- button "Nature":
+  - generic: Nature
+- button "플러그인":
+  - generic: 플러그인
+- heading "모델링 도구" [level=2]
+- paragraph: 건축 요소를 배치하거나 Direct로 자유 형상을 만드세요
+- generic: B
+- button "벽":
+  - generic: 벽
+- button "펜스":
+  - generic: 펜스
+- button "직접 모델링":
+  - generic: 직접 모델링
+- button "슬래브":
+  - generic: 슬래브
+- button "선반":
+  - generic: 선반
+- button "천장":
+  - generic: 천장
+- button "문":
+  - generic: 문
+- button "창":
+  - generic: 창
+- button "기둥":
+  - generic: 기둥
+- button "엘리베이터":
+  - generic: 엘리베이터
+- button "시작 지점":
+  - generic: 시작 지점
+- button "지붕":
+  - generic: 지붕
+- button "계단":
+  - generic: 계단
+- button "설비 (MEP)":
+  - generic: 설비 (MEP)
+- button "지형":
+  - generic: 지형
+- heading "직접 모델링" [level=3]
+- paragraph: 선을 면으로, 면을 입체로
+- generic: 면 도구
+- button "선 도구 시작":
+  - text: 선
+- button "사각형 도구 시작":
+  - text: 사각형
+- button "원 도구 시작":
+  - text: 원
+- button "호 도구 시작":
+  - text: 호
+- button "다각형 도구 시작":
+  - text: 다각형
+- generic: 호 분할 수 (2–256)
+- spinbutton "호 분할 수 (2–256)": "32"
+- generic: 다각형 변 수 (3–256)
+- spinbutton "다각형 변 수 (3–256)": "6"
+- list:
+  - generic: 1. 도형 선택
+  - generic: 2. 뷰포트에 그리기
+  - generic: 3. 면 선택 · Push/Pull
+- button "사이드바 접기":
+- button "3D":
+  - generic: 3D
+- button "2D" [pressed]:
+  - generic: 2D
+- button "분할":
+  - generic: 분할
+- button "단독":
+  - generic: 단독
+- button "전체 높이":
+  - generic: 전체 높이
+- button "표시 설정":
+  - generic: 표시
+- button:
+- button "미리보기":
+  - generic: 미리보기
+- button "북쪽 정렬":
+- button "위에 층 추가":
+- button "아래에 층 추가":
+- button "Reorder Ground floor":
+- button "Ground floor":
+  - generic: Ground floor
+- button "2700 mm"
+- button:
+- status
+- button "선택":
+  - img "선택"
+  - generic: V
+- button "회전":
+  - generic: Q
+- button "구역":
+  - img "구역"
+  - generic: Z
+- 'button "측정: 거리"':
+  - generic: M
+- button "측정 옵션":
+- button "삭제":
+  - generic: X
+- button "선":
+- button "사각형":
+- button "원":
+- button "호":
+- generic: 호 분할 수 (2–256)
+- spinbutton "호 분할 수 (2–256)": "32"
+- generic: 다각형 변 수 (3–256)
+- spinbutton "다각형 변 수 (3–256)": "6"
+- button "스포이드":
+- button "참조 0":
+  - img "참조"
+  - generic: "0"
+- button "참조 설정":
+- button "왼쪽으로 회전":
+  - img "왼쪽으로 회전"
+- button "오른쪽으로 회전":
+  - img "오른쪽으로 회전"
+- heading "구역" [level=2]
+- button "Collapse panel" [expanded]:
+- button:
+- button "동작":
+  - generic: 동작
+- button "삭제":
+  - generic: 삭제
+- button "내용물까지 삭제":
+  - generic: 내용물까지 삭제
+- region "실제 마감 자재":
+  - heading "실제 마감 자재" [level=2]
+  - paragraph: 배포 검수실 · QA-001
+  - button "Zone 템플릿 열기":
+  - 'button "전체 벽면: Rustic Brick" [active]':
+    - generic: 전체 벽면
+    - generic: Rustic Brick
+    - generic: 완료
+  - 'button "천장: 미지정 · 선택 시 생성"':
+    - generic: 천장
+    - generic: 미지정 · 선택 시 생성
+    - generic: 미완료
+  - 'button "바닥: 미지정 · 선택 시 생성"':
+    - generic: 바닥
+    - generic: 미지정 · 선택 시 생성
+    - generic: 미완료
+  - status: 배포 검수실 · 전체 벽면에 적용했습니다. Undo 한 번으로 되돌릴 수 있습니다.
+- generic "Command":
+  - generic: ⌘
+- generic: /
+- generic "Shift":
+  - generic: Shift
+- generic: +
+- generic "왼쪽 클릭":
+  - generic: 왼쪽 클릭
+- generic: Add or remove objects from the selection
+- alert

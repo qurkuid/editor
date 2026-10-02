@@ -1,0 +1,318 @@
+--- vectorize-before.py
++++ vectorize.py
+@@ -41,7 +41,11 @@
+ # calibrated at source scale.
+ UP = 2
+ 
++# Thin interior walls can measure below the old 4 px source floor after
++# antialiasing. Keep them only when their run is long enough to be structural.
+ MIN_WALL_THICKNESS = 4 * UP
++MIN_THIN_WALL_THICKNESS = 2.5 * UP
++MIN_THIN_SEG_LEN = 35 * UP
+ MIN_SEG_LEN = 7 * UP
+ GAP_MIN, GAP_MAX = 9 * UP, 520 * UP
+ ARC_R_MIN, ARC_R_MAX = 13 * UP, 85 * UP
+@@ -298,27 +302,127 @@
+ def assign_thickness(segs, dist_wall, wall):
+     h, w = dist_wall.shape
+     kept = []
++
++    def samples(seg):
++        """Return wall thickness samples and support using a bounded recenter.
++
++        Hough centerlines can drift by a source pixel at a pale window/door
++        frame. Search only along the segment normal and keep the nearest
++        existing wall pixel whose measured body reaches the thin-wall floor;
++        this does not widen the wall mask or invent gray pixels. A bounded
++        support miss remains a real gap even when the centerline drifts.
++        """
++        length = seg.length
++        direction = seg.vec / length
++        normal = np.array([-direction[1], direction[0]])
++        count = max(int(length / 2), 1)
++        values = []
++        exact_supported = []
++        for k in range(count + 1):
++            point = seg.p1 + direction * (length * k / count)
++            x, y = int(round(point[0])), int(round(point[1]))
++            # Two source pixels on either side is enough for the measured
++            # antialiased centerline drift, while avoiding nearby walls. Keep
++            # the exact sample in the same bounded set: a thin border pixel
++            # must not hide a nearby pixel whose measured body reaches the
++            # physical thin-wall floor.
++            candidates = []
++            exact_wall = 0 <= x < w and 0 <= y < h and bool(wall[y, x])
++            exact_thickness = float(dist_wall[y, x]) * 2.0 if exact_wall else 0.0
++            exact_supported.append(exact_thickness >= MIN_THIN_WALL_THICKNESS)
++            if exact_wall:
++                candidates.append((0.0, exact_thickness / 2.0))
++            for offset in np.arange(-2 * UP, 2 * UP + 0.1, 1.0):
++                q = point + normal * offset
++                qx, qy = int(round(q[0])), int(round(q[1]))
++                if 0 <= qx < w and 0 <= qy < h and wall[qy, qx]:
++                    candidates.append((abs(float(offset)), float(dist_wall[qy, qx])))
++            eligible = [
++                (offset, distance)
++                for offset, distance in candidates
++                if distance * 2.0 >= MIN_THIN_WALL_THICKNESS
++            ]
++            if eligible:
++                _, distance = min(eligible, key=lambda item: item[0])
++                values.append(distance * 2.0)
++            else:
++                values.append(None)
++        return values, exact_supported, count
++
+     for s in segs:
+         L = s.length
+         if L < 2:
+             continue
+-        d = s.vec / L
+-        ths, on_wall = [], 0
+-        steps = max(int(L / 2), 1)
+-        for k in range(steps + 1):
+-            p = s.p1 + d * (L * k / steps)
+-            x, y = int(round(p[0])), int(round(p[1]))
+-            if 0 <= x < w and 0 <= y < h and wall[y, x]:
+-                on_wall += 1
+-                ths.append(dist_wall[y, x] * 2.0)
+-        if not ths or on_wall / (steps + 1) < 0.55:
+-            continue
+-        s.th = float(np.median(ths))
+-        if s.th < MIN_WALL_THICKNESS:
+-            continue
+-        if L < max(MIN_SEG_LEN, s.th * 0.55):
+-            continue
+-        kept.append(s)
++        values, exact_supported, steps = samples(s)
++        step_length = L / steps
++
++        # A long Hough run can trace a pale frame on the edge of a genuine
++        # opening. Recentered support keeps a uniformly shifted wall intact;
++        # only split an exact unsupported run when it also contains a bounded
++        # support miss, which distinguishes a real opening from centerline
++        # drift through a continuous wall body.
++        if L >= 2.5 * MIN_THIN_SEG_LEN:
++            gap_start = None
++            for i, supported in enumerate(exact_supported + [True]):
++                if not supported and gap_start is None:
++                    gap_start = i
++                elif supported and gap_start is not None:
++                    if ((i - gap_start) * step_length >= GAP_MIN
++                            and any(value is None for value in values[gap_start:i])):
++                        for j in range(gap_start, i):
++                            values[j] = None
++                    gap_start = None
++
++        # Preserve an actual opening inside a long Hough candidate. Short
++        # centerline misses are handled by the bounded recenter above; only a
++        # source-scale gap is allowed to split the candidate into wall runs.
++        split_runs = []
++        gap_start = None
++        for i, supported in enumerate([value is not None for value in values] + [True]):
++            if not supported and gap_start is None:
++                gap_start = i
++            elif supported and gap_start is not None:
++                if (i - gap_start) * step_length >= GAP_MIN:
++                    split_runs.append((gap_start, i - 1))
++                gap_start = None
++
++        intervals = [(0, steps)]
++        for gap_start, gap_end in split_runs:
++            next_intervals = []
++            for lo, hi in intervals:
++                if gap_end < lo or gap_start > hi:
++                    next_intervals.append((lo, hi))
++                    continue
++                if lo <= gap_start - 1:
++                    next_intervals.append((lo, gap_start - 1))
++                if gap_end + 1 <= hi:
++                    next_intervals.append((gap_end + 1, hi))
++            intervals = next_intervals
++
++        direction = s.vec / L
++        for lo, hi in intervals:
++            if hi <= lo:
++                continue
++            p1 = s.p1 + direction * (step_length * lo)
++            p2 = s.p1 + direction * (step_length * hi)
++            candidate = s if lo == 0 and hi == steps else Seg(p1, p2)
++            candidate_length = candidate.length
++            if candidate_length < 2:
++                continue
++
++            candidate_values, _, candidate_steps = samples(candidate)
++            ths = [value for value in candidate_values if value is not None]
++            on_wall = len(ths)
++            if not ths or on_wall / (candidate_steps + 1) < 0.55:
++                continue
++            candidate.th = float(np.median(ths))
++            if candidate.th < MIN_THIN_WALL_THICKNESS:
++                continue
++            if candidate_length < max(MIN_SEG_LEN, candidate.th * 0.55):
++                continue
++            if candidate.th < MIN_WALL_THICKNESS and candidate_length < MIN_THIN_SEG_LEN:
++                continue
++            kept.append(candidate)
+     return kept
+ 
+ 
+@@ -573,7 +677,9 @@
+             if other is seg:
+                 continue
+             for q in (other.p1, other.p2):
+-                if float(np.linalg.norm(q - endpoint)) <= 3 * UP and other.length > 30 * UP:
++                if (float(np.linalg.norm(q - endpoint)) <= 3 * UP
++                        and other.length > 30 * UP
++                        and other.th >= MIN_WALL_THICKNESS):
+                     return False
+         return True
+ 
+@@ -785,6 +891,105 @@
+     if la is None or lb is None:
+         return True  # a side is buried in wall — inconclusive, don't reject
+     return la != lb
++
++
++def _entrance_endpoint_candidates(first, second):
++    """Find parallel jamb endpoints that form a transverse doorway gap."""
++    if ang_diff(first.angle, second.angle) > 8.0:
++        return []
++    if min(first.length, second.length) < 18.0 * UP:
++        return []
++    candidates = []
++    for pa, body_a in ((first.p1, first.p2 - first.p1),
++                       (first.p2, first.p1 - first.p2)):
++        body_a = body_a / (np.linalg.norm(body_a) + 1e-9)
++        for pb, body_b in ((second.p1, second.p2 - second.p1),
++                           (second.p2, second.p1 - second.p2)):
++            body_b = body_b / (np.linalg.norm(body_b) + 1e-9)
++            if float(np.dot(body_a, body_b)) < 0.75:
++                continue
++            gap = pb - pa
++            gap_len = float(np.linalg.norm(gap))
++            if not (25.0 * UP <= gap_len <= 110.0 * UP):
++                continue
++            if abs(float(np.dot(gap / gap_len, body_a))) > 0.30:
++                continue
++            if abs(float(np.dot(gap, body_a))) > 12.0 * UP:
++                continue
++            candidates.append((pa.copy(), pb.copy(), gap_len, body_a, body_b))
++    return candidates
++
++
++def _entrance_wall_support(masks, point, body, width):
++    """Require gray wall pixels immediately inside the proposed jamb."""
++    wall = masks['wall']
++    height, image_width = wall.shape
++    normal = np.array([-body[1], body[0]])
++    hits = samples = 0
++    for distance in np.arange(1.0, max(8.0 * UP, width * 1.8) + 0.1):
++        for side in (-0.5, 0.0, 0.5):
++            q = point + body * distance + normal * width * side
++            x, y = np.rint(q).astype(int)
++            if 0 <= x < image_width and 0 <= y < height:
++                samples += 1
++                hits += int(bool(wall[y, x]))
++    return samples > 0 and hits / samples >= 0.35
++
++
++def _entrance_white_fraction(masks, a, b, width):
++    strip = strip_mask(masks['wall'].shape, a, b, width + 3.0 * UP)
++    return float((strip & masks['white']).sum()) / max(int(strip.sum()), 1)
++
++
++def find_entrance_gap_candidate(masks, segs, entrance_pts, scale=None,
++                                max_ocr_distance=None):
++    """Return an OCR-gated transverse entrance gap or ``None``.
++
++    This only returns an existing pair of wall endpoints.  The candidate must
++    also carry a bright sill/profile, separate the two sides, and pass the
++    existing swing-arc hypothesis; it never creates a wall or room boundary.
++    """
++    if not entrance_pts:
++        return None
++    max_ocr_distance = (120.0 * UP if max_ocr_distance is None
++                        else float(max_ocr_distance))
++    points = []
++    for point in entrance_pts:
++        point = np.asarray(point, dtype=float).reshape(-1)[:2]
++        if point.size == 2 and np.all(np.isfinite(point)):
++            points.append(point)
++    if not points:
++        return None
++
++    best = None
++    seg_list = list(segs)
++    for index, first in enumerate(seg_list):
++        for second in seg_list[index + 1:]:
++            for pa, pb, gap_len, body_a, body_b in _entrance_endpoint_candidates(first, second):
++                width = max(float(first.th), float(second.th))
++                if not (_entrance_wall_support(masks, pa, body_a, width)
++                        and _entrance_wall_support(masks, pb, body_b, width)):
++                    continue
++                midpoint = (pa + pb) / 2.0
++                ocr_distance = min(float(np.linalg.norm(midpoint - point)) for point in points)
++                if ocr_distance > max_ocr_distance:
++                    continue
++                profile = gap_cross_profile(masks['v'], pa, pb, width)
++                if (not profile or max(profile) < 235.0
++                        or max(profile) - min(profile) < 25.0):
++                    continue
++                if _entrance_white_fraction(masks, pa, pb, width) < 0.10:
++                    continue
++                if not gap_separates(masks, pa, pb, width):
++                    continue
++                hypothesis = door_hypothesis(masks['stroke'], pa, pb, gap_len, scale)
++                if hypothesis is None or hypothesis[0] < 0.62:
++                    continue
++                candidate = (pa.copy(), pb.copy(), width, 'entrance-transverse')
++                score = (ocr_distance, -float(hypothesis[0]))
++                if best is None or score < best[0]:
++                    best = (score, candidate)
++    return best[1] if best else None
+ 
+ 
+ def classify_openings(gaps, masks, segs, scale=None, entrance_pts=None):
+@@ -867,7 +1072,21 @@
+             # through a bright-tiled room interior passes the sill gate but
+             # keeps the same room on both flanks
+             if door_prof and not gap_separates(masks, pa, pb, wd):
+-                door_prof = None
++                # A newly retained thin wall can move a ray endpoint by a
++                # fraction of a source pixel. Recheck a narrow normal band
++                # before rejecting a strong existing swing candidate; the
++                # emitted gap endpoints themselves remain source-backed.
++                recovered = False
++                if src == 'ray':
++                    for offset in np.arange(-2 * UP, 2 * UP + 0.1, 1.0):
++                        d_gap = (pb - pa) / (glen + 1e-9)
++                        n_gap = np.array([-d_gap[1], d_gap[0]])
++                        if gap_separates(masks, pa + n_gap * offset,
++                                         pb + n_gap * offset, wd):
++                            recovered = True
++                            break
++                if not recovered:
++                    door_prof = None
+         else:
+             door_prof = None
+         if door_prof:
+@@ -1320,7 +1539,7 @@
+         return [round(float(p[0]) * s, 1), round(float(p[1]) * s, 1)]
+ 
+     return dict(
+-        source=os.path.basename(img_path), unit=unit, docVersion=9,
++        source=os.path.basename(img_path), unit=unit, docVersion=10,
+         imageSize=[img_shape[1], img_shape[0]], mmPerPx=scale,
+         walls=[dict(id=f'w{i}', kind='exterior' if sg.exterior else 'interior',
+                     start=pt(sg.p1), end=pt(sg.p2), thickness=round(sg.th * s, 1))
+@@ -1381,6 +1600,9 @@
+     gaps = gaps + boundary_gaps(masks, segs, gaps)
+     entrance_pts = [np.array([it['x'] + it['w'] / 2, it['y'] + it['h'] / 2])
+                     for it in ocr_items if 'ntrance' in it.get('text', '')]
++    entrance_gap = find_entrance_gap_candidate(masks, segs, entrance_pts, scale)
++    if entrance_gap is not None:
++        gaps.insert(0, entrance_gap)
+     openings = classify_openings(gaps, masks, segs, scale, entrance_pts)
+     rooms = detect_rooms(img, masks, segs, openings, scale)
+     if use_ocr:

@@ -1,0 +1,635 @@
+app/api/finish-templates/route.ts(66,31): error TS7006: Parameter 'record' implicitly has an 'any' type.
+components/apt-search-panel.tsx(27,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/apt-search-panel.tsx(28,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/body-modeling-tools.tsx(11,8): error TS2307: Cannot find module '@pascal-app/nodes' or its corresponding type declarations.
+components/body-modeling-tools.tsx(42,43): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/body-modeling-tools.tsx(43,46): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/body-modeling-tools.tsx(69,44): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/body-modeling-tools.tsx(70,47): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/body-modeling-tools.tsx(102,41): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/body-modeling-tools.tsx(103,44): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/body-modeling-tools.tsx(104,44): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/build-tab.tsx(14,42): error TS2307: Cannot find module '@pascal-app/nodes' or its corresponding type declarations.
+components/build-tab.tsx(211,44): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/build-tab.tsx(212,50): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/build-workflow-guide.tsx(12,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+components/build-workflow-guide.tsx(287,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/furniture-tab.tsx(11,68): error TS2307: Cannot find module '@pascal-app/nodes' or its corresponding type declarations.
+components/furniture-tab.tsx(12,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+components/furniture-tab.tsx(121,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/furniture-tab.tsx(122,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/furniture-tab.tsx(126,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/furniture-tab.tsx(127,45): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/furniture-tab.tsx(189,20): error TS2345: Argument of type '"actionMenu.cutOut" | "actionMenu.deleteGuideImage" | "actionMenu.deleteScan" | "actionMenu.dimAngular" | "actionMenu.dimArcLength" | "actionMenu.dimCenterMark" | "actionMenu.dimChord" | ... 1631 more ... | undefined' is not assignable to parameter of type '"actionMenu.cutOut" | "actionMenu.deleteGuideImage" | "actionMenu.deleteScan" | "actionMenu.dimAngular" | "actionMenu.dimArcLength" | "actionMenu.dimCenterMark" | "actionMenu.dimChord" | ... 1630 more ... | "stats.waste"'.
+  Type 'undefined' is not assignable to type '"actionMenu.cutOut" | "actionMenu.deleteGuideImage" | "actionMenu.deleteScan" | "actionMenu.dimAngular" | "actionMenu.dimArcLength" | "actionMenu.dimCenterMark" | "actionMenu.dimChord" | ... 1630 more ... | "stats.waste"'.
+components/img3d-workflow.ts(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+components/lighting-tab.tsx(15,40): error TS2307: Cannot find module '@pascal-app/nodes' or its corresponding type declarations.
+components/lighting-tab.tsx(16,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+components/lighting-tab.tsx(134,45): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(265,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(266,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(269,45): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(270,45): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(271,49): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(272,48): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(273,51): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(274,47): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(275,45): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/lighting-tab.tsx(276,46): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/modeling-rail-controls.tsx(4,56): error TS2307: Cannot find module '@pascal-app/nodes' or its corresponding type declarations.
+components/modeling-rail-controls.tsx(33,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/modeling-rail-controls.tsx(34,44): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/modeling-rail-controls.tsx(35,44): error TS7006: Parameter 's' implicitly has an 'any' type.
+components/painting-tab.tsx(30,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/stats-tab.tsx(5,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+components/stats-tab.tsx(100,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(27,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+components/viewer-toolbar.tsx(251,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(252,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(296,31): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(297,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(340,31): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(341,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(342,39): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(343,42): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(344,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(345,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(346,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(347,40): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(348,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(349,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(350,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(351,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(352,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(353,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(354,28): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(355,31): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(356,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(357,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/viewer-toolbar.tsx(647,32): error TS7006: Parameter 'theme' implicitly has an 'any' type.
+components/zone-finish-panel.tsx(338,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/zone-finish-panel.tsx(339,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+components/zone-finish-panel.tsx(340,31): error TS7006: Parameter 'state' implicitly has an 'any' type.
+lib/ai-control.ts(53,41): error TS2307: Cannot find module '@pascal-app/mcp/bridge' or its corresponding type declarations.
+lib/ai-control.ts(54,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+lib/ai-control.ts(793,56): error TS7006: Parameter 'id' implicitly has an 'any' type.
+lib/ai-control.ts(796,47): error TS7006: Parameter 'node' implicitly has an 'any' type.
+lib/ai-provider.ts(9,39): error TS2307: Cannot find module '@pascal-app/mcp/modeling-agent-manual' or its corresponding type declarations.
+lib/bootstrap.ts(10,31): error TS2307: Cannot find module '@pascal-app/nodes' or its corresponding type declarations.
+lib/finish-template-server.ts(9,8): error TS2307: Cannot find module '@pascal-app/mcp/storage' or its corresponding type declarations.
+lib/scene-store-server.ts(1,38): error TS2307: Cannot find module '@pascal-app/mcp/operations' or its corresponding type declarations.
+lib/scene-store-server.ts(2,51): error TS2307: Cannot find module '@pascal-app/mcp/storage' or its corresponding type declarations.
+lib/scene-store-server.ts(15,33): error TS2307: Cannot find module '@pascal-app/mcp/storage' or its corresponding type declarations.
+lib/scene-store-server.ts(28,33): error TS2307: Cannot find module '@pascal-app/mcp/operations' or its corresponding type declarations.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/flower-tool.tsx(5,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/flower-tool.tsx(17,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/grass-tool.tsx(5,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/grass-tool.tsx(17,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/instanced.tsx(11,42): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/instanced.tsx(57,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/instanced.tsx(58,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/instanced.tsx(308,6): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/instanced.tsx(311,6): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/tool.tsx(5,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+151edf12defaace8/node_modules/@pascal-app/plugin-trees/src/tool.tsx(19,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/construction-guide-stretch-controls.tsx(18,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/construction-guide-stretch-controls.tsx(113,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/construction-guide-stretch-controls.tsx(114,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/expert-dimension-edit-popover.tsx(7,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/expert-dimension-edit-popover.tsx(80,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/expert-dimension-edit-popover.tsx(81,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-alignment-guide-layer.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/floorplan-alignment-guide-layer.tsx(30,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-alignment-guide-layer.tsx(31,37): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-action-menu.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/floorplan-group-action-menu.tsx(33,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-action-menu.tsx(37,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-action-menu.tsx(41,35): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-action-menu.tsx(47,37): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-action-menu.tsx(48,48): error TS7006: Parameter 'node' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-action-menu.tsx(49,24): error TS7006: Parameter 'node' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-action-menu.tsx(103,51): error TS7006: Parameter 'body' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-action-menu.tsx(109,55): error TS7006: Parameter 'body' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-move.tsx(19,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/floorplan-group-move.tsx(123,8): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-move.tsx(411,6): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-move.tsx(593,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-move.tsx(594,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-move.tsx(595,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-move.tsx(596,37): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-group-move.tsx(629,8): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-measurement-tool-layer.tsx(21,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/floorplan-measurement-tool-layer.tsx(640,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-measurement-tool-layer.tsx(641,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-measurement-tool-layer.tsx(800,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-measurement-tool-layer.tsx(801,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-measurement-tool-layer.tsx(802,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-quick-measure-layer.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/floorplan-quick-measure-layer.tsx(106,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-registered-tool-layer.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/floorplan-registered-tool-layer.tsx(43,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-registered-tool-layer.tsx(44,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-registered-tool-layer.tsx(45,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-registry-action-menu.tsx(19,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/floorplan-registry-action-menu.tsx(147,33): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/floorplan-registry-move-overlay.tsx(18,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-placement-preview-layer.tsx(11,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-placement-preview-layer.tsx(45,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-placement-preview-layer.tsx(46,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(31,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(548,38): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(549,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(550,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(551,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(552,37): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(553,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(763,40): error TS7006: Parameter 'selectedId' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(1059,10): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(2081,31): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(2082,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(2084,6): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(2087,38): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(2092,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(2093,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx(2094,47): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-voronoi-layer.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor-2d/renderers/floorplan-voronoi-layer.tsx(46,38): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/alignment-3d-guide-layer.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/alignment-3d-guide-layer.tsx(67,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/alignment-3d-guide-layer.tsx(68,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/bake-exporter.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/bake-thumbnail.tsx(10,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/custom-camera-controls.tsx(12,51): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/custom-camera-controls.tsx(387,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/custom-camera-controls.tsx(388,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/draft-length-hud.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/draft-length-hud.tsx(18,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/draft-length-hud.tsx(19,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/editor-layout-mobile.tsx(3,42): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/editor-layout-mobile.tsx(59,29): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/elevation-3d-guide-layer.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/elevation-3d-guide-layer.tsx(46,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/export-manager.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/export-manager.tsx(39,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/fence-tangent-lines-3d.tsx(12,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/fence-tangent-lines-3d.tsx(35,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/fence-tangent-lines-3d.tsx(49,68): error TS18047: 'object' is possibly 'null'.
+../../packages/editor/src/components/editor/fence-tangent-lines-3d.tsx(77,7): error TS2339: Property 'lineBasicNodeMaterial' does not exist on type 'JSX.IntrinsicElements'.
+../../packages/editor/src/components/editor/first-person-controls.tsx(46,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/first-person-controls.tsx(697,38): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/first-person-controls.tsx(1615,27): error TS2322: Type '{ name: MovementKeyName; keys: string[]; }[]' is not assignable to type 'KeyboardControlsEntry<string>[]'.
+  Type '{ name: MovementKeyName; keys: string[]; }' is not assignable to type 'KeyboardControlsEntry<string>'.
+    Types of property 'name' are incompatible.
+      Type 'MovementKeyName' is not assignable to type 'string'.
+        Type 'number' is not assignable to type 'string'.
+../../packages/editor/src/components/editor/first-person-controls.tsx(1657,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floating-action-menu.tsx(39,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/floating-action-menu.tsx(303,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floating-action-menu.tsx(315,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floating-action-menu.tsx(316,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floating-building-action-menu.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/floating-building-action-menu.tsx(14,33): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floating-building-action-menu.tsx(15,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floating-building-action-menu.tsx(17,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(60,42): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(3561,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(3957,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(4725,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5037,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5038,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5039,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5040,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5041,41): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5042,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5043,44): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5044,29): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5045,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5046,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5047,31): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5048,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(5049,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/floorplan-panel.tsx(10321,42): error TS7006: Parameter 'selectedId' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/grid.tsx(4,54): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/grid.tsx(48,29): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-actions.ts(17,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/group-actions.ts(70,6): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(37,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(38,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(55,14): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(62,35): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(68,37): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(69,48): error TS7006: Parameter 'node' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(70,24): error TS7006: Parameter 'node' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(179,53): error TS7006: Parameter 'body' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-floating-action-menu.tsx(188,57): error TS7006: Parameter 'body' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-move-3d.ts(15,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/group-move-3d.ts(93,8): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-rotate-handle.tsx(13,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/group-rotate-handle.tsx(62,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-rotate-handle.tsx(63,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-rotate-handle.tsx(77,10): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-selection-box-3d.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/group-selection-box-3d.tsx(35,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-selection-box-3d.tsx(36,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-selection-box-3d.tsx(47,14): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/group-selection-box-3d.tsx(124,8): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/handles/use-handle-drag.ts(12,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/index.tsx(20,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/index.tsx(383,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/measurement-pill.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/node-arrow-handles.tsx(22,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/node-arrow-handles.tsx(196,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/node-arrow-handles.tsx(666,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/node-arrow-handles.tsx(1113,7): error TS2339: Property 'lineBasicNodeMaterial' does not exist on type 'JSX.IntrinsicElements'.
+../../packages/editor/src/components/editor/opening-guides-3d-layer.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/opening-guides-3d-layer.tsx(55,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/pivot-rotate-tool-3d.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/pivot-rotate-tool-3d.tsx(39,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/pivot-rotate-tool-3d.tsx(188,7): error TS2339: Property 'lineBasicNodeMaterial' does not exist on type 'JSX.IntrinsicElements'.
+../../packages/editor/src/components/editor/quick-measurement-hud.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/quick-measurement-hud.tsx(14,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/quick-measurement-hud.tsx(15,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/riser-diagram-panel.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/riser-diagram-panel.tsx(38,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(34,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/selection-manager.tsx(765,44): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2097,39): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2122,51): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2167,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2168,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2169,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2170,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2171,39): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2320,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2321,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2322,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2323,39): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/selection-manager.tsx(2324,31): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/site-edge-labels.tsx(5,42): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/site-edge-labels.tsx(52,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/site-edge-labels.tsx(53,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/site-edge-labels.tsx(54,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/site-edge-labels.tsx(55,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/slab-hole-highlights.tsx(15,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/slab-hole-highlights.tsx(234,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/slab-hole-highlights.tsx(250,25): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/thumbnail-generator.tsx(15,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/walk-to-point.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/wall-align-pick-controller.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/wall-measurement-label.tsx(22,42): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/wall-measurement-label.tsx(68,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/wall-measurement-label.tsx(79,73): error TS18047: 'objectState' is possibly 'null'.
+../../packages/editor/src/components/editor/wall-measurement-label.tsx(512,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/wall-measurement-label.tsx(513,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/wall-measurement-label.tsx(514,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/wall-move-side-handles.tsx(18,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/wall-move-side-handles.tsx(135,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/wall-opening-highlights.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/wall-opening-highlights.tsx(77,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/wall-opening-highlights.tsx(78,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/wall-opening-highlights.tsx(87,30): error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.
+../../packages/editor/src/components/editor/wall-opening-highlights.tsx(87,39): error TS2322: Type 'unknown' is not assignable to type 'string'.
+../../packages/editor/src/components/editor/wall-opening-highlights.tsx(92,31): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/wall-opening-highlights.tsx(104,39): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/editor/wall-snap-beacon-layer.tsx(19,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/editor/wall-snap-beacon-layer.tsx(105,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/ceiling/ceiling-selection-affordance-system.tsx(13,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/systems/ceiling/ceiling-selection-affordance-system.tsx(107,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/ceiling/ceiling-system.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/systems/ceiling/ceiling-system.tsx(80,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/ceiling/ceiling-system.tsx(81,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/ceiling/ceiling-system.tsx(82,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/ceiling/ceiling-system.tsx(87,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/roof/roof-edit-system.tsx(27,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/systems/roof/roof-edit-system.tsx(642,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/roof/roof-edit-system.tsx(1024,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/roof/roof-edit-system.tsx(1782,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/selection-affordance-manager.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/systems/selection-affordance-manager.tsx(21,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/stair/stair-edit-system.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/systems/stair/stair-edit-system.tsx(19,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/stair/stair-edit-system.tsx(24,17): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/zone/zone-label-editor-system.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/systems/zone/zone-label-editor-system.tsx(20,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/zone/zone-label-editor-system.tsx(21,37): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/zone/zone-label-editor-system.tsx(22,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/zone/zone-label-editor-system.tsx(329,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/systems/zone/zone-system.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/fence/fence-drafting.ts(13,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/furniture/furniture-tool.tsx(11,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/furniture/furniture-tool.tsx(33,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/furniture/furniture-tool.tsx(34,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/furniture/furniture-tool.tsx(35,37): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/item/use-draft-node.ts(9,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/item/use-placement-coordinator.tsx(25,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/item/use-placement-coordinator.tsx(303,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/item/use-placement-coordinator.tsx(304,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/item/use-placement-coordinator.tsx(2382,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/registry/move-registry-node-tool.tsx(33,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/roof/roof-tool.tsx(18,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/roof/roof-tool.tsx(372,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/roof/roof-tool.tsx(373,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/roof/roof-tool.tsx(374,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/roof/roof-tool.tsx(606,9): error TS2339: Property 'lineBasicNodeMaterial' does not exist on type 'JSX.IntrinsicElements'.
+../../packages/editor/src/components/tools/select/box-select-tool.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/select/box-select-tool.tsx(288,44): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/select/plane-box-select-tool.tsx(12,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/select/plane-box-select-tool.tsx(292,44): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/select/plane-box-select-tool.tsx(353,46): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/select/select-candidates.ts(11,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/shared/horizontal-construction-plane.ts(9,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/shared/pointer-support-cap.ts(11,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/shared/polygon-editor.tsx(2,40): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/shared/polygon-editor.tsx(400,7): error TS2339: Property 'lineBasicNodeMaterial' does not exist on type 'JSX.IntrinsicElements'.
+../../packages/editor/src/components/tools/shared/polygon-editor.tsx(960,11): error TS2339: Property 'lineBasicNodeMaterial' does not exist on type 'JSX.IntrinsicElements'.
+../../packages/editor/src/components/tools/site/site-boundary-editor.tsx(2,29): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/site/terrain-brush-cursor.tsx(12,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/site/terrain-brush-cursor.tsx(81,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/site/terrain-brush-cursor.tsx(219,9): error TS2339: Property 'lineBasicNodeMaterial' does not exist on type 'JSX.IntrinsicElements'.
+../../packages/editor/src/components/tools/site/terrain-sculpt-grid.tsx(11,54): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/site/terrain-sculpt-grid.tsx(117,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/site/terrain-sculpt-tool.tsx(17,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/stair/stair-tool.tsx(18,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/stair/stair-tool.tsx(249,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/tool-manager.tsx(12,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/tool-manager.tsx(143,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/tool-manager.tsx(144,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/tool-manager.tsx(145,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/tool-manager.tsx(146,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/tool-manager.tsx(147,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/tool-manager.tsx(159,44): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/tool-manager.tsx(169,47): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/wall/wall-drafting.ts(23,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/zone/zone-tool.tsx(10,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/tools/zone/zone-tool.tsx(73,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/tools/zone/zone-tool.tsx(361,9): error TS2339: Property 'lineBasicNodeMaterial' does not exist on type 'JSX.IntrinsicElements'.
+../../packages/editor/src/components/tools/zone/zone-tool.tsx(375,9): error TS2339: Property 'lineBasicNodeMaterial' does not exist on type 'JSX.IntrinsicElements'.
+../../packages/editor/src/components/ui/action-menu/control-modes.tsx(5,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/action-menu/control-modes.tsx(87,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/index.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/action-menu/index.tsx(31,43): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(11,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(32,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(48,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(62,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(88,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(89,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(90,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(175,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(176,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(177,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(355,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(356,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(357,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(554,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(666,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(667,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(668,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/action-menu/view-toggles.tsx(669,36): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/command-palette/editor-commands.tsx(5,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/command-palette/editor-commands.tsx(59,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/command-palette/editor-commands.tsx(264,18): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ cutaway: string; up: string; down: string; translucent: string; }'.
+../../packages/editor/src/components/ui/command-palette/editor-commands.tsx(277,18): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ manual: string; stacked: string; exploded: string; solo: string; }'.
+../../packages/editor/src/components/ui/command-palette/index.tsx(5,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/command-palette/index.tsx(210,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/command-palette/index.tsx(212,31): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/command-palette/index.tsx(213,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/command-palette/index.tsx(214,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/command-palette/index.tsx(215,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/controls/material-paint-panel.tsx(15,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/controls/material-paint-panel.tsx(78,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/floating-level-selector.tsx(30,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/floating-level-selector.tsx(394,41): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/floating-level-selector.tsx(395,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/floating-level-selector.tsx(396,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/contextual-helper-panel.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/helpers/contextual-helper-panel.tsx(182,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/contextual-helper-panel.tsx(183,37): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/helper-manager.tsx(10,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/helpers/helper-manager.tsx(144,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/helper-manager.tsx(150,15): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/helper-manager.tsx(151,18): error TS7006: Parameter 'node' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/helper-manager.tsx(182,48): error TS7006: Parameter 'node' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/helper-manager.tsx(183,50): error TS7006: Parameter 'node' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/wall-edit-controls.tsx(10,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/helpers/wall-edit-controls.tsx(40,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/wall-edit-controls.tsx(41,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/wall-edit-controls.tsx(45,15): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/wall-edit-controls.tsx(46,18): error TS7006: Parameter 'node' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/helpers/wall-edit-controls.tsx(50,60): error TS7006: Parameter 'node' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/item-catalog/item-catalog.tsx(14,42): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/panels/multi-selection-panel.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/panels/multi-selection-panel.tsx(25,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/panels/multi-selection-panel.tsx(26,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/panels/multi-selection-panel.tsx(30,47): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/panels/panel-manager.tsx(24,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/panels/panel-manager.tsx(100,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/panels/panel-manager.tsx(180,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/panels/panel-manager.tsx(181,37): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/panels/panel-manager.tsx(182,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/panels/parametric-inspector.tsx(13,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/panels/parametric-inspector.tsx(52,46): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/panels/parametric-inspector.tsx(56,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/panels/use-guide-surface-placement.ts(8,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/index.tsx(8,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/index.tsx(214,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/index.tsx(215,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/index.tsx(216,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/index.tsx(217,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/index.tsx(218,30): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/index.tsx(219,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/index.tsx(220,40): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/load-build-dialog.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/settings-panel/load-build-dialog.tsx(101,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/building-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/building-tree-node.tsx(34,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/building-tree-node.tsx(35,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/building-tree-node.tsx(36,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/ceiling-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/ceiling-tree-node.tsx(32,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/ceiling-tree-node.tsx(33,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/ceiling-tree-node.tsx(34,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/ceiling-tree-node.tsx(35,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/ceiling-tree-node.tsx(36,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/ceiling-tree-node.tsx(40,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/chimney-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/chimney-tree-node.tsx(25,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/chimney-tree-node.tsx(26,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/chimney-tree-node.tsx(27,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/chimney-tree-node.tsx(28,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/column-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/column-tree-node.tsx(24,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/column-tree-node.tsx(25,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/column-tree-node.tsx(26,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/column-tree-node.tsx(27,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/door-tree-node.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/door-tree-node.tsx(27,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/door-tree-node.tsx(28,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/door-tree-node.tsx(29,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/door-tree-node.tsx(30,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/dormer-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/dormer-tree-node.tsx(31,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/dormer-tree-node.tsx(32,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/dormer-tree-node.tsx(33,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/dormer-tree-node.tsx(34,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/elevator-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/elevator-tree-node.tsx(24,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/elevator-tree-node.tsx(25,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/elevator-tree-node.tsx(26,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/elevator-tree-node.tsx(27,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/fence-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/fence-tree-node.tsx(23,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/fence-tree-node.tsx(25,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/fence-tree-node.tsx(26,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/fence-tree-node.tsx(27,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/gutter-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/gutter-tree-node.tsx(25,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/gutter-tree-node.tsx(26,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/gutter-tree-node.tsx(27,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/gutter-tree-node.tsx(28,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(14,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(108,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(109,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(441,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(442,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(919,41): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(920,38): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(921,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1133,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1134,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1135,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1136,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1139,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1293,34): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1294,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1316,38): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1413,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1573,41): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx(1574,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/item-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/item-tree-node.tsx(46,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/item-tree-node.tsx(47,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/item-tree-node.tsx(48,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/item-tree-node.tsx(49,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/item-tree-node.tsx(53,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/level-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/level-tree-node.tsx(29,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/level-tree-node.tsx(30,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/level-tree-node.tsx(31,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/registry-tree-node.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/registry-tree-node.tsx(42,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/registry-tree-node.tsx(43,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/registry-tree-node.tsx(44,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/registry-tree-node.tsx(45,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/registry-tree-node.tsx(69,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(27,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(28,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(29,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(30,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(45,39): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(176,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(177,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(178,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(179,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/roof-tree-node.tsx(183,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/shelf-tree-node.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/shelf-tree-node.tsx(43,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/shelf-tree-node.tsx(44,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/shelf-tree-node.tsx(45,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/shelf-tree-node.tsx(46,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/shelf-tree-node.tsx(52,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/slab-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/slab-tree-node.tsx(25,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/slab-tree-node.tsx(26,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/slab-tree-node.tsx(27,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/slab-tree-node.tsx(28,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/slab-tree-node.tsx(29,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/solar-panel-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/solar-panel-tree-node.tsx(25,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/solar-panel-tree-node.tsx(26,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/solar-panel-tree-node.tsx(27,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/solar-panel-tree-node.tsx(28,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/spawn-tree-node.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/spawn-tree-node.tsx(25,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/spawn-tree-node.tsx(26,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/spawn-tree-node.tsx(27,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/spawn-tree-node.tsx(28,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(27,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(28,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(29,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(30,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(44,39): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(166,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(167,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(168,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/stair-tree-node.tsx(169,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/tree-node-actions.tsx(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/tree-node-actions.tsx(30,26): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/wall-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/wall-tree-node.tsx(28,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/wall-tree-node.tsx(29,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/wall-tree-node.tsx(30,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/wall-tree-node.tsx(31,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/wall-tree-node.tsx(35,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/window-tree-node.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/window-tree-node.tsx(27,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/window-tree-node.tsx(28,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/window-tree-node.tsx(29,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/window-tree-node.tsx(30,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/zone-tree-node.tsx(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/zone-tree-node.tsx(26,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/zone-tree-node.tsx(27,32): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/zone-tree-node.tsx(28,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/zone-tree-node.tsx(29,35): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/site-panel/zone-tree-node.tsx(30,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/views-panel.tsx(4,40): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/ui/sidebar/panels/views-panel.tsx(21,26): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/views-panel.tsx(22,29): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/ui/sidebar/panels/views-panel.tsx(23,33): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer-zone-system.tsx(4,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(10,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(111,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(112,33): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(166,33): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(167,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(168,31): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(169,30): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(170,33): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(171,28): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(262,32): error TS7006: Parameter 'theme' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(341,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-controls-bar.tsx(342,31): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/components/viewer/viewer-scene-header.tsx(12,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/components/viewer/viewer-scene-header.tsx(51,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/hooks/use-ceiling-events.ts(10,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/hooks/use-draft-length-input.ts(2,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/hooks/use-draft-length-input.ts(30,27): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/hooks/use-draft-length-input.ts(31,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/hooks/use-grid-events.ts(8,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/hooks/use-keyboard.ts(10,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/hooks/use-keyboard.ts(72,6): error TS7006: Parameter 'id' implicitly has an 'any' type.
+../../packages/editor/src/hooks/use-selection.ts(5,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/hooks/use-selection.ts(47,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+../../packages/editor/src/index.tsx(20,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/body-container-actions.ts(12,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/constants.ts(1,31): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/floorplan/floorplan-export.tsx(15,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/glb-export.ts(26,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/level-selection.ts(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/roof-duplication.ts(13,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/scene-clipboard.ts(14,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/scene.ts(10,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/sketchup-wall-contract.ts(16,8): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/stair-duplication.ts(8,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/use-linear-display.ts(3,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/lib/use-linear-display.ts(27,33): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/lib/use-linear-display.ts(28,37): error TS7006: Parameter 'state' implicitly has an 'any' type.
+../../packages/editor/src/lib/world-grid-snap.ts(22,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/store/use-editor.tsx(40,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/store/use-measurement-draft.ts(13,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.
+../../packages/editor/src/store/use-measurement-draft.ts(536,20): error TS2345: Argument of type 'string' is not assignable to parameter of type '`body-group_${string}` | `body_${string}` | `building_${string}` | `bvent_${string}` | `cabinet-module_${string}` | `cabinet_${string}` | `ceiling_${string}` | `cguide_${string}` | `chimney_${string}` | `column_${string}` | `component_${string}` | `construction-dimension_${string}` | `cupola_${string}` | `door_${str...'.
+../../packages/editor/src/store/use-pivot-rotate.ts(14,27): error TS2307: Cannot find module '@pascal-app/viewer' or its corresponding type declarations.

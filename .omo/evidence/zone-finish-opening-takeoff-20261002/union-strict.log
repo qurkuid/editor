@@ -1,0 +1,25 @@
+bun test v1.3.11 (af24e281)
+
+packages/viewer/src/lib/polygon-union.test.ts:
+(pass) unionPolygons > collapses a contained polygon into the containing polygon [1.17ms]
+(pass) unionPolygons > combines overlapping rectangles into one boundary [0.10ms]
+(pass) unionPolygons > keeps disjoint polygons as separate boundaries [0.15ms]
+(pass) unionPolygons > does not count a retained centre inside a frame-shaped union [0.69ms]
+(pass) unionPolygons > fails instead of accepting a degenerate partial boundary [0.06ms]
+(pass) unionPolygons > proves contained, overlapping, and disjoint rectangle areas [0.17ms]
+(pass) unionPolygons > rejects point-touching rings whose containment is ambiguous
+(pass) unionPolygons > proves shared-edge rectangles without double counting the seam [0.09ms]
+(pass) clipPolygonToRect > clips a polygon crossing each rectangle edge [0.14ms]
+(pass) clipPolygonToRect > returns an empty polygon when there is no intersection
+(pass) subtractPolygonsFromPolygon > returns an outer contour and an enclosed window hole [0.16ms]
+(pass) subtractPolygonsFromPolygon > turns a boundary-overlapping cutter into an indentation [0.02ms]
+(pass) subtractPolygonsFromPolygon > returns separate contours when a cutter splits the subject [0.07ms]
+(pass) subtractPolygonsFromPolygon > keeps two disjoint window holes as three contours
+(pass) subtractPolygonsFromPolygon > clips an opening crossing the footprint cap
+(pass) subtractPolygonsFromPolygon > handles an opening ending exactly on the footprint boundary [0.17ms]
+(pass) subtractPolygonsFromPolygon > extends a floor-level door notch to the exact semantic padding
+
+ 17 pass
+ 0 fail
+ 39 expect() calls
+Ran 17 tests across 1 file. [23.00ms]

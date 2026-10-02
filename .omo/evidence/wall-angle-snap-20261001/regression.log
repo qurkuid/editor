@@ -1,0 +1,239 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/ai-control.test.ts:
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > validates a structured modeling plan at the API boundary [4.66ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > applies detailed patches as one undo step [8.00ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > merges selected walls through the shared operation as one undo step [1.29ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > splits a wall through the shared AI operation as one undo step [0.66ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > does not mutate earlier wall operations when a later AI patch is invalid [0.31ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > adds the standard physical assembly to AI-created walls [0.27ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > rejects the whole plan before mutation when a parent is missing [0.20ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > builds a structural context without viewport pixels [0.07ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > includes the current hierarchy and selected nodes for precise chat control [0.08ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > pushes a body face by an exact metric distance as one undo step [2.96ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > arrays a whole Body through the AI operation as one undo step [1.27ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > intersects two Bodies through AI and restores both on one undo [5.82ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > applies union and subtraction Body booleans through AI with one undo each [10.56ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > applies Solid Tools through AI with exact tool lifetime and one undo [13.68ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > offsets a body face through the canonical executor as one undo step [2.24ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > imprints and raises a closed body face without guessing the inset face id [1.37ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > splits an open body face through the canonical AI operation with one undo [1.82ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > turns an exact recessed imprint into a through-cut through the AI operation [9.34ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > creates a rounded hollow frame as one structured operation and one undo step [1.70ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > creates normalized furniture through the shared operation in one undo step [5.03ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > keeps direct and AI tier interior edits structurally identical [1.12ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > does not create history for an identical tier interior operation [0.19ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > keeps direct and AI structural furniture edits identical in one undo step [1.33ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > rolls back a tier interior plan when a later target is invalid [0.17ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > applies repeated body face pushes in one plan and one undo step
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > paints one body face and restores the body and material with one undo [1.76ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > replaces a scene material texture with the locally cached seamless asset [0.68ms]
+
+packages/mcp/src/ontology-manual.test.ts:
+(pass) Phase 2 ontology manual contract > documents weak endpoint inference separately from explicit angle locking [0.05ms]
+(pass) Phase 2 ontology manual contract > documents validated length edits and boundary review
+(pass) Phase 2 ontology manual contract > documents ontology discovery and evidence requirements
+(pass) Phase 2 ontology manual contract > documents the canonical Body transform and direct scale interactions [0.06ms]
+(pass) Phase 2 ontology manual contract > documents apartment wall extraction and junction continuity
+(pass) Phase 2 ontology manual contract > documents source-backed opening and room boundary contracts
+(pass) Phase 2 ontology manual contract > documents persistent Body sub-entity selection
+(pass) Phase 2 ontology manual contract > documents Body Autofold constraints
+(pass) Phase 2 ontology manual contract > documents whole-Body array operations [0.28ms]
+(pass) Phase 2 ontology manual contract > documents editor-only Body container edit routing [0.08ms]
+(pass) Phase 2 ontology manual contract > documents solid inspection and Body boolean operations [0.08ms]
+(pass) Phase 2 ontology manual contract > documents Solid Tools ordering and tool lifetime [0.06ms]
+(pass) Phase 2 ontology manual contract > documents the canonical Body offset operation and signed interaction [0.11ms]
+(pass) Phase 2 ontology manual contract > documents signed imprint through-cuts and the 2D render-only boundary [0.09ms]
+(pass) Phase 2 ontology manual contract > documents sampled Arc parity through existing Body operations [0.02ms]
+
+packages/core/src/lib/space-detection.test.ts:
+(pass) planAutoCeilingsForLevel > creates auto ceilings height-less so they follow the level top [0.50ms]
+(pass) planAutoCeilingsForLevel > never writes a height onto a matched auto ceiling
+(pass) planAutoCeilingsForLevel > creates and reconciles an auto ceiling at the enclosing wall top
+(pass) planAutoCeilingsForLevel > a leftover explicit height on a matched auto ceiling is not rewritten [0.81ms]
+(pass) planAutoCeilingsForLevel > does not replace a manual ceiling with an auto ceiling [0.04ms]
+(pass) planAutoCeilingsForLevel > demotes an orphaned auto ceiling to manual with its polygon untouched [0.06ms]
+(pass) planAutoCeilingsForLevel > deletes an unmatched auto ceiling absorbed by a room merge [0.23ms]
+(pass) planAutoCeilingsForLevel > a demoted ceiling suppresses re-creating an auto ceiling when the room re-forms [0.07ms]
+(pass) stage 3-B ceiling clamp bound > height-less auto ceilings resolve under the covering-slab bound at read time [0.59ms]
+(pass) stage 3-B ceiling clamp bound > clamps a manual ceiling above the bound down to it (plane-only degradation) [0.69ms]
+(pass) stage 3-B ceiling clamp bound > never raises a manual ceiling sitting below the bound
+(pass) stage 3-B ceiling clamp bound > skips follows-mode manual ceilings (never converts them to explicit) [0.05ms]
+(pass) stage 3-B ceiling clamp bound > a flush deck above clamps a manual ceiling at the plane margin to its underside [0.11ms]
+(pass) reactive ceiling re-clamp through the detection sync > a flush deck created on the level above clamps the existing manual ceiling below [2.40ms]
+(pass) raised auto-room surfaces > inherits the enclosing walls construction plane when the room closes [0.74ms]
+(pass) detectSpacesForLevel > detects an isolated four-wall room [0.10ms]
+(pass) detectSpacesForLevel > excludes dangling wall branches from a room boundary [0.16ms]
+(pass) detectSpacesForLevel > detects a room closed against the middle of an existing wall (T-junction) [0.20ms]
+(pass) procedural zones > reactive wall deletion updates imported zone review state without changing its source identity [1.37ms]
+(pass) procedural zones > follows an imported approximate room through a wall edit and marks a removed boundary for review [0.37ms]
+(pass) procedural zones > split wall IDs with unchanged room geometry update the binding without a false warning [0.21ms]
+(pass) procedural zones > a deleted imported room boundary reports uncertainty without renaming or merging rooms
+(pass) procedural zones > adopts an exact room footprint and records its enclosing walls [0.23ms]
+(pass) procedural zones > derives the live polygon from effective wall endpoints [0.19ms]
+(pass) procedural zones > leaves an unrelated site zone manual [0.08ms]
+(pass) wallClosesRoom > is false while a chain is still open, true once it encloses a room [0.17ms]
+(pass) wallClosesRoom > fires when a bay is sealed against the middle of an existing wall [0.26ms]
+(pass) planAutoSlabsForLevel > creates and reconciles an auto slab on the enclosing wall plane [0.19ms]
+(pass) planAutoSlabsForLevel > matches two identical rooms to their own existing auto-slabs without churn [0.07ms]
+(pass) planAutoSlabsForLevel > deletes an extra auto-slab when only one identical room is detected [0.05ms]
+(pass) planAutoSlabsForLevel > demotes an orphaned auto slab to manual when its room disappears [0.10ms]
+(pass) planAutoSlabsForLevel > deletes an unmatched auto slab whose area was absorbed by a room merge [0.23ms]
+(pass) planAutoSlabsForLevel > a demoted slab suppresses re-creating an auto slab when the room re-forms [0.06ms]
+(pass) planAutoSlabsForLevel > manual slabs that split one room suppress a replacement full-room slab [0.06ms]
+
+packages/core/src/lib/wall-operations.test.ts:
+(pass) wall operations > merges exact collinear walls and preserves hosted world positions and construction [3.76ms]
+(pass) wall operations > splits inside a wall, retains the first id, and preserves collection membership [0.33ms]
+(pass) wall operations > rejects an opening that would straddle the split [0.40ms]
+(pass) wall operations > supports a three-wall chain when the first selected wall is internal [0.22ms]
+(pass) wall operations > adds a secondary-only collection membership to the retained wall [0.16ms]
+(pass) wall operations > rejects reversed one-sided trims before changing their side [0.29ms]
+(pass) wall operations > rejects reversed walls with unequal front and back side metadata [0.16ms]
+(pass) wall operations > rejects a reversed hosted wall instead of changing its local frame
+(pass) wall operations > projects rotated item width and depth when validating a split [0.20ms]
+(pass) wall operations > rejects an occupied requested split id
+
+packages/core/src/lib/wall-length.test.ts:
+(pass) length input follows shared endpoints and validates all hosts before mutation [1.79ms]
+(pass) length input rejects loss of an interior T junction, collapsed neighbors and curved walls [0.08ms]
+
+packages/core/src/lib/space-detection-history.test.ts:
+(pass) undo/redo restores zone review metadata without regenerating the restored snapshot [2.22ms]
+
+packages/core/src/services/snap.test.ts:
+(pass) snapScalar > rounds to multiples of step
+(pass) snapScalar > returns input unchanged when step is non-positive
+(pass) snapScalar > default step is 0.25m
+(pass) snapPointToGrid > snaps both components independently
+(pass) snapPointToGrid > preserves exact-grid points
+(pass) snapVec3ToGrid > snaps X and Z, leaves Y untouched
+(pass) snapPointToAngle > snaps to axis (0°) when cursor is near horizontal [0.17ms]
+(pass) snapPointToAngle > snaps to 45° at π/4 step
+(pass) snapPointToAngle > default angle step is π/12 (15°)
+(pass) snapPointToAngle > grid-snaps the projected point when gridStep is provided
+(pass) snapPointToAngle > preserves distance from `from` [0.04ms]
+(pass) snapPointAlongAngleRay > stays exactly on the 15° ray while distance-snapping to the grid step
+(pass) snapPointAlongAngleRay > grid-snapping after the angle projection would pull the point off the ray
+(pass) snapPointAlongAngleRay > 45° back-compat: locks to the diagonal with grid-multiple distance
+(pass) snapPointAlongAngleRay > preserves the projected distance when no distanceStep is given
+(pass) snapPointAlongAngleRay > returns `from` for a zero-length segment
+(pass) snapPointAlongAngleRay > is idempotent on its own output
+(pass) snapAngleToList > snaps to the nearest entry within tolerance [0.14ms]
+(pass) snapAngleToList > returns original angle when no target is within tolerance [0.01ms]
+(pass) snapAngleToList > handles wrap-around near ±π
+(pass) snapServices facade > grid.snap matches snapPointToGrid
+(pass) snapServices facade > grid.snapScalar matches snapScalar [0.04ms]
+(pass) snapServices facade > angle.snapTo matches snapPointToAngle
+
+packages/nodes/src/wall/floorplan-affordances.test.ts:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) wall center curve handle release > weak endpoint inference releases freely, keeps connections, and honors Off and Shift [1.87ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) wall center curve handle release > an existing endpoint wins over weak angle inference [0.13ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) wall center curve handle release > Shift preserves endpoint direction through preview, commit and undo [0.15ms]
+(pass) wall center curve handle release > persists the previewed curve offset after commit clears the override
+
+packages/mcp/src/resources/resources.test.ts:
+(pass) pascal://scene/current > returns the full scene JSON [6.61ms]
+(pass) pascal://scene/current > reflects mutations to the store [1.70ms]
+(pass) pascal://scene/current/summary > returns markdown with counts and bbox [0.88ms]
+(pass) pascal://scene/current/summary > estimated floor area sums zone polygon areas [0.58ms]
+(pass) pascal://scene/current/summary > empty scene returns a markdown skeleton without crashing [0.50ms]
+(pass) pascal://catalog/items > returns built-in catalog subset [0.63ms]
+(pass) pascal://agent-guide > agent guide returns MCP-first project guidance [0.91ms]
+(pass) pascal://agent-guide > keeps the legacy agent guide URI as an alias [0.71ms]
+(pass) pascal://constraints/{levelId} > returns slabs + wall footprints for a known level [1.25ms]
+(pass) pascal://constraints/{levelId} > returns {error:"level_not_found"} for unknown levelId [0.53ms]
+(pass) pascal://debug/state > returns structural diagnostics without viewport data [0.75ms]
+
+packages/editor/src/lib/wall-direction-lock.test.ts:
+(pass) endpoint inference captures only near 45 degree rays and fixed-corner references [0.96ms]
+(pass) wall direction holds the current ray while length follows a 1 mm step [0.05ms]
+(pass) axis locks toggle, cross the origin, and survive Shift release [0.10ms]
+
+packages/editor/src/components/tools/wall/wall-drafting.test.ts:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > a direction-locked wall keeps its endpoint near a host corner [0.69ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > endpoint near an existing corner attaches to the corner instead of splitting [0.16ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > new walls start with a single 100 mm concrete layer
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > committed wall preserves the ghost construction elevation on ground
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > 2D terrain construction options freeze the first-point elevation and wall height [0.82ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > endpoint near the host start corner snaps there without splitting [0.16ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > genuine mid-wall endpoint still splits the host (T junction) [0.30ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > exact duplicate segment is rejected [0.10ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > grid mode: endpoint resolved onto a wall body still splits the host [0.29ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > grid mode: endpoint beyond the connect radius is left alone (no residual snap) [0.23ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > mid-span split migrates the host attachments to the covering half [0.78ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > a splitting commit lands as a single undo step [0.22ms]
+(pass) resolveEndpointWallSplit > endpoint dropped mid-span splits the host and returns the projection [0.08ms]
+(pass) resolveEndpointWallSplit > mid-span split migrates host attachments to the covering half [0.26ms]
+(pass) resolveEndpointWallSplit > a drop near an existing corner resolves to the corner without splitting [0.04ms]
+(pass) resolveEndpointWallSplit > an opening straddling the drop point skips the split but still resolves the point [0.09ms]
+(pass) resolveEndpointWallSplit > a drop beyond the connect radius resolves nothing and splits nothing
+(pass) resolveEndpointWallSplit > ignored walls (the moved wall and its commit siblings) are never split [0.03ms]
+(pass) resolveEndpointWallSplit > split + endpoint write compose into a single history step [0.11ms]
+(pass) snapWallDraftPointDetailed > bypassSnap returns the raw point without endpoint or angle snap [0.07ms]
+(pass) snapWallDraftPointDetailed > a stale linked-wall corner swallows a sub-connect-radius correction unless ignored [0.02ms]
+(pass) construction guide snapping > sticks a nearby point to the guide line foot
+(pass) construction guide snapping > ignores guides outside the stick radius
+(pass) construction guide snapping > a guide intersection beats the nearest single line
+(pass) construction guide snapping > an angle-locked ray slides along the ray to the guide
+(pass) construction guide snapping > snapWallDraftPointDetailed lands the drafted point on an off-grid guide
+(pass) construction guide snapping > Alt bypass skips guides too
+(pass) guide snapping is on by default from the scene store > auto-collects the active level guides when none are passed
+(pass) shared wall inference keeps guides and corners ahead of weak angles and respects modes [0.35ms]
+
+ 159 pass
+ 0 fail
+ 778 expect() calls
+Ran 159 tests across 11 files. [692.00ms]

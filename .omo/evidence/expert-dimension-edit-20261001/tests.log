@@ -1,0 +1,149 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/ai-contract.test.ts:
+(pass) AI modeling operation contract > accepts canonical semantic operation ids across internal schemas [1.91ms]
+(pass) AI modeling operation contract > publishes every canonical operation id in the provider JSON schema [0.04ms]
+(pass) AI modeling operation contract > keeps AI operation fields strict and emits the canonical manifest once [11.40ms]
+
+packages/mcp/src/ontology-manual.test.ts:
+(pass) Phase 2 ontology manual contract > documents weak endpoint inference separately from explicit angle locking [0.27ms]
+(pass) Phase 2 ontology manual contract > documents validated length edits and boundary review [0.04ms]
+(pass) Phase 2 ontology manual contract > documents direct axis-guide stretch without adding an AI mutation command [0.03ms]
+(pass) Phase 2 ontology manual contract > documents exact Expert dimension editing without adding an AI mutation command
+(pass) Phase 2 ontology manual contract > documents ontology discovery and evidence requirements
+(pass) Phase 2 ontology manual contract > documents the canonical Body transform and direct scale interactions [0.18ms]
+(pass) Phase 2 ontology manual contract > documents apartment wall extraction and junction continuity [0.07ms]
+(pass) Phase 2 ontology manual contract > documents shared apartment import orientation
+(pass) Phase 2 ontology manual contract > documents source-backed opening and room boundary contracts
+(pass) Phase 2 ontology manual contract > documents persistent Body sub-entity selection [0.19ms]
+(pass) Phase 2 ontology manual contract > documents Body Autofold constraints [0.07ms]
+(pass) Phase 2 ontology manual contract > documents whole-Body array operations [0.04ms]
+(pass) Phase 2 ontology manual contract > documents editor-only Body container edit routing [0.03ms]
+(pass) Phase 2 ontology manual contract > documents solid inspection and Body boolean operations [0.09ms]
+(pass) Phase 2 ontology manual contract > documents Solid Tools ordering and tool lifetime
+(pass) Phase 2 ontology manual contract > documents the canonical Body offset operation and signed interaction [0.20ms]
+(pass) Phase 2 ontology manual contract > documents signed imprint through-cuts and the 2D render-only boundary [0.05ms]
+(pass) Phase 2 ontology manual contract > documents sampled Arc parity through existing Body operations [0.03ms]
+
+packages/core/src/lib/dimension-stretch.test.ts:
+(pass) buildDimensionStretchPlan > uses the exact rotated tangent and preserves peer total leaves for either fixed end [3.17ms]
+(pass) buildDimensionStretchPlan > keeps a selected-side 0.5 mm rigid wall from false reversal
+(pass) buildDimensionStretchPlan > widens a documented opening leaf by the physical delta and moves its center by half [0.40ms]
+(pass) buildDimensionStretchPlan > rejects invalid, oblique, and colliding edits before changing the input snapshot [1.00ms]
+(pass) buildDimensionStretchPlan > accepts a one-milliradian crossing and keeps legacy axis parallel checks strict [0.57ms]
+
+packages/core/src/lib/axis-guide-stretch.test.ts:
+(pass) buildAxisGuideStretchPlan > moves selected-side walls, changes only a straight crossing endpoint, and remaps hosted centers [1.74ms]
+(pass) buildAxisGuideStretchPlan > supports horizontal guides with positive Z as the selected side [0.09ms]
+(pass) buildAxisGuideStretchPlan > keeps points on the guide fixed and rejects unsupported crossings atomically [0.21ms]
+(pass) buildAxisGuideStretchPlan > rejects diagonal guides and invalid distances [0.14ms]
+(pass) buildAxisGuideStretchPlan > normalizes guide direction and uses wall-local item rotation for edge clearance [1.93ms]
+(pass) buildAxisGuideStretchPlan > normalizes legacy wall-attached items with a local wallT update [0.12ms]
+(pass) buildAxisGuideStretchPlan > rejects a new hosted-opening collision before returning a partial plan [0.19ms]
+(pass) buildAxisGuideStretchPlan > updates an existing auto zone from the stretched wall enclosure [0.77ms]
+(pass) buildAxisGuideStretchPlan > rejects a newly created wall contact atomically [0.11ms]
+(pass) buildAxisGuideStretchPlan > retains an existing hosted overlap when the stretch does not worsen it [0.25ms]
+(pass) buildAxisGuideStretchPlan > translates a curved wall on the selected side while preserving its curve data [0.79ms]
+
+packages/nodes/src/wall/construction-dimensions.test.ts:
+(pass) formatConstructionLength > formats U.S. architectural feet, inches, and reduced sixteenths [0.12ms]
+(pass) formatConstructionLength > rounds to the nearest sixteenth and carries into the next foot [0.03ms]
+(pass) formatConstructionLength > keeps metric output concise [0.01ms]
+(pass) buildWallConstructionDimensions > dimensions curved-wall depth orthogonally without a radius leader [1.09ms]
+(pass) buildWallConstructionDimensions > builds a jamb-by-jamb chain plus a farther wall span [1.49ms]
+(pass) buildWallConstructionDimensions > applies drawing dimension standards to automatic wall strings [0.09ms]
+(pass) buildWallConstructionDimensions > uses the exterior wall face as the dimension side [0.14ms]
+(pass) buildWallConstructionDimensions > places witness origins on the centerline or wall faces [0.02ms]
+(pass) buildWallConstructionDimensions > never dimensions a classified interior wall
+(pass) buildWallConstructionDimensions > keeps curved walls out of the straight-string builder
+(pass) buildLevelWallConstructionDimensionPlan > chains straight facade runs across a curved-wall opening [2.11ms]
+(pass) buildLevelWallConstructionDimensionPlan > coordinates opening widths, centers, partition references, and overall extent [1.19ms]
+(pass) buildLevelWallConstructionDimensionPlan > spaces the opening-width tier from the wall like the following dimension tiers [0.13ms]
+(pass) buildLevelWallConstructionDimensionPlan > labels verified rough openings while retaining framed centerline locations [0.25ms]
+(pass) buildLevelWallConstructionDimensionPlan > uses masonry openings as edge-to-edge dimensions without framed centerline strings [0.15ms]
+(pass) buildLevelWallConstructionDimensionPlan > skips unverified rough-opening widths instead of deriving them from nominal size [0.24ms]
+(pass) buildLevelWallConstructionDimensionPlan > labels optional finish-opening reference dimensions when explicitly verified [0.22ms]
+(pass) buildLevelWallConstructionDimensionPlan > uses drawing standard tier spacing for coordinated facade dimensions [0.29ms]
+(pass) buildLevelWallConstructionDimensionPlan > combines collinear exterior wall segments into one facade run [0.33ms]
+(pass) buildLevelWallConstructionDimensionPlan > adds a wall-local overall dimension for a classified interior partition [0.22ms]
+(pass) buildLevelWallConstructionDimensionPlan > dimensions interior wall segments and hosted door and window widths in the larger room [6.47ms]
+(pass) buildLevelWallConstructionDimensionPlan > dimensions perimeter door widths on the room side in every wall orientation [0.70ms]
+(pass) buildLevelWallConstructionDimensionPlan > keeps room-side door and window dimensions when the opposite boundary is curved [0.95ms]
+(pass) buildLevelWallConstructionDimensionPlan > starts and ends an interior opening chain at the adjacent wall faces
+(pass) buildLevelWallConstructionDimensionPlan > does not attach opening provenance to a clipped total leaf
+(pass) buildLevelWallConstructionDimensionPlan > dimensions hosted openings on a bounded partition with incomplete side metadata [0.59ms]
+(pass) buildLevelWallConstructionDimensionPlan > dimensions hosted openings on a bounded partition with stale exterior metadata [0.43ms]
+(pass) buildLevelWallConstructionDimensionPlan > does not treat an unbounded unknown wall with an opening as an interior partition [0.05ms]
+(pass) buildLevelWallConstructionDimensionPlan > locates partitions from a consistent face of stud [0.03ms]
+(pass) buildLevelWallConstructionDimensionPlan > chains stepped facade projections on one exterior baseline [0.27ms]
+(pass) buildLevelWallConstructionDimensionPlan > dimensions an exterior column row by structural centerline [2.19ms]
+(pass) buildLevelWallConstructionDimensionPlan > does not stretch interior column references to an exterior dimension string [0.32ms]
+(pass) buildLevelWallConstructionDimensionPlan > keeps internal openings off exterior strings and dimensions them locally [0.16ms]
+(pass) buildLevelWallConstructionDimensionPlan > keeps disconnected collinear facade runs independent [0.47ms]
+(pass) buildLevelWallConstructionDimensionPlan > places a back-side exterior facade beyond the back face [0.02ms]
+(pass) buildLevelWallConstructionDimensionPlan > keeps angled exterior dimensions aligned and reports their true length [0.12ms]
+(pass) buildLevelWallConstructionDimensionPlan > dimensions every exterior side and interior run in a subdivided rectangular plan [0.90ms]
+(pass) buildLevelWallConstructionDimensionPlan > does not automatically dimension walls without a side classification
+
+packages/nodes/src/zone/room-clear-dimensions.test.ts:
+(pass) buildRoomClearDimensions > dimensions the proven inside faces of a rectangular room [1.30ms]
+(pass) buildRoomClearDimensions > preserves clear spans when the room is rotated [0.88ms]
+(pass) buildRoomClearDimensions > consolidates collinear wall segments before proving the clear rectangle [0.21ms]
+(pass) buildRoomClearDimensions > dimensions finish faces using each boundary wall thickness [0.17ms]
+(pass) buildRoomClearDimensions > adds a room-to-room finish-face dimension for adjacent rectangular rooms [0.48ms]
+(pass) buildRoomClearDimensions > dimensions proven rectilinear room bays beyond simple rectangles [0.42ms]
+(pass) buildRoomClearDimensions > suppresses dimensions when the room or requested policy is invalid [0.11ms]
+(pass) buildRoomClearDimensions > suppresses dimensions for a proven enclosure that is not rectangular
+
+packages/nodes/src/shared/dimension-edit-preflight.test.ts:
+(pass) node-owned Expert dimension preflight > applies one wall edit only after the regenerated chain reaches the target [0.90ms]
+(pass) node-owned Expert dimension preflight > resolves a selected opening leaf inside a total and preserves its peers [0.48ms]
+(pass) node-owned Expert dimension preflight > uses documented opening offset once when a total selects a rough-opening leaf [0.31ms]
+(pass) node-owned Expert dimension preflight > rejects editable descriptors without stable node-owned provenance
+(pass) node-owned Expert dimension preflight > regenerates a room-clear span after moving its fixed boundary [0.63ms]
+
+packages/editor/src/components/editor-2d/construction-guide-stretch-controls.test.ts:
+(pass) construction-guide-stretch-controls > classifies axis-aligned directions after normalization [0.36ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) construction-guide-stretch-controls > pauses reactive room sync and keeps one undoable scene update [2.88ms]
+
+packages/editor/src/components/editor-2d/renderers/floorplan-dimension-renderer.test.tsx:
+(pass) architectural floor-plan dimensions > leaves a paper-space gap before solid extension lines [0.57ms]
+(pass) architectural floor-plan dimensions > builds consistent 45-degree architectural slash terminators
+(pass) architectural floor-plan dimensions > honors dimension standard overrides for gaps, terminators, and text placement [3.02ms]
+(pass) architectural floor-plan dimensions > moves a short value beyond its end tick and extends the dimension line [0.76ms]
+(pass) architectural floor-plan dimensions > aligns stepped feature origins to an explicit exterior baseline
+(pass) architectural floor-plan dimensions > renders one uninterrupted line with the label above it [0.42ms]
+(pass) architectural floor-plan dimensions > keeps farther-out architectural strings fixed before inner strings
+(pass) architectural floor-plan dimensions > keeps labels readable after the scene rotates
+(pass) architectural floor-plan dimensions > resolves document annotation sizes from paper points [0.23ms]
+(pass) architectural floor-plan dimensions > uses PDF-safe label plates and hairline measurement strokes for export [0.20ms]
+(pass) architectural floor-plan dimensions > adds an exact screen hit area and leaves PDF dimensions inert [0.52ms]
+(pass) architectural floor-plan dimensions > renders a dimension string with shared witness extension lines and ticks [0.64ms]
+(pass) architectural floor-plan dimensions > keeps each dimension-string segment tied to its own edit descriptor [0.28ms]
+(pass) architectural floor-plan dimensions > offsets automatic dimension-string lines when no explicit baseline is supplied [0.11ms]
+
+packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts:
+(pass) floorplan selection handle sizing > caps visual handle growth at extreme zoom-out [0.95ms]
+(pass) floorplan affordance ownership > keeps the wall center curve drag owned by the floorplan dispatcher
+(pass) floorplan affordance cancellation > tool:cancel reverts the drag and makes a later pointerup inert [0.19ms]
+(pass) floorplan opening placement interaction routing > passes entries through only while an opening tool or moving opening is active
+(pass) floorplan vertex double-click routing > routes polygon vertex handles to the kind-owned delete affordance
+(pass) floorplan annotation overlay routing > keeps explicitly layered selection chrome above selected body fills
+(pass) floorplan annotation overlay routing > registers upright zone labels for rotation-only presentation updates
+(pass) floorplan annotation overlay routing > keeps automatic dimension strings left-to-right and top-to-bottom after rotation [0.51ms]
+(pass) floorplan annotation overlay routing > keeps generated dimensions clickable with a read-only fallback in Expert mode [0.21ms]
+(pass) floorplan annotation overlay routing > keeps a fixed mark pill together in the overlay pass [0.31ms]
+(pass) floorplan annotation overlay routing > keeps fixed annotation symbols in the overlay pass for collision layout
+(pass) floorplan registry overlay ordering > renders a selected wall entry after unselected wall entries [0.08ms]
+(pass) computeAffectedSiblingIds > propagates cabinet live overrides through the cabinet family
+(pass) computeAffectedSiblingIds > propagates a live-moving cabinet module back to its owning run [0.33ms]
+(pass) collectFloorplanDependencyNodes > includes referenced hosts and their transform-owning parents [0.06ms]
+(pass) collectFloorplanLinkedLevelNodes > projects a node onto a linked destination level with its real children
+
+ 120 pass
+ 0 fail
+ 486 expect() calls
+Ran 120 tests across 10 files. [601.00ms]

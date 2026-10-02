@@ -1,0 +1,25 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/finish-template-schema.test.ts:
+(pass) finish template server schema > rejects browser-only material handles while allowing portable URLs [5.55ms]
+(pass) finish template server schema > rejects body-owned scope fields while deriving identity from the snapshot [0.49ms]
+(pass) finish template server schema > checks wall keys and home source-zone identity at the schema boundary [0.80ms]
+(pass) finish template server schema > accepts the canonical key for a partial wall range [0.14ms]
+
+apps/editor/lib/finish-template-server.test.ts:
+(pass) finish template principal resolution > uses the loopback local shared scope when auth is unconfigured [0.23ms]
+(pass) finish template principal resolution > does not create an anonymous production scope [0.03ms]
+(pass) finish template principal resolution > requires a verified session and rejects malformed identity fields [0.15ms]
+(pass) finish template principal resolution > returns only the verified principal identity [0.06ms]
+
+apps/editor/app/api/finish-templates/route.test.ts:
+(pass) finish template API > creates locally, returns only public fields, replays idempotently, and lists [12.10ms]
+(pass) finish template API > renames and deletes through version CAS [7.82ms]
+(pass) finish template API > rejects an expanded request body over the server cap [1.52ms]
+(pass) finish template API > rejects unknown top-level zone fields instead of silently stripping them [0.64ms]
+(pass) finish template API > keeps company-less verified users private-only [7.16ms]
+
+ 13 pass
+ 0 fail
+ 37 expect() calls
+Ran 13 tests across 3 files. [180.00ms]

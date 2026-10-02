@@ -1,0 +1,3 @@
+$ next typegen && tsgo --noEmit
+Generating route types...
+✓ Types generated successfully

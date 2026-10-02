@@ -1,0 +1,26 @@
+ M apps/editor/app/apt/trace/page.tsx
+ M apps/editor/components/apt-search-panel.tsx
+ M apps/editor/components/apt-search.module.css
+ M apps/editor/components/apt-search.tsx
+ M apps/editor/components/apt-trace.tsx
+ M apps/editor/lib/apt-vector-scene.test.ts
+ M apps/editor/lib/apt-vector-scene.ts
+ M packages/core/src/index.ts
+ M packages/core/src/lib/guide-perspective.test.ts
+ M packages/core/src/lib/guide-perspective.ts
+ M packages/core/src/schema/nodes/guide.test.ts
+ M packages/core/src/schema/nodes/guide.ts
+ M packages/editor/src/components/editor/floorplan-panel.tsx
+ M packages/editor/src/components/ui/panels/use-guide-perspective-calibration.ts
+ M packages/mcp/src/modeling-agent-manual.ts
+ M packages/mcp/src/ontology-manual.test.ts
+ M packages/nodes/src/guide/definition.test.ts
+ M packages/nodes/src/guide/definition.ts
+ M packages/nodes/src/guide/geometry.test.ts
+ M packages/nodes/src/guide/geometry.ts
+ M packages/nodes/src/guide/renderer.tsx
+?? .debug-journal.md
+?? .omo/
+?? apps/editor/lib/apt-import-frame.test.ts
+?? apps/editor/lib/apt-import-frame.ts
+?? outputs/

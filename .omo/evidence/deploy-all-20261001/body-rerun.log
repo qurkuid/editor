@@ -1,0 +1,36 @@
+
+packages/nodes/src/body/move-session.test.ts:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > previews and cancels through live transforms without mutating topology [4.88ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > commits one transformBody update and undo restores the original body [1.84ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > previews a selected persistent vertex through a live geometry override [1.06ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > previews, commits, cancels, and undoes an autofold feature move [1.18ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > remaps attached feature annotations and undoes the whole feature move atomically [1.47ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > rejects an invalid feature preview without mutating scene state [0.13ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > commits one selected edge update and undo restores the original body [0.27ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > cancels a selected face preview without changing topology or history [0.10ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > resolves 3D surface stacking translation from surface point, body center, and minimum Y [0.21ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > resolves empty-grid/free-overlap 3D move without vertical translation [0.05ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > keeps the chosen base point attached to the destination inference point [0.02ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > creates a fresh effect-owned session after StrictMode cleanup [0.11ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > floorplan target previews through live overrides and commits the same transform once [0.36ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) Body move session > floorplan body move keeps polygon grid snapping active when Shift is held [0.09ms]
+
+ 14 pass
+ 0 fail
+ 119 expect() calls
+Ran 14 tests across 1 file. [537.00ms]
+bun test v1.3.11 (af24e281)

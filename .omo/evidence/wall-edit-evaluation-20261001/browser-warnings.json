@@ -1,0 +1,26 @@
+[
+  {
+    "level": "warn",
+    "message": "[editor] viewer scene readiness timed out; showing editor shell anyway Object",
+    "timestamp": "2026-09-30T23:05:04.584Z",
+    "url": "http://localhost:3002/_next/static/chunks/0w55_next_dist_06ck4s5._.js"
+  },
+  {
+    "level": "warn",
+    "message": "[editor] viewer scene readiness timed out; showing editor shell anyway Object",
+    "timestamp": "2026-09-30T23:10:13.038Z",
+    "url": "http://localhost:3002/_next/static/chunks/0w55_next_dist_06ck4s5._.js"
+  },
+  {
+    "level": "warn",
+    "message": "[editor] viewer scene readiness timed out; showing editor shell anyway Object",
+    "timestamp": "2026-09-30T23:16:17.160Z",
+    "url": "http://localhost:3002/_next/static/chunks/0w55_next_dist_06ck4s5._.js"
+  },
+  {
+    "level": "warn",
+    "message": "[editor] viewer scene readiness timed out; showing editor shell anyway Object",
+    "timestamp": "2026-09-30T23:17:24.781Z",
+    "url": "http://localhost:3002/_next/static/chunks/0w55_next_dist_06ck4s5._.js"
+  }
+]

@@ -1,0 +1,15 @@
+
+packages/nodes/src/duct-fitting/parametrics.test.ts:
+(pass) ductFittingParametrics > resizing a fitting retrims connected ducts without changing their roll [2.44ms]
+(pass) ductFittingParametrics > resizing a fitting refreshes a connected duct auto-offset base path [0.43ms]
+(pass) ductFittingParametrics > deleting an elbow re-extends mated runs back onto the junction [0.22ms]
+(pass) ductFittingParametrics > delete repair matches the 5 cm live connectivity mate tolerance [0.02ms]
+(pass) ductFittingParametrics > deleting a generated elbow clears the owner duct auto-offset tag [0.31ms]
+(pass) ductFittingParametrics > deleting a tee leaves mated runs untouched [0.09ms]
+(pass) ductFittingParametrics > resizing a generated fitting clears the owner duct auto-offset tag [0.17ms]
+
+ 7 pass
+ 0 fail
+ 10 expect() calls
+Ran 7 tests across 1 file. [132.00ms]
+bun test v1.3.11 (af24e281)

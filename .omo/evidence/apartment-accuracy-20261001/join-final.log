@@ -1,0 +1,2 @@
+haeundae 15.7 {'planId': 'apt-vector-3FO3Y8VP946W', 'style': 'standard', 'wallIoU': 0.836, 'scale': 10.395, 'walls': 64, 'doors': 6, 'windows': 13, 'openings': 2, 'rooms': 12}
+hwmyeong 15.4 {'planId': 'apt-vector-3FO3YD1THDWY', 'style': 'standard', 'wallIoU': 0.842, 'scale': 12.421, 'walls': 95, 'doors': 11, 'windows': 10, 'openings': 0, 'rooms': 14}

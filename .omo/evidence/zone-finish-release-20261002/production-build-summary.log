@@ -1,0 +1,6 @@
+COMMAND=PASCAL_NEXT_DIST_DIR=.next-zone-finish-validation-3 bun run --bun --cwd apps/editor build
+BUILD_EXIT_STATUS=0
+BUILD_ID=93aH90epuLLX219cfUzBX
+DIST_SIZE= 97M
+ROUTE_MANIFEST=present
+APP_ROUTE_MANIFEST=present

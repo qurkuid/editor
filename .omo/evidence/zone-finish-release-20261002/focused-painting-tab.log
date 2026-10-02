@@ -1,0 +1,10 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/components/painting-tab.test.tsx:
+(pass) presents one merged material catalog with a favorites tab [6.06ms]
+(pass) the house view keeps only the scene-used materials section [6.64ms]
+
+ 2 pass
+ 0 fail
+ 14 expect() calls
+Ran 2 tests across 1 file. [666.00ms]

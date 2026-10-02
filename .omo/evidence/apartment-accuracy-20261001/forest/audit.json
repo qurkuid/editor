@@ -1,0 +1,626 @@
+{
+  "status": "PASS",
+  "case": {
+    "key": "forest",
+    "name": "래미안포레스티지",
+    "type": "101D㎡",
+    "apartmentId": "3FO4KHMSJD8B",
+    "planId": "3FO40NYO9IFT",
+    "cohort": "new",
+    "previousSceneId": null,
+    "sceneId": "9487d6549390"
+  },
+  "sceneVersion": 4,
+  "docVersion": 13,
+  "frameVerified": true,
+  "expectedRooms": 12,
+  "actualZones": 12,
+  "roomProbesPassed": 12,
+  "roomProbesTotal": 12,
+  "roomMatches": [
+    {
+      "id": "bedroom-0",
+      "label": "bedroom",
+      "source": [
+        558,
+        270
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ],
+      "scene": [
+        2.083220607661823,
+        -1.7140422721268163
+      ],
+      "matches": [
+        {
+          "id": "zone_u2rbl5l9du0z81kg",
+          "sourceRoomId": "r2",
+          "name": "안방",
+          "cls": "bedroom"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "bedroom-1",
+      "label": "bedroom",
+      "source": [
+        113,
+        521
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ],
+      "scene": [
+        -3.7840779392338177,
+        1.5953778071334215
+      ],
+      "matches": [
+        {
+          "id": "zone_tv3mt372yqnuuhwp",
+          "sourceRoomId": "r8",
+          "name": "안방",
+          "cls": "bedroom"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "bedroom-2",
+      "label": "bedroom",
+      "source": [
+        283,
+        521
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ],
+      "scene": [
+        -1.5426380449141348,
+        1.5953778071334215
+      ],
+      "matches": [
+        {
+          "id": "zone_buukmhwghdknf3hg",
+          "sourceRoomId": "r9",
+          "name": "안방",
+          "cls": "bedroom"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "bath-3",
+      "label": "bath",
+      "source": [
+        435,
+        173
+      ],
+      "cls": "bath",
+      "acceptedNames": [
+        "욕실"
+      ],
+      "scene": [
+        0.46147291941875856,
+        -2.9929815059445177
+      ],
+      "matches": [
+        {
+          "id": "zone_6b7dlh9t3ieknjb9",
+          "sourceRoomId": "r0",
+          "name": "욕실",
+          "cls": "bath"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "bath-4",
+      "label": "bath",
+      "source": [
+        412,
+        333
+      ],
+      "cls": "bath",
+      "acceptedNames": [
+        "욕실"
+      ],
+      "scene": [
+        0.15821928665786,
+        -0.883391017173051
+      ],
+      "matches": [
+        {
+          "id": "zone_z2xfab508arn9o6p",
+          "sourceRoomId": "r5",
+          "name": "욕실",
+          "cls": "bath"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "dress-5",
+      "label": "dress",
+      "source": [
+        575,
+        128
+      ],
+      "cls": "dress",
+      "acceptedNames": [
+        "드레스룸",
+        "드레스"
+      ],
+      "scene": [
+        2.307364597093792,
+        -3.5863038309114925
+      ],
+      "matches": [
+        {
+          "id": "zone_5kawwe3ozdeuaacc",
+          "sourceRoomId": "r1",
+          "name": "드레스룸",
+          "cls": "dress"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "entrance-6",
+      "label": "entrance",
+      "source": [
+        269,
+        332
+      ],
+      "cls": "entrance",
+      "acceptedNames": [
+        "현관",
+        "전실"
+      ],
+      "scene": [
+        -1.7272272126816381,
+        -0.8965759577278734
+      ],
+      "matches": [
+        {
+          "id": "zone_6m8k2ccw355a8sqk",
+          "sourceRoomId": "r6",
+          "name": "현관",
+          "cls": "entrance"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "living-7",
+      "label": "living",
+      "source": [
+        481,
+        478
+      ],
+      "cls": "living",
+      "acceptedNames": [
+        "거실"
+      ],
+      "scene": [
+        1.0679801849405548,
+        1.0284253632760905
+      ],
+      "matches": [
+        {
+          "id": "zone_70xawav4qg1pwfnu",
+          "sourceRoomId": "r7",
+          "name": "거실",
+          "cls": "living"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "kitchen-8",
+      "label": "kitchen",
+      "source": [
+        388,
+        530
+      ],
+      "cls": "kitchen",
+      "acceptedNames": [
+        "부엌",
+        "주방"
+      ],
+      "scene": [
+        -0.15821928665786,
+        1.7140422721268163
+      ],
+      "matches": [
+        {
+          "id": "zone_vqkjforph9iaz0tf",
+          "sourceRoomId": "r10",
+          "name": "부엌",
+          "cls": "kitchen"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "balcony-9",
+      "label": "balcony",
+      "source": [
+        705,
+        216
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ],
+      "scene": [
+        4.021406869220608,
+        -2.4260290620871863
+      ],
+      "matches": [
+        {
+          "id": "zone_yf3bd6brkpoc30jb",
+          "sourceRoomId": "r3",
+          "name": "발코니",
+          "cls": "balcony"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "balcony-10",
+      "label": "balcony",
+      "source": [
+        705,
+        435
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ],
+      "scene": [
+        4.021406869220608,
+        0.46147291941875856
+      ],
+      "matches": [
+        {
+          "id": "zone_wyd26fuuoimqma40",
+          "sourceRoomId": "r4",
+          "name": "발코니",
+          "cls": "balcony"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "id": "balcony-11",
+      "label": "balcony",
+      "source": [
+        392,
+        636
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ],
+      "scene": [
+        -0.10547952443857334,
+        3.1116459709379134
+      ],
+      "matches": [
+        {
+          "id": "zone_qt5t0rica1nl9g74",
+          "sourceRoomId": "r11",
+          "name": "발코니",
+          "cls": "balcony"
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "mergedZones": [],
+  "unmatchedZones": [],
+  "zoneGeometry": {
+    "invalidPolygons": [],
+    "interiorOverlaps": []
+  },
+  "counts": {
+    "site": 1,
+    "building": 1,
+    "level": 1,
+    "guide": 1,
+    "wall": 59,
+    "slab": 8,
+    "ceiling": 8,
+    "window": 22,
+    "door": 6,
+    "zone": 12
+  },
+  "sourceOpeningTypes": {
+    "opening": 8,
+    "door": 6,
+    "window": 16
+  },
+  "modelOpeningTypes": {
+    "opening": 8,
+    "window": 14,
+    "door": 6
+  },
+  "wallProbes": [
+    {
+      "id": "wall-0-upper",
+      "label": "상부 욕실과 안방 사이 실벽",
+      "a": [
+        480,
+        193
+      ],
+      "b": [
+        480,
+        215
+      ],
+      "maxBodyDistanceM": 0,
+      "samplesM": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "wall-0-lower",
+      "label": "하부 욕실과 안방 사이 실벽",
+      "a": [
+        480,
+        300
+      ],
+      "b": [
+        480,
+        338
+      ],
+      "maxBodyDistanceM": 0,
+      "samplesM": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "wall-1",
+      "label": "원본 실벽",
+      "a": [
+        343,
+        307
+      ],
+      "b": [
+        343,
+        368
+      ],
+      "maxBodyDistanceM": 0,
+      "samplesM": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pass": true
+    },
+    {
+      "id": "wall-2",
+      "label": "원본 실벽",
+      "a": [
+        211,
+        478
+      ],
+      "b": [
+        211,
+        578
+      ],
+      "maxBodyDistanceM": 0,
+      "samplesM": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "pass": true
+    }
+  ],
+  "forbiddenWallProbes": [
+    {
+      "id": "open-bedroom-step",
+      "label": "L자 안방의 열린 연결부",
+      "a": [
+        480,
+        245
+      ],
+      "b": [
+        480,
+        268
+      ],
+      "blockedSamples": 0,
+      "totalSamples": 9,
+      "pass": true
+    }
+  ],
+  "danglingEndpoints": [
+    {
+      "wallId": "wall_y3nlfxe7lh09w8oi",
+      "end": "end",
+      "source": [
+        407.99327755402703,
+        459.42339798216216
+      ],
+      "nearestWallId": "wall_b4g1vl6jfbbxl3r4",
+      "bodyGapM": 0.3913
+    },
+    {
+      "wallId": "wall_c9cqur4e3aqcxchh",
+      "end": "start",
+      "source": [
+        33.82915877321691,
+        590.3895398749443
+      ],
+      "nearestWallId": "wall_fketvurfu55b8lop",
+      "bodyGapM": 0.12
+    }
+  ],
+  "physicalComponents": [
+    {
+      "probe": "bedroom-0",
+      "component": 4,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "bedroom-1",
+      "component": 10,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "bedroom-2",
+      "component": 11,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "bath-3",
+      "component": 2,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "bath-4",
+      "component": 7,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "dress-5",
+      "component": 3,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "entrance-6",
+      "component": 8,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "living-7",
+      "component": 9,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "kitchen-8",
+      "component": 9,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "balcony-9",
+      "component": 5,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "balcony-10",
+      "component": 6,
+      "reachesExterior": false,
+      "onWallBody": false
+    },
+    {
+      "probe": "balcony-11",
+      "component": 13,
+      "reachesExterior": false,
+      "onWallBody": false
+    }
+  ],
+  "exteriorConnectedProbes": [],
+  "missingSeparations": [],
+  "hostErrors": [],
+  "importDiagnostics": {
+    "unhostedOpeningIds": [],
+    "dedupedOpeningIds": [
+      "o21",
+      "o20"
+    ],
+    "droppedWallIds": [
+      "w61",
+      "w68",
+      "w109",
+      "w112",
+      "w113",
+      "w116",
+      "w119",
+      "w120",
+      "w121",
+      "w125",
+      "w129",
+      "w131",
+      "w132",
+      "w134",
+      "w135",
+      "w138",
+      "w139",
+      "w142",
+      "w143",
+      "w146"
+    ]
+  },
+  "issues": [],
+  "method": {
+    "wallThicknessRaster": "source analysis resolution, actual host wall thickness, 4-connectivity; door/window hosts treated as continuous structural wall",
+    "wallCoverage": "13 independently specified source span samples, measured body distance <= 0.06m",
+    "zoneOverlap": "1 pixel interior erosion then area > 0.005m2; geometric degeneracy and proper self-intersections checked separately",
+    "note": "Room seed points and expected use are independently marked from original floor plans. Open circulation is not a missing partition by itself. Dangling ends are candidates requiring source comparison."
+  }
+}

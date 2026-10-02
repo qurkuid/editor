@@ -1,0 +1,3 @@
+{"name":"apt-subdomain","pid":19708,"status":"online","cwd":"/Volumes/DATABASE/floorplan-releases/20261001-33d05e5b/apps/editor","script":"/Volumes/DATABASE/floorplan-releases/20261001-33d05e5b/apps/editor/node_modules/next/dist/bin/next","restarts":0}
+33d05e5b3cf1641f5b47e0f1126fc97a50efb72e
+4KVOp6H___JQLAJQVjd4f6307ad0760300e995ece6aabfc570d8cf4a0fa135438ebaadf552bb99d836f94  /Volumes/DATABASE/floorplan-vectorizer/vectorize.py

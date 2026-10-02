@@ -1,0 +1,71 @@
+bun test v1.3.11 (af24e281)
+
+packages/editor/src/lib/glb-export.test.ts:
+(pass) prepareSceneForExport > includes textured floorplan guides only for explicit local downloads [3.96ms]
+(pass) prepareSceneForExport > converts NodeMaterials to classic glTF-standard materials [0.53ms]
+(pass) prepareSceneForExport > shared NodeMaterial instances convert to a single shared material [0.27ms]
+(pass) prepareSceneForExport > reference mode swaps stamped compressed textures and leaves unstamped textures embedded [0.76ms]
+(pass) prepareSceneForExport > compacts alternating non-indexed wall groups without mutating the source geometry [3.37ms]
+(pass) prepareSceneForExport > compacts indexed wall groups while retaining every triangle and material assignment [0.24ms]
+(pass) prepareSceneForExport > repairs invalid groups before compacting the surviving wall groups [0.22ms]
+(pass) prepareSceneForExport > preserves local and world transforms when compacting wall geometry [0.18ms]
+(pass) prepareSceneForExport > leaves a partial draw range un-compacted
+(pass) prepareSceneForExport > writes identical texture-reference extras to the texture and image definitions [0.18ms]
+(pass) prepareSceneForExport > strips editor overlays that live off the scene layer [0.19ms]
+(pass) prepareSceneForExport > strips presentation-only geometry marked by its renderer [0.03ms]
+(pass) prepareSceneForExport > neutralises an invisible hitbox root but keeps its visible children [0.21ms]
+(pass) prepareSceneForExport > fills undefined slots in an array material so no undefined survives the prune
+(pass) prepareSceneForExport > stamps identity from the scene registry and strips other userData [0.53ms]
+(pass) prepareSceneForExport > stamps a semantic wall contract with absolute coordinates and opening data [4.98ms]
+(pass) prepareSceneForExport > stamps an incompatible wall contract while keeping normal export available [0.32ms]
+(pass) prepareSceneForExport > does not flag a door/window openable when no open clip bakes [0.11ms]
+(pass) prepareSceneForExport > keeps the zone identity node with its polygon and strips the fill mesh [0.08ms]
+(pass) prepareSceneForExport > bakes a swing door into an open quaternion clip [0.31ms]
+(pass) prepareSceneForExport > bakes registry-owned open clips and stamps the node openable [0.23ms]
+(pass) prepareSceneForExport > bakes a sliding door into a sampled position clip [0.34ms]
+(pass) prepareSceneForExport > bakes a roll-up curtain into a sampled scale clip [0.27ms]
+(pass) prepareSceneForExport > bakes an identity rest pose for an open folding door [4.28ms]
+
+packages/mcp/src/tools/photo-to-scene/photo-to-scene.test.ts:
+125 |     expect(walls.length).toBe(4)
+126 |     expect(
+127 |       walls[0]?.type === 'wall'
+128 |         ? walls[0].faceBands?.construction?.upper?.layers.map((layer) => layer.kind)
+129 |         : [],
+130 |     ).toEqual(['timber-stud', 'cavity', 'gypsum-board', 'finish'])
+            ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "timber-stud",
+-   "cavity",
+-   "gypsum-board",
+-   "finish",
++   "concrete",
+  ]
+
+- Expected  - 4
++ Received  + 1
+
+      at <anonymous> (/Users/changseok/editor/packages/mcp/src/tools/photo-to-scene/photo-to-scene.test.ts:130:7)
+(fail) photo_to_scene > happy path: vision reply → walls + rooms + scene in bridge + saved [12.22ms]
+(pass) photo_to_scene > sampling unavailable → sampling_unavailable error [0.50ms]
+(pass) photo_to_scene > invalid JSON reply → sampling_response_unparseable [1.07ms]
+(pass) photo_to_scene > save=false → returns graph inline, no sceneId [1.10ms]
+
+packages/viewer/src/systems/door/door-animation.test.ts:
+(pass) operation door open kinematics > sliding builds a moving group that opens [2.61ms]
+(pass) operation door open kinematics > pocket builds a moving group that opens [0.42ms]
+(pass) operation door open kinematics > barn builds a moving group that opens [0.16ms]
+(pass) operation door open kinematics > garage-tiltup builds a moving group that opens
+(pass) operation door open kinematics > folding builds a moving group that opens [1.30ms]
+(pass) operation door open kinematics > garage-sectional builds a moving group that opens [0.39ms]
+(pass) operation door open kinematics > garage-rollup builds a moving group that opens [0.76ms]
+
+1 tests failed:
+(fail) photo_to_scene > happy path: vision reply → walls + rooms + scene in bridge + saved [12.22ms]
+
+ 34 pass
+ 1 fail
+ 166 expect() calls
+Ran 35 tests across 3 files. [487.00ms]

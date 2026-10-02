@@ -1,0 +1,2273 @@
+diff --git a/apps/editor/lib/ai-contract.test.ts b/apps/editor/lib/ai-contract.test.ts
+index 8d5363a8..e26ba791 100644
+--- a/apps/editor/lib/ai-contract.test.ts
++++ b/apps/editor/lib/ai-contract.test.ts
+@@ -103,6 +103,8 @@ describe('AI modeling operation contract', () => {
+     const prompt = buildAiModelingPrompt(request)
+     expect(prompt).toContain('paintBodyFace')
+     expect(prompt).toContain('"material"')
++    expect(prompt).toContain('adoptContainedApartmentZones')
++    expect(prompt).toContain('covers at least 90% of exactly one current enclosed space')
+     expect(prompt).not.toContain('For Body face finishes')
+   })
+ })
+diff --git a/apps/editor/lib/apt-vector-scene.test.ts b/apps/editor/lib/apt-vector-scene.test.ts
+index 171e812e..2795eea0 100644
+--- a/apps/editor/lib/apt-vector-scene.test.ts
++++ b/apps/editor/lib/apt-vector-scene.test.ts
+@@ -1,5 +1,5 @@
+ import { describe, expect, test } from 'bun:test'
+-import { calculateLevelMiters, getWallPlanFootprint } from '@pascal-app/core'
++import { calculateLevelMiters, detectSpacesForLevel, getWallPlanFootprint } from '@pascal-app/core'
+ import { unionPolygons } from '../../../packages/viewer/src/lib/polygon-union'
+ import { type AptVectorDoc, buildVectorNodes } from './apt-vector-scene'
+ 
+@@ -80,7 +80,7 @@ describe('buildVectorNodes', () => {
+     const built = buildVectorNodes(crossing)!
+     const miters = calculateLevelMiters(built.walls)
+     expect(miters.junctions.get('0,0')?.connectedWalls).toHaveLength(4)
+-    expect(miters.junctions.get('2000,0')?.connectedWalls).toHaveLength(2)
++    expect(miters.junctions.get('2000,0')?.connectedWalls).toHaveLength(3)
+     const polygons = built.walls.map((wall) =>
+       getWallPlanFootprint(wall, miters).map((p) => [p.x, p.y] as [number, number]),
+     )
+@@ -148,8 +148,8 @@ describe('buildVectorNodes', () => {
+     const built = buildVectorNodes(doc)
+     expect(built).not.toBeNull()
+     const { walls, guideScale } = built!
+-    expect(walls).toHaveLength(3)
+-    expect(walls.filter((wall) => wall.start[0] === 4 && wall.end[0] === 4)).toHaveLength(1)
++    expect(walls).toHaveLength(4)
++    expect(walls.filter((wall) => wall.start[0] === 4 && wall.end[0] === 4)).toHaveLength(2)
+     const north = walls.find((wall) => wall.start[1] === -3 && wall.end[1] === -3)!
+     const [lo, hi] = [north.start[0], north.end[0]].sort((p, q) => p - q)
+     expect(lo).toBeCloseTo(-4)
+@@ -391,6 +391,42 @@ describe('buildVectorNodes', () => {
+     expect(zones.some((zone) => zone.name === '욕실')).toBe(true)
+   })
+ 
++  test('reconciles an apartment zone to the finalized T-split wall space', () => {
++    const sourceRoom: AptVectorDoc['rooms'][number] = {
++      id: 'r-finalized',
++      name: '거실',
++      cls: 'living',
++      areaM2: 48,
++      polygon: [
++        [1100, 1100],
++        [8900, 1100],
++        [8900, 6900],
++        [1100, 6900],
++      ],
++    }
++    const built = buildVectorNodes({
++      ...doc,
++      rooms: [sourceRoom],
++      openings: [],
++      walls: [
++        { id: 'south', kind: 'exterior', start: [1000, 1000], end: [9000, 1000], thickness: 200 },
++        { id: 'east', kind: 'exterior', start: [9000, 1000], end: [9000, 7000], thickness: 200 },
++        { id: 'north', kind: 'exterior', start: [9000, 7000], end: [1000, 7000], thickness: 200 },
++        { id: 'west', kind: 'exterior', start: [1000, 7000], end: [1000, 1000], thickness: 200 },
++        { id: 'branch', kind: 'interior', start: [5000, 1000], end: [5000, 4000], thickness: 100 },
++      ],
++    })!
++    const expected = detectSpacesForLevel('apt-vector-import', built.walls).spaces.find(
++      (space) => !space.isExterior,
++    )!
++    const zone = built.zones[0]!
++    expect(zone.autoFromWalls).toBe(true)
++    expect(zone.polygon).toEqual(expected.polygon)
++    expect(new Set(zone.boundaryWallIds)).toEqual(new Set(expected.wallIds))
++    expect(zone.metadata).toMatchObject({ source: 'apt-vector', sourceRoomId: 'r-finalized' })
++    expect(zone.name).toBe('거실')
++  })
++
+   test('snaps corner and tee gaps closed along each wall axis', () => {
+     const gappy: AptVectorDoc = {
+       ...doc,
+diff --git a/apps/editor/lib/apt-vector-scene.ts b/apps/editor/lib/apt-vector-scene.ts
+index c0197c4b..c78b89ae 100644
+--- a/apps/editor/lib/apt-vector-scene.ts
++++ b/apps/editor/lib/apt-vector-scene.ts
+@@ -1,6 +1,8 @@
+ import {
+   createDefaultWallFaceBands,
+   DoorNode,
++  detectSpacesForLevel,
++  planAutoZonesForLevel,
+   WallNode,
+   WindowNode,
+   ZoneNode,
+@@ -513,9 +515,20 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
+     )
+   }
+ 
++  const connected = connectWallJunctions(walls, openings)
++  const detectedSpaces = detectSpacesForLevel('apt-vector-import', connected.walls).spaces
++  const zonePlan = planAutoZonesForLevel(detectedSpaces, zones, {
++    adoptContainedApartmentZones: true,
++  })
++  const zoneUpdates = new Map(zonePlan.update.map((entry) => [entry.id, entry.data]))
++  const reconciledZones = zones.map((zone) => {
++    const update = zoneUpdates.get(zone.id)
++    return update ? ZoneNode.parse({ ...zone, ...update }) : zone
++  })
++
+   return {
+-    ...connectWallJunctions(walls, openings),
+-    zones,
++    ...connected,
++    zones: reconciledZones,
+     guideScale: (imageW * doc.mmPerPx) / 10000,
+     diagnostics: { unhostedOpeningIds, dedupedOpeningIds, droppedWallIds },
+   }
+@@ -533,12 +546,6 @@ function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNod
+       const ta = along(point, a.start, segDir(a))
+       const tb = along(point, b.start, segDir(b))
+       if (ta < -1e-6 || ta > segLen(a) + 1e-6 || tb < -1e-6 || tb > segLen(b) + 1e-6) continue
+-      // An endpoint tee is already represented by the two source walls. Keep
+-      // the main run continuous so its mitering system can render the
+-      // passthrough junction without manufacturing extra wall pieces.
+-      const aAtEndpoint = ta < 0.001 || ta > segLen(a) - 0.001
+-      const bAtEndpoint = tb < 0.001 || tb > segLen(b) - 0.001
+-      if (aAtEndpoint !== bAtEndpoint) continue
+       for (const [index, at, otherThickness] of [
+         [i, ta, b.th],
+         [j, tb, a.th],
+diff --git a/packages/core/src/index.ts b/packages/core/src/index.ts
+index 98e898b7..0e74f802 100644
+--- a/packages/core/src/index.ts
++++ b/packages/core/src/index.ts
+@@ -407,6 +407,7 @@ export {
+   buildWallLengthUpdates,
+   buildWallMerge,
+   buildWallSplit,
++  buildWallSplitAtContacts,
+   type WallMutation,
+   WallOperationError,
+   type WallSceneState,
+diff --git a/packages/core/src/lib/space-detection.test.ts b/packages/core/src/lib/space-detection.test.ts
+index 6c1ae38e..545d86f1 100644
+--- a/packages/core/src/lib/space-detection.test.ts
++++ b/packages/core/src/lib/space-detection.test.ts
+@@ -711,6 +711,103 @@ describe('procedural zones', () => {
+ 
+     expect(planAutoZonesForLevel(spaces, [zone]).update).toHaveLength(0)
+   })
++
++  test('adopts one inset apartment zone to the exact detected space footprint', () => {
++    const walls = squareWalls()
++    const { spaces } = detectSpacesForLevel('level-1', walls)
++    const zone = ZoneNode.parse({
++      id: 'zone_apartment_inset',
++      name: '거실',
++      color: '#8f8878',
++      spaceRole: 'room',
++      polygon: [
++        [0.4, 0.4],
++        [3.6, 0.4],
++        [3.6, 2.6],
++        [0.4, 2.6],
++      ],
++      metadata: { source: 'apt-vector', sourceRoomId: 'r1', cls: 'living' },
++    })
++
++    const plan = planAutoZonesForLevel(spaces, [zone], {
++      adoptContainedApartmentZones: true,
++    })
++
++    expect(plan.update).toHaveLength(1)
++    expect(plan.update[0]?.id).toBe(zone.id)
++    expect(plan.update[0]?.data).toMatchObject({
++      autoFromWalls: true,
++      polygon: spaces[0]?.polygon,
++      boundaryWallIds: spaces[0]?.wallIds,
++    })
++    expect(plan.update[0]?.data.name).toBeUndefined()
++    expect(plan.update[0]?.data.metadata).toBeUndefined()
++  })
++
++  test('keeps ambiguous apartment subdivisions when an exact and inset zone claim one space', () => {
++    const { spaces } = detectSpacesForLevel('level-1', squareWalls())
++    const zones = [
++      ZoneNode.parse({
++        id: 'zone_open_living',
++        name: '거실',
++        spaceRole: 'room',
++        polygon: [
++          [0, 0],
++          [4, 0],
++          [4, 3],
++          [0, 3],
++        ],
++        metadata: { source: 'apt-vector', sourceRoomId: 'living' },
++      }),
++      ZoneNode.parse({
++        id: 'zone_open_entry',
++        name: '현관',
++        spaceRole: 'room',
++        polygon: [
++          [0.4, 0.4],
++          [3.6, 0.4],
++          [3.6, 2.6],
++          [0.4, 2.6],
++        ],
++        metadata: { source: 'apt-vector', sourceRoomId: 'entry' },
++      }),
++    ]
++
++    const plan = planAutoZonesForLevel(spaces, zones, {
++      adoptContainedApartmentZones: true,
++    })
++
++    expect(plan.update).toHaveLength(0)
++  })
++
++  test('requires the import flag and apt-vector provenance before contained adoption', () => {
++    const { spaces } = detectSpacesForLevel('level-1', squareWalls())
++    const inset = [
++      [0.4, 0.4],
++      [3.6, 0.4],
++      [3.6, 2.6],
++      [0.4, 2.6],
++    ] as Array<[number, number]>
++    const aptZone = ZoneNode.parse({
++      id: 'zone_flagged',
++      name: '거실',
++      spaceRole: 'room',
++      polygon: inset,
++      metadata: { source: 'apt-vector', sourceRoomId: 'r1' },
++    })
++    const manualZone = ZoneNode.parse({
++      id: 'zone_manual',
++      name: '기록',
++      spaceRole: 'room',
++      polygon: inset,
++      metadata: { source: 'survey' },
++    })
++
++    expect(planAutoZonesForLevel(spaces, [aptZone]).update).toHaveLength(0)
++    expect(
++      planAutoZonesForLevel(spaces, [manualZone], { adoptContainedApartmentZones: true }).update,
++    ).toHaveLength(0)
++  })
+ })
+ 
+ describe('wallClosesRoom', () => {
+diff --git a/packages/core/src/lib/space-detection.ts b/packages/core/src/lib/space-detection.ts
+index 6cc99877..6b8cba61 100644
+--- a/packages/core/src/lib/space-detection.ts
++++ b/packages/core/src/lib/space-detection.ts
+@@ -968,7 +968,12 @@ export function zoneNeedsBoundaryReview(zone: Pick<ZoneNodeType, 'metadata'>): b
+ export function planAutoZonesForLevel(
+   spaces: readonly Space[],
+   existingZones: readonly ZoneNodeType[],
+-  context: { previousSpaces?: readonly Space[]; changedWalls?: readonly WallNode[] } = {},
++  context: {
++    previousSpaces?: readonly Space[]
++    changedWalls?: readonly WallNode[]
++    /** Adopt source apartment zones only during explicit import reconciliation. */
++    adoptContainedApartmentZones?: boolean
++  } = {},
+ ): AutoZoneSyncPlan {
+   const update: AutoZoneSyncPlan['update'] = []
+   // ponytail: reuse the existing sampled overlap; ambiguous semantic subdivisions stay manual.
+@@ -981,11 +986,54 @@ export function planAutoZonesForLevel(
+     )
+   }
+ 
++  const adoptedApartmentSpaces = new Map<ZoneNodeType['id'], Space>()
++  const ambiguousApartmentZoneIds = new Set<ZoneNodeType['id']>()
++  if (context.adoptContainedApartmentZones) {
++    // Space ids are intentionally compact signatures and can collide for
++    // distinct loops with the same leading points. Keep the object identity
++    // from this `spaces` array so claimant counts remain per detected loop.
++    const claimsBySpace = new Map<Space, number>()
++    const candidatesByZone = new Map<ZoneNodeType['id'], Space>()
++
++    for (const zone of existingZones) {
++      const metadata =
++        zone.metadata !== null && typeof zone.metadata === 'object' && !Array.isArray(zone.metadata)
++          ? zone.metadata
++          : {}
++      if (metadata.source !== 'apt-vector') continue
++
++      const candidates = spaces.filter(
++        (space) =>
++          polygonCoverageRatio(zone.polygon.map(pointFromTuple), [
++            space.polygon.map(pointFromTuple),
++          ]) >= 0.9,
++      )
++      if (candidates.length !== 1) continue
++
++      const candidate = candidates[0]!
++      candidatesByZone.set(zone.id, candidate)
++      claimsBySpace.set(candidate, (claimsBySpace.get(candidate) ?? 0) + 1)
++    }
++
++    for (const [zoneId, space] of candidatesByZone) {
++      const claimCount = claimsBySpace.get(space) ?? 0
++      if (claimCount === 1) adoptedApartmentSpaces.set(zoneId, space)
++      if (claimCount > 1) ambiguousApartmentZoneIds.add(zoneId)
++    }
++  }
++
+   for (const zone of existingZones) {
+     const metadata =
+       zone.metadata !== null && typeof zone.metadata === 'object' && !Array.isArray(zone.metadata)
+         ? zone.metadata
+         : {}
++    if (
++      context.adoptContainedApartmentZones &&
++      metadata.source === 'apt-vector' &&
++      ambiguousApartmentZoneIds.has(zone.id)
++    ) {
++      continue
++    }
+     const storedSignature = polygonSignature(
+       simplifyClosedPolygon(zone.polygon, 1e-6).map(pointFromTuple),
+     )
+@@ -999,12 +1047,14 @@ export function planAutoZonesForLevel(
+         ? previousMatches[0]
+         : undefined
+     const boundaryWallIds = zone.autoFromWalls ? zone.boundaryWallIds : previousSpace?.wallIds
+-    const matchingSpace = spaces.find(
+-      (space) =>
+-        (boundaryWallIds && sameStringSet(space.wallIds, boundaryWallIds)) ||
+-        polygonSignature(simplifyClosedPolygon(space.polygon, 1e-6).map(pointFromTuple)) ===
+-          storedSignature,
+-    )
++    const matchingSpace =
++      adoptedApartmentSpaces.get(zone.id) ??
++      spaces.find(
++        (space) =>
++          (boundaryWallIds && sameStringSet(space.wallIds, boundaryWallIds)) ||
++          polygonSignature(simplifyClosedPolygon(space.polygon, 1e-6).map(pointFromTuple)) ===
++            storedSignature,
++      )
+     if (!matchingSpace) {
+       const affected =
+         zone.autoFromWalls ||
+diff --git a/packages/core/src/lib/wall-operations.test.ts b/packages/core/src/lib/wall-operations.test.ts
+index 16ab5247..7c329690 100644
+--- a/packages/core/src/lib/wall-operations.test.ts
++++ b/packages/core/src/lib/wall-operations.test.ts
+@@ -1,6 +1,11 @@
+ import { describe, expect, test } from 'bun:test'
+ import { DoorNode, ItemNode, LevelNode, WallNode } from '../schema'
+-import { buildWallMerge, buildWallSplit, WallOperationError } from './wall-operations'
++import {
++  buildWallMerge,
++  buildWallSplit,
++  buildWallSplitAtContacts,
++  WallOperationError,
++} from './wall-operations'
+ 
+ function scene() {
+   const level = LevelNode.parse({ children: [] })
+@@ -214,6 +219,119 @@ describe('wall operations', () => {
+       WallOperationError,
+     )
+   })
++
++  test('splits a wall once per distinct interior T/X contact in descending order', () => {
++    const input = scene()
++    delete input.nodes.door_main
++    input.nodes.wall_left = WallNode.parse({
++      ...(input.nodes.wall_left as any),
++      end: [5, 0],
++      children: [],
++    })
++    const level = input.nodes[input.rootNodeIds[0]!] as any
++    const branchAtOne = WallNode.parse({
++      id: 'wall_branch_one',
++      parentId: level.id,
++      start: [1, 0],
++      end: [1, 2],
++    })
++    const duplicateBranch = WallNode.parse({
++      id: 'wall_branch_duplicate',
++      parentId: level.id,
++      start: [1, 0],
++      end: [1, -2],
++    })
++    const branchAtThree = WallNode.parse({
++      id: 'wall_branch_three',
++      parentId: level.id,
++      start: [3, -2],
++      end: [3, 2],
++    })
++    input.nodes[branchAtOne.id] = branchAtOne
++    input.nodes[duplicateBranch.id] = duplicateBranch
++    input.nodes[branchAtThree.id] = branchAtThree
++    input.nodes[level.id] = {
++      ...level,
++      children: [...level.children, branchAtOne.id, duplicateBranch.id, branchAtThree.id],
++    }
++
++    const result = buildWallSplitAtContacts(input, 'wall_left')
++    expect(result.createdNodeIds).toHaveLength(2)
++    expect((result.nodes.wall_left as any).start).toEqual([0, 0])
++    expect((result.nodes.wall_left as any).end).toEqual([1, 0])
++    expect(result.createdNodeIds.map((id) => (result.nodes[id] as any).start)).toEqual([
++      [3, 0],
++      [1, 0],
++    ])
++    expect(result.nodes.wall_branch_one).toEqual(branchAtOne)
++    expect(result.nodes.wall_branch_duplicate).toEqual(duplicateBranch)
++    expect(result.nodes.wall_branch_three).toEqual(branchAtThree)
++  })
++
++  test('ignores endpoint-only contacts and contacts on another level', () => {
++    const input = scene()
++    const level = input.nodes[input.rootNodeIds[0]!] as any
++    const otherLevel = LevelNode.parse({ children: [] })
++    const endpointBranch = WallNode.parse({
++      id: 'wall_endpoint_branch',
++      parentId: level.id,
++      start: [0, 0],
++      end: [0, 2],
++    })
++    const otherLevelBranch = WallNode.parse({
++      id: 'wall_other_level_branch',
++      parentId: otherLevel.id,
++      start: [1, 0],
++      end: [1, 2],
++    })
++    input.nodes[otherLevel.id] = otherLevel
++    input.nodes[endpointBranch.id] = endpointBranch
++    input.nodes[otherLevelBranch.id] = otherLevelBranch
++    input.nodes[level.id] = { ...level, children: [...level.children, endpointBranch.id] }
++    expect(() => buildWallSplitAtContacts(input, 'wall_left')).toThrow(
++      expect.objectContaining({ code: 'no-wall-contacts' }),
++    )
++  })
++
++  test('validates every contact before exposing a mutation when an attachment crosses one', () => {
++    const input = scene()
++    const level = input.nodes[input.rootNodeIds[0]!] as any
++    const branchAtOne = WallNode.parse({
++      id: 'wall_branch_one',
++      parentId: level.id,
++      start: [1, 0],
++      end: [1, 2],
++    })
++    const branchAtThree = WallNode.parse({
++      id: 'wall_branch_three',
++      parentId: level.id,
++      start: [3, -2],
++      end: [3, 2],
++    })
++    const crossingDoor = DoorNode.parse({
++      id: 'door_crossing_contacts',
++      parentId: 'wall_left',
++      wallId: 'wall_left',
++      position: [1, 0, 0],
++      width: 1,
++    })
++    input.nodes[branchAtOne.id] = branchAtOne
++    input.nodes[branchAtThree.id] = branchAtThree
++    input.nodes[crossingDoor.id] = crossingDoor
++    input.nodes.wall_left = WallNode.parse({
++      ...(input.nodes.wall_left as any),
++      children: [...((input.nodes.wall_left as any).children ?? []), crossingDoor.id],
++    })
++    input.nodes[level.id] = {
++      ...level,
++      children: [...level.children, branchAtOne.id, branchAtThree.id],
++    }
++    const before = JSON.stringify(input)
++    expect(() => buildWallSplitAtContacts(input, 'wall_left')).toThrow(
++      expect.objectContaining({ code: 'attachment-crosses-split' }),
++    )
++    expect(JSON.stringify(input)).toBe(before)
++  })
+ })
+ 
+ function levelId(input: ReturnType<typeof scene>) {
+diff --git a/packages/core/src/lib/wall-operations.ts b/packages/core/src/lib/wall-operations.ts
+index 973b6d27..ec36c21d 100644
+--- a/packages/core/src/lib/wall-operations.ts
++++ b/packages/core/src/lib/wall-operations.ts
+@@ -727,3 +727,72 @@ export function buildWallSplit(
+     changedIds,
+   )
+ }
++
++/**
++ * Split a straight wall at every interior T/X contact with a sibling wall.
++ *
++ * The individual split builder is deliberately reused on an in-memory
++ * snapshot. This keeps attachment, parent, and collection bookkeeping in one
++ * place while ensuring a failed later split never leaks a partial mutation to
++ * the caller.
++ */
++export function buildWallSplitAtContacts(scene: WallSceneState, wallId: AnyNodeId): WallMutation {
++  const wall = requireWall(scene.nodes, wallId)
++  const wallLength = distance(wall.start, wall.end)
++  if (wallLength <= EPSILON) {
++    throw new WallOperationError('zero-length-wall', 'Zero-length walls cannot be split')
++  }
++  if (Math.abs(wall.curveOffset ?? 0) > EPSILON) {
++    throw new WallOperationError('curved-wall', 'Only straight walls can be split')
++  }
++
++  const hostAxis: Vec2 = [wall.end[0] - wall.start[0], wall.end[1] - wall.start[1]]
++  const contacts: number[] = []
++  for (const node of Object.values(scene.nodes)) {
++    if (!isWall(node) || node.id === wall.id || node.parentId !== wall.parentId) continue
++    if (Math.abs(node.curveOffset ?? 0) > EPSILON) continue
++    const otherLength = distance(node.start, node.end)
++    if (otherLength <= EPSILON) continue
++    const otherAxis: Vec2 = [node.end[0] - node.start[0], node.end[1] - node.start[1]]
++    const denominator = cross(hostAxis, otherAxis)
++    if (Math.abs(denominator) <= EPSILON * wallLength * otherLength) continue
++
++    const offset: Vec2 = [node.start[0] - wall.start[0], node.start[1] - wall.start[1]]
++    const hostT = cross(offset, otherAxis) / denominator
++    const otherT = cross(offset, hostAxis) / denominator
++    // The selected wall must be split in its interior. The contact may be an
++    // endpoint or interior point of the other wall (T and X junctions).
++    if (hostT <= EPSILON / wallLength || hostT >= 1 - EPSILON / wallLength) continue
++    if (otherT < -EPSILON / otherLength || otherT > 1 + EPSILON / otherLength) continue
++    const distanceFromStart = hostT * wallLength
++    if (contacts.some((existing) => Math.abs(existing - distanceFromStart) <= EPSILON)) continue
++    contacts.push(distanceFromStart)
++  }
++
++  if (contacts.length === 0) {
++    throw new WallOperationError(
++      'no-wall-contacts',
++      'No interior T or X wall contacts were found for this wall',
++    )
++  }
++
++  // Descending distances keep the retained wall id as the prefix segment for
++  // each subsequent split. All builders operate on snapshots until every
++  // contact has validated successfully, making the operation atomic.
++  contacts.sort((a, b) => b - a)
++  let snapshot: WallSceneState = scene
++  const createdNodeIds: AnyNodeId[] = []
++  const changedNodeIds = new Set<AnyNodeId>()
++  for (const distanceFromStart of contacts) {
++    const mutation = buildWallSplit(snapshot, wallId, distanceFromStart)
++    snapshot = {
++      nodes: mutation.nodes,
++      rootNodeIds: mutation.rootNodeIds,
++      collections: mutation.collections,
++    }
++    createdNodeIds.push(...mutation.createdNodeIds)
++    for (const id of mutation.changedNodeIds) changedNodeIds.add(id)
++  }
++
++  return makeMutation(snapshot, wallId, createdNodeIds, [], changedNodeIds)
++}
+diff --git a/packages/core/src/store/actions/wall-actions.ts b/packages/core/src/store/actions/wall-actions.ts
+index f146c566..a1216ce9 100644
+--- a/packages/core/src/store/actions/wall-actions.ts
++++ b/packages/core/src/store/actions/wall-actions.ts
+@@ -1,4 +1,9 @@
+-import { buildWallMerge, buildWallSplit, type WallMutation } from '../../lib/wall-operations'
++import {
++  buildWallMerge,
++  buildWallSplit,
++  buildWallSplitAtContacts,
++  type WallMutation,
++} from '../../lib/wall-operations'
+ import type { AnyNodeId } from '../../schema/types'
+ import type { SceneState } from '../use-scene'
+ 
+@@ -44,3 +49,12 @@ export function splitWallAction(
+   )
+   return applyWallMutation(set, get, mutation)
+ }
++
++export function splitWallAtContactsAction(set: SceneSet, get: SceneGet, wallId: AnyNodeId) {
++  if (get().readOnly) return undefined
++  const mutation = buildWallSplitAtContacts(
++    { nodes: get().nodes, rootNodeIds: get().rootNodeIds, collections: get().collections },
++    wallId,
++  )
++  return applyWallMutation(set, get, mutation)
++}
+diff --git a/packages/core/src/store/use-scene.ts b/packages/core/src/store/use-scene.ts
+index b5d4474d..9ffaad6c 100644
+--- a/packages/core/src/store/use-scene.ts
++++ b/packages/core/src/store/use-scene.ts
+@@ -1267,6 +1267,7 @@ export type SceneState = {
+     distanceFromStart: number,
+     requestedSecondWallId?: AnyNodeId,
+   ) => WallMutation | undefined
++  splitWallAtContacts: (wallId: AnyNodeId) => WallMutation | undefined
+ 
+   // Collection actions
+   createCollection: (name: string, nodeIds?: AnyNodeId[]) => CollectionId
+@@ -1487,6 +1488,7 @@ const useScene: UseSceneStore = create<SceneState>()(
+       mergeWalls: (wallIds) => wallActions.mergeWallsAction(set, get, wallIds),
+       splitWall: (wallId, distanceFromStart, requestedSecondWallId) =>
+         wallActions.splitWallAction(set, get, wallId, distanceFromStart, requestedSecondWallId),
++      splitWallAtContacts: (wallId) => wallActions.splitWallAtContactsAction(set, get, wallId),
+ 
+       // --- COLLECTIONS ---
+ 
+diff --git a/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts b/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts
+index 5ef69dc9..eeb9dcfd 100644
+--- a/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts
++++ b/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts
+@@ -24,6 +24,7 @@ import {
+   floorplanHandleDoubleClickAffordance,
+   InteractiveGeometry,
+   isFloorplanOpeningPlacementState,
++  orderFloorplanOverlayEntries,
+   resolveFloorplanHandleUnitsPerPixel,
+   splitFloorplanOverlay,
+   subscribeFloorplanAffordanceToolCancel,
+@@ -446,6 +447,22 @@ describe('floorplan annotation overlay routing', () => {
+   })
+ })
+ 
++describe('floorplan registry overlay ordering', () => {
++  test('renders a selected wall entry after unselected wall entries', () => {
++    const entries = ['wall_back', 'wall_selected', 'wall_front'].map((id) => ({
++      id: id as AnyNodeId,
++      node: { id, type: 'wall' } as AnyNode,
++      dependsOnSiblingInputs: false,
++    }))
++
++    expect(
++      orderFloorplanOverlayEntries(entries, ['wall_selected' as AnyNodeId]).map(
++        (entry) => entry.id,
++      ),
++    ).toEqual(['wall_back', 'wall_front', 'wall_selected'])
++  })
++})
++
+ describe('computeAffectedSiblingIds', () => {
+   beforeEach(() => {
+     nodeRegistry._reset()
+diff --git a/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx b/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
+index fe769573..7d3a323d 100644
+--- a/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
++++ b/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
+@@ -324,6 +324,17 @@ type FloorplanEntryDescriptor = {
+   ctxOverrides?: FloorplanContextOverrides
+ }
+ 
++export function orderFloorplanOverlayEntries(
++  entries: readonly FloorplanEntryDescriptor[],
++  selectedIds: readonly string[],
++): FloorplanEntryDescriptor[] {
++  const selected = new Set(selectedIds)
++  return [
++    ...entries.filter((entry) => !selected.has(entry.id)),
++    ...entries.filter((entry) => selected.has(entry.id)),
++  ]
++}
++
+ type NodeDeps = {
+   automaticDimensions: boolean
+   node: AnyNode
+@@ -426,6 +437,7 @@ const EMPTY_LIVE_OVERRIDES: Map<string, LiveNodeOverrides> = new Map()
+ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+   const selectedLevelId = useViewer((s) => s.selection.levelId)
+   const selectedBuildingId = useViewer((s) => s.selection.buildingId)
++  const selectedIds = useViewer((s) => s.selection.selectedIds)
+   const unit = useViewer((s) => s.unit)
+   const metricNotation = useViewer((s) => s.metricNotation)
+   const setSelection = useViewer((s) => s.setSelection)
+@@ -1355,6 +1367,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+ 
+   const entries = floorplanData.entries
+   if (entries.length === 0) return null
++  const overlayEntries = orderFloorplanOverlayEntries(entries, selectedIds)
+ 
+   const palette = renderCtx?.palette
+ 
+@@ -1430,7 +1443,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+           still routes through the same selection-handling `<g>` so a
+           click on a zone's name selects the zone. */}
+       <g className="floorplan-registry-overlay">
+-        {entries.map((entry) => (
++        {overlayEntries.map((entry) => (
+           <FloorplanRegistryEntry
+             activeDragId={handleIdForNode(activeDragId, entry.id)}
+             annotationVisibility={annotationVisibility}
+diff --git a/packages/editor/src/components/editor/handles/handle-arrow.test.ts b/packages/editor/src/components/editor/handles/handle-arrow.test.ts
+new file mode 100644
+index 00000000..abf4bea7
+--- /dev/null
++++ b/packages/editor/src/components/editor/handles/handle-arrow.test.ts
+@@ -0,0 +1,90 @@
++import { describe, expect, test } from 'bun:test'
++import { BoxGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
++import useEditor from '../../../store/use-editor'
++import { hitAreaRaycast, prioritizedHitAreaRaycast } from './handle-arrow'
++
++function boxAt(z: number) {
++  const mesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial())
++  mesh.position.z = z
++  mesh.updateMatrixWorld(true)
++  return mesh
++}
++
++function rayFromCamera() {
++  return new Raycaster(new Vector3(0, 0, 5), new Vector3(0, 0, -1))
++}
++
++describe('InvisibleHandleHitArea raycast priority', () => {
++  test('puts a priority handle before a nearer wall while preserving the hit data', () => {
++    const handle = boxAt(0)
++    const wall = boxAt(2)
++    const raycaster = rayFromCamera()
++    const normalHits: Parameters<typeof hitAreaRaycast>[1] = []
++    const priorityHits: Parameters<typeof prioritizedHitAreaRaycast>[1] = []
++
++    try {
++      hitAreaRaycast.call(handle, raycaster, normalHits)
++      wall.raycast(raycaster, priorityHits)
++      const existingWallHit = priorityHits[0]
++      if (!existingWallHit) throw new Error('expected a wall raycast hit')
++      const existingWallDistance = existingWallHit.distance
++      prioritizedHitAreaRaycast.call(handle, raycaster, priorityHits)
++
++      expect(normalHits).toHaveLength(2)
++      expect(priorityHits).toHaveLength(4)
++      const normalHit = normalHits[0]
++      const priorityHit = priorityHits.find((hit) => hit.object === handle)
++      if (!normalHit || !priorityHit) throw new Error('expected a handle raycast hit')
++      expect(priorityHit.point).toEqual(normalHit.point)
++      expect(priorityHit.object).toBe(normalHit.object)
++      expect(priorityHit.uv).toEqual(normalHit.uv)
++      expect(priorityHit.distance).toBe(0)
++      expect(existingWallHit.distance).toBe(existingWallDistance)
++      expect(
++        priorityHits
++          .slice()
++          .sort((a, b) => a.distance - b.distance)
++          .map((hit) => hit.object),
++      ).toEqual([handle, handle, wall, wall])
++    } finally {
++      handle.geometry.dispose()
++      handle.material.dispose()
++      wall.geometry.dispose()
++      wall.material.dispose()
++    }
++  })
++
++  test('keeps normal hit distances by default', () => {
++    const handle = boxAt(0)
++    const hits: Parameters<typeof hitAreaRaycast>[1] = []
++
++    try {
++      hitAreaRaycast.call(handle, rayFromCamera(), hits)
++      expect(hits).toHaveLength(2)
++      const firstHit = hits[0]
++      if (!firstHit) throw new Error('expected a handle raycast hit')
++      expect(firstHit.distance).toBeGreaterThan(0)
++    } finally {
++      handle.geometry.dispose()
++      handle.material.dispose()
++    }
++  })
++
++  test('does not raycast while placement drag owns the pointer', () => {
++    const handle = boxAt(0)
++    const previous = useEditor.getState().placementDragMode
++    useEditor.getState().setPlacementDragMode(true)
++
++    try {
++      for (const raycast of [hitAreaRaycast, prioritizedHitAreaRaycast]) {
++        const hits: Parameters<typeof hitAreaRaycast>[1] = []
++        raycast.call(handle, rayFromCamera(), hits)
++        expect(hits).toHaveLength(0)
++      }
++    } finally {
++      useEditor.getState().setPlacementDragMode(previous)
++      handle.geometry.dispose()
++      handle.material.dispose()
++    }
++  })
++})
+diff --git a/packages/editor/src/components/editor/handles/handle-arrow.tsx b/packages/editor/src/components/editor/handles/handle-arrow.tsx
+index 08b98277..3ea8bf62 100644
+--- a/packages/editor/src/components/editor/handles/handle-arrow.tsx
++++ b/packages/editor/src/components/editor/handles/handle-arrow.tsx
+@@ -29,9 +29,33 @@ import useEditor from '../../../store/use-editor'
+ // (`wall:move` for openings, `grid:move` for free movers), freezing the drag.
+ // Make every handle hit area inert for the duration; the indicator mesh still
+ // renders (it's already NO_RAYCAST + depthTest off) so the grip stays visible.
+-function hitAreaRaycast(this: Mesh, raycaster: Raycaster, intersects: Intersection[]): void {
++function raycastHandleHitArea(
++  this: Mesh,
++  raycaster: Raycaster,
++  intersects: Intersection[],
++  prioritizeHit: boolean,
++): void {
+   if (useEditor.getState().placementDragMode) return
++  const firstNewIntersection = intersects.length
+   Mesh.prototype.raycast.call(this, raycaster, intersects)
++  if (prioritizeHit) {
++    for (let index = firstNewIntersection; index < intersects.length; index += 1) {
++      const intersection = intersects[index]
++      if (intersection) intersection.distance = 0
++    }
++  }
++}
++
++export function hitAreaRaycast(this: Mesh, raycaster: Raycaster, intersects: Intersection[]): void {
++  raycastHandleHitArea.call(this, raycaster, intersects, false)
++}
++
++export function prioritizedHitAreaRaycast(
++  this: Mesh,
++  raycaster: Raycaster,
++  intersects: Intersection[],
++): void {
++  raycastHandleHitArea.call(this, raycaster, intersects, true)
+ }
+ 
+ export const ARROW_SCALE = 0.65
+@@ -413,6 +437,7 @@ export function InvisibleHandleHitArea({
+   onPointerDown,
+   onPointerEnter,
+   onPointerLeave,
++  prioritizeHit = false,
+   scale,
+ }: {
+   geometry: BufferGeometry
+@@ -420,6 +445,7 @@ export function InvisibleHandleHitArea({
+   onPointerDown: PointerHandler
+   onPointerEnter: PointerHandler
+   onPointerLeave: PointerHandler
++  prioritizeHit?: boolean
+   scale: number
+ }) {
+   return (
+@@ -431,7 +457,7 @@ export function InvisibleHandleHitArea({
+       onPointerDown={onPointerDown}
+       onPointerEnter={onPointerEnter}
+       onPointerLeave={onPointerLeave}
+-      raycast={hitAreaRaycast}
++      raycast={prioritizeHit ? prioritizedHitAreaRaycast : hitAreaRaycast}
+       renderOrder={HIT_AREA_RENDER_ORDER}
+       scale={scale}
+     />
+diff --git a/packages/editor/src/components/editor/wall-move-side-handles.tsx b/packages/editor/src/components/editor/wall-move-side-handles.tsx
+index 6e6165d3..87ca481e 100644
+--- a/packages/editor/src/components/editor/wall-move-side-handles.tsx
++++ b/packages/editor/src/components/editor/wall-move-side-handles.tsx
+@@ -390,6 +390,7 @@ function WallCornerLeaderHandle({ wall, endpoint }: { wall: WallNode; endpoint:
+               document.body.style.cursor = ''
+             }
+           }}
++          prioritizeHit
+           scale={1}
+         />
+         <group scale={visualScale}>
+diff --git a/packages/editor/src/components/tools/wall/wall-drafting.test.ts b/packages/editor/src/components/tools/wall/wall-drafting.test.ts
+index 67ff3158..42df45c5 100644
+--- a/packages/editor/src/components/tools/wall/wall-drafting.test.ts
++++ b/packages/editor/src/components/tools/wall/wall-drafting.test.ts
+@@ -22,6 +22,7 @@ import {
+   type GuideSnapLine,
+   resolveEndpointWallSplit,
+   resolveTerrainWallConstructionOptions,
++  resolveWallEndpointPoint,
+   snapPointToGuides,
+   snapWallDraftPointDetailed,
+ } from './wall-drafting'
+@@ -588,3 +589,488 @@ test('shared wall inference keeps guides and corners ahead of weak angles and re
+   const angled = snapWallDraftPointDetailed({ ...args, point: [4, 1.1], angleSnap: true })
+   expect((Math.atan2(angled.point[1], angled.point[0]) * 180) / Math.PI).toBeCloseTo(15, 12)
+ })
++
++describe('resolveWallEndpointPoint', () => {
++  test('fixed-corner right-angle inference wins over an off-ray endpoint', () => {
++    const target = { ...makeWall([2, 0.03], [2, 4], 'wall_corner'), thickness: 0.4 }
++    const result = resolveWallEndpointPoint({
++      point: [1.8, 0.03],
++      walls: [target],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++    })
++
++    expect(result.point).toEqual([1.8, 0])
++    expect(result.snap).toBeNull()
++    expect(result.constraintOwned).toBe(true)
++  })
++
++  test('captures a thick target face at the inferred-ray intersection', () => {
++    const target = { ...makeWall([2, -2], [2, 4], 'wall_face'), thickness: 0.4 }
++    const result = resolveWallEndpointPoint({
++      point: [1.796, 1.02],
++      walls: [target],
++      start: [0, 1],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++    })
++
++    expect(result.point[0]).toBeCloseTo(2, 12)
++    expect(result.point[1]).toBeCloseTo(1, 12)
++    expect(result.snap).toBe('wall')
++    expect(result.targetWallIds).toEqual(['wall_face'])
++    expect(result.directionInferred).toBe(true)
++  })
++
++  test('keeps an outside-envelope cursor free on the inferred ray', () => {
++    const target = { ...makeWall([2, -2], [2, 4], 'wall_face'), thickness: 0.4 }
++    const result = resolveWallEndpointPoint({
++      point: [1.69, 1.02],
++      walls: [target],
++      start: [0, 1],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++    })
++
++    expect(result.point).toEqual([1.69, 1])
++    expect(result.snap).toBeNull()
++    expect(result.targetWallIds).toEqual([])
++    expect(result.directionInferred).toBe(true)
++  })
++
++  test('captures a physical face for an arbitrary-angle endpoint approach', () => {
++    const target = { ...makeWall([2, -2], [2, 4], 'wall_face'), thickness: 0.4 }
++    const result = resolveWallEndpointPoint({
++      point: [1.8, 0.5],
++      walls: [target],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++    })
++
++    expect(result.point[0]).toBeCloseTo(2, 12)
++    expect(result.point[1]).toBeCloseTo(0.5555555555555556, 12)
++    expect(result.snap).toBe('wall')
++    expect(result.targetWallIds).toEqual(['wall_face'])
++    expect(result.directionInferred).toBeUndefined()
++  })
++
++  test('preserves an exact endpoint hit before direction inference', () => {
++    const target = { ...makeWall([2, 0.03], [2, 4], 'wall_corner'), thickness: 0.4 }
++    const result = resolveWallEndpointPoint({
++      point: [2.00005, 0.03],
++      walls: [target],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++    })
++
++    expect(result.point).toEqual([2, 0.03])
++    expect(result.snap).toBe('endpoint')
++    expect(result.constraintOwned).toBeUndefined()
++  })
++
++  test('keeps an explicit construction guide ahead of weak direction inference', () => {
++    const result = resolveWallEndpointPoint({
++      point: [4, 0.1],
++      walls: [],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: false,
++      step: 0.001,
++      guides: [{ origin: [0, 0.12], direction: [1, 0] }],
++    })
++
++    expect(result.point).toEqual([4, 0.12])
++    expect(result.constraintOwned).toBe(true)
++  })
++
++  test('keeps an explicit construction guide on a locked ray', () => {
++    const result = resolveWallEndpointPoint({
++      point: [4, 0.1],
++      walls: [],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: false,
++      step: 0,
++      guides: [{ origin: [3.95, -2], direction: [0, 1] }],
++      constraintRay: { origin: [0, 0], through: [4, 0] },
++    })
++
++    expect(result.point).toEqual([3.95, 0])
++    expect(result.constraintOwned).toBe(true)
++    expect(result.targetCaptured).toBeUndefined()
++  })
++
++  test('does not infer a weak ray in Off mode', () => {
++    const result = resolveWallEndpointPoint({
++      point: [4, 0.1],
++      walls: [],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: false,
++      step: 0,
++      guides: [],
++    })
++
++    expect(result.point).toEqual([4, 0.1])
++    expect(result.directionInferred).toBeUndefined()
++  })
++
++  test('does not capture a distant on-ray endpoint outside the physical envelope', () => {
++    const result = resolveWallEndpointPoint({
++      point: [1.3, 0],
++      walls: [{ ...makeWall([2, 0], [2, 4], 'wall_distant_corner'), thickness: 0.4 }],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: false,
++      step: 0,
++      guides: [],
++    })
++
++    expect(result.point).toEqual([1.3, 0])
++    expect(result.targetCaptured).toBeUndefined()
++  })
++
++  test('captures a target corner only when the inferred ray reaches that corner', () => {
++    const onRay = resolveWallEndpointPoint({
++      point: [1.8, 0.03],
++      walls: [{ ...makeWall([2, 0], [2, 4], 'wall_corner_capture'), thickness: 0.4 }],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++    })
++    expect(onRay.point).toEqual([2, 0])
++    expect(onRay.targetCaptured).toBe(true)
++
++    const offRay = resolveWallEndpointPoint({
++      point: [1.8, 0.03],
++      walls: [{ ...makeWall([2, 0.03], [2, 4], 'wall_off_ray_corner'), thickness: 0.4 }],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++    })
++    expect(offRay.point).toEqual([1.8, 0])
++    expect(offRay.targetCaptured).toBeUndefined()
++  })
++
++  test('uses an explicit locked ray for thick-face capture', () => {
++    const result = resolveWallEndpointPoint({
++      point: [1.8, 1.02],
++      walls: [{ ...makeWall([2, -2], [2, 4], 'wall_locked_face'), thickness: 0.4 }],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      constraintRay: { origin: [0, 0], through: [1.8, 0] },
++    })
++
++    expect(result.point).toEqual([2, 0])
++    expect(result.targetCaptured).toBe(true)
++    expect(result.directionInferred).toBe(true)
++  })
++
++  test('captures a thick face on the explicit 15 degree angle ray', () => {
++    const result = resolveWallEndpointPoint({
++      point: [1.8, 1.02],
++      walls: [{ ...makeWall([2, -2], [2, 4], 'wall_angle_face'), thickness: 0.4 }],
++      start: [0, 0],
++      inferDirection: true,
++      angleSnap: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++    })
++
++    expect(result.point[0]).toBeCloseTo(2, 12)
++    expect(result.point[1]).toBeCloseTo(2 * Math.tan(Math.PI / 6), 12)
++    expect(result.targetCaptured).toBe(true)
++    expect(result.directionInferred).toBe(true)
++  })
++
++  test('captures a linked straight-junction datum without moving the inferred ray', () => {
++    const junctionReference = {
++      sharedPoint: [1.999, 4] as WallPlanPoint,
++      oppositeEndpoints: [
++        [2, 2],
++        [2, 7],
++      ] as [WallPlanPoint, WallPlanPoint],
++    }
++
++    const free = resolveWallEndpointPoint({
++      point: [2.048, 4.421],
++      walls: [],
++      start: [-4, 4],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference,
++    })
++    expect(free.point).toEqual([2, 4.421])
++    expect(free.constraintOwned).toBe(true)
++    expect(free.directionInferred).toBe(true)
++
++    const onPrimaryRay = resolveWallEndpointPoint({
++      point: [2.048, 4.02],
++      walls: [],
++      start: [-4, 4],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference,
++    })
++    expect(onPrimaryRay.point).toEqual([2, 4])
++    expect(onPrimaryRay.constraintOwned).toBe(true)
++    expect(onPrimaryRay.directionInferred).toBe(true)
++  })
++
++  test('uses the outer endpoint datum regardless of order and ignores invalid captures', () => {
++    const base = {
++      walls: [] as WallNode[],
++      start: [-4, 4] as WallPlanPoint,
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [] as GuideSnapLine[],
++    }
++    const reversed = resolveWallEndpointPoint({
++      ...base,
++      point: [2.048, 4.421],
++      junctionReference: {
++        sharedPoint: [1.999, 4],
++        oppositeEndpoints: [
++          [2, 7],
++          [2, 2],
++        ],
++      },
++    })
++    expect(reversed.point).toEqual([2, 4.421])
++
++    const nonCollinear = resolveWallEndpointPoint({
++      ...base,
++      point: [2.048, 4.421],
++      junctionReference: {
++        sharedPoint: [1.999, 4],
++        oppositeEndpoints: [
++          [2, 2],
++          [3, 7],
++        ],
++      },
++    })
++    expect(nonCollinear.point).toEqual([2.048, 4.421])
++
++    const outsideCapture = resolveWallEndpointPoint({
++      ...base,
++      point: [2.3, 4.421],
++      junctionReference: {
++        sharedPoint: [1.999, 4],
++        oppositeEndpoints: [
++          [2, 2],
++          [2, 7],
++        ],
++      },
++    })
++    expect(outsideCapture.point).toEqual([2.3, 4.421])
++  })
++
++  test('keeps guide, Off, and Angles precedence over a linked datum', () => {
++    const junctionReference = {
++      sharedPoint: [1.999, 4] as WallPlanPoint,
++      oppositeEndpoints: [
++        [2, 2],
++        [2, 7],
++      ] as [WallPlanPoint, WallPlanPoint],
++    }
++    const guided = resolveWallEndpointPoint({
++      point: [2.048, 4.12],
++      walls: [],
++      start: [-4, 4],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [{ origin: [0, 4.12], direction: [1, 0] }],
++      junctionReference,
++    })
++    expect(guided.point).toEqual([2.048, 4.12])
++    expect(guided.constraintOwned).toBe(true)
++
++    const off = resolveWallEndpointPoint({
++      point: [2.048, 4.421],
++      walls: [],
++      start: [-4, 4],
++      inferDirection: true,
++      magnetic: false,
++      step: 0,
++      guides: [],
++      junctionReference,
++    })
++    expect(off.point).toEqual([2.048, 4.421])
++    expect(off.constraintOwned).toBeUndefined()
++
++    const angles = resolveWallEndpointPoint({
++      point: [2.048, 4.421],
++      walls: [],
++      start: [-4, 4],
++      inferDirection: true,
++      angleSnap: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference,
++    })
++    expect(angles.point[0]).not.toBeCloseTo(2, 12)
++  })
++
++  test('combines a locked ray with a linked datum only inside the capture radius', () => {
++    const junctionReference = {
++      sharedPoint: [1.999, 4] as WallPlanPoint,
++      oppositeEndpoints: [
++        [2, 2],
++        [2, 7],
++      ] as [WallPlanPoint, WallPlanPoint],
++    }
++    const captured = resolveWallEndpointPoint({
++      point: [2.048, 4.02],
++      walls: [],
++      start: [-4, 4],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      constraintRay: { origin: [-4, 4], through: [2.048, 4] },
++      junctionReference,
++    })
++    expect(captured.point).toEqual([2, 4])
++    expect(captured.constraintOwned).toBe(true)
++    expect(captured.directionInferred).toBe(true)
++
++    const released = resolveWallEndpointPoint({
++      point: [2.5, 4.3],
++      walls: [],
++      start: [-4, 4],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      constraintRay: { origin: [-4, 4], through: [2.5, 4] },
++      junctionReference,
++    })
++    expect(released.point).toEqual([2.5, 4])
++    expect(released.constraintOwned).toBe(true)
++  })
++
++  test('uses the linked datum ray for a competing face only when no primary ray exists', () => {
++    const junctionReference = {
++      sharedPoint: [1.999, 4] as WallPlanPoint,
++      oppositeEndpoints: [
++        [2, 2],
++        [2, 7],
++      ] as WallPlanPoint[],
++    }
++    const horizontalFace = {
++      ...makeWall([1, 4.5], [4, 4.5], 'wall_external_horizontal'),
++      thickness: 0.4,
++    }
++    const datumOnly = resolveWallEndpointPoint({
++      point: [2.048, 4.421],
++      walls: [horizontalFace],
++      start: [-4, 4],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference,
++    })
++    expect(datumOnly.point).toEqual([2, 4.5])
++    expect(datumOnly.snap).toBe('wall')
++    expect(datumOnly.targetWallIds).toContain('wall_external_horizontal')
++    expect(datumOnly.targetCaptured).toBe(true)
++    expect(datumOnly.constraintOwned).toBe(true)
++    expect(datumOnly.directionInferred).toBe(true)
++
++    const verticalFace = {
++      ...makeWall([2.2, 2], [2.2, 7], 'wall_external_vertical'),
++      thickness: 0.4,
++    }
++    const alignedVerticalFace = {
++      ...makeWall([2, 2], [2, 7], 'wall_external_aligned'),
++      thickness: 0.4,
++    }
++    const primary = resolveWallEndpointPoint({
++      point: [2.048, 4.02],
++      walls: [verticalFace, alignedVerticalFace],
++      start: [-4, 4],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference,
++    })
++    expect(primary.point).toEqual([2, 4])
++    expect(primary.targetCaptured).toBe(true)
++    expect(primary.targetWallIds).toEqual(['wall_external_aligned'])
++
++    const reverseHorizontalFace = {
++      ...makeWall([1, 1.8], [4, 1.8], 'wall_external_reverse'),
++      thickness: 0.4,
++    }
++    const reverse = resolveWallEndpointPoint({
++      point: [2.048, 1.9],
++      walls: [reverseHorizontalFace],
++      start: [-4, 4],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference,
++    })
++    expect(reverse.point).toEqual([2, 1.8])
++    expect(reverse.targetWallIds).toContain('wall_external_reverse')
++  })
++
++  test('accepts a linked pair inside the 2 degree window and rejects one outside it', () => {
++    const nearTwoDegrees = (degrees: number) =>
++      resolveWallEndpointPoint({
++        point: [0.05, 0.08],
++        walls: [],
++        start: [-2, 0],
++        inferDirection: true,
++        magnetic: true,
++        step: 0,
++        guides: [],
++        junctionReference: {
++          sharedPoint: [0, 0],
++          oppositeEndpoints: [
++            [-1, 0],
++            [1, Math.tan((degrees * Math.PI) / 180)],
++          ],
++        },
++      })
++
++    const inside = nearTwoDegrees(1.9)
++    expect(inside.point).not.toEqual([0.05, 0.08])
++    expect(inside.constraintOwned).toBe(true)
++
++    const outside = nearTwoDegrees(2.1)
++    expect(outside.point).toEqual([0.05, 0.08])
++    expect(outside.constraintOwned).toBeUndefined()
++  })
++})
+diff --git a/packages/editor/src/components/tools/wall/wall-drafting.ts b/packages/editor/src/components/tools/wall/wall-drafting.ts
+index dce502b0..f70fae02 100644
+--- a/packages/editor/src/components/tools/wall/wall-drafting.ts
++++ b/packages/editor/src/components/tools/wall/wall-drafting.ts
+@@ -7,6 +7,7 @@ import {
+   type DoorNode,
+   GROUND_SUPPORT_ID,
+   getScaledDimensions,
++  getWallConstructionEnvelopeThickness,
+   type ItemNode,
+   resolveWallSupportSlabPatch,
+   runAsSingleSceneHistoryStep,
+@@ -22,10 +23,11 @@ import {
+ import { useViewer } from '@pascal-app/viewer'
+ import { sfxEmitter } from '../../../lib/sfx-bus'
+ import { resolveSnapFlags } from '../../../lib/snapping-mode'
+-import { inferWallDirection } from '../../../lib/wall-direction-lock'
++import { INFERENCE_TOLERANCE, inferWallDirection } from '../../../lib/wall-direction-lock'
+ import useEditor, { getActiveSnappingMode, isMagneticSnapActive } from '../../../store/use-editor'
+ import {
+   distanceSquared,
++  findWallEndpointFromRaw,
+   findWallSnapTarget,
+   findWallSpecialPointSnap,
+   projectPointOntoWall,
+@@ -483,6 +485,11 @@ export function snapPointToGuides(
+   return best ? [...best.point] : null
+ }
+ 
++export type WallJunctionReference = {
++  sharedPoint: WallPlanPoint
++  oppositeEndpoints: readonly WallPlanPoint[]
++}
++
+ type SnapWallDraftArgs = {
+   point: WallPlanPoint
+   walls: WallNode[]
+@@ -515,6 +522,24 @@ type SnapWallDraftArgs = {
+    * default for every drafting path. Pass [] to disable.
+    */
+   guides?: readonly GuideSnapLine[]
++  /**
++   * A caller-owned ray, used while an axis/arrow lock is active. The raw
++   * cursor still decides whether a wall face is captured; this ray decides
++   * the exact centerline intersection returned by that capture.
++   */
++  constraintRay?: { origin: WallPlanPoint; through: WallPlanPoint }
++  /**
++   * Optional datum from the two stationary outer endpoints at a linked
++   * junction. The datum is used only by endpoint moves in grid/lines mode.
++   */
++  junctionReference?: WallJunctionReference
++}
++
++export type WallEndpointSnapResult = WallDraftSnapResult & {
++  /** True when a fixed-corner direction constraint owns the resolved point. */
++  constraintOwned?: boolean
++  /** True when an existing wall endpoint or face supplied the resolved point. */
++  targetCaptured?: boolean
+ }
+ 
+ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSnapResult {
+@@ -655,6 +680,308 @@ export function snapWallDraftPointDetailed(args: SnapWallDraftArgs): WallDraftSn
+   }
+ }
+ 
++const ENDPOINT_EXACT_SNAP_RADIUS = 1e-4
++const ENDPOINT_FACE_CAPTURE_TOLERANCE = 0.005
++
++function cross2(a: WallPlanPoint, b: WallPlanPoint) {
++  return a[0] * b[1] - a[1] * b[0]
++}
++
++function intersectInferredRayWithWall(
++  origin: WallPlanPoint,
++  through: WallPlanPoint,
++  wall: WallNode,
++  allowReverseRay = false,
++): WallPlanPoint | null {
++  const ray: WallPlanPoint = [through[0] - origin[0], through[1] - origin[1]]
++  const rayLength = Math.hypot(ray[0], ray[1])
++  const target: WallPlanPoint = [wall.end[0] - wall.start[0], wall.end[1] - wall.start[1]]
++  const targetLength = Math.hypot(target[0], target[1])
++  if (rayLength <= 1e-9 || targetLength <= 1e-9) return null
++
++  const rayDirection: WallPlanPoint = [ray[0] / rayLength, ray[1] / rayLength]
++  const denominator = cross2(rayDirection, target)
++  if (Math.abs(denominator) <= 1e-9) return null
++  const offset: WallPlanPoint = [wall.start[0] - origin[0], wall.start[1] - origin[1]]
++  const rayDistance = cross2(offset, target) / denominator
++  const wallT = cross2(offset, rayDirection) / denominator
++  if ((!allowReverseRay && rayDistance <= 1e-6) || wallT < -1e-6 || wallT > 1 + 1e-6) return null
++  const clampedWallT = Math.max(0, Math.min(1, wallT))
++  return [wall.start[0] + target[0] * clampedWallT, wall.start[1] + target[1] * clampedWallT]
++}
++
++function findEndpointFaceCapture(args: {
++  point: WallPlanPoint
++  origin: WallPlanPoint
++  inferredPoint: WallPlanPoint
++  walls: WallNode[]
++  ignoreWallIds?: string[]
++  allowReverseRay?: boolean
++  acceptPoint?: (point: WallPlanPoint) => boolean
++}): { point: WallPlanPoint; wallId: WallNode['id'] } | null {
++  const ignored = new Set(args.ignoreWallIds ?? [])
++  const candidates: Array<{ wall: WallNode; distance: number }> = []
++  for (const wall of args.walls) {
++    if (ignored.has(wall.id) || Math.abs(wall.curveOffset ?? 0) > 1e-6) continue
++    const dx = wall.end[0] - wall.start[0]
++    const dz = wall.end[1] - wall.start[1]
++    const lengthSquared = dx * dx + dz * dz
++    if (lengthSquared <= 1e-12) continue
++    const t =
++      ((args.point[0] - wall.start[0]) * dx + (args.point[1] - wall.start[1]) * dz) / lengthSquared
++    const projected: WallPlanPoint = [
++      wall.start[0] + dx * Math.max(0, Math.min(1, t)),
++      wall.start[1] + dz * Math.max(0, Math.min(1, t)),
++    ]
++    const distance = Math.hypot(args.point[0] - projected[0], args.point[1] - projected[1])
++    const halfThickness = getWallConstructionEnvelopeThickness(wall) / 2
++    const endpointDistance = Math.min(
++      Math.hypot(args.point[0] - wall.start[0], args.point[1] - wall.start[1]),
++      Math.hypot(args.point[0] - wall.end[0], args.point[1] - wall.end[1]),
++    )
++    const interior = t > 1e-6 && t < 1 - 1e-6
++    const withinCaptureRadius = distance <= halfThickness + ENDPOINT_FACE_CAPTURE_TOLERANCE
++    if (withinCaptureRadius) candidates.push({ wall, distance })
++  }
++
++  candidates.sort((a, b) => a.distance - b.distance)
++  for (const candidate of candidates) {
++    const captured = intersectInferredRayWithWall(
++      args.origin,
++      args.inferredPoint,
++      candidate.wall,
++      args.allowReverseRay,
++    )
++    if (captured && (!args.acceptPoint || args.acceptPoint(captured))) {
++      return { point: captured, wallId: candidate.wall.id }
++    }
++  }
++  return null
++}
++
++type LinkedJunctionDatumSnap = {
++  point: WallPlanPoint
++  ray: { origin: WallPlanPoint; through: WallPlanPoint }
++}
++
++function snapLinkedJunctionDatum(args: {
++  point: WallPlanPoint
++  primaryRay?: { origin: WallPlanPoint; through: WallPlanPoint }
++  allowReverseRay: boolean
++  junctionReference?: WallJunctionReference
++}): LinkedJunctionDatumSnap | null {
++  const reference = args.junctionReference
++  if (!reference) return null
++
++  let best: (LinkedJunctionDatumSnap & { distance: number }) | null = null
++  const endpoints = reference.oppositeEndpoints
++  for (let i = 0; i < endpoints.length; i++) {
++    const first = endpoints[i]
++    if (!first) continue
++    const firstFromShared: WallPlanPoint = [
++      first[0] - reference.sharedPoint[0],
++      first[1] - reference.sharedPoint[1],
++    ]
++    const firstLength = Math.hypot(firstFromShared[0], firstFromShared[1])
++    if (firstLength <= 1e-9) continue
++
++    for (let j = i + 1; j < endpoints.length; j++) {
++      const second = endpoints[j]
++      if (!second) continue
++      const secondFromShared: WallPlanPoint = [
++        second[0] - reference.sharedPoint[0],
++        second[1] - reference.sharedPoint[1],
++      ]
++      const secondLength = Math.hypot(secondFromShared[0], secondFromShared[1])
++      const datumDirection: WallPlanPoint = [second[0] - first[0], second[1] - first[1]]
++      const datumLength = Math.hypot(datumDirection[0], datumDirection[1])
++      if (secondLength <= 1e-9 || datumLength <= 1e-9) continue
++
++      // The two stationary rays must describe one straight continuation through
++      // the shared corner. Use the existing 2° inference window so a near-straight
++      // scan-imported junction is accepted without making arbitrary pairs datums.
++      const parallelError =
++        Math.abs(cross2(firstFromShared, secondFromShared)) / (firstLength * secondLength)
++      const continuation =
++        firstFromShared[0] * secondFromShared[0] + firstFromShared[1] * secondFromShared[1]
++      if (continuation >= 0 || parallelError > Math.sin(INFERENCE_TOLERANCE) + 1e-12) continue
++
++      const datum: GuideSnapLine = {
++        origin: [...first] as WallPlanPoint,
++        direction: [datumDirection[0] / datumLength, datumDirection[1] / datumLength],
++      }
++      const candidate = snapPointToGuides(args.point, [datum], args.primaryRay)
++      if (!candidate) continue
++
++      if (args.primaryRay) {
++        const rayDirection: WallPlanPoint = [
++          args.primaryRay.through[0] - args.primaryRay.origin[0],
++          args.primaryRay.through[1] - args.primaryRay.origin[1],
++        ]
++        const rayLength = Math.hypot(rayDirection[0], rayDirection[1])
++        if (rayLength <= 1e-9) continue
++        const fromOrigin: WallPlanPoint = [
++          candidate[0] - args.primaryRay.origin[0],
++          candidate[1] - args.primaryRay.origin[1],
++        ]
++        const rayDistance =
++          (fromOrigin[0] * rayDirection[0] + fromOrigin[1] * rayDirection[1]) / rayLength
++        const rayOffset = Math.abs(cross2(fromOrigin, rayDirection)) / rayLength
++        if (rayOffset > 1e-7 || (!args.allowReverseRay && rayDistance < -1e-7)) continue
++      }
++
++      const distance = Math.hypot(candidate[0] - args.point[0], candidate[1] - args.point[1])
++      if (!best || distance < best.distance) {
++        best = {
++          point: candidate,
++          ray: { origin: [...first] as WallPlanPoint, through: [...second] as WallPlanPoint },
++          distance,
++        }
++      }
++    }
++  }
++
++  return best
++}
++
++/**
++ * Endpoint-specific snap resolution. A fixed-corner direction inference is
++ * established before broad face/alignment snapping so a square, 45°, or
++ * parallel/perpendicular intent owns the point. A raw cursor over a target's
++ * physical construction envelope can still capture that target, but the
++ * committed point is the intersection of the inferred ray and its centerline.
++ */
++export function resolveWallEndpointPoint(args: SnapWallDraftArgs): WallEndpointSnapResult {
++  const { point, walls, start, ignoreWallIds, bypassSnap = false } = args
++  if (bypassSnap || !start || !args.inferDirection) {
++    return snapWallDraftPointDetailed(args)
++  }
++
++  const exactEndpoint = findWallEndpointFromRaw(
++    point,
++    walls,
++    ignoreWallIds,
++    ENDPOINT_EXACT_SNAP_RADIUS,
++  )
++  if (exactEndpoint) {
++    return {
++      point: exactEndpoint,
++      snap: 'endpoint',
++      targetWallIds: wallIdsAtSnapPoint(exactEndpoint, walls, ignoreWallIds),
++      targetCaptured: true,
++    }
++  }
++
++  const step = args.step ?? getSegmentGridStep()
++  const magnetic = args.magnetic ?? true
++  const anglePoint = args.angleSnap
++    ? ([...snapPointAlongAngleRay(start, point, DEFAULT_ANGLE_STEP, step)] as WallPlanPoint)
++    : null
++  const modePoint =
++    args.constraintRay?.through ??
++    anglePoint ??
++    (args.gridSnap ? args.gridSnap(point) : snapPointToGrid(point, step))
++  const guideLines =
++    args.guides ??
++    collectGuideSnapLines(useScene.getState().nodes, useViewer.getState().selection.levelId)
++  const guideStick =
++    guideLines.length > 0
++      ? snapPointToGuides(
++          modePoint,
++          guideLines,
++          args.constraintRay
++            ? args.constraintRay
++            : anglePoint
++              ? { origin: start, through: anglePoint }
++              : undefined,
++        )
++      : null
++  if (guideStick) {
++    return {
++      point: guideStick,
++      snap: null,
++      targetWallIds: [],
++      constraintOwned: true,
++    }
++  }
++
++  const references = walls.filter((wall) => !ignoreWallIds?.includes(wall.id))
++  const inferredPoint =
++    args.constraintRay?.through ??
++    anglePoint ??
++    (step > 0 || magnetic ? inferWallDirection(start, point, step, references) : null)
++  const captureOrigin = args.constraintRay?.origin ?? start
++  const captureThrough = inferredPoint ?? point
++  const primaryRay = inferredPoint ? { origin: captureOrigin, through: inferredPoint } : undefined
++  const junction =
++    !args.angleSnap && (step > 0 || magnetic)
++      ? snapLinkedJunctionDatum({
++          point,
++          primaryRay,
++          allowReverseRay: Boolean(args.constraintRay),
++          junctionReference: args.junctionReference,
++        })
++      : null
++
++  const faceCapture = findEndpointFaceCapture({
++    point,
++    origin: junction && !primaryRay ? junction.ray.origin : captureOrigin,
++    inferredPoint: junction && !primaryRay ? junction.ray.through : captureThrough,
++    walls,
++    ignoreWallIds,
++    allowReverseRay: Boolean(args.constraintRay) || Boolean(junction && !primaryRay),
++    acceptPoint:
++      junction && primaryRay
++        ? (candidate) =>
++            Math.hypot(candidate[0] - junction.point[0], candidate[1] - junction.point[1]) <= 1e-7
++        : undefined,
++  })
++  if (faceCapture) {
++    const targetWallIds = wallIdsAtSnapPoint(faceCapture.point, walls, ignoreWallIds)
++    if (!targetWallIds.includes(faceCapture.wallId)) targetWallIds.push(faceCapture.wallId)
++    return {
++      point: faceCapture.point,
++      snap: 'wall',
++      targetWallIds,
++      ...(inferredPoint || junction ? { directionInferred: true, constraintOwned: true } : {}),
++      targetCaptured: true,
++    }
++  }
++
++  if (junction) {
++    return {
++      point: junction.point,
++      snap: null,
++      targetWallIds: [],
++      constraintOwned: true,
++      directionInferred: true,
++    }
++  }
++
++  if (args.constraintRay) {
++    return {
++      point: [...args.constraintRay.through],
++      snap: null,
++      targetWallIds: [],
++      directionInferred: true,
++      constraintOwned: true,
++    }
++  }
++
++  if (!inferredPoint) return snapWallDraftPointDetailed(args)
++
++  // Keep the inferred ray exact when no physical target captures the raw
++  // cursor. This prevents a nearby endpoint, midpoint, edge, or alignment
++  // anchor from pulling the endpoint off the user's fixed-corner constraint.
++  return {
++    point: inferredPoint,
++    snap: null,
++    targetWallIds: [],
++    directionInferred: true,
++    constraintOwned: true,
++  }
++}
++
+ export function snapWallDraftPoint(args: SnapWallDraftArgs): WallPlanPoint {
+   return snapWallDraftPointDetailed(args).point
+ }
+diff --git a/packages/editor/src/components/ui/helpers/wall-edit-controls.tsx b/packages/editor/src/components/ui/helpers/wall-edit-controls.tsx
+index 862b98bc..937752e5 100644
+--- a/packages/editor/src/components/ui/helpers/wall-edit-controls.tsx
++++ b/packages/editor/src/components/ui/helpers/wall-edit-controls.tsx
+@@ -118,16 +118,37 @@ export function WallEditControls({ multiOnly = false }: { multiOnly?: boolean })
+   }, [selectedWallIds, setSelection])
+ 
+   const handleSplit = useCallback(() => {
++    setError(null)
++    if (!wall) return
++
++    const scene = useScene.getState()
++    try {
++      const contactMutation = scene.splitWallAtContacts(wall.id)
++      if (contactMutation) {
++        setSelection({
++          selectedIds: [contactMutation.primaryWallId, ...contactMutation.createdNodeIds],
++        })
++        return
++      }
++      if (scene.readOnly) {
++        setError('읽기 전용 장면에서는 벽을 분리할 수 없습니다.')
++        return
++      }
++    } catch (operationError) {
++      if (!(operationError instanceof WallOperationError && operationError.code === 'no-wall-contacts')) {
++        setError(wallOperationErrorMessage(operationError))
++        return
++      }
++    }
++
+     const parsed = parseDistance(inputValue)
+     if (parsed === null || !Number.isFinite(parsed)) {
+       setError('벽 분리 거리를 입력하세요.')
+       return
+     }
+ 
+-    setError(null)
+     try {
+-      if (!wall) return
+-      const mutation = useScene.getState().splitWall(wall.id, parsed)
++      const mutation = scene.splitWall(wall.id, parsed)
+       if (!mutation) {
+         setError('읽기 전용 장면에서는 벽을 분리할 수 없습니다.')
+         return
+@@ -147,7 +168,10 @@ export function WallEditControls({ multiOnly = false }: { multiOnly?: boolean })
+     return (
+       <div className="pointer-events-auto col-span-2 mt-1 border-border/40 border-t pt-2">
+         <label className="mb-1 block text-muted-foreground text-[11px]" htmlFor={inputId}>
+-          벽 분리 거리
++          벽 분리 거리{' '}
++          <span className="text-[10px] text-muted-foreground/70">
++            (접점 우선 · 접점 없을 때 입력 거리)
++          </span>
+         </label>
+         <div className="flex items-center gap-1.5">
+           <div className="flex min-w-0 flex-1 items-center rounded-md border border-border/50 bg-background/70 px-2">
+diff --git a/packages/editor/src/index.tsx b/packages/editor/src/index.tsx
+index b359cd97..471a4f01 100644
+--- a/packages/editor/src/index.tsx
++++ b/packages/editor/src/index.tsx
+@@ -200,6 +200,7 @@ export {
+   getSegmentGridStep,
+   isSegmentLongEnough,
+   resolveEndpointWallSplit,
++  resolveWallEndpointPoint,
+   snapPointToGrid,
+   snapScalarToGrid,
+   snapWallDraftPoint,
+@@ -209,6 +210,8 @@ export {
+   WALL_JOIN_SNAP_RADIUS,
+   type WallDraftSnapKind,
+   type WallDraftSnapResult,
++  type WallEndpointSnapResult,
++  type WallJunctionReference,
+   type WallPlanPoint,
+   type WallSnapRadii,
+ } from './components/tools/wall/wall-drafting'
+diff --git a/packages/editor/src/lib/wall-direction-lock.ts b/packages/editor/src/lib/wall-direction-lock.ts
+index 91f2ecf0..0a947b5a 100644
+--- a/packages/editor/src/lib/wall-direction-lock.ts
++++ b/packages/editor/src/lib/wall-direction-lock.ts
+@@ -3,7 +3,7 @@ import { snapAngleToList, snapScalar } from '@pascal-app/core'
+ type Point = readonly [number, number]
+ const AXIS_ANGLES = Array.from({ length: 8 }, (_, index) => (index * Math.PI) / 4)
+ // This editor's capture window; SketchUp does not document a degree tolerance.
+-const INFERENCE_TOLERANCE = (2 * Math.PI) / 180
++export const INFERENCE_TOLERANCE = (2 * Math.PI) / 180
+ 
+ export function inferWallDirection(
+   origin: Point,
+diff --git a/packages/mcp/src/modeling-agent-manual.ts b/packages/mcp/src/modeling-agent-manual.ts
+index 12d7c2c9..fe3a8461 100644
+--- a/packages/mcp/src/modeling-agent-manual.ts
++++ b/packages/mcp/src/modeling-agent-manual.ts
+@@ -17,12 +17,14 @@ export const MODELING_AGENT_MANUAL = [
+   '- X/Z are the ground plane, Y is up, lengths are metres, and rotations are radians.',
+   '- New walls default to one solid concrete construction layer, 0.1 m (100 mm) thick, with no cavity, studs, or board finish. Explicitly requested wall thickness overrides 100 mm; preserve existing saved constructions unless asked to change them.',
+   '- Apartment floor-plan auto-modeling uses the same single concrete layer for every generated wall, including door/window hosts, and preserves the wall thickness detected from the plan. Its explicit undo restores the pre-import graph, including a guide-only scene, and the restored graph remains saveable; load transients must still be blocked by accidental-wipe protection.',
+-  '- Apartment auto-modeling keeps a straight T main run continuous through its shared endpoint, while an X crossing remains split into its separately selectable wall segments; both use shared endpoints and mitered footprints. Hosted doors/windows keep their world positions and parent relationships; do not split a host through an opening. Wall junctions use the physical construction envelope thickness.',
++  '- Apartment auto-modeling splits a straight host at every interior T/X contact into separately selectable wall segments; the pieces use shared endpoints and mitered footprints. Hosted doors/windows keep their world positions and parent relationships; do not split a host through an opening. Wall junctions use the physical construction envelope thickness.',
+   '- Apartment raster extraction retains source-backed thin wall runs as maximal connected, non-branching source-gray wall chains when measured pixel support, finite thickness, and two independently anchored outer endpoints validate them; interior gray corners are allowed, while bright fixture gaps remain source openings. A contained OCR crop retry accepts exactly one known room label and fails closed on absent, unknown, or conflicting text. Never synthesize a missing boundary by closing a room polygon or by extending a room label.',
+   '- Apartment raster extraction classifies a door only with source-backed local swing-arc evidence; exterior or repeated glazing may be a window, while uncertain internal fixtures remain `opening`. Preserve the source opening id, type, hinge, radius, room id, and measured semantic width in node metadata. Reject non-finite or below-minimum measured widths instead of inflating a tiny gap. Use semantic opening endpoints for host geometry; an optional full room barrier and barrier thickness protect source room extraction only and must not widen the rendered opening. Keep source-backed boundaries, protect small labeled rooms from area filtering, and treat conflicting OCR labels as distinct source evidence or fail closed; labels never create wall boundaries.',
+   '- Apartment extraction separates contained room labels into semantic zones without creating physical walls. Such open-space zone divisions are approximate. Window frames require a bright ridge between darker rails; a gray silhouette edge or an open floor line is insufficient. Openings already inside a retained wall use that wall as their host, and measured crossing-wall hosts may close short endpoint gaps only after both ends are validated. A wood render is accepted only with measured wall coverage and predominantly labeled valid room polygons. Nearly straight wall continuations with different thicknesses use a thickness step instead of a long miter taper.',
++  '- Initial apartment imports finalize wall merge/snap/weld/T/X contacts before zone reconciliation. With the explicit `adoptContainedApartmentZones` import context, an `apt-vector` zone is adopted to the exact detected polygon and boundary wall ids only when it covers at least 90% of exactly one current enclosed space and no other apartment zone claims that space; preserve names, colors, classes, source ids, and open or ambiguous semantic subdivisions. Reactive wall sync keeps its existing bidirectional room matching and review behavior.',
+   '- `mergeWalls` is the semantic operation for merging two or more selected walls. It accepts one exact contiguous, collinear, straight chain on the same parent with matching style, support, height, slots, and construction metadata; overlapping, branched, curved, incompatible, or disconnected walls are rejected. A reversed wall with hosted content or directional paint/trim/side metadata is rejected rather than silently changing its local frame. The first selected wall id is retained, hosted children keep their world positions, rotations, side, `wallT`, and links, and collection membership, `supportOffset`, and `fillToTerrain` are preserved. Commit the whole merge as one undo step.',
+   '- `splitWall` is the semantic operation for splitting one straight wall at a finite distance in metres from its authored start. The distance must be strictly inside the wall and cannot cross a door, window, or wall-hosted item span. The first wall id is retained and the second id is generated or explicitly supplied only when unused; hosted children keep their world positions, rotations, side, links, and updated `wallT`, while parent/root links, collections, `supportOffset`, and `fillToTerrain` are preserved. Commit the split as one undo step.',
++  '- `buildWallSplitAtContacts` is the semantic operation behind the shared 2D/3D wall split control: it finds same-parent straight-wall T/X contacts in the selected wall interior, deduplicates them, and validates all descending splits before one undoable mutation. If it raises `no-wall-contacts`, the UI falls back to the typed `splitWall` distance; crossing an attachment fails atomically. AI/MCP distance splits remain explicit `splitWall` operations.',
+   '- Wall length input in the shared 2D/3D properties panel uses `buildWallLengthUpdates`: shared endpoints follow together, all affected host spans are checked before a single undoable update, and collapsed walls, detached T junctions, or unsupported curved walls are rejected. Single-wall split controls are in that properties panel; multi-selection merge remains in the contextual helper.',
+   '- Wall-driven zone sync follows confirmed enclosing wall loops, including a uniquely matched approximate apartment room. A split/merge with unchanged room geometry rebinds its boundary wall ids. Lost or ambiguous boundaries preserve room names and finishes and set `metadata.boundaryNeedsReview`; both views display a boundary review warning and 2D suppresses unproven clear dimensions. Undo/redo restores the saved graph without rewriting zone metadata; only derived space detection is refreshed. Open semantic subdivisions are not guessed into physical rooms.',
+   '- Preserve node ids, parent relationships, Body vertex/edge/loop/face ids, face materials, and UV frames unless the requested operation explicitly replaces them.',
+@@ -64,7 +66,7 @@ export const MODELING_AGENT_MANUAL = [
+   '',
+   '## Direct Editor Interactions',
+   '',
+-  '- Straight wall drawing and endpoint dragging in 2D and 3D use weak direction inference in grid/lines mode: within 2 degrees of a building-local 45-degree axis ray or parallel/perpendicular to a straight wall at the fixed corner, the endpoint follows that ray; outside that window it follows freely. Existing endpoint/edge snaps take priority, and explicit construction guides take priority over weak inference. ArrowRight toggles building-local X-axis lock; ArrowLeft toggles plan Z-axis lock; ArrowDown toggles the nearest parallel/perpendicular direction of a straight wall at the fixed corner. Axis locks allow both positive and negative travel and survive Shift release; Escape, commit, and tool changes clear them. Walls edit in the XZ plane (Pascal Y is vertical, unlike SketchUp Z), so ArrowUp does not change wall height. Shift locks the current inferred direction, Off disables weak inference, and the separate Angles mode retains its explicit 15-degree constraint. The 2-degree window is a Pascal tuning value, not a documented SketchUp tolerance.',
++  '- Straight wall drawing and endpoint dragging in 2D and 3D use weak direction inference in grid/lines mode: within 2 degrees of a building-local 45-degree axis ray or parallel/perpendicular to a straight wall at the fixed corner, the endpoint follows that ray; outside that window it follows freely. At a linked corner, same-level straight stationary outer endpoints may provide a collinear datum when their opposite rays form a straight continuation inside that same 2-degree window; a cursor within 0.15 m uses the inferred or locked ray intersection, while a datum-only cursor projects to the datum. Exact endpoint hits remain intentional, while a physical construction-envelope face capture intersects the owned ray with the straight target centerline and preserves `targetWallIds`; nearby off-ray edge/alignment snaps do not override that constraint. Existing endpoint/edge snaps take priority for exact cursor endpoint hits, and explicit construction guides take priority over weak inference. ArrowRight toggles building-local X-axis lock; ArrowLeft toggles plan Z-axis lock; ArrowDown toggles the nearest parallel/perpendicular direction of a straight wall at the fixed corner. Axis locks allow both positive and negative travel and survive Shift release; Escape, commit, and tool changes clear them. Walls edit in the XZ plane (Pascal Y is vertical, unlike SketchUp Z), so ArrowUp does not change wall height. Shift locks the current inferred direction, Off disables weak inference, and the separate Angles mode retains its explicit 15-degree constraint. The 2-degree window is a Pascal tuning value, not a documented SketchUp tolerance.',
+   '- The default grid/measurement snap step is 0.001 m (1 mm). While drawing a wall or moving its endpoint in either 2D or 3D, hold Shift to freeze the currently previewed direction; pointer movement then changes only the length along that ray. Release Shift to resume free direction changes. Wall snapping modes remain selectable from the HUD; Shift still cycles snapping for other tools. Alt keeps its existing bypass/detach behavior. Typed wall lengths preserve the held direction, and cancel or commit clears the lock.',
+   '- Selecting or re-clicking any scene element is inert: selection alone never starts movement or another modeling gesture. Move an element only after explicitly choosing Move from its action menu or pressing the Move shortcut. A selected Body likewise requires the explicit 3D action menu to arm Rotate, Scale, Push/Pull, Offset, or Follow Path; later face and point clicks belong only to that armed action.',
+   '- In 3D, Body Move follows a two-click point-to-point workflow: activate Move, click a vertex, edge point, edge midpoint, face point, face center, or Body center as the base, then click the same inference types on another element to place that exact base point there. These object inferences are active in the default grid mode and the lines mode; Off disables them. Snapped feedback names the inference in Korean (꼭짓점, 선 중점, 선 위, 면 중심, 면 위, 요소 중심). Hold Alt while choosing the destination to bypass inference snapping for deliberate free movement or overlap. In the floor plan, the Move action intentionally uses the 2D-owned placement overlay and plan snapping instead of mounting the 3D base-point tool.',
+diff --git a/packages/mcp/src/ontology-manual.test.ts b/packages/mcp/src/ontology-manual.test.ts
+index d3831444..23068631 100644
+--- a/packages/mcp/src/ontology-manual.test.ts
++++ b/packages/mcp/src/ontology-manual.test.ts
+@@ -9,7 +9,11 @@ describe('Phase 2 ontology manual contract', () => {
+     expect(MODELING_AGENT_MANUAL).toContain('survive Shift release')
+     expect(MODELING_AGENT_MANUAL).toContain('wall drawing and endpoint dragging')
+     expect(MODELING_AGENT_MANUAL).toContain('within 2 degrees')
+-    expect(MODELING_AGENT_MANUAL).toContain('Existing endpoint/edge snaps take priority')
++    expect(MODELING_AGENT_MANUAL).toContain(
++      'Existing endpoint/edge snaps take priority for exact cursor endpoint hits',
++    )
++    expect(MODELING_AGENT_MANUAL).toContain('physical construction-envelope face capture')
++    expect(MODELING_AGENT_MANUAL).toContain('`targetWallIds`')
+     expect(MODELING_AGENT_MANUAL).toContain('Off disables weak inference')
+     expect(MODELING_AGENT_MANUAL).toContain('not a documented SketchUp tolerance')
+   })
+@@ -39,8 +43,9 @@ describe('Phase 2 ontology manual contract', () => {
+   })
+ 
+   test('documents apartment wall extraction and junction continuity', () => {
+-    expect(MODELING_AGENT_MANUAL).toContain('keeps a straight T main run continuous')
+-    expect(MODELING_AGENT_MANUAL).toContain('an X crossing remains split')
++    expect(MODELING_AGENT_MANUAL).toContain('splits a straight host at every interior T/X contact')
++    expect(MODELING_AGENT_MANUAL).toContain('`buildWallSplitAtContacts`')
++    expect(MODELING_AGENT_MANUAL).toContain('`no-wall-contacts`')
+     expect(MODELING_AGENT_MANUAL).toContain('retains source-backed thin wall runs')
+     expect(MODELING_AGENT_MANUAL).toContain(
+       'maximal connected, non-branching source-gray wall chains',
+diff --git a/packages/mcp/src/resources/resources.test.ts b/packages/mcp/src/resources/resources.test.ts
+index 1dcf4d4a..7ca88d3e 100644
+--- a/packages/mcp/src/resources/resources.test.ts
++++ b/packages/mcp/src/resources/resources.test.ts
+@@ -225,8 +225,14 @@ describe('pascal://agent-guide', () => {
+       expect(text).toContain('0 to 1 along the wall')
+       expect(text).toContain('`mergeWalls`')
+       expect(text).toContain('`splitWall`')
++      expect(text).toContain('`buildWallSplitAtContacts`')
++      expect(text).toContain('`targetWallIds`')
++      expect(text).toContain('0.15 m')
++      expect(text).toContain('linked corner')
+       expect(text).toContain('local swing-arc evidence')
+       expect(text).toContain('semantic zones without creating physical walls')
++      expect(text).toContain('adoptContainedApartmentZones')
++      expect(text).toContain('covers at least 90% of exactly one current enclosed space')
+       expect(text).toContain('uncertain internal fixtures remain `opening`')
+       expect(text).toContain('full room barrier')
+       expect(text).toContain('conflicting OCR labels')
+diff --git a/packages/nodes/src/wall/floorplan-affordances.test.ts b/packages/nodes/src/wall/floorplan-affordances.test.ts
+index 4eb23aa0..0be1ccf0 100644
+--- a/packages/nodes/src/wall/floorplan-affordances.test.ts
++++ b/packages/nodes/src/wall/floorplan-affordances.test.ts
+@@ -94,6 +94,71 @@ describe('wall center curve handle release', () => {
+     expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual(destination.start)
+   })
+ 
++  test('uses same-level linked straight outer endpoints as a collinear junction datum', () => {
++    const levelId = 'level_junction'
++    const wall = WallNode.parse({
++      id: 'wall_junction_main',
++      parentId: levelId,
++      start: [0, 4],
++      end: [1.999, 4],
++    })
++    const lower = WallNode.parse({
++      id: 'wall_junction_lower',
++      parentId: levelId,
++      start: wall.end,
++      end: [2, 2],
++    })
++    const upper = WallNode.parse({
++      id: 'wall_junction_upper',
++      parentId: levelId,
++      start: [2, 7],
++      end: wall.end,
++    })
++    const otherLevel = WallNode.parse({
++      id: 'wall_junction_other_level',
++      parentId: 'level_other',
++      start: wall.end,
++      end: [2, 12],
++    })
++    useScene.setState({
++      nodes: {
++        [wall.id]: wall,
++        [lower.id]: lower,
++        [upper.id]: upper,
++        [otherLevel.id]: otherLevel,
++      },
++    })
++    useEditor.getState().setSnappingMode('wall', 'grid')
++    useEditor.setState({ gridSnapStep: 0.001 })
++    useInteractionScope.getState().begin({
++      kind: 'reshaping',
++      nodeId: wall.id,
++      reshape: 'endpoint',
++      driver: 'tool',
++    })
++    const session = wallMoveEndpointAffordance.start({
++      node: wall,
++      nodes: useScene.getState().nodes,
++      payload: { wallId: wall.id, endpoint: 'end' },
++      initialPlanPoint: wall.end,
++      gridSnapStep: 0.001,
++    })
++
++    session.apply({ planPoint: [2.048, 4.421], modifiers })
++    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([2, 4.421])
++    expect(useLiveNodeOverrides.getState().get(lower.id)?.start).toEqual([2, 4.421])
++    expect(useLiveNodeOverrides.getState().get(upper.id)?.end).toEqual([2, 4.421])
++    expect(useLiveNodeOverrides.getState().get(otherLevel.id)).toBeUndefined()
++
++    session.apply({ planPoint: [2.048, 4.02], modifiers })
++    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([2, 4])
++
++    session.apply({ planPoint: [2.12, 4.421], modifiers: { ...modifiers, altKey: true } })
++    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([2.12, 4.421])
++    expect(useLiveNodeOverrides.getState().get(lower.id)).toBeUndefined()
++    expect(useLiveNodeOverrides.getState().get(upper.id)).toBeUndefined()
++  })
++
+   test('Shift preserves endpoint direction through preview, commit and undo', () => {
+     const wall = WallNode.parse({ id: 'wall_shift', start: [2, 3], end: [2, 5] })
+     useScene.setState({ nodes: { [wall.id]: wall } })
+diff --git a/packages/nodes/src/wall/floorplan-affordances.ts b/packages/nodes/src/wall/floorplan-affordances.ts
+index ffca1934..e27b8d3d 100644
+--- a/packages/nodes/src/wall/floorplan-affordances.ts
++++ b/packages/nodes/src/wall/floorplan-affordances.ts
+@@ -20,10 +20,11 @@ import {
+   isMagneticSnapActive,
+   isSegmentLongEnough,
+   resolveEndpointWallSplit,
++  resolveWallEndpointPoint,
+   snapBuildingLocalToWorldGrid,
+   snapScalarToGrid,
+-  snapWallDraftPointDetailed,
+   useAlignmentGuides,
++  type WallJunctionReference,
+   type WallPlanPoint,
+ } from '@pascal-app/editor'
+ 
+@@ -53,6 +54,14 @@ import {
+ 
+ type WallEndpointPayload = { wallId: AnyNodeId; endpoint: 'start' | 'end' }
+ 
++type LinkedWallSnapshot = {
++  id: AnyNodeId
++  start: WallPlanPoint
++  end: WallPlanPoint
++  parentId: string | null
++  curveOffset?: number
++}
++
+ function pointsEqual(a: readonly number[], b: readonly number[]) {
+   return a[0] === b[0] && a[1] === b[1]
+ }
+@@ -60,10 +69,16 @@ function pointsEqual(a: readonly number[], b: readonly number[]) {
+ function collectLevelWalls(
+   nodes: Record<AnyNodeId, AnyNode>,
+   excludeWallId?: AnyNodeId,
++  parentId?: string | null,
+ ): WallNode[] {
+   const out: WallNode[] = []
+   for (const node of Object.values(nodes)) {
+-    if (node?.type === 'wall' && node.id !== excludeWallId) out.push(node as WallNode)
++    if (
++      node?.type === 'wall' &&
++      node.id !== excludeWallId &&
++      (parentId === undefined || (node.parentId ?? null) === (parentId ?? null))
++    )
++      out.push(node as WallNode)
+   }
+   return out
+ }
+@@ -73,12 +88,14 @@ function collectLinkedWalls(
+   draggedWallId: AnyNodeId,
+   originalStart: WallPlanPoint,
+   originalEnd: WallPlanPoint,
+-): Array<{ id: AnyNodeId; start: WallPlanPoint; end: WallPlanPoint }> {
+-  const linked: Array<{ id: AnyNodeId; start: WallPlanPoint; end: WallPlanPoint }> = []
++  parentId?: string | null,
++): LinkedWallSnapshot[] {
++  const linked: LinkedWallSnapshot[] = []
+   for (const node of Object.values(nodes)) {
+     if (node?.type !== 'wall') continue
+     if (node.id === draggedWallId) continue
+     const wall = node as WallNode
++    if (parentId !== undefined && (wall.parentId ?? null) !== (parentId ?? null)) continue
+     if (
+       pointsEqual(wall.start, originalStart) ||
+       pointsEqual(wall.start, originalEnd) ||
+@@ -89,12 +106,37 @@ function collectLinkedWalls(
+         id: wall.id,
+         start: [...wall.start] as WallPlanPoint,
+         end: [...wall.end] as WallPlanPoint,
++        parentId: (wall.parentId ?? null) as string | null,
++        curveOffset: wall.curveOffset,
+       })
+     }
+   }
+   return linked
+ }
+ 
++function getLinkedJunctionReference(
++  linkedWalls: LinkedWallSnapshot[],
++  movingOriginal: WallPlanPoint,
++  parentId: string | null | undefined,
++): WallJunctionReference | undefined {
++  const oppositeEndpoints: WallPlanPoint[] = []
++  for (const wall of linkedWalls) {
++    if ((wall.parentId ?? null) !== (parentId ?? null)) continue
++    if (Math.abs(wall.curveOffset ?? 0) > 1e-6) continue
++    const opposite = pointsEqual(wall.start, movingOriginal)
++      ? wall.end
++      : pointsEqual(wall.end, movingOriginal)
++        ? wall.start
++        : null
++    if (opposite) oppositeEndpoints.push([...opposite] as WallPlanPoint)
++  }
++  if (oppositeEndpoints.length < 2) return undefined
++  return {
++    sharedPoint: [...movingOriginal] as WallPlanPoint,
++    oppositeEndpoints,
++  }
++}
++
+ /**
+  * Wall curve sagitta drag — 1:1 port of the legacy
+  * `handleWallCurvePointerDown` + commit flow. Drag projects the pointer
+@@ -168,7 +210,13 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+       endpoint === 'start' ? ([...node.end] as WallPlanPoint) : ([...node.start] as WallPlanPoint)
+     const originalStart: WallPlanPoint = [...node.start] as WallPlanPoint
+     const originalEnd: WallPlanPoint = [...node.end] as WallPlanPoint
+-    const linkedWalls = collectLinkedWalls(nodes, node.id, originalStart, originalEnd)
++    const linkedWalls = collectLinkedWalls(
++      nodes,
++      node.id,
++      originalStart,
++      originalEnd,
++      node.parentId ?? null,
++    )
+     const affectedIds: AnyNodeId[] = [node.id, ...linkedWalls.map((w) => w.id)]
+     const movingOriginal: WallPlanPoint = endpoint === 'start' ? originalStart : originalEnd
+     // Walls attached to the MOVING corner cascade with the drag, but the snap
+@@ -197,7 +245,7 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+           key,
+           fixedPoint,
+           endpoint === 'start' ? lastPrimaryStart : lastPrimaryEnd,
+-          collectLevelWalls(useScene.getState().nodes, node.id).filter(
++          collectLevelWalls(useScene.getState().nodes, node.id, node.parentId ?? null).filter(
+             (w) => w.parentId === node.parentId && !movingLinkedWallIds.includes(w.id),
+           ),
+         )
+@@ -215,7 +263,7 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+         // the moving corner are excluded (stale coordinates); under
+         // Alt-detach they stay put, so they rejoin the candidate pool.
+         const sceneNodes = useScene.getState().nodes
+-        const walls = collectLevelWalls(sceneNodes, node.id)
++        const walls = collectLevelWalls(sceneNodes, node.id, node.parentId ?? null)
+         const staleWallIds = modifiers.altKey ? [node.id] : [node.id, ...movingLinkedWallIds]
+         // The grid step follows the active snapping mode (`getSegmentGridStep()`
+         // is 0 outside grid mode), so `'lines' / 'angles' / 'off'` no longer
+@@ -223,7 +271,13 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+         // the endpoint angle-locks off the fixed corner (free length), matching
+         // the draft tool — the angle path ignores the `gridSnap` override.
+         const angleLocked = isAngleSnapActive()
+-        const snapResult = snapWallDraftPointDetailed({
++        const lockedThrough = directionLock.active
++          ? directionLock.project(planPoint as WallPlanPoint, getSegmentGridStep())
++          : null
++        const junctionReference = modifiers.altKey
++          ? undefined
++          : getLinkedJunctionReference(linkedWalls, movingOriginal, node.parentId)
++        const snapResult = resolveWallEndpointPoint({
+           point: planPoint as WallPlanPoint,
+           walls,
+           ignoreWallIds: staleWallIds,
+@@ -232,6 +286,8 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+           angleSnap: angleLocked,
+           magnetic: isMagneticSnapActive(),
+           gridSnap: (p) => snapBuildingLocalToWorldGrid(p, getSegmentGridStep()),
++          constraintRay: lockedThrough ? { origin: fixedPoint, through: lockedThrough } : undefined,
++          junctionReference,
+         })
+         const snapped = snapResult.point
+         // Figma-style alignment on the dragged corner — snaps it onto another
+@@ -243,13 +299,21 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+         // from the candidate pool — walls linked at the FIXED corner don't
+         // move, and their anchors are what let the dragged corner align back
+         // onto a true axis. Alt is detach, NOT bypass.
+-        let aligned = alignFloorplanDraftPoint(snapped, {
+-          applySnap: isMagneticSnapActive(),
+-          bypass: !isAlignmentGuideActive(),
+-          excludeIds: staleWallIds,
+-        }) as WallPlanPoint
+-        directionInferred = !!snapResult.directionInferred && pointsEqual(aligned, snapped)
+-        if (directionLock.active) {
++        let aligned =
++          snapResult.constraintOwned || snapResult.targetCaptured
++            ? snapped
++            : (alignFloorplanDraftPoint(snapped, {
++                applySnap: isMagneticSnapActive(),
++                bypass: !isAlignmentGuideActive(),
++                excludeIds: staleWallIds,
++              }) as WallPlanPoint)
++        directionInferred =
++          (Boolean(snapResult.directionInferred) || Boolean(snapResult.targetCaptured)) &&
++          (Boolean(snapResult.constraintOwned) ||
++            Boolean(snapResult.targetCaptured) ||
++            pointsEqual(aligned, snapped))
++        if (snapResult.constraintOwned) useAlignmentGuides.getState().clear()
++        if (directionLock.active && !snapResult.targetCaptured && !snapResult.constraintOwned) {
+           aligned = directionLock.project(planPoint, getSegmentGridStep())
+           useAlignmentGuides.getState().clear()
+         }
+diff --git a/packages/nodes/src/wall/move-endpoint-tool.tsx b/packages/nodes/src/wall/move-endpoint-tool.tsx
+index a392eac7..28262286 100644
+--- a/packages/nodes/src/wall/move-endpoint-tool.tsx
++++ b/packages/nodes/src/wall/move-endpoint-tool.tsx
+@@ -31,12 +31,13 @@ import {
+   MeasurementPill,
+   markToolCancelConsumed,
+   resolveEndpointWallSplit,
+-  snapWallDraftPointDetailed,
++  resolveWallEndpointPoint,
+   triggerSFX,
+   useAlignmentGuides,
+   useInteractionScope,
+   useWallSnapIndicator,
+   WALL_CONNECT_SNAP_RADIUS,
++  type WallJunctionReference,
+   type WallPlanPoint,
+ } from '@pascal-app/editor'
+ import { useViewer } from '@pascal-app/viewer'
+@@ -162,6 +163,27 @@ function getLinkedWallSnapshots(args: {
+   return snapshots
+ }
+ 
++function getLinkedJunctionReference(
++  linkedWalls: LinkedWallSnapshot[],
++  movingOriginal: WallPlanPoint,
++): WallJunctionReference | undefined {
++  const oppositeEndpoints: WallPlanPoint[] = []
++  for (const wall of linkedWalls) {
++    if (Math.abs(wall.curveOffset ?? 0) > 1e-6) continue
++    const opposite = samePoint(wall.start, movingOriginal)
++      ? wall.end
++      : samePoint(wall.end, movingOriginal)
++        ? wall.start
++        : null
++    if (opposite) oppositeEndpoints.push([...opposite] as WallPlanPoint)
++  }
++  if (oppositeEndpoints.length < 2) return undefined
++  return {
++    sharedPoint: [...movingOriginal] as WallPlanPoint,
++    oppositeEndpoints,
++  }
++}
++
+ function getLinkedWallUpdates(
+   linkedWalls: LinkedWallSnapshot[],
+   originalStart: WallPlanPoint,
+@@ -396,7 +418,13 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+     // lattice; lines → magnetic corner/alignment snap; angles → lock the
+     // segment to 15° rays from the FIXED corner; off → raw.
+     const resolveDragPoint = (planPoint: WallPlanPoint): WallPlanPoint => {
+-      const snapResult = snapWallDraftPointDetailed({
++      const lockedThrough = directionLock.active
++        ? directionLock.project(planPoint, getSegmentGridStep())
++        : null
++      const junctionReference = altPressedRef.current
++        ? undefined
++        : getLinkedJunctionReference(linkedOriginalsRef.current, movingOriginalPoint)
++      const snapResult = resolveWallEndpointPoint({
+         point: planPoint,
+         walls: levelWalls,
+         ignoreWallIds: altPressedRef.current ? [nodeId] : [nodeId, ...movingLinkedWallIds],
+@@ -404,6 +432,8 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+         inferDirection: !target.wall.curveOffset,
+         angleSnap: isAngleSnapActive(),
+         magnetic: isMagneticSnapActive(),
++        constraintRay: lockedThrough ? { origin: fixedPoint, through: lockedThrough } : undefined,
++        junctionReference,
+       })
+       const snappedPoint = snapResult.point
+ 
+@@ -420,7 +450,12 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+       const alignmentCandidates = altPressedRef.current
+         ? wallAlignmentCandidates
+         : attachedAlignmentCandidates
+-      if (isAlignmentGuideActive() && alignmentCandidates.length > 0) {
++      if (
++        !snapResult.constraintOwned &&
++        !snapResult.targetCaptured &&
++        isAlignmentGuideActive() &&
++        alignmentCandidates.length > 0
++      ) {
+         const ar = resolveAlignment({
+           moving: [{ nodeId, kind: 'corner', x: snappedPoint[0], z: snappedPoint[1] }],
+           candidates: alignmentCandidates,
+@@ -450,8 +485,12 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+         useAlignmentGuides.getState().clear()
+       }
+ 
+-      directionInferred = !!snapResult.directionInferred && samePoint(alignedPoint, snappedPoint)
+-      if (directionLock.active) {
++      directionInferred =
++        (Boolean(snapResult.directionInferred) || Boolean(snapResult.targetCaptured)) &&
++        (Boolean(snapResult.constraintOwned) ||
++          Boolean(snapResult.targetCaptured) ||
++          samePoint(alignedPoint, snappedPoint))
++      if (directionLock.active && !snapResult.targetCaptured && !snapResult.constraintOwned) {
+         alignedPoint = directionLock.project(planPoint, getSegmentGridStep())
+         useAlignmentGuides.getState().clear()
+       }

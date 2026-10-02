@@ -1,0 +1,505 @@
+{
+  "baseUrl": "http://127.0.0.1:3104",
+  "sceneId": "estimate-history-1790876379634",
+  "savedGraph": {
+    "putCount": 2,
+    "metadataKeys": [
+      "intmEstimateSubmissions",
+      "intmProjectId"
+    ],
+    "record": {
+      "estimateId": "fixture-history-partial",
+      "estimateUrl": "https://intm.kr/newportal/estimates/fixture-history-partial/edit",
+      "failedItems": 1,
+      "itemCount": 1,
+      "items": [
+        {
+          "quantity": 12,
+          "unitPrice": 150,
+          "description": "Fixture wall finish · 도면 산출 12.00㎡ · 1곳",
+          "materialId": "mat_fixture_b",
+          "productCategoryId": "cat_fixture_b"
+        },
+        {
+          "quantity": 12,
+          "unitPrice": 100,
+          "description": "Fixture floor finish · 도면 산출 12.00㎡ · 1곳",
+          "materialId": "mat_fixture",
+          "productCategoryId": "cat_fixture"
+        }
+      ],
+      "projectId": "project_fixture_a",
+      "schemaVersion": 1,
+      "submittedAt": "2026-10-01T17:39:48.989Z",
+      "title": "Fixture history partial"
+    }
+  },
+  "reload": {
+    "heading": "이 프로젝트의 이전 견적서",
+    "rowText": "Fixture history partial\n2026. 10. 2. 오전 2:39\n성공 1 · 실패 1 · 전체 2\nINTM에서 견적서 열기",
+    "href": "https://intm.kr/newportal/estimates/fixture-history-partial/edit",
+    "target": "_blank",
+    "rel": "noopener noreferrer"
+  },
+  "projectSwitch": {
+    "projectBRows": 0,
+    "persistedProjectBRows": 1,
+    "projectARowsWhileBSelected": 0
+  },
+  "untrusted": {
+    "rowText": "Corrupt URL fixture\n2026. 10. 2. 오전 9:00\n성공 0 · 실패 1 · 전체 1\nINTM 링크를 확인할 수 없습니다.",
+    "linkCount": 0,
+    "unavailable": 1
+  },
+  "noPricedItems": {
+    "historyRowVisible": true,
+    "createButtonDisabled": true
+  },
+  "apiFailure": {
+    "text": "fixture API rejected",
+    "linkCount": 0
+  },
+  "networkFailure": {
+    "text": "Failed to fetch",
+    "linkCount": 0
+  },
+  "estimateRequestBodies": [
+    {
+      "draft": {
+        "lines": [
+          {
+            "takeoff": {
+              "category": "floor",
+              "key": "library:mat_fixture_b",
+              "label": "마감 library:mat_fixture_b",
+              "unit": "m2",
+              "quantity": 12,
+              "nodeIds": [
+                "slab_fixture"
+              ],
+              "materialRef": "library:mat_fixture_b",
+              "role": "material"
+            },
+            "status": "priced",
+            "material": {
+              "id": "mat_fixture_b",
+              "name": "Fixture wall finish",
+              "unit": "㎡",
+              "unitPrice": 150,
+              "coverageValue": 1,
+              "coverageUnit": "m2",
+              "wasteRate": 0,
+              "productCategoryId": "cat_fixture_b",
+              "companyId": "fixture-company"
+            },
+            "withWaste": 12,
+            "quantity": 12,
+            "wasteRate": 0,
+            "unitPrice": 150,
+            "amount": 1800
+          },
+          {
+            "takeoff": {
+              "category": "floor",
+              "key": "library:mat_fixture",
+              "label": "마감 library:mat_fixture",
+              "unit": "m2",
+              "quantity": 12,
+              "nodeIds": [
+                "slab_fixture_b"
+              ],
+              "materialRef": "library:mat_fixture",
+              "role": "material"
+            },
+            "status": "priced",
+            "material": {
+              "id": "mat_fixture",
+              "name": "Fixture floor finish",
+              "unit": "㎡",
+              "unitPrice": 100,
+              "coverageValue": 1,
+              "coverageUnit": "m2",
+              "wasteRate": 0,
+              "productCategoryId": "cat_fixture",
+              "companyId": "fixture-company"
+            },
+            "withWaste": 12,
+            "quantity": 12,
+            "wasteRate": 0,
+            "unitPrice": 100,
+            "amount": 1200
+          }
+        ],
+        "total": 3000,
+        "unresolved": []
+      },
+      "projectId": "project_fixture_a",
+      "title": "Fixture history partial"
+    },
+    {
+      "draft": {
+        "lines": [
+          {
+            "takeoff": {
+              "category": "floor",
+              "key": "library:mat_fixture_b",
+              "label": "마감 library:mat_fixture_b",
+              "unit": "m2",
+              "quantity": 12,
+              "nodeIds": [
+                "slab_fixture"
+              ],
+              "materialRef": "library:mat_fixture_b",
+              "role": "material"
+            },
+            "status": "priced",
+            "material": {
+              "id": "mat_fixture_b",
+              "name": "Fixture wall finish",
+              "unit": "㎡",
+              "unitPrice": 150,
+              "coverageValue": 1,
+              "coverageUnit": "m2",
+              "wasteRate": 0,
+              "productCategoryId": "cat_fixture_b",
+              "companyId": "fixture-company"
+            },
+            "withWaste": 12,
+            "quantity": 12,
+            "wasteRate": 0,
+            "unitPrice": 150,
+            "amount": 1800
+          },
+          {
+            "takeoff": {
+              "category": "floor",
+              "key": "library:mat_fixture",
+              "label": "마감 library:mat_fixture",
+              "unit": "m2",
+              "quantity": 12,
+              "nodeIds": [
+                "slab_fixture_b"
+              ],
+              "materialRef": "library:mat_fixture",
+              "role": "material"
+            },
+            "status": "priced",
+            "material": {
+              "id": "mat_fixture",
+              "name": "Fixture floor finish",
+              "unit": "㎡",
+              "unitPrice": 100,
+              "coverageValue": 1,
+              "coverageUnit": "m2",
+              "wasteRate": 0,
+              "productCategoryId": "cat_fixture",
+              "companyId": "fixture-company"
+            },
+            "withWaste": 12,
+            "quantity": 12,
+            "wasteRate": 0,
+            "unitPrice": 100,
+            "amount": 1200
+          }
+        ],
+        "total": 3000,
+        "unresolved": []
+      },
+      "projectId": "project_fixture_a",
+      "title": "Fixture history partial"
+    },
+    {
+      "draft": {
+        "lines": [
+          {
+            "takeoff": {
+              "category": "floor",
+              "key": "library:mat_fixture_b",
+              "label": "마감 library:mat_fixture_b",
+              "unit": "m2",
+              "quantity": 12,
+              "nodeIds": [
+                "slab_fixture"
+              ],
+              "materialRef": "library:mat_fixture_b",
+              "role": "material"
+            },
+            "status": "priced",
+            "material": {
+              "id": "mat_fixture_b",
+              "name": "Fixture wall finish",
+              "unit": "㎡",
+              "unitPrice": 150,
+              "coverageValue": 1,
+              "coverageUnit": "m2",
+              "wasteRate": 0,
+              "productCategoryId": "cat_fixture_b",
+              "companyId": "fixture-company"
+            },
+            "withWaste": 12,
+            "quantity": 12,
+            "wasteRate": 0,
+            "unitPrice": 150,
+            "amount": 1800
+          },
+          {
+            "takeoff": {
+              "category": "floor",
+              "key": "library:mat_fixture",
+              "label": "마감 library:mat_fixture",
+              "unit": "m2",
+              "quantity": 12,
+              "nodeIds": [
+                "slab_fixture_b"
+              ],
+              "materialRef": "library:mat_fixture",
+              "role": "material"
+            },
+            "status": "priced",
+            "material": {
+              "id": "mat_fixture",
+              "name": "Fixture floor finish",
+              "unit": "㎡",
+              "unitPrice": 100,
+              "coverageValue": 1,
+              "coverageUnit": "m2",
+              "wasteRate": 0,
+              "productCategoryId": "cat_fixture",
+              "companyId": "fixture-company"
+            },
+            "withWaste": 12,
+            "quantity": 12,
+            "wasteRate": 0,
+            "unitPrice": 100,
+            "amount": 1200
+          }
+        ],
+        "total": 3000,
+        "unresolved": []
+      },
+      "projectId": "project_fixture_a",
+      "title": "Fixture history partial"
+    }
+  ],
+  "sceneResponses": [
+    {
+      "method": "GET",
+      "status": 200,
+      "url": "http://127.0.0.1:3104/api/scenes/estimate-history-1790876379634"
+    },
+    {
+      "method": "PUT",
+      "status": 200,
+      "url": "http://127.0.0.1:3104/api/scenes/estimate-history-1790876379634"
+    },
+    {
+      "method": "PUT",
+      "status": 200,
+      "url": "http://127.0.0.1:3104/api/scenes/estimate-history-1790876379634"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "url": "http://127.0.0.1:3104/api/scenes/estimate-history-1790876379634"
+    },
+    {
+      "method": "PUT",
+      "status": 200,
+      "url": "http://127.0.0.1:3104/api/scenes/estimate-history-1790876379634"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "url": "http://127.0.0.1:3104/api/scenes/estimate-history-1790876379634"
+    },
+    {
+      "method": "PUT",
+      "status": 200,
+      "url": "http://127.0.0.1:3104/api/scenes/estimate-history-1790876379634"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "url": "http://127.0.0.1:3104/api/scenes/estimate-history-1790876379634"
+    },
+    {
+      "method": "PUT",
+      "status": 200,
+      "url": "http://127.0.0.1:3104/api/scenes/estimate-history-1790876379634"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "externalRequests": [
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/charm.json?icons=stack-push"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=grid-2x2%2Csquare"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=arrow-fat-up%2Cmouse-left-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/wood/woodplank_48/woodplank_48_BaseColor.webp"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.unisvg.com/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.unisvg.com/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.unisvg.com/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/charm.json?icons=stack-push"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=grid-2x2%2Csquare"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=arrow-fat-up%2Cmouse-left-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/wood/woodplank_48/woodplank_48_BaseColor.webp"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.simplesvg.com/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.simplesvg.com/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.simplesvg.com/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/charm.json?icons=stack-push"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=grid-2x2%2Csquare"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=arrow-fat-up%2Cmouse-left-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/wood/woodplank_48/woodplank_48_BaseColor.webp"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.simplesvg.com/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.simplesvg.com/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.simplesvg.com/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/charm.json?icons=stack-push"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=grid-2x2%2Csquare"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=arrow-fat-up%2Cmouse-left-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/wood/woodplank_48/woodplank_48_BaseColor.webp"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.unisvg.com/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.unisvg.com/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.unisvg.com/ph.json?icons=mouse-right-click-fill"
+    }
+  ],
+  "externalMutations": [],
+  "expectedNetworkFailures": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:3104/api/intm/estimates",
+      "failure": {
+        "errorText": "net::ERR_FAILED"
+      }
+    }
+  ]
+}

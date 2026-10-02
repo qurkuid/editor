@@ -1,0 +1,14 @@
+packages/core/src/index.ts
+packages/core/src/lib/axis-guide-stretch.ts
+packages/core/src/lib/axis-guide-stretch.test.ts
+packages/editor/src/components/editor-2d/construction-guide-stretch-controls.tsx
+packages/editor/src/components/editor-2d/floorplan-registry-action-menu.tsx
+packages/editor/src/components/ui/action-menu/measurement-control.tsx
+packages/editor/src/i18n/dictionary/action-menu.ts
+packages/nodes/src/construction-guide/definition.ts
+packages/nodes/src/construction-guide/floorplan-tool.tsx
+packages/nodes/src/construction-guide/floorplan.ts
+packages/nodes/src/construction-guide/floorplan.test.ts
+packages/mcp/src/modeling-agent-manual.ts
+packages/mcp/src/ontology-manual.test.ts
+apps/editor/lib/ai-contract.test.ts

@@ -1,0 +1,150 @@
+▲ Next.js 16.2.12 (webpack)
+- Experiments (use with caution):
+  · serverActions
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+⚠ Compiled with warnings in 10.2s
+
+../../../../../../../../../Users/changseok/editor/packages/editor/src/lib/plugin-panels.ts
+Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+
+Import trace for requested module:
+../../../../../../../../../Users/changseok/editor/packages/editor/src/lib/plugin-panels.ts
+../../../../../../../../../Users/changseok/editor/packages/editor/src/index.tsx
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+f77dd88bec08be6e/node_modules/@pascal-app/plugin-trees/src/presets-panel.tsx
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+f77dd88bec08be6e/node_modules/@pascal-app/plugin-trees/src/index.ts
+./lib/bootstrap.ts
+./app/client-bootstrap.tsx
+
+../../packages/editor/src/lib/plugin-panels.ts
+Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+
+Import trace for requested module:
+../../packages/editor/src/lib/plugin-panels.ts
+../../packages/editor/src/index.tsx
+./app/editor/page.tsx
+
+../../../../../../../../../Users/changseok/editor/packages/core/dist/registry/registry.js
+Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+
+Import trace for requested module:
+../../../../../../../../../Users/changseok/editor/packages/core/dist/registry/registry.js
+../../../../../../../../../Users/changseok/editor/packages/core/dist/store/use-scene.js
+../../../../../../../../../Users/changseok/editor/packages/core/dist/index.js
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+f77dd88bec08be6e/node_modules/@pascal-app/plugin-trees/src/find-sync.ts
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+f77dd88bec08be6e/node_modules/@pascal-app/plugin-trees/src/index.ts
+./lib/bootstrap.ts
+./app/client-bootstrap.tsx
+
+../../packages/core/dist/registry/registry.js
+Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+
+Import trace for requested module:
+../../packages/core/dist/registry/registry.js
+../../packages/core/dist/store/use-scene.js
+
+../../packages/core/dist/registry/registry.js
+Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+
+Import trace for requested module:
+../../packages/core/dist/registry/registry.js
+../../packages/core/dist/registry/index.js
+../../packages/core/dist/hooks/spatial-grid/floor-placed-elevation.js
+../../packages/core/dist/utils/clone-scene-graph.js
+../../packages/core/dist/lib/body-array.js
+../../packages/core/dist/modeling/executors.js
+../../packages/core/dist/modeling/operations.js
+./lib/ai-provider.ts
+./app/api/ai/chat/route.ts
+
+⚠ Compiled with warnings in 6.8s
+
+../../../../../../../../../Users/changseok/editor/packages/editor/src/lib/plugin-panels.ts
+Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+
+Import trace for requested module:
+../../../../../../../../../Users/changseok/editor/packages/editor/src/lib/plugin-panels.ts
+../../../../../../../../../Users/changseok/editor/packages/editor/src/index.tsx
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+f77dd88bec08be6e/node_modules/@pascal-app/plugin-trees/src/presets-panel.tsx
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+f77dd88bec08be6e/node_modules/@pascal-app/plugin-trees/src/index.ts
+./lib/bootstrap.ts
+./app/client-bootstrap.tsx
+
+../../packages/editor/src/lib/plugin-panels.ts
+Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+
+Import trace for requested module:
+../../packages/editor/src/lib/plugin-panels.ts
+../../packages/editor/src/index.tsx
+./app/editor/page.tsx
+
+../../../../../../../../../Users/changseok/editor/packages/core/dist/registry/registry.js
+Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+
+Import trace for requested module:
+../../../../../../../../../Users/changseok/editor/packages/core/dist/registry/registry.js
+../../../../../../../../../Users/changseok/editor/packages/core/dist/registry/index.js
+../../../../../../../../../Users/changseok/editor/packages/core/dist/index.js
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+f77dd88bec08be6e/node_modules/@pascal-app/plugin-trees/src/find-sync.ts
+../../../../../../../../../Users/changseok/editor/node_modules/.bun/@pascal-app+plugin-trees@github+pascalorg+plugin-trees+56d978c+f77dd88bec08be6e/node_modules/@pascal-app/plugin-trees/src/index.ts
+./lib/bootstrap.ts
+./app/client-bootstrap.tsx
+
+../../packages/core/dist/registry/registry.js
+Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+
+Import trace for requested module:
+../../packages/core/dist/registry/registry.js
+../../packages/core/dist/store/use-scene.js
+
+✓ Compiled successfully in 17.5s
+  Skipping validation of types
+  Finished TypeScript config validation in 5ms ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/13) ...
+  Generating static pages using 15 workers (3/13) 
+  Generating static pages using 15 workers (6/13) 
+  Generating static pages using 15 workers (9/13) 
+✓ Generating static pages using 15 workers (13/13) in 945ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /_not-found
+├ ƒ /api/ai/auth
+├ ƒ /api/ai/chat
+├ ƒ /api/ai/img3d
+├ ƒ /api/apartments/[id]/interior-info
+├ ƒ /api/apartments/[id]/plans
+├ ƒ /api/apartments/[id]/plans/[planId]/image
+├ ƒ /api/apartments/[id]/plans/[planId]/vector
+├ ƒ /api/apartments/dataset
+├ ƒ /api/apt-feedback
+├ ƒ /api/health
+├ ƒ /api/intm/estimates
+├ ƒ /api/intm/materials
+├ ƒ /api/intm/projects
+├ ƒ /api/materials/rawpainter
+├ ƒ /api/materials/rawpainter/asset/[id]
+├ ƒ /api/scenes
+├ ƒ /api/scenes/[id]
+├ ƒ /api/scenes/[id]/events
+├ ƒ /api/scenes/[id]/thumbnail
+├ ƒ /api/scenes/[id]/versions
+├ ƒ /api/scenes/[id]/versions/[version]
+├ ○ /apt
+├ ƒ /apt/debug
+├ ƒ /apt/trace
+├ ○ /editor
+├ ○ /privacy
+├ ƒ /scene/[id]
+├ ƒ /scenes
+└ ○ /terms
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

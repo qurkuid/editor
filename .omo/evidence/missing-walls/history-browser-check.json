@@ -1,0 +1,20 @@
+{
+  "undoExact": true,
+  "redoExact": true,
+  "regenerationChangedIds": true,
+  "unrelatedNodesPreserved": true,
+  "beforeNodes": 73,
+  "afterNodes": 73,
+  "undoNodes": 73,
+  "redoNodes": 73,
+  "counts": {
+    "site": 1,
+    "building": 1,
+    "level": 1,
+    "guide": 1,
+    "wall": 46,
+    "window": 9,
+    "door": 4,
+    "zone": 10
+  }
+}

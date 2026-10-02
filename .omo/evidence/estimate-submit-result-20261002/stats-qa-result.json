@@ -1,0 +1,84 @@
+{
+  "baseUrl": "http://127.0.0.1:3102",
+  "branches": [
+    {
+      "index": 1,
+      "text": "견적서를 만들었습니다 (3개 항목).\n\nINTM에서 견적서 열기",
+      "href": "https://intm.example.test/newportal/estimates/fixture-complete/edit",
+      "target": "_blank",
+      "rel": "noopener noreferrer",
+      "warningTone": false
+    },
+    {
+      "index": 2,
+      "text": "2개 항목이 추가됐고 1개가 실패했습니다 (전체 3개). INTM에서 확인하고 완성하세요.\n\nINTM에서 견적서 열기",
+      "href": "https://intm.example.test/newportal/estimates/fixture-partial/edit",
+      "target": "_blank",
+      "rel": "noopener noreferrer",
+      "warningTone": true
+    },
+    {
+      "index": 3,
+      "text": "빈 견적서는 생성됐지만 항목 추가에 전부 실패했습니다 (0개 성공, 3개 실패 / 전체 3개).\n\nINTM에서 견적서 열기",
+      "href": "https://intm.example.test/newportal/estimates/fixture-empty/edit",
+      "target": "_blank",
+      "rel": "noopener noreferrer",
+      "warningTone": true
+    }
+  ],
+  "errorBranch": {
+    "text": "fixture API rejected",
+    "linkCount": 0,
+    "errorTone": true
+  },
+  "networkThrowBranch": {
+    "text": "Failed to fetch",
+    "linkCount": 0,
+    "errorTone": true
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "externalRequests": [
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/charm.json?icons=stack-push"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=grid-2x2%2Csquare"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=arrow-fat-up%2Cmouse-left-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/wood/woodplank_48/woodplank_48_BaseColor.webp"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=mouse-right-click-fill"
+    }
+  ],
+  "externalMutations": [],
+  "expectedNetworkConsoleErrors": [
+    "Failed to load resource: net::ERR_FAILED"
+  ],
+  "expectedNetworkFailures": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:3102/api/intm/estimates",
+      "failure": {
+        "errorText": "net::ERR_FAILED"
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+Resolved runtime profile: gpt-5.6-luna / max
+
+Source validation (isolated worktree /Users/changseok/.codex/worktrees/estimate-submit-deploy/editor):
+- `bun test apps/editor/lib/scene-project-link.test.ts apps/editor/lib/estimate-submit.test.ts` -> exit 0; 33 pass, 0 fail, 65 expect calls. See focused-tests.log.
+- `bunx biome check apps/editor/components/stats-tab.tsx apps/editor/app/api/intm/materials/route.ts apps/editor/lib/scene-project-link.ts apps/editor/lib/scene-project-link.test.ts packages/editor/src/i18n/dictionary/furniture.ts` -> exit 0. See biome.log.
+- `bun run --cwd apps/editor check-types` -> exit 0. See check-types.log.
+- `bun run --cwd apps/editor build` -> exit 0; Next 16.2.12 Turbopack; BUILD_ID `jCgOK_uSTubp271_hdZ8d`. See build.log.
+
+Latest real editor browser QA:
+- Script: history-qa.mjs; production server was isolated to port 3104 and stopped after the run; no 3002 server was touched.
+- Result: exit 0; scene `estimate-history-1790876379634`.
+- Real local scene POST/PUT/GET path persisted the project link and v1 history record; captured scene responses include PUT 200 and reload GET 200.
+- Persisted partial record: 2 attempted items, 1 success, 1 failure; canonical href `https://intm.kr/newportal/estimates/fixture-history-partial/edit`, target `_blank`, rel `noopener noreferrer`.
+- Reloaded Stats UI showed the saved row. Project A to B hid A rows; persisted B row appeared only for B; switching back restored A rows.
+- Arbitrary-origin record rendered `INTM 링크를 확인할 수 없습니다.` with zero anchor links.
+- With all catalogue prices changed to zero after reload, history remained visible and the create button was disabled.
+- API refusal and induced network failure both rendered without links. Console errors and page errors were empty; external mutation requests were empty; the one induced local network failure is listed in expectedNetworkFailures.
+- Screenshots: history-before-reload.png, history-reloaded.png, history-project-b.png, history-untrusted.png, history-empty-draft.png.

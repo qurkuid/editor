@@ -1,0 +1,39 @@
+2026-09-30 extractor-focused verification
+
+PYTHONPYCACHEPREFIX=/private/tmp/vectorize-pycache python3 -m py_compile \
+  .omx/recovery-20260929/data/vectorize.py \
+  .omo/evidence/openings-spaces/source-regression.py
+PASS
+
+Synthetic bounded-gate checks using the workspace NumPy runtime:
+- all-white capsule: rejected
+- two-ridge bright capsule: accepted
+- isolated short candidate without retained structural contact: rejected
+- short candidate with structural contact, measured gap, separation, and
+  bright contrast: accepted
+- relaxed fixture split stays semantic-only; structural wall list remains at
+  the source baseline (51 walls)
+- top-dress barrier projection: [906,174.5] -> [960,174.5] in source px
+- source value-image light-arc scores: o4=0.579, o8=0.737, all-white=0.0
+PASS
+
+The shell Python environment has no OpenCV module; the repository wrapper
+provides the required runtime for the full raster regression below.
+
+2026-09-30 wrapper verification after semantic classifier integration
+
+.omx/recovery-20260929/data/vectorizer-python \
+  .omo/evidence/openings-spaces/source-regression.py \
+  .omo/evidence/missing-walls/source-plan.jpg
+PASS metrics doors=9 windows=3 openings=4 rooms=15 walls=51 scale=10.992
+PASS source probes=15 labels=14 openings=16 rooms=15
+
+.omx/recovery-20260929/data/vectorizer-python \
+  .omo/evidence/openings-spaces/rooms-regression.py
+PASS rooms=15 labels=14 protected-small=2 barrier-separated=2 blank-barrier=0
+
+Negative probes include the false 650,322 ray door and positive repeated
+living/balcony glazing at 844,584.6.
+The o11 uncertain opening is serialized as a relaxed `pair` semantic span;
+only the three physical ray doors carry separate full-barrier fields.
+Narrow selected-function patch refreshed at `/private/tmp/vectorize-extractor.patch`.

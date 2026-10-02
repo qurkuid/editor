@@ -1,0 +1,11 @@
+bun test v1.3.11 (af24e281)
+
+packages/nodes/src/wall/construction-geometry.test.ts:
+(pass) assembly contains real layers and studs with empty cavities and door/window cutouts [59.58ms]
+(pass) bands occupy their configured heights and overlay retains the existing wall core [6.02ms]
+(pass) finish parts use the signed physical center and structural parts omit a surface side [4.41ms]
+
+ 3 pass
+ 0 fail
+ 7286 expect() calls
+Ran 3 tests across 1 file. [518.00ms]

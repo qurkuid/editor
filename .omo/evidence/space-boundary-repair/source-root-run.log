@@ -1,0 +1,13 @@
+metrics {"doors": 9, "openings": 5, "planId": "source-plan", "rooms": 15, "scale": 10.992, "style": "standard", "wallIoU": 0.822, "walls": 67, "windows": 3}
+Traceback (most recent call last):
+  File "/Users/changseok/editor/.omo/evidence/space-boundary-repair/test_vectorize_regression.py", line 140, in <module>
+    run()
+  File "/Users/changseok/editor/.omo/evidence/space-boundary-repair/test_vectorize_regression.py", line 126, in run
+    assert_source_spans(vectorizer, analysis)
+  File "/Users/changseok/editor/.omo/evidence/space-boundary-repair/test_vectorize_regression.py", line 92, in assert_source_spans
+    assert max_m <= 0.13, f"{name}: max centerline error {max_m:.3f}m"
+           ^^^^^^^^^^^^^
+AssertionError: left-bedroom-diagonal-jamb: max centerline error 0.693m
+real 29.96
+user 29.53
+sys 0.49

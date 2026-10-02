@@ -1,0 +1,130 @@
+[
+  {
+    "boundary": "center-dress-left-partition",
+    "samples": [
+      {
+        "sourcePx": [
+          548.0,
+          345.75
+        ],
+        "nearestWallId": "wall_vgvvc6p8ecn7bh31",
+        "distancePx": 23.58,
+        "distanceM": 0.518
+      },
+      {
+        "sourcePx": [
+          548.0,
+          366.5
+        ],
+        "nearestWallId": "wall_660xpsl9yhczi30k",
+        "distancePx": 42.72,
+        "distanceM": 0.939
+      },
+      {
+        "sourcePx": [
+          548.0,
+          387.25
+        ],
+        "nearestWallId": "wall_h1szv096nz0kqs2c",
+        "distancePx": 22.08,
+        "distanceM": 0.485
+      }
+    ]
+  },
+  {
+    "boundary": "left-dress-short-diagonal",
+    "samples": [
+      {
+        "sourcePx": [
+          449.25,
+          327.25
+        ],
+        "nearestWallId": "wall_660xpsl9yhczi30k",
+        "distancePx": 17.97,
+        "distanceM": 0.395
+      },
+      {
+        "sourcePx": [
+          453.5,
+          331.5
+        ],
+        "nearestWallId": "wall_660xpsl9yhczi30k",
+        "distancePx": 11.96,
+        "distanceM": 0.263
+      },
+      {
+        "sourcePx": [
+          457.75,
+          335.75
+        ],
+        "nearestWallId": "wall_660xpsl9yhczi30k",
+        "distancePx": 5.95,
+        "distanceM": 0.131
+      }
+    ]
+  },
+  {
+    "boundary": "upper-right-dress-left-partition",
+    "samples": [
+      {
+        "sourcePx": [
+          913.0,
+          153.75
+        ],
+        "nearestWallId": "wall_jxoc68so15znszzn",
+        "distancePx": 7.77,
+        "distanceM": 0.171
+      },
+      {
+        "sourcePx": [
+          913.0,
+          160.5
+        ],
+        "nearestWallId": "wall_f1lrrnovi6kcwuu3",
+        "distancePx": 13.98,
+        "distanceM": 0.307
+      },
+      {
+        "sourcePx": [
+          913.0,
+          167.25
+        ],
+        "nearestWallId": "wall_f1lrrnovi6kcwuu3",
+        "distancePx": 7.23,
+        "distanceM": 0.159
+      }
+    ]
+  },
+  {
+    "boundary": "upper-right-dress-right-partition",
+    "samples": [
+      {
+        "sourcePx": [
+          960.0,
+          153.75
+        ],
+        "nearestWallId": "wall_jxoc68so15znszzn",
+        "distancePx": 7.77,
+        "distanceM": 0.171
+      },
+      {
+        "sourcePx": [
+          960.0,
+          160.5
+        ],
+        "nearestWallId": "wall_f1lrrnovi6kcwuu3",
+        "distancePx": 13.98,
+        "distanceM": 0.307
+      },
+      {
+        "sourcePx": [
+          960.0,
+          167.25
+        ],
+        "nearestWallId": "wall_f1lrrnovi6kcwuu3",
+        "distancePx": 7.23,
+        "distanceM": 0.159
+      }
+    ]
+  }
+]

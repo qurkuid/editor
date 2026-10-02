@@ -1,0 +1,194 @@
+apps/editor/components/stats-tab.tsx format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    779 779 │                   ? `${t('stats.opening.unsupported')} · `
+    780 780 │                   : ''}
+    781     │ - ··············{t('stats.opening.net')}···{t('stats.opening.detail')
+        781 │ + ··············{t('stats.opening.net')}··{'·'}
+        782 │ + ··············{t('stats.opening.detail')
+    782 783 │                   .replace('{gross}', line.takeoff.grossQuantity.toFixed(2))
+    783     │ - ················.replace(
+    784     │ - ··················'{deducted}',
+    785     │ - ··················(line.takeoff.openingDeductedQuantity·??·0).toFixed(2),
+    786     │ - ················)
+        784 │ + ················.replace('{deducted}',·(line.takeoff.openingDeductedQuantity·??·0).toFixed(2))
+    787 785 │                   .replace('{net}', line.takeoff.quantity.toFixed(2))}
+    788 786 │               </span>
+  
+
+apps/editor/lib/quantity-takeoff.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     545  545 │             slots: { interior: 'library:right' },
+     546  546 │             finishRegions: [
+     547      │ - ············{·id:·'left',·side:·'interior',·start:·0,·end:·0.5,·slots:·{·interior:·'library:left'·}·},
+          547 │ + ············{
+          548 │ + ··············id:·'left',
+          549 │ + ··············side:·'interior',
+          550 │ + ··············start:·0,
+          551 │ + ··············end:·0.5,
+          552 │ + ··············slots:·{·interior:·'library:left'·},
+          553 │ + ············},
+     548  554 │             ],
+     549  555 │             children: ['window_a'],
+    ········· │ 
+     634  640 │     test.each([
+     635  641 │       ['curved wall', { curveOffset: 1 }, { id: 'door_a', type: 'door', position: [2, 1, 0] }],
+     636      │ - ····['invalid·geometry',·{},·{·id:·'door_a',·type:·'door',·position:·[2,·1,·0],·width:·0,·height:·2·}],
+          642 │ + ····[
+          643 │ + ······'invalid·geometry',
+          644 │ + ······{},
+          645 │ + ······{·id:·'door_a',·type:·'door',·position:·[2,·1,·0],·width:·0,·height:·2·},
+          646 │ + ····],
+     637  647 │       ['missing child', {}, undefined],
+     638  648 │       ['item cutout', {}, { id: 'item_a', type: 'item', position: [2, 1, 0] }],
+    ········· │ 
+     648  658 │         ...wallExtra,
+     649  659 │       }
+     650      │ - ····const·report·=·deriveTakeoff(
+     651      │ - ······scene(wall,·...(child·?·[child]·:·[])),
+     652      │ - ····)
+          660 │ + ····const·report·=·deriveTakeoff(scene(wall,·...(child·?·[child]·:·[])))
+     653  661 │       const expectedGross = _label === 'curved wall' ? 11.588306472925412 : 10
+     654  662 │       expect(line(report, 'finish', 'library:base')).toMatchObject({
+  
+
+apps/editor/lib/quantity-takeoff.ts:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━
+
+  × Sort the imported names.
+  
+   > 1 │ import {
+       │ ^^^^^^^^
+   > 2 │   type AnyNode,
+   > 3 │   type CabinetModuleNode,
+   > 4 │   type CabinetNode,
+        ...
+  > 16 │   type WindowNode,
+  > 17 │ } from '@pascal-app/core'
+       │ ^^^^^^^^^^^^^^^^^^^^^^^^^
+    18 │ import {
+    19 │   buildOpeningCutoutProfile,
+  
+  i Safe fix: Organize imports and exports (Biome)
+  
+      4   4 │     type CabinetNode,
+      5   5 │     DEFAULT_WALL_HEIGHT,
+      6     │ - ··getWallBandSlotId,
+          6 │ + ··type·DoorNode,
+          7 │ + ··getWallBandSlotId,
+      7   8 │     getWallCurveLength,
+      8   9 │     getWallFaceBandConfig,
+    ······· │ 
+     10  11 │     isCurvedWall,
+     11  12 │     normalizeWallFinishRegions,
+     12     │ - ··resolveLightingFixtureCount,
+     13     │ - ··type·DoorNode,
+         13 │ + ··resolveLightingFixtureCount,
+     14  14 │     type WallNode,
+     15  15 │     type WallSurfaceSide,
+  
+
+apps/editor/lib/quantity-takeoff.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    244 244 │           const start = Math.max(cursor, Math.max(0, Math.min(1, region.start)))
+    245 245 │           const end = Math.max(start, Math.min(1, region.end))
+    246     │ - ········addWallFinishCell(
+    247     │ - ··········cells,
+    248     │ - ··········baseRef,
+    249     │ - ··········length·*·cursor,
+    250     │ - ··········length·*·start,
+    251     │ - ··········span.bottom,
+    252     │ - ··········span.top,
+    253     │ - ········)
+        246 │ + ········addWallFinishCell(cells,·baseRef,·length·*·cursor,·length·*·start,·span.bottom,·span.top)
+    254 247 │           addWallFinishCell(
+    255 248 │             cells,
+    ······· │ 
+    356 349 │     const area = union.reduce((total, polygon) => total + polygonArea(polygon), 0)
+    357 350 │     return Number.isFinite(area) && area >= 0
+    358     │ - ····?·{·area:·Math.min(area,·(cell.right·-·cell.left)·*·(cell.top·-·cell.bottom)),·unsupported:·false·}
+        351 │ + ····?·{
+        352 │ + ········area:·Math.min(area,·(cell.right·-·cell.left)·*·(cell.top·-·cell.bottom)),
+        353 │ + ········unsupported:·false,
+        354 │ + ······}
+    359 355 │       : { area: 0, unsupported: true }
+    360 356 │   }
+    ······· │ 
+    397 393 │       grossQuantity: area.gross,
+    398 394 │       openingDeductedQuantity: area.deducted,
+    399     │ - ····openingAdjustment:·area.unsupported
+    400     │ - ······?·hasDeduction
+    401     │ - ········?·'mixed'
+    402     │ - ········:·'unsupported'
+    403     │ - ······:·'deducted',
+        395 │ + ····openingAdjustment:·area.unsupported·?·(hasDeduction·?·'mixed'·:·'unsupported')·:·'deducted',
+    404 396 │     }
+    405 397 │   }
+    ······· │ 
+    424 416 │             adjustment != null,
+    425 417 │         )
+    426     │ - ······if·(adjustments.includes('mixed')·||·(adjustments.includes('deducted')·&&·adjustments.includes('unsupported')))·{
+        418 │ + ······if·(
+        419 │ + ········adjustments.includes('mixed')·||
+        420 │ + ········(adjustments.includes('deducted')·&&·adjustments.includes('unsupported'))
+        421 │ + ······)·{
+    427 422 │           existing.openingAdjustment = 'mixed'
+    428 423 │         } else if (adjustments.includes('unsupported')) {
+    ······· │ 
+    732 727 │         // Painted faces additionally group by material, so the estimate can
+    733 728 │         // order by finish rather than by wall.
+    734     │ - ······const·finishAreas·=·wallFinishAreas(
+    735     │ - ········wall,
+    736     │ - ········length,
+    737     │ - ········wall.height·??·DEFAULT_WALL_HEIGHT,
+    738     │ - ········nodes,
+    739     │ - ······)
+        729 │ + ······const·finishAreas·=·wallFinishAreas(wall,·length,·wall.height·??·DEFAULT_WALL_HEIGHT,·nodes)
+    740 730 │         for (const [ref, area] of finishAreas) {
+    741 731 │           const audit = openingAdjustment(area)
+  
+
+packages/viewer/src/lib/polygon-union.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     96  96 │       expect(polygonArea(result)).toBeCloseTo(2)
+     97  97 │       expect(result).toHaveLength(4)
+     98     │ - ····expect(result).toEqual(expect.arrayContaining([[0,·1],·[2,·1],·[2,·2],·[0,·2]]))
+         98 │ + ····expect(result).toEqual(
+         99 │ + ······expect.arrayContaining([
+        100 │ + ········[0,·1],
+        101 │ + ········[2,·1],
+        102 │ + ········[2,·2],
+        103 │ + ········[0,·2],
+        104 │ + ······]),
+        105 │ + ····)
+     99 106 │     })
+    100 107 │   
+  
+
+packages/viewer/src/systems/wall/opening-cutout-geometry.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    181 181 │       ).toBeCloseTo(3.99141, 5)
+    182 182 │       expect(
+    183     │ - ······profileArea(buildOpeningCutoutProfile(DoorNode.parse({·openingShape:·'arch',·archHeight:·1·}),·rect)),
+        183 │ + ······profileArea(
+        184 │ + ········buildOpeningCutoutProfile(DoorNode.parse({·openingShape:·'arch',·archHeight:·1·}),·rect),
+        185 │ + ······),
+    184 186 │       ).toBeCloseTo(3.561627, 5)
+    185 187 │     })
+  
+
+Checked 11 files in 38ms. No fixes applied.
+Found 6 errors.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

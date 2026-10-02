@@ -1,0 +1,6 @@
+timestamp=2026-10-02T17:44:50+09:00
+command=python3 test_recovery.py (normalizer_test)
+exit_code=0
+normalized=2
+guards=3
+result=missing/null target categoryId -> 108; present, wrong brand/category, positive ID unchanged; missing/duplicate category rejected

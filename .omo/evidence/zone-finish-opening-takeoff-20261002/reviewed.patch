@@ -1,0 +1,1632 @@
+diff --git a/apps/editor/components/stats-tab.tsx b/apps/editor/components/stats-tab.tsx
+index 4927a85c..27079a21 100644
+--- a/apps/editor/components/stats-tab.tsx
++++ b/apps/editor/components/stats-tab.tsx
+@@ -765,6 +765,33 @@ function StatsRow({
+             {line.wasteRate ? ` · 손실 ${Math.round(line.wasteRate * 100)}%` : ''}
+             {places > 1 ? ` · ${t('stats.places').replace('{n}', String(places))}` : ''}
+           </span>
++          {line.takeoff.grossQuantity != null && line.takeoff.unit === 'm2' && (
++            <span
++              className={`block text-[10px] ${
++                line.takeoff.openingAdjustment === 'unsupported' ||
++                line.takeoff.openingAdjustment === 'mixed'
++                  ? 'text-amber-200'
++                  : 'text-sky-200'
++              }`}
++            >
++              {line.takeoff.openingAdjustment === 'deducted'
++                ? `${t('stats.opening.net')} · ${t('stats.opening.detail')
++                    .replace('{gross}', line.takeoff.grossQuantity.toFixed(2))
++                    .replace('{deducted}', (line.takeoff.openingDeductedQuantity ?? 0).toFixed(2))
++                    .replace('{net}', line.takeoff.quantity.toFixed(2))}`
++                : line.takeoff.openingAdjustment === 'mixed'
++                  ? `${t('stats.opening.unsupported')} · ${t('stats.opening.partial')
++                      .replace('{gross}', line.takeoff.grossQuantity.toFixed(2))
++                      .replace('{deducted}', (line.takeoff.openingDeductedQuantity ?? 0).toFixed(2))
++                      .replace('{net}', line.takeoff.quantity.toFixed(2))}`
++                  : line.takeoff.openingAdjustment === 'unsupported'
++                    ? `${t('stats.opening.unsupported')} · ${t('stats.opening.gross').replace(
++                        '{gross}',
++                        line.takeoff.grossQuantity.toFixed(2),
++                      )}`
++                    : ''}
++            </span>
++          )}
+         </span>
+         <span className="shrink-0 text-right">
+           {note ? (
+diff --git a/apps/editor/lib/estimate-submit.test.ts b/apps/editor/lib/estimate-submit.test.ts
+index 6bc95332..e0f0c3e8 100644
+--- a/apps/editor/lib/estimate-submit.test.ts
++++ b/apps/editor/lib/estimate-submit.test.ts
+@@ -68,6 +68,27 @@ describe('line items', () => {
+     const items = toEstimateItems(draft(line(), line({ status: 'no-coverage' }), line()))
+     expect(items).toHaveLength(2)
+   })
++
++  test.each([
++    ['deducted', '개구부 차감 순면적'],
++    ['mixed', '개구부 일부 미차감 · 확인된 개구부만 차감'],
++    ['unsupported', '개구부 일부 미차감 · 총면적 유지'],
++  ] as const)('carries the %s opening basis into the INTM description', (openingAdjustment, text) => {
++    const [item] = toEstimateItems(
++      draft(
++        line({
++          takeoff: {
++            ...line().takeoff,
++            openingAdjustment,
++            grossQuantity: 20,
++            openingDeductedQuantity: openingAdjustment === 'unsupported' ? 0 : 1.89,
++          },
++        }),
++      ),
++    )
++
++    expect(item?.description).toContain(text)
++  })
+ })
+ 
+ describe('submission', () => {
+diff --git a/apps/editor/lib/estimate-submit.ts b/apps/editor/lib/estimate-submit.ts
+index cf849f09..167f2ad0 100644
+--- a/apps/editor/lib/estimate-submit.ts
++++ b/apps/editor/lib/estimate-submit.ts
+@@ -59,6 +59,13 @@ function describeLine(line: EstimateLine): string {
+     `도면 산출 ${line.takeoff.quantity.toFixed(2)}${unitLabel(line.takeoff.unit)}`,
+   ]
+   if (line.wasteRate) parts.push(`손실 ${Math.round(line.wasteRate * 100)}%`)
++  if (line.takeoff.openingAdjustment === 'deducted') {
++    parts.push('개구부 차감 순면적')
++  } else if (line.takeoff.openingAdjustment === 'mixed') {
++    parts.push('개구부 일부 미차감 · 확인된 개구부만 차감')
++  } else if (line.takeoff.openingAdjustment === 'unsupported') {
++    parts.push('개구부 일부 미차감 · 총면적 유지')
++  }
+   if (line.takeoff.nodeIds.length > 0) parts.push(`${line.takeoff.nodeIds.length}곳`)
+   return parts.join(' · ')
+ }
+diff --git a/apps/editor/lib/quantity-takeoff.test.ts b/apps/editor/lib/quantity-takeoff.test.ts
+index 7a97e1f8..c2eef698 100644
+--- a/apps/editor/lib/quantity-takeoff.test.ts
++++ b/apps/editor/lib/quantity-takeoff.test.ts
+@@ -432,7 +432,7 @@ describe('areas and finishes', () => {
+     expect(line(report, 'finish', 'library:zone')).toBeUndefined()
+   })
+ 
+-  test('wall-hosted openings do not reduce gross finish area', () => {
++  test('wall-hosted openings with no modeled geometry remain conservative gross', () => {
+     const report = deriveTakeoff(
+       scene(
+         {
+@@ -449,7 +449,328 @@ describe('areas and finishes', () => {
+       ),
+     )
+ 
+-    expect(line(report, 'finish', 'library:base')?.quantity).toBeCloseTo(10)
++    expect(line(report, 'finish', 'library:base')).toMatchObject({
++      quantity: 10,
++      openingAdjustment: 'unsupported',
++      grossQuantity: 10,
++      openingDeductedQuantity: 0,
++    })
++  })
++
++  test('a modeled rectangle opening is deducted from both painted faces', () => {
++    const report = deriveTakeoff(
++      scene(
++        {
++          id: 'wall_a',
++          type: 'wall',
++          start: [0, 0],
++          end: [4, 0],
++          height: 2.5,
++          slots: { interior: 'library:base', exterior: 'library:base' },
++          children: ['door_a'],
++        },
++        {
++          id: 'door_a',
++          type: 'door',
++          parentId: 'wall_a',
++          position: [2, 1.05, 0],
++          width: 0.9,
++          height: 2.1,
++          openingShape: 'rectangle',
++        },
++      ),
++    )
++
++    expect(line(report, 'finish', 'library:base')).toMatchObject({
++      quantity: 16.22,
++      grossQuantity: 20,
++      openingDeductedQuantity: 3.78,
++      openingAdjustment: 'deducted',
++    })
++  })
++
++  test('merges a fully deducted wall audit into a positive same-material line', () => {
++    const report = deriveTakeoff(
++      scene(
++        {
++          id: 'wall_fully_deducted',
++          type: 'wall',
++          start: [0, 0],
++          end: [4, 0],
++          height: 2.5,
++          slots: { interior: 'library:base' },
++          children: ['door_full'],
++        },
++        {
++          id: 'door_full',
++          type: 'door',
++          parentId: 'wall_fully_deducted',
++          position: [2, 1.25, 0],
++          width: 4,
++          height: 2.5,
++          openingShape: 'rectangle',
++        },
++        {
++          id: 'wall_positive',
++          type: 'wall',
++          start: [0, 0],
++          end: [2, 0],
++          height: 2.5,
++          slots: { interior: 'library:base' },
++        },
++      ),
++    )
++
++    expect(line(report, 'finish', 'library:base')).toMatchObject({
++      quantity: 5,
++      grossQuantity: 15,
++      openingDeductedQuantity: 10,
++      openingAdjustment: 'deducted',
++      nodeIds: ['wall_fully_deducted', 'wall_positive'],
++    })
++
++    const standalone = deriveTakeoff(
++      scene(
++        {
++          id: 'wall_only',
++          type: 'wall',
++          start: [0, 0],
++          end: [4, 0],
++          height: 2.5,
++          slots: { interior: 'library:base' },
++          children: ['door_only'],
++        },
++        {
++          id: 'door_only',
++          type: 'door',
++          parentId: 'wall_only',
++          position: [2, 1.25, 0],
++          width: 4,
++          height: 2.5,
++          openingShape: 'rectangle',
++        },
++      ),
++    )
++    expect(line(standalone, 'finish', 'library:base')).toBeUndefined()
++  })
++
++  test('band and exact-role region clip one opening into each active cell', () => {
++    const report = deriveTakeoff(
++      scene(
++        {
++          id: 'wall_a',
++          type: 'wall',
++          start: [0, 0],
++          end: [4, 0],
++          height: 2.5,
++          faceBands: { enabled: true, count: 2, lowerHeight: 1 },
++          slots: {
++            interior: 'library:whole',
++            lowerInterior: 'library:lower',
++            exterior: 'library:exterior',
++          },
++          finishRegions: [
++            {
++              id: 'lower_zone',
++              side: 'interior',
++              start: 0,
++              end: 0.5,
++              slots: { lowerInterior: 'library:zone' },
++            },
++          ],
++          children: ['door_a'],
++        },
++        {
++          id: 'door_a',
++          type: 'door',
++          parentId: 'wall_a',
++          position: [1, 1, 0],
++          width: 0.8,
++          height: 2,
++          openingShape: 'rectangle',
++        },
++      ),
++    )
++
++    expect(line(report, 'finish', 'library:zone')?.quantity).toBeCloseTo(1.2)
++    expect(line(report, 'finish', 'library:lower')?.quantity).toBeCloseTo(2)
++    expect(line(report, 'finish', 'library:whole')?.quantity).toBeCloseTo(5.2)
++    expect(line(report, 'finish', 'library:exterior')?.quantity).toBeCloseTo(8.4)
++  })
++
++  test('an opening crossing a region boundary is split between material cells', () => {
++    const report = deriveTakeoff(
++      scene(
++        {
++          id: 'wall_a',
++          type: 'wall',
++          start: [0, 0],
++          end: [4, 0],
++          height: 2.5,
++          slots: { interior: 'library:right' },
++          finishRegions: [
++            {
++              id: 'left',
++              side: 'interior',
++              start: 0,
++              end: 0.5,
++              slots: { interior: 'library:left' },
++            },
++          ],
++          children: ['window_a'],
++        },
++        {
++          id: 'window_a',
++          type: 'window',
++          parentId: 'wall_a',
++          position: [2, 1.25, 0],
++          width: 1,
++          height: 1,
++          openingShape: 'rectangle',
++        },
++      ),
++    )
++
++    expect(line(report, 'finish', 'library:left')?.quantity).toBeCloseTo(4.5)
++    expect(line(report, 'finish', 'library:right')?.quantity).toBeCloseTo(4.5)
++  })
++
++  test('overlapping openings are unioned before deduction', () => {
++    const report = deriveTakeoff(
++      scene(
++        {
++          id: 'wall_a',
++          type: 'wall',
++          start: [0, 0],
++          end: [4, 0],
++          height: 2.5,
++          slots: { interior: 'library:base' },
++          children: ['window_a', 'window_b'],
++        },
++        {
++          id: 'window_a',
++          type: 'window',
++          parentId: 'wall_a',
++          position: [1.5, 1.25, 0],
++          width: 1,
++          height: 1,
++          openingShape: 'rectangle',
++        },
++        {
++          id: 'window_b',
++          type: 'window',
++          parentId: 'wall_a',
++          position: [2, 1.25, 0],
++          width: 1,
++          height: 1,
++          openingShape: 'rectangle',
++        },
++      ),
++    )
++
++    expect(line(report, 'finish', 'library:base')).toMatchObject({
++      quantity: 8.5,
++      openingDeductedQuantity: 1.5,
++    })
++  })
++
++  test('ignores a hosted opening that is absent from wall children', () => {
++    const report = deriveTakeoff(
++      scene(
++        {
++          id: 'wall_a',
++          type: 'wall',
++          start: [0, 0],
++          end: [4, 0],
++          height: 2.5,
++          slots: { interior: 'library:base' },
++        },
++        {
++          id: 'door_a',
++          type: 'door',
++          parentId: 'wall_a',
++          wallId: 'wall_a',
++          position: [2, 1.05, 0],
++          width: 0.9,
++          height: 2.1,
++          openingShape: 'rectangle',
++        },
++      ),
++    )
++
++    expect(line(report, 'finish', 'library:base')).toMatchObject({ quantity: 10 })
++    expect(line(report, 'finish', 'library:base')).not.toHaveProperty('openingAdjustment')
++  })
++
++  test.each([
++    ['curved wall', { curveOffset: 1 }, { id: 'door_a', type: 'door', position: [2, 1, 0] }],
++    [
++      'invalid geometry',
++      {},
++      { id: 'door_a', type: 'door', position: [2, 1, 0], width: 0, height: 2 },
++    ],
++    ['missing child', {}, undefined],
++    ['item cutout', {}, { id: 'item_a', type: 'item', position: [2, 1, 0] }],
++  ])('%s keeps the affected finish gross and marks it unsupported', (_label, wallExtra, child) => {
++    const wall = {
++      id: 'wall_a',
++      type: 'wall',
++      start: [0, 0],
++      end: [4, 0],
++      height: 2.5,
++      slots: { interior: 'library:base' },
++      children: child ? [child.id as string] : ['missing'],
++      ...wallExtra,
++    }
++    const report = deriveTakeoff(scene(wall, ...(child ? [child] : [])))
++    const expectedGross = _label === 'curved wall' ? 11.588306472925412 : 10
++    expect(line(report, 'finish', 'library:base')).toMatchObject({
++      grossQuantity: expectedGross,
++      openingDeductedQuantity: 0,
++      openingAdjustment: 'unsupported',
++    })
++    expect(line(report, 'finish', 'library:base')?.quantity).toBeCloseTo(expectedGross)
++  })
++
++  test('a supported and unsupported wall aggregate as mixed with known deduction audit', () => {
++    const report = deriveTakeoff(
++      scene(
++        {
++          id: 'wall_supported',
++          type: 'wall',
++          start: [0, 0],
++          end: [4, 0],
++          height: 2.5,
++          slots: { interior: 'library:base' },
++          children: ['door_a'],
++        },
++        {
++          id: 'door_a',
++          type: 'door',
++          position: [2, 1.05, 0],
++          width: 0.9,
++          height: 2.1,
++          openingShape: 'rectangle',
++        },
++        {
++          id: 'wall_unsupported',
++          type: 'wall',
++          start: [0, 0],
++          end: [4, 0],
++          height: 2.5,
++          slots: { interior: 'library:base' },
++          children: ['item_a'],
++        },
++        { id: 'item_a', type: 'item' },
++      ),
++    )
++
++    expect(line(report, 'finish', 'library:base')).toMatchObject({
++      quantity: 18.11,
++      grossQuantity: 20,
++      openingDeductedQuantity: 1.89,
++      openingAdjustment: 'mixed',
++    })
+   })
+ 
+   test('wall finish takeoff does not mutate frozen scene input', () => {
+diff --git a/apps/editor/lib/quantity-takeoff.ts b/apps/editor/lib/quantity-takeoff.ts
+index fe0eff73..c481eab5 100644
+--- a/apps/editor/lib/quantity-takeoff.ts
++++ b/apps/editor/lib/quantity-takeoff.ts
+@@ -3,6 +3,7 @@ import {
+   type CabinetModuleNode,
+   type CabinetNode,
+   DEFAULT_WALL_HEIGHT,
++  type DoorNode,
+   getWallBandSlotId,
+   getWallCurveLength,
+   getWallFaceBandConfig,
+@@ -12,7 +13,14 @@ import {
+   resolveLightingFixtureCount,
+   type WallNode,
+   type WallSurfaceSide,
++  type WindowNode,
+ } from '@pascal-app/core'
++import {
++  buildOpeningCutoutProfile,
++  clipPolygonToRect,
++  measurePolygonUnionArea,
++  type Point2D,
++} from '@pascal-app/viewer'
+ import {
+   surfaceAssemblyLines,
+   type WallConstructionLayerLike,
+@@ -66,6 +74,11 @@ export type TakeoffLine = {
+    * panel write a chosen product back onto every wall that fed the line.
+    */
+   layerKind?: string
++  /** Gross finish area before known opening deductions. */
++  grossQuantity?: number
++  /** Known opening area removed from `grossQuantity`. */
++  openingDeductedQuantity?: number
++  openingAdjustment?: 'deducted' | 'unsupported' | 'mixed'
+   role: TakeoffRole
+ }
+ 
+@@ -142,11 +155,34 @@ function moduleBoardArea(module: CabinetModuleNode): { carcass: number; front: n
+ type WallFinishSpan = {
+   slotId: string
+   height: number
++  bottom: number
++  top: number
++}
++
++type WallFinishCell = {
++  materialRef: string | undefined
++  left: number
++  right: number
++  bottom: number
++  top: number
++}
++
++type WallFinishArea = {
++  gross: number
++  deducted: number
++  unsupported: boolean
++}
++
++type OpeningNode = DoorNode | WindowNode
++
++type OpeningDeduction = {
++  area: number
++  unsupported: boolean
+ }
+ 
+ function wallFinishSpans(wall: WallNode, height: number, side: WallSurfaceSide): WallFinishSpan[] {
+   const bands = getWallFaceBandConfig(wall, height)
+-  if (!bands.enabled) return [{ slotId: side, height }]
++  if (!bands.enabled) return [{ slotId: side, height, bottom: 0, top: height }]
+ 
+   const activeBands =
+     bands.count === 2
+@@ -162,8 +198,9 @@ function wallFinishSpans(wall: WallNode, height: number, side: WallSurfaceSide):
+       index === activeBands.length - 1
+         ? Math.max(0, height - consumed)
+         : Math.max(0, configuredHeights[index] ?? 0)
++    const bottom = consumed
+     consumed += spanHeight
+-    return { slotId: getWallBandSlotId(side, band), height: spanHeight }
++    return { slotId: getWallBandSlotId(side, band), height: spanHeight, bottom, top: consumed }
+   })
+ }
+ 
+@@ -174,28 +211,28 @@ function wallFinishBaseRef(wall: WallNode, slotId: string): string | undefined {
+   return side ? wall.slots?.[side] : undefined
+ }
+ 
+-function addWallFinishArea(
+-  areas: Map<string, number>,
++function addWallFinishCell(
++  cells: WallFinishCell[],
+   materialRef: string | undefined,
+-  area: number,
++  left: number,
++  right: number,
++  bottom: number,
++  top: number,
+ ) {
+-  if (!materialRef || area <= 0) return
+-  areas.set(materialRef, (areas.get(materialRef) ?? 0) + area)
++  if (!materialRef || right - left <= 1e-7 || top - bottom <= 1e-7) return
++  cells.push({ materialRef, left, right, bottom, top })
+ }
+ 
+-function wallFinishAreas(wall: WallNode, length: number, height: number): Map<string, number> {
+-  const areas = new Map<string, number>()
++function wallFinishCells(wall: WallNode, length: number, height: number): WallFinishCell[] {
++  const cells: WallFinishCell[] = []
+   const curved = isCurvedWall(wall)
+   const regions = curved ? [] : normalizeWallFinishRegions(wall.finishRegions ?? [])
+-  const spanArea = (span: WallFinishSpan) => length * span.height
+ 
+   for (const side of ['interior', 'exterior'] as const) {
+     for (const span of wallFinishSpans(wall, height, side)) {
+-      const area = spanArea(span)
+-      if (area <= 0) continue
+       const baseRef = wallFinishBaseRef(wall, span.slotId)
+       if (curved) {
+-        addWallFinishArea(areas, baseRef, area)
++        addWallFinishCell(cells, baseRef, 0, length, span.bottom, span.top)
+         continue
+       }
+ 
+@@ -206,26 +243,192 @@ function wallFinishAreas(wall: WallNode, length: number, height: number): Map<st
+       for (const region of matchingRegions) {
+         const start = Math.max(cursor, Math.max(0, Math.min(1, region.start)))
+         const end = Math.max(start, Math.min(1, region.end))
+-        addWallFinishArea(areas, baseRef, area * (start - cursor))
+-        addWallFinishArea(areas, region.slots[span.slotId], area * (end - start))
++        addWallFinishCell(cells, baseRef, length * cursor, length * start, span.bottom, span.top)
++        addWallFinishCell(
++          cells,
++          region.slots[span.slotId],
++          length * start,
++          length * end,
++          span.bottom,
++          span.top,
++        )
+         cursor = Math.max(cursor, end)
+       }
+-      addWallFinishArea(areas, baseRef, area * (1 - cursor))
++      addWallFinishCell(cells, baseRef, length * cursor, length, span.bottom, span.top)
+     }
+   }
+ 
++  return cells
++}
++
++function isFinitePoint(point: Point2D) {
++  return Number.isFinite(point[0]) && Number.isFinite(point[1])
++}
++
++function openingProfile(opening: OpeningNode): Point2D[] | null {
++  const position = opening.position
++  const width = opening.width
++  const height = opening.height
++  if (
++    !Array.isArray(position) ||
++    position.length < 2 ||
++    !Number.isFinite(position[0]) ||
++    !Number.isFinite(position[1]) ||
++    !Number.isFinite(width) ||
++    !Number.isFinite(height) ||
++    width <= 0 ||
++    height <= 0
++  ) {
++    return null
++  }
++
++  if (
++    opening.openingShape !== undefined &&
++    opening.openingShape !== 'rectangle' &&
++    opening.openingShape !== 'rounded' &&
++    opening.openingShape !== 'arch'
++  ) {
++    return null
++  }
++
++  const profile = buildOpeningCutoutProfile(opening, {
++    left: position[0] - width / 2,
++    right: position[0] + width / 2,
++    bottom: position[1] - height / 2,
++    top: position[1] + height / 2,
++  })
++  if (profile.length < 3 || profile.some((point) => !isFinitePoint(point))) return null
++  const area = polygonArea(profile)
++  return Number.isFinite(area) && area > 1e-7 ? profile : null
++}
++
++function resolveWallOpenings(
++  wall: WallNode,
++  nodes: Readonly<Record<string, AnyNode>>,
++): { openings: OpeningNode[]; unsupported: boolean } {
++  const openings: OpeningNode[] = []
++  let unsupported = false
++  for (const childId of wall.children ?? []) {
++    const child = nodes[childId]
++    if (!child) {
++      unsupported = true
++      continue
++    }
++    if (child.type === 'door' || child.type === 'window') {
++      openings.push(child)
++    } else if (child.type === 'item') {
++      unsupported = true
++    }
++  }
++  return { openings, unsupported }
++}
++
++function openingDeduction(
++  openings: readonly OpeningNode[],
++  cell: WallFinishCell,
++  envelope: { left: number; right: number; bottom: number; top: number },
++): OpeningDeduction {
++  const clipped: Point2D[][] = []
++  for (const opening of openings) {
++    const profile = openingProfile(opening)
++    if (!profile) return { area: 0, unsupported: true }
++    const inEnvelope = clipPolygonToRect(profile, envelope)
++    if (inEnvelope.length < 3) continue
++    const inCell = clipPolygonToRect(inEnvelope, cell)
++    if (inCell.length >= 3) clipped.push(inCell)
++  }
++  if (clipped.length === 0) return { area: 0, unsupported: false }
++
++  const union = measurePolygonUnionArea(clipped)
++  if (!union.ok || !Number.isFinite(union.area)) {
++    return { area: 0, unsupported: true }
++  }
++  const area = union.area
++  return Number.isFinite(area) && area >= 0
++    ? {
++        area: Math.min(area, (cell.right - cell.left) * (cell.top - cell.bottom)),
++        unsupported: false,
++      }
++    : { area: 0, unsupported: true }
++}
++
++function wallFinishAreas(
++  wall: WallNode,
++  length: number,
++  height: number,
++  nodes: Readonly<Record<string, AnyNode>>,
++): Map<string, WallFinishArea> {
++  const areas = new Map<string, WallFinishArea>()
++  const cells = wallFinishCells(wall, length, height)
++  const { openings, unsupported: unresolvedChild } = resolveWallOpenings(wall, nodes)
++  const curved = isCurvedWall(wall)
++  const envelope = { left: 0, right: length, bottom: 0, top: height }
++
++  for (const cell of cells) {
++    const gross = (cell.right - cell.left) * (cell.top - cell.bottom)
++    if (gross <= 0) continue
++    const unsupported = unresolvedChild || (curved && openings.length > 0)
++    const deduction = unsupported
++      ? { area: 0, unsupported: true }
++      : openingDeduction(openings, cell, envelope)
++    const current = areas.get(cell.materialRef!) ?? { gross: 0, deducted: 0, unsupported: false }
++    current.gross += gross
++    current.deducted += Math.min(Math.max(deduction.area, 0), gross)
++    current.unsupported ||= deduction.unsupported
++    areas.set(cell.materialRef!, current)
++  }
++
+   return areas
+ }
+ 
++function openingAdjustment(
++  area: WallFinishArea,
++): Pick<TakeoffLine, 'grossQuantity' | 'openingDeductedQuantity' | 'openingAdjustment'> | null {
++  const hasDeduction = area.deducted > 1e-7
++  if (!hasDeduction && !area.unsupported) return null
++  return {
++    grossQuantity: area.gross,
++    openingDeductedQuantity: area.deducted,
++    openingAdjustment: area.unsupported ? (hasDeduction ? 'mixed' : 'unsupported') : 'deducted',
++  }
++}
++
+ function push(lines: Map<string, TakeoffLine>, line: TakeoffLineInput) {
+-  if (line.quantity <= 0) return
+   const id = `${line.category}:${line.key}`
++  if (line.quantity <= 0 && line.grossQuantity == null) return
+   const existing = lines.get(id)
+   if (existing) {
+     existing.quantity += line.quantity
+-    existing.nodeIds.push(...line.nodeIds)
++    for (const nodeId of line.nodeIds) {
++      if (!existing.nodeIds.includes(nodeId)) existing.nodeIds.push(nodeId)
++    }
++    if (existing.grossQuantity != null || line.grossQuantity != null) {
++      existing.grossQuantity =
++        (existing.grossQuantity ?? existing.quantity - line.quantity) +
++        (line.grossQuantity ?? line.quantity)
++      existing.openingDeductedQuantity =
++        (existing.openingDeductedQuantity ?? 0) + (line.openingDeductedQuantity ?? 0)
++      const adjustments = [existing.openingAdjustment, line.openingAdjustment].filter(
++        (adjustment): adjustment is NonNullable<TakeoffLine['openingAdjustment']> =>
++          adjustment != null,
++      )
++      if (
++        adjustments.includes('mixed') ||
++        (adjustments.includes('deducted') && adjustments.includes('unsupported'))
++      ) {
++        existing.openingAdjustment = 'mixed'
++      } else if (adjustments.includes('unsupported')) {
++        existing.openingAdjustment = 'unsupported'
++      } else if (adjustments.includes('deducted')) {
++        existing.openingAdjustment = 'deducted'
++      }
++    }
+     return
+   }
++
++  // Keep a zero-net audited finish long enough to merge its gross/deduction
++  // contribution into a same-material line from another wall. It is removed
++  // from the public report below when no positive quantity ever joins it.
+   lines.set(id, { ...line, role: line.role ?? 'material', nodeIds: [...line.nodeIds] })
+ }
+ 
+@@ -524,21 +727,27 @@ export function deriveTakeoff(
+ 
+       // Painted faces additionally group by material, so the estimate can
+       // order by finish rather than by wall.
+-      const finishAreas = wallFinishAreas(wall, length, wall.height ?? DEFAULT_WALL_HEIGHT)
+-      for (const [ref, quantity] of finishAreas) {
++      const finishAreas = wallFinishAreas(wall, length, wall.height ?? DEFAULT_WALL_HEIGHT, nodes)
++      for (const [ref, area] of finishAreas) {
++        const audit = openingAdjustment(area)
+         push(lines, {
+           category: 'finish',
+           key: ref,
+           label: `벽 마감 ${ref}`,
+           unit: 'm2',
+-          quantity,
++          quantity: Math.max(0, area.gross - area.deducted),
+           nodeIds: [node.id],
+           materialRef: ref,
++          ...audit,
+         })
+       }
+     }
+   }
+ 
++  for (const [id, line] of lines) {
++    if (line.quantity <= 0) lines.delete(id)
++  }
++
+   const totals = { ...EMPTY_TOTALS }
+   for (const line of lines.values()) totals[line.category] += line.quantity
+ 
+diff --git a/packages/editor/src/i18n/dictionary/furniture.ts b/packages/editor/src/i18n/dictionary/furniture.ts
+index 6b795a43..427b0d08 100644
+--- a/packages/editor/src/i18n/dictionary/furniture.ts
++++ b/packages/editor/src/i18n/dictionary/furniture.ts
+@@ -135,6 +135,23 @@ export const statsDictionary = {
+   'stats.group.material': { ko: '발주 자재', en: 'To order' },
+   'stats.group.measure': { ko: '산출 물량', en: 'Measured from' },
+   'stats.places': { ko: '{n}개소', en: '{n} places' },
++  'stats.opening.net': { ko: '개구부 차감 순면적', en: 'Net area after openings' },
++  'stats.opening.detail': {
++    ko: '총 {gross}㎡ − 개구부 {deducted}㎡ = {net}㎡',
++    en: 'Gross {gross}㎡ − openings {deducted}㎡ = {net}㎡',
++  },
++  'stats.opening.unsupported': {
++    ko: '개구부 일부 미차감',
++    en: 'Some openings remain gross',
++  },
++  'stats.opening.partial': {
++    ko: '총 {gross}㎡ − 확인된 차감 {deducted}㎡ = 산출 {net}㎡ (일부 미차감)',
++    en: 'Gross {gross}㎡ − verified deductions {deducted}㎡ = measured {net}㎡ (some remain gross)',
++  },
++  'stats.opening.gross': {
++    ko: '총 {gross}㎡ 유지 (차감 검증 안 됨)',
++    en: 'Gross {gross}㎡ retained (opening deduction unverified)',
++  },
+   'stats.linkMaterial': {
+     ko: 'INTM 자재 연결 — {n}개소에 한 번에 적용됩니다',
+     en: 'Link an INTM material — applied to all {n} places at once',
+diff --git a/packages/viewer/src/index.ts b/packages/viewer/src/index.ts
+index 3695e254..2c94503f 100644
+--- a/packages/viewer/src/index.ts
++++ b/packages/viewer/src/index.ts
+@@ -121,8 +121,17 @@ export {
+   WHITE_PALETTE,
+ } from './lib/materials'
+ export { mergedOutline } from './lib/merged-outline-node'
+-export type { Point2D } from './lib/polygon-union'
+-export { subtractPolygonsFromPolygon, unionPolygons } from './lib/polygon-union'
++export type {
++  Point2D,
++  PolygonClipRect,
++  PolygonUnionAreaResult,
++} from './lib/polygon-union'
++export {
++  clipPolygonToRect,
++  measurePolygonUnionArea,
++  subtractPolygonsFromPolygon,
++  unionPolygons,
++} from './lib/polygon-union'
+ export {
+   getSceneTheme,
+   SCENE_THEME_IDS,
+@@ -224,6 +233,7 @@ export { StairSystem } from './systems/stair/stair-system'
+ // (arch / rounded / frameless opening) identical across both hosts.
+ export {
+   buildOpeningCutoutGeometry,
++  buildOpeningCutoutProfile,
+   getOpeningCutoutBottomPadding,
+   hasFlatOpeningCutoutBottom,
+ } from './systems/wall/opening-cutout-geometry'
+diff --git a/packages/viewer/src/lib/polygon-union.test.ts b/packages/viewer/src/lib/polygon-union.test.ts
+index 9bfd1463..7cb1d29d 100644
+--- a/packages/viewer/src/lib/polygon-union.test.ts
++++ b/packages/viewer/src/lib/polygon-union.test.ts
+@@ -1,7 +1,13 @@
+ // @ts-expect-error — bun:test is provided by the Bun runtime; viewer does not
+ // depend on @types/bun so the import type is unresolved at compile time.
+ import { describe, expect, test } from 'bun:test'
+-import { type Point2D, subtractPolygonsFromPolygon, unionPolygons } from './polygon-union'
++import {
++  clipPolygonToRect,
++  measurePolygonUnionArea,
++  type Point2D,
++  subtractPolygonsFromPolygon,
++  unionPolygons,
++} from './polygon-union'
+ 
+ function polygonArea(points: Point2D[]) {
+   let area = 0
+@@ -74,6 +80,249 @@ describe('unionPolygons', () => {
+     expect(result).toHaveLength(2)
+     expect(result.map(polygonArea)).toEqual([1, 1])
+   })
++
++  test('does not count a retained centre inside a frame-shaped union', () => {
++    const frame = [
++      [
++        [0, 0],
++        [3, 0],
++        [3, 1],
++        [0, 1],
++      ],
++      [
++        [0, 2],
++        [3, 2],
++        [3, 3],
++        [0, 3],
++      ],
++      [
++        [0, 1],
++        [1, 1],
++        [1, 2],
++        [0, 2],
++      ],
++      [
++        [2, 1],
++        [3, 1],
++        [3, 2],
++        [2, 2],
++      ],
++    ] as Point2D[][]
++
++    expect(measurePolygonUnionArea(frame)).toEqual({ ok: true, area: 8 })
++  })
++
++  test('fails instead of accepting a degenerate partial boundary', () => {
++    expect(
++      measurePolygonUnionArea([
++        [
++          [0, 0],
++          [2, 2],
++          [0, 2],
++          [2, 0],
++        ],
++      ]),
++    ).toMatchObject({ ok: false })
++  })
++
++  test('rejects self-crossing and concave input rings', () => {
++    expect(
++      measurePolygonUnionArea([
++        [
++          [0, 0],
++          [3, 2],
++          [0, 3],
++          [2, 0],
++        ],
++      ]),
++    ).toMatchObject({ ok: false })
++
++    expect(
++      measurePolygonUnionArea([
++        [
++          [0, 0],
++          [3, 0],
++          [3, 3],
++          [1, 1],
++          [0, 3],
++        ],
++      ]),
++    ).toMatchObject({ ok: false })
++  })
++
++  test('rejects rings whose coordinates collide at the boundary key scale', () => {
++    expect(
++      measurePolygonUnionArea([
++        [
++          [0, 0],
++          [0.0000004, 0],
++          [1, 0],
++          [1, 1],
++          [0, 1],
++        ],
++      ]),
++    ).toMatchObject({ ok: false })
++  })
++
++  test('classifies a thin frame from ring vertices instead of an arbitrary offset', () => {
++    const thickness = 0.0001
++    const frame = [
++      [
++        [0, 0],
++        [1, 0],
++        [1, thickness],
++        [0, thickness],
++      ],
++      [
++        [0, 1 - thickness],
++        [1, 1 - thickness],
++        [1, 1],
++        [0, 1],
++      ],
++      [
++        [0, thickness],
++        [thickness, thickness],
++        [thickness, 1 - thickness],
++        [0, 1 - thickness],
++      ],
++      [
++        [1 - thickness, thickness],
++        [1, thickness],
++        [1, 1 - thickness],
++        [1 - thickness, 1 - thickness],
++      ],
++    ] as Point2D[][]
++
++    const result = measurePolygonUnionArea(frame)
++    expect(result).toMatchObject({ ok: true })
++    if (result.ok) expect(result.area).toBeCloseTo(0.00039996, 10)
++  })
++
++  test('proves contained, overlapping, and disjoint rectangle areas', () => {
++    const contained = measurePolygonUnionArea([
++      [
++        [0, 0],
++        [1, 0],
++        [1, 1],
++        [0, 1],
++      ],
++      [
++        [-1, -1],
++        [2, -1],
++        [2, 2],
++        [-1, 2],
++      ],
++    ])
++    const overlapping = measurePolygonUnionArea([
++      [
++        [0, 0],
++        [2, 0],
++        [2, 2],
++        [0, 2],
++      ],
++      [
++        [1, 1],
++        [3, 1],
++        [3, 3],
++        [1, 3],
++      ],
++    ])
++    const disjoint = measurePolygonUnionArea([
++      [
++        [0, 0],
++        [1, 0],
++        [1, 1],
++        [0, 1],
++      ],
++      [
++        [2, 0],
++        [3, 0],
++        [3, 1],
++        [2, 1],
++      ],
++    ])
++
++    expect(contained).toEqual({ ok: true, area: 9 })
++    expect(overlapping).toEqual({ ok: true, area: 7 })
++    expect(disjoint).toEqual({ ok: true, area: 2 })
++  })
++
++  test('rejects point-touching rings whose containment is ambiguous', () => {
++    expect(
++      measurePolygonUnionArea([
++        [
++          [0, 0],
++          [1, 0],
++          [1, 1],
++          [0, 1],
++        ],
++        [
++          [1, 1],
++          [2, 1],
++          [2, 2],
++          [1, 2],
++        ],
++      ]),
++    ).toMatchObject({ ok: false })
++  })
++
++  test('proves shared-edge rectangles without double counting the seam', () => {
++    expect(
++      measurePolygonUnionArea([
++        [
++          [0, 0],
++          [1, 0],
++          [1, 1],
++          [0, 1],
++        ],
++        [
++          [1, 0],
++          [2, 0],
++          [2, 1],
++          [1, 1],
++        ],
++      ]),
++    ).toEqual({ ok: true, area: 2 })
++  })
++})
++
++describe('clipPolygonToRect', () => {
++  test('clips a polygon crossing each rectangle edge', () => {
++    const result = clipPolygonToRect(
++      [
++        [-1, 1],
++        [3, 1],
++        [3, 3],
++        [-1, 3],
++      ],
++      { left: 0, right: 2, bottom: 0, top: 2 },
++    )
++
++    expect(polygonArea(result)).toBeCloseTo(2)
++    expect(result).toHaveLength(4)
++    expect(result).toEqual(
++      expect.arrayContaining([
++        [0, 1],
++        [2, 1],
++        [2, 2],
++        [0, 2],
++      ]),
++    )
++  })
++
++  test('returns an empty polygon when there is no intersection', () => {
++    expect(
++      clipPolygonToRect(
++        [
++          [3, 3],
++          [4, 3],
++          [4, 4],
++          [3, 4],
++        ],
++        { left: 0, right: 2, bottom: 0, top: 2 },
++      ),
++    ).toEqual([])
++  })
+ })
+ 
+ describe('subtractPolygonsFromPolygon', () => {
+diff --git a/packages/viewer/src/lib/polygon-union.ts b/packages/viewer/src/lib/polygon-union.ts
+index ab2ae677..f5cecb90 100644
+--- a/packages/viewer/src/lib/polygon-union.ts
++++ b/packages/viewer/src/lib/polygon-union.ts
+@@ -1,5 +1,12 @@
+ export type Point2D = [number, number]
+ 
++export type PolygonClipRect = {
++  left: number
++  right: number
++  bottom: number
++  top: number
++}
++
+ const EPSILON = 1e-7
+ const KEY_SCALE = 1e6
+ 
+@@ -20,6 +27,10 @@ function pointsEqual(a: Point2D, b: Point2D, tolerance = EPSILON) {
+   return Math.hypot(a[0] - b[0], a[1] - b[1]) <= tolerance
+ }
+ 
++function isFinitePoint(point: Point2D) {
++  return Number.isFinite(point[0]) && Number.isFinite(point[1])
++}
++
+ function pointKey(point: Point2D) {
+   return `${Math.round(point[0] * KEY_SCALE)}:${Math.round(point[1] * KEY_SCALE)}`
+ }
+@@ -107,6 +118,82 @@ function normalizeRing(ring: Point2D[]) {
+   return polygonArea(normalized) < 0 ? [...normalized].reverse() : normalized
+ }
+ 
++/** Clip one polygon to an axis-aligned rectangle using Sutherland–Hodgman. */
++export function clipPolygonToRect(polygon: Point2D[], rect: PolygonClipRect): Point2D[] {
++  if (
++    polygon.length < 3 ||
++    !Number.isFinite(rect.left) ||
++    !Number.isFinite(rect.right) ||
++    !Number.isFinite(rect.bottom) ||
++    !Number.isFinite(rect.top) ||
++    rect.right - rect.left <= EPSILON ||
++    rect.top - rect.bottom <= EPSILON
++  ) {
++    return []
++  }
++
++  const boundaries = [
++    {
++      inside: (point: Point2D) => point[0] >= rect.left - EPSILON,
++      intersect: (start: Point2D, end: Point2D): Point2D => {
++        const denominator = end[0] - start[0]
++        if (Math.abs(denominator) <= EPSILON) return [rect.left, start[1]]
++        const t = (rect.left - start[0]) / denominator
++        return interpolate(start, end, t)
++      },
++    },
++    {
++      inside: (point: Point2D) => point[0] <= rect.right + EPSILON,
++      intersect: (start: Point2D, end: Point2D): Point2D => {
++        const denominator = end[0] - start[0]
++        if (Math.abs(denominator) <= EPSILON) return [rect.right, start[1]]
++        const t = (rect.right - start[0]) / denominator
++        return interpolate(start, end, t)
++      },
++    },
++    {
++      inside: (point: Point2D) => point[1] >= rect.bottom - EPSILON,
++      intersect: (start: Point2D, end: Point2D): Point2D => {
++        const denominator = end[1] - start[1]
++        if (Math.abs(denominator) <= EPSILON) return [start[0], rect.bottom]
++        const t = (rect.bottom - start[1]) / denominator
++        return interpolate(start, end, t)
++      },
++    },
++    {
++      inside: (point: Point2D) => point[1] <= rect.top + EPSILON,
++      intersect: (start: Point2D, end: Point2D): Point2D => {
++        const denominator = end[1] - start[1]
++        if (Math.abs(denominator) <= EPSILON) return [start[0], rect.top]
++        const t = (rect.top - start[1]) / denominator
++        return interpolate(start, end, t)
++      },
++    },
++  ]
++
++  let clipped = polygon.map(([x, y]) => [x, y] as Point2D)
++  for (const boundary of boundaries) {
++    if (clipped.length === 0) return []
++    const next: Point2D[] = []
++    for (let index = 0; index < clipped.length; index += 1) {
++      const start = clipped[index]!
++      const end = clipped[(index + 1) % clipped.length]!
++      const startInside = boundary.inside(start)
++      const endInside = boundary.inside(end)
++      if (startInside && endInside) {
++        next.push(end)
++      } else if (startInside) {
++        next.push(boundary.intersect(start, end))
++      } else if (endInside) {
++        next.push(boundary.intersect(start, end), end)
++      }
++    }
++    clipped = next
++  }
++
++  return normalizeRing(clipped)
++}
++
+ function addSplit(edge: Edge, t: number) {
+   if (t < -EPSILON || t > 1 + EPSILON) return
+   const clamped = Math.max(0, Math.min(1, t))
+@@ -305,6 +392,297 @@ export function unionPolygons(polygons: Point2D[][]): Point2D[][] {
+   return rings.length > 0 ? rings : validPolygons
+ }
+ 
++export type PolygonUnionAreaResult = { ok: true; area: number } | { ok: false; reason: string }
++
++function strictFailure(reason: string): PolygonUnionAreaResult {
++  return { ok: false, reason }
++}
++
++function strictPointOnSegment(point: Point2D, start: Point2D, end: Point2D) {
++  const dx = end[0] - start[0]
++  const dy = end[1] - start[1]
++  const length = Math.hypot(dx, dy)
++  if (length <= EPSILON) return pointsEqual(point, start)
++
++  const crossTolerance = EPSILON * Math.max(length, EPSILON)
++  if (Math.abs(cross(point[0] - start[0], point[1] - start[1], dx, dy)) > crossTolerance) {
++    return false
++  }
++
++  const projection = ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / (length * length)
++  return projection >= -EPSILON && projection <= 1 + EPSILON
++}
++
++function strictPointInPolygon(point: Point2D, polygon: Point2D[]) {
++  let inside = false
++
++  for (
++    let index = 0, previousIndex = polygon.length - 1;
++    index < polygon.length;
++    previousIndex = index++
++  ) {
++    const current = polygon[index]!
++    const previous = polygon[previousIndex]!
++    if (strictPointOnSegment(point, previous, current)) return false
++
++    const crossesRay =
++      current[1] > point[1] !== previous[1] > point[1] &&
++      point[0] <
++        ((previous[0] - current[0]) * (point[1] - current[1])) / (previous[1] - current[1]) +
++          current[0]
++    if (crossesRay) inside = !inside
++  }
++
++  return inside
++}
++
++function segmentTouchesSegment(left: Segment, right: Segment) {
++  const ax = left.end[0] - left.start[0]
++  const ay = left.end[1] - left.start[1]
++  const bx = right.end[0] - right.start[0]
++  const by = right.end[1] - right.start[1]
++  const leftLength = Math.hypot(ax, ay)
++  const rightLength = Math.hypot(bx, by)
++  const denominator = cross(ax, ay, bx, by)
++  const qx = right.start[0] - left.start[0]
++  const qy = right.start[1] - left.start[1]
++
++  if (Math.abs(denominator) <= EPSILON * Math.max(leftLength * rightLength, EPSILON)) {
++    if (
++      Math.abs(cross(qx, qy, ax, ay)) >
++      EPSILON * Math.max(leftLength, rightLength, Math.hypot(qx, qy), EPSILON)
++    ) {
++      return false
++    }
++    return (
++      strictPointOnSegment(left.start, right.start, right.end) ||
++      strictPointOnSegment(left.end, right.start, right.end) ||
++      strictPointOnSegment(right.start, left.start, left.end) ||
++      strictPointOnSegment(right.end, left.start, left.end)
++    )
++  }
++
++  const t = cross(qx, qy, bx, by) / denominator
++  const u = cross(qx, qy, ax, ay) / denominator
++  return t >= -EPSILON && t <= 1 + EPSILON && u >= -EPSILON && u <= 1 + EPSILON
++}
++
++function isSimpleRing(ring: Point2D[]) {
++  if (ring.length < 3 || ring.some((point) => !isFinitePoint(point))) return false
++
++  for (let leftIndex = 0; leftIndex < ring.length; leftIndex += 1) {
++    const left = ring[leftIndex]!
++    const nextLeft = ring[(leftIndex + 1) % ring.length]!
++    if (pointsEqual(left, nextLeft)) return false
++
++    for (let rightIndex = leftIndex + 1; rightIndex < ring.length; rightIndex += 1) {
++      const right = ring[rightIndex]!
++      if (
++        pointsEqual(left, right) &&
++        rightIndex !== leftIndex + 1 &&
++        !(leftIndex === 0 && rightIndex === ring.length - 1)
++      ) {
++        return false
++      }
++
++      const adjacent =
++        rightIndex === leftIndex + 1 || (leftIndex === 0 && rightIndex === ring.length - 1)
++      if (adjacent) continue
++
++      const nextRight = ring[(rightIndex + 1) % ring.length]!
++      if (
++        segmentTouchesSegment(
++          { start: left, end: nextLeft, used: false },
++          { start: right, end: nextRight, used: false },
++        )
++      ) {
++        return false
++      }
++    }
++  }
++
++  return true
++}
++
++function isConvexRing(ring: Point2D[]) {
++  let sign = 0
++  for (let index = 0; index < ring.length; index += 1) {
++    const current = ring[index]!
++    const next = ring[(index + 1) % ring.length]!
++    const afterNext = ring[(index + 2) % ring.length]!
++    const turn = cross(
++      next[0] - current[0],
++      next[1] - current[1],
++      afterNext[0] - next[0],
++      afterNext[1] - next[1],
++    )
++    if (Math.abs(turn) <= EPSILON) continue
++    const currentSign = Math.sign(turn)
++    if (sign === 0) sign = currentSign
++    else if (currentSign !== sign) return false
++  }
++  return sign !== 0
++}
++
++function assembleStrictRings(
++  segments: Segment[],
++): { ok: true; rings: Point2D[][] } | { ok: false; reason: string } {
++  if (segments.length === 0) return { ok: false, reason: 'no boundary segments' }
++
++  const byStart = new Map<string, Segment[]>()
++  const byEnd = new Map<string, Segment[]>()
++  for (const segment of segments) {
++    if (!isFinitePoint(segment.start) || !isFinitePoint(segment.end)) {
++      return { ok: false, reason: 'non-finite boundary segment' }
++    }
++    if (pointsEqual(segment.start, segment.end)) {
++      return { ok: false, reason: 'degenerate boundary segment' }
++    }
++    const key = pointKey(segment.start)
++    const group = byStart.get(key)
++    if (group) group.push(segment)
++    else byStart.set(key, [segment])
++
++    const endGroup = byEnd.get(pointKey(segment.end))
++    if (endGroup) endGroup.push(segment)
++    else byEnd.set(pointKey(segment.end), [segment])
++  }
++  if ([...byStart.values()].some((group) => group.length !== 1)) {
++    return { ok: false, reason: 'ambiguous outgoing boundary' }
++  }
++  if ([...byEnd.values()].some((group) => group.length !== 1)) {
++    return { ok: false, reason: 'ambiguous incoming boundary' }
++  }
++
++  const rings: Point2D[][] = []
++  for (const first of segments) {
++    if (first.used) continue
++    const ring: Point2D[] = []
++    const startKey = pointKey(first.start)
++    let current: Segment | undefined = first
++    let closed = false
++
++    for (let count = 0; count <= segments.length; count += 1) {
++      if (!current || current.used) return { ok: false, reason: 'unclosed boundary walk' }
++      current.used = true
++      ring.push(current.start)
++      const endKey = pointKey(current.end)
++      if (endKey === startKey) {
++        if (!pointsEqual(current.end, ring[0]!)) {
++          return { ok: false, reason: 'boundary key collision' }
++        }
++        closed = true
++        break
++      }
++      const next = byStart.get(endKey)
++      if (next?.length !== 1 || next[0]!.used) {
++        return { ok: false, reason: 'dead-end boundary walk' }
++      }
++      if (!pointsEqual(current.end, next[0]!.start)) {
++        return { ok: false, reason: 'boundary coordinate mismatch' }
++      }
++      current = next[0]
++    }
++
++    if (!closed) return { ok: false, reason: 'boundary walk exceeded segment count' }
++    const normalized = normalizeRing(ring)
++    if (normalized.length < 3 || !isSimpleRing(normalized)) {
++      return { ok: false, reason: 'invalid assembled ring' }
++    }
++    rings.push(normalized)
++  }
++
++  if (segments.some((segment) => !segment.used)) {
++    return { ok: false, reason: 'unused boundary segment' }
++  }
++  return { ok: true, rings }
++}
++
++/**
++ * Measure a polygon union only when the retained boundary topology can be
++ * proven closed and its containment parity is unambiguous.
++ */
++export function measurePolygonUnionArea(polygons: Point2D[][]): PolygonUnionAreaResult {
++  if (polygons.length === 0) return { ok: true, area: 0 }
++
++  const normalized: Point2D[][] = []
++  let sourceArea = 0
++  for (const polygon of polygons) {
++    if (polygon.length < 3 || polygon.some((point) => !isFinitePoint(point))) {
++      return strictFailure('invalid input polygon')
++    }
++    const ring = normalizeRing(polygon)
++    if (ring.length < 3 || !isSimpleRing(ring) || !isConvexRing(ring)) {
++      return strictFailure('input polygon must be simple and convex')
++    }
++    normalized.push(ring)
++    sourceArea += Math.abs(polygonArea(ring))
++  }
++
++  const assembled = assembleStrictRings(buildBoundarySegments(buildEdges(normalized), normalized))
++  if (!assembled.ok) return assembled
++
++  for (let leftIndex = 0; leftIndex < assembled.rings.length; leftIndex += 1) {
++    const leftRing = assembled.rings[leftIndex]!
++    const leftSegments = leftRing.map((start, index) => ({
++      start,
++      end: leftRing[(index + 1) % leftRing.length]!,
++      used: false,
++    }))
++    for (let rightIndex = leftIndex + 1; rightIndex < assembled.rings.length; rightIndex += 1) {
++      const rightRing = assembled.rings[rightIndex]!
++      const rightSegments = rightRing.map((start, index) => ({
++        start,
++        end: rightRing[(index + 1) % rightRing.length]!,
++        used: false,
++      }))
++      if (
++        leftSegments.some((left) =>
++          rightSegments.some((right) => segmentTouchesSegment(left, right)),
++        )
++      ) {
++        return strictFailure('boundary contact between rings')
++      }
++    }
++  }
++
++  const depths: number[] = []
++  for (let index = 0; index < assembled.rings.length; index += 1) {
++    const ring = assembled.rings[index]!
++    const sample = ring[0]
++    if (!sample) return strictFailure('no provable ring interior')
++    let depth = 0
++    for (let otherIndex = 0; otherIndex < assembled.rings.length; otherIndex += 1) {
++      if (index === otherIndex) continue
++      const other = assembled.rings[otherIndex]!
++      if (
++        other.some((point, pointIndex) =>
++          strictPointOnSegment(sample, point, other[(pointIndex + 1) % other.length]!),
++        )
++      ) {
++        return strictFailure('ring containment touches a boundary')
++      }
++      if (strictPointInPolygon(sample, other)) depth += 1
++    }
++    depths.push(depth)
++  }
++
++  const area = assembled.rings.reduce((total, ring, index) => {
++    const magnitude = Math.abs(polygonArea(ring))
++    return total + (depths[index]! % 2 === 0 ? magnitude : -magnitude)
++  }, 0)
++  const tolerance = EPSILON * Math.max(1, sourceArea)
++  const largestInputArea = Math.max(...normalized.map((ring) => Math.abs(polygonArea(ring))))
++  if (
++    !Number.isFinite(area) ||
++    area < largestInputArea - tolerance ||
++    area > sourceArea + tolerance
++  ) {
++    return strictFailure('union area failed bounds proof')
++  }
++  return { ok: true, area: Math.max(0, area) }
++}
++
+ function buildDifferenceBoundarySegments(edges: Edge[], polygons: Point2D[][]) {
+   const subject = polygons[0]
+   const cutters = polygons.slice(1)
+diff --git a/packages/viewer/src/systems/wall/opening-cutout-geometry.test.ts b/packages/viewer/src/systems/wall/opening-cutout-geometry.test.ts
+index 1af472b3..db606517 100644
+--- a/packages/viewer/src/systems/wall/opening-cutout-geometry.test.ts
++++ b/packages/viewer/src/systems/wall/opening-cutout-geometry.test.ts
+@@ -5,11 +5,22 @@ import { DoorNode, WindowNode } from '@pascal-app/core'
+ import type * as THREE from 'three'
+ import {
+   buildOpeningCutoutGeometry,
++  buildOpeningCutoutProfile,
+   buildOpeningCutoutShape,
+   getOpeningCutoutBottomPadding,
+   hasFlatOpeningCutoutBottom,
+ } from './opening-cutout-geometry'
+ 
++function profileArea(points: readonly [number, number][]) {
++  let area = 0
++  for (let index = 0; index < points.length; index += 1) {
++    const current = points[index]!
++    const next = points[(index + 1) % points.length]!
++    area += current[0] * next[1] - next[0] * current[1]
++  }
++  return Math.abs(area / 2)
++}
++
+ function containsPoint(points: THREE.Vector2[], x: number, y: number) {
+   return points.some((point) => Math.abs(point.x - x) < 1e-6 && Math.abs(point.y - y) < 1e-6)
+ }
+@@ -155,6 +166,39 @@ describe('buildOpeningCutoutShape', () => {
+   })
+ })
+ 
++describe('buildOpeningCutoutProfile', () => {
++  const rect = { left: -1, right: 1, bottom: 0, top: 2 }
++
++  test('pins the renderer sampled areas used by takeoff', () => {
++    expect(profileArea(buildOpeningCutoutProfile(DoorNode.parse({}), rect))).toBeCloseTo(4, 6)
++    expect(
++      profileArea(
++        buildOpeningCutoutProfile(
++          WindowNode.parse({ openingShape: 'rounded', cornerRadius: 0.1 }),
++          rect,
++        ),
++      ),
++    ).toBeCloseTo(3.99141, 5)
++    expect(
++      profileArea(
++        buildOpeningCutoutProfile(DoorNode.parse({ openingShape: 'arch', archHeight: 1 }), rect),
++      ),
++    ).toBeCloseTo(3.561627, 5)
++  })
++
++  test('returns nominal points without floor padding', () => {
++    const points = buildOpeningCutoutProfile(DoorNode.parse({}), {
++      left: 1,
++      right: 2,
++      bottom: 0,
++      top: 1,
++    })
++
++    expect(Math.min(...points.map((point) => point[1]))).toBe(0)
++    expect(Math.max(...points.map((point) => point[1]))).toBe(1)
++  })
++})
++
+ describe('buildOpeningCutoutGeometry', () => {
+   test('extrudes the rect through the depth, centered on the mid-plane', () => {
+     const door = DoorNode.parse({})
+diff --git a/packages/viewer/src/systems/wall/opening-cutout-geometry.ts b/packages/viewer/src/systems/wall/opening-cutout-geometry.ts
+index 4ad58e9b..ea88df51 100644
+--- a/packages/viewer/src/systems/wall/opening-cutout-geometry.ts
++++ b/packages/viewer/src/systems/wall/opening-cutout-geometry.ts
+@@ -19,6 +19,7 @@ export type OpeningCutoutRect = {
+ // view (the bug a 1m-deep proxy caused in narrow hallways).
+ const OPENING_CUTOUT_PROXY_PROUD_MARGIN = 0.08
+ const OPENING_CUTOUT_BOTTOM_PADDING = 0.02
++const OPENING_CURVE_SEGMENTS = 24
+ 
+ export function getOpeningCutoutProxyDepth(wallThickness: number): number {
+   return Math.max(wallThickness, 0) + OPENING_CUTOUT_PROXY_PROUD_MARGIN
+@@ -81,6 +82,19 @@ export function buildOpeningCutoutShape(
+   return shape
+ }
+ 
++/**
++ * Returns the nominal face profile used by the wall renderer before CSG-only
++ * floor padding, extrusion depth, or bevels are applied.
++ */
++export function buildOpeningCutoutProfile(
++  opening: OpeningCutoutNode,
++  rect: OpeningCutoutRect,
++): [number, number][] {
++  return buildOpeningCutoutShape(opening, rect)
++    .extractPoints(OPENING_CURVE_SEGMENTS)
++    .shape.map((point) => [point.x, point.y])
++}
++
+ export function buildOpeningCutoutGeometry(
+   opening: OpeningCutoutNode,
+   rect: OpeningCutoutRect,
+@@ -102,7 +116,7 @@ export function buildOpeningCutoutGeometry(
+     bevelSegments: bevelSize > 0 ? 8 : 0,
+     bevelSize,
+     bevelThickness: bevelSize,
+-    curveSegments: 24,
++    curveSegments: OPENING_CURVE_SEGMENTS,
+   })
+ 
+   geometry.translate(0, 0, -depth / 2)

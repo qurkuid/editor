@@ -1,0 +1,12 @@
+$ next typegen && tsgo --noEmit
+  Using cached swc package @next/swc-darwin-x64...
+Generating route types...
+✓ Types generated successfully
+file:///private/tmp/pascal-zone-finish-release/node_modules/.bun/@typescript+native-preview@7.0.0-dev.20260624.1/node_modules/@typescript/native-preview/lib/getExePath.js:41
+            throw new Error("Unable to resolve " + platformPackageName + ". Either your platform is unsupported, or you are missing the package on disk.");
+                  ^
+
+Error: Unable to resolve @typescript/native-preview-darwin-x64. Either your platform is unsupported, or you are missing the package on disk.
+    at getExePath (f
+Node.js v25.9.0
+error: script "check-types" exited with code 1

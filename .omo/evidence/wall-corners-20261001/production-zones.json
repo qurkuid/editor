@@ -1,0 +1,64 @@
+{
+  "autoZones": 9,
+  "results": [
+    {
+      "room": "r0",
+      "name": "드레스룸",
+      "walls": 7,
+      "maxVertexErrorM": 0
+    },
+    {
+      "room": "r1",
+      "name": "방",
+      "walls": 8,
+      "maxVertexErrorM": 0
+    },
+    {
+      "room": "r2",
+      "name": "부엌",
+      "walls": 6,
+      "maxVertexErrorM": 0
+    },
+    {
+      "room": "r3",
+      "name": "욕실",
+      "walls": 10,
+      "maxVertexErrorM": 0
+    },
+    {
+      "room": "r5",
+      "name": "욕실",
+      "walls": 5,
+      "maxVertexErrorM": 0
+    },
+    {
+      "room": "r6",
+      "name": "창고",
+      "walls": 5,
+      "maxVertexErrorM": 0
+    },
+    {
+      "room": "r7",
+      "name": "안방",
+      "walls": 5,
+      "maxVertexErrorM": 0
+    },
+    {
+      "room": "r10",
+      "name": "안방",
+      "walls": 5,
+      "maxVertexErrorM": 0
+    },
+    {
+      "room": "r11",
+      "name": "발코니",
+      "walls": 5,
+      "maxVertexErrorM": 0
+    }
+  ],
+  "manual": [
+    "r4",
+    "r8",
+    "r9"
+  ]
+}

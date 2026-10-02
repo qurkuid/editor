@@ -1,0 +1,71 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/finish-template-store.test.ts:
+(pass) finish template persistence contract > validates versioned Zone and home snapshots [5.40ms]
+(pass) finish template persistence contract > rejects transient blob URLs before they reach local persistence [0.29ms]
+(pass) finish template persistence contract > rejects empty wall slots and empty home membership at the persistence boundary [0.15ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > stores an immutable Zone snapshot and supports rename/remove actions [0.43ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > stores home templates with embedded Zone snapshots and independent lifecycle [0.24ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > uses a successful server list as the visible authority while retaining local cache entries [1.55ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > hides a previously confirmed local copy when a fresh authorized list omits it [0.59ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > hides confirmed server rows after an authorization failure while retaining local copies [0.55ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > commits only the latest out-of-order server list [1.63ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > keeps the newest server error when an earlier success resolves later [1.49ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > keeps local entries when GET fails [0.40ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > retains a failed save for retry and dedupes the confirmed server id [0.51ms]
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-finish-templates-v1', the given storage is currently unavailable.
+(pass) finish template persistence contract > requires a successful server GET before explicit legacy import and skips confirmed ids [0.41ms]
+(pass) finish template persistence contract > rehydrates persisted confirmed ids while keeping their retained copies hidden [0.33ms]
+
+apps/editor/lib/finish-template-schema.test.ts:
+(pass) finish template server schema > rejects browser-only material handles while allowing portable URLs [0.29ms]
+(pass) finish template server schema > rejects body-owned scope fields while deriving identity from the snapshot [0.30ms]
+(pass) finish template server schema > checks wall keys and home source-zone identity at the schema boundary [0.31ms]
+(pass) finish template server schema > accepts the canonical key for a partial wall range [0.05ms]
+
+apps/editor/lib/finish-template-server.test.ts:
+(pass) finish template principal resolution > uses the loopback local shared scope when auth is unconfigured
+(pass) finish template principal resolution > does not create an anonymous production scope [0.25ms]
+(pass) finish template principal resolution > requires a verified session and rejects malformed identity fields [0.17ms]
+(pass) finish template principal resolution > returns only the verified principal identity [0.03ms]
+
+apps/editor/app/api/finish-templates/route.test.ts:
+(pass) finish template API > creates locally, returns only public fields, replays idempotently, and lists [13.41ms]
+(pass) finish template API > renames and deletes through version CAS [16.95ms]
+(pass) finish template API > rejects an expanded request body over the server cap [1.32ms]
+(pass) finish template API > rejects unknown top-level zone fields instead of silently stripping them [0.73ms]
+(pass) finish template API > keeps company-less verified users private-only [6.64ms]
+
+ 27 pass
+ 0 fail
+ 111 expect() calls
+Ran 27 tests across 4 files. [150.00ms]

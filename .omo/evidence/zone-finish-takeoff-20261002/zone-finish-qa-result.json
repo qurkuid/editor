@@ -1,0 +1,410 @@
+{
+  "baseUrl": "http://127.0.0.1:3102",
+  "sceneId": "zonetakeoff1790918969085",
+  "initialGraph": {
+    "nodes": {
+      "site_zone_qa": {
+        "object": "node",
+        "id": "site_zone_qa",
+        "type": "site",
+        "parentId": null,
+        "visible": true,
+        "metadata": {},
+        "children": [
+          "building_zone_qa"
+        ],
+        "polygon": {
+          "type": "polygon",
+          "points": [
+            [
+              -2,
+              -2
+            ],
+            [
+              6,
+              -2
+            ],
+            [
+              6,
+              6
+            ],
+            [
+              -2,
+              6
+            ]
+          ]
+        }
+      },
+      "building_zone_qa": {
+        "object": "node",
+        "id": "building_zone_qa",
+        "type": "building",
+        "parentId": "site_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "children": [
+          "level_zone_qa"
+        ],
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "level_zone_qa": {
+        "object": "node",
+        "id": "level_zone_qa",
+        "type": "level",
+        "parentId": "building_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "level": 0,
+        "height": 2.5,
+        "children": [
+          "wall_zone_qa",
+          "zone_zone_qa"
+        ]
+      },
+      "wall_zone_qa": {
+        "object": "node",
+        "id": "wall_zone_qa",
+        "type": "wall",
+        "parentId": "level_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          0,
+          0
+        ],
+        "end": [
+          4,
+          0
+        ],
+        "thickness": 0.2,
+        "height": 2.5,
+        "frontSide": "interior",
+        "backSide": "exterior",
+        "slots": {
+          "interior": "library:flooring-rusticbrick",
+          "lowerInterior": "library:flooring-rusticbrick",
+          "upperInterior": "library:wood-finewood27"
+        },
+        "faceBands": {
+          "enabled": true,
+          "count": 2,
+          "lowerHeight": 1,
+          "middleHeight": 0.5,
+          "upperHeight": 0.5
+        }
+      },
+      "zone_zone_qa": {
+        "object": "node",
+        "id": "zone_zone_qa",
+        "type": "zone",
+        "name": "Half Wall Zone",
+        "parentId": "level_zone_qa",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "polygon": [
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ],
+        "autoFromWalls": false,
+        "boundaryWallIds": [],
+        "spaceRole": "room",
+        "roomNumber": "Z-001",
+        "enclosureStatus": "open",
+        "floorFinish": "",
+        "wallFinish": "",
+        "ceilingFinish": "",
+        "ceilingHeight": 2.5,
+        "occupancy": "",
+        "clearDimensionPolicy": "inside-faces",
+        "color": "#3b82f6"
+      }
+    },
+    "rootNodeIds": [
+      "site_zone_qa"
+    ]
+  },
+  "failedResponses": [],
+  "apply": {
+    "finishRegions": [
+      {
+        "id": "zone-finish:zone_zone_qa:wall_zone_qa:front:0.000000:0.500000",
+        "side": "interior",
+        "start": 0,
+        "end": 0.5,
+        "slots": {
+          "interior": "scene:mat_magult185y46l8yx",
+          "lowerInterior": "scene:mat_magult185y46l8yx",
+          "upperInterior": "scene:mat_magult185y46l8yx"
+        }
+      }
+    ],
+    "wall": {
+      "object": "node",
+      "id": "wall_zone_qa",
+      "type": "wall",
+      "parentId": "level_zone_qa",
+      "visible": true,
+      "metadata": {},
+      "children": [],
+      "slots": {
+        "interior": "library:flooring-rusticbrick",
+        "lowerInterior": "library:flooring-rusticbrick",
+        "upperInterior": "library:wood-finewood27"
+      },
+      "finishRegions": [
+        {
+          "id": "zone-finish:zone_zone_qa:wall_zone_qa:front:0.000000:0.500000",
+          "side": "interior",
+          "start": 0,
+          "end": 0.5,
+          "slots": {
+            "interior": "scene:mat_magult185y46l8yx",
+            "lowerInterior": "scene:mat_magult185y46l8yx",
+            "upperInterior": "scene:mat_magult185y46l8yx"
+          }
+        }
+      ],
+      "thickness": 0.2,
+      "height": 2.5,
+      "faceBands": {
+        "enabled": true,
+        "count": 2,
+        "lowerHeight": 1,
+        "middleHeight": 0.5,
+        "upperHeight": 0.5
+      },
+      "start": [
+        0,
+        0
+      ],
+      "end": [
+        4,
+        0
+      ],
+      "frontSide": "interior",
+      "backSide": "exterior"
+    }
+  },
+  "appliedRef": "scene:mat_magult185y46l8yx",
+  "stats": {
+    "concrete": "벽 마감 scene:mat_magult185y46l8yx\n5.00 ㎡\n자재 미연결",
+    "brick": "벽 마감 library:flooring-rusticbrick\n2.00 ㎡\n자재 미연결",
+    "wood": "벽 마감 library:wood-finewood27\n3.00 ㎡\n자재 미연결",
+    "bodyIncludesExpected": true
+  },
+  "undo": {
+    "concreteVisible": false,
+    "finishRegions": []
+  },
+  "redo": {
+    "finishRegions": [
+      {
+        "id": "zone-finish:zone_zone_qa:wall_zone_qa:front:0.000000:0.500000",
+        "side": "interior",
+        "start": 0,
+        "end": 0.5,
+        "slots": {
+          "interior": "scene:mat_magult185y46l8yx",
+          "lowerInterior": "scene:mat_magult185y46l8yx",
+          "upperInterior": "scene:mat_magult185y46l8yx"
+        }
+      }
+    ]
+  },
+  "reload": {
+    "concrete": "벽 마감 scene:mat_magult185y46l8yx\n5.00 ㎡\n자재 미연결",
+    "brick": "벽 마감 library:flooring-rusticbrick\n2.00 ㎡\n자재 미연결",
+    "wood": "벽 마감 library:wood-finewood27\n3.00 ㎡\n자재 미연결",
+    "responses": [
+      {
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "method": "PUT",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "method": "PUT",
+        "status": 200
+      }
+    ]
+  },
+  "saveRequests": 5,
+  "sceneResponses": [
+    {
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "status": 200
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "externalRequests": [
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/charm.json?icons=stack-push"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=grid-2x2%2Csquare"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=arrow-fat-up%2Cmouse-left-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/flooring/brick_wall_rustic/brick_wall_rustic_basecolor.jpg"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/concrete/prepared_drywall/prepared_drywall_basecolor_512.ktx2"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/wood/finewood_27/finewood_27_basecolor.webp"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.gstatic.com/draco/versioned/decoders/1.5.5/draco_wasm_wrapper.js"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.gstatic.com/draco/versioned/decoders/1.5.5/draco_decoder.wasm"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/concrete/concrete_plate/concrete_plate_basecolor_512.ktx2"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/concrete/concrete_plate/concrete_plate_basecolor_512.ktx2"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/charm.json?icons=stack-push"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=grid-2x2%2Csquare"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=arrow-fat-up%2Cmouse-left-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/flooring/brick_wall_rustic/brick_wall_rustic_basecolor.jpg"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/concrete/prepared_drywall/prepared_drywall_basecolor_512.ktx2"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/wood/finewood_27/finewood_27_basecolor.webp"
+    },
+    {
+      "method": "GET",
+      "url": "https://editor.pascal.app/material/concrete/concrete_plate/concrete_plate_basecolor_512.ktx2"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/lucide.json?icons=space%2Cx"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/qlementine-icons.json?icons=mouse-middle-button-16"
+    },
+    {
+      "method": "GET",
+      "url": "https://api.iconify.design/ph.json?icons=mouse-right-click-fill"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.gstatic.com/draco/versioned/decoders/1.5.5/draco_wasm_wrapper.js"
+    },
+    {
+      "method": "GET",
+      "url": "https://www.gstatic.com/draco/versioned/decoders/1.5.5/draco_decoder.wasm"
+    }
+  ],
+  "externalMutations": []
+}

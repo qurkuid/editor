@@ -1,0 +1,374 @@
+{
+  "url": "https://intm.kr/api/studio/material-clone",
+  "wallpaperTotal": 1010,
+  "brands": {
+    "LX Z:IN(LX지인)": 30,
+    "신한벽지": 195,
+    "개나리벽지": 297,
+    "서울벽지": 30,
+    "아티잰(ARTISAN)": 456,
+    "sangetsu": 2
+  },
+  "restoredProducts": [
+    {
+      "id": -139,
+      "name": "PR052-02 세로회벽_그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -432,
+      "name": "2333-1",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -436,
+      "name": "436-5",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -431,
+      "name": "2338-6",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -444,
+      "name": "9180-2",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -150,
+      "name": "PR002-11 회벽_크림",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -443,
+      "name": "146-6",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -127,
+      "name": "PR031-02 내추럴회벽_크림화이트",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -131,
+      "name": "PR056-02 린넨캔버스_민트",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -132,
+      "name": "PR043-05 마띠에르_포그그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -146,
+      "name": "PR051-01 호라이즌_화이트",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -124,
+      "name": "PR014-01 내추럴 린넨_화이트",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -149,
+      "name": "PR002-13 회벽_블랑그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -439,
+      "name": "151-1",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -446,
+      "name": "9185-4",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -426,
+      "name": "6514-2",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -437,
+      "name": "432-4",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -129,
+      "name": "PR047-01 레이어드스톤_딥스톤 그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -428,
+      "name": "6506-3",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -438,
+      "name": "438-4",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -147,
+      "name": "PR002-03 회벽_라이트 그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -135,
+      "name": "PR027-01 모던페인팅_화이트",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -447,
+      "name": "9186-4",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -126,
+      "name": "PR031-05 내추럴회벽_애쉬 베이지",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -151,
+      "name": "PR002-12 회벽_크림화이트",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -441,
+      "name": "157-5",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -138,
+      "name": "PR044-06 샌드스타코_스톤 그레이지",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -448,
+      "name": "9187-3",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -142,
+      "name": "PR045-01 테라노바_스톤화이트",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -434,
+      "name": "420-2",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -424,
+      "name": "6516-1",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -452,
+      "name": "F422-2",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -143,
+      "name": "PR045-04 테라노바_잿빛 그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -136,
+      "name": "PR028-02 모던회벽_라이트 그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -140,
+      "name": "PR045-03 테라노바_그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -435,
+      "name": "429-4",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -449,
+      "name": "F318-5",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -427,
+      "name": "6507-3",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -152,
+      "name": "PR002-01 회벽_화이트",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -123,
+      "name": "PR025-01 글리터 린넨_실키크림",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -128,
+      "name": "PR055-01 노스텔라_피치",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -144,
+      "name": "PR045-05 테라노바_콘크리트 그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -134,
+      "name": "PR027-03 모던페인팅_아이보리",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -429,
+      "name": "2349-2",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -145,
+      "name": "PR051-02 호라이즌_클라우디 블루",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -130,
+      "name": "PR056-04 린넨캔버스_라떼베이지",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -148,
+      "name": "PR002-02 회벽_베이지",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -133,
+      "name": "PR048-03 마르모아_도브그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -450,
+      "name": "F385-5",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -141,
+      "name": "PR045-02 테라노바_미스티 그레이",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -442,
+      "name": "163-4",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -125,
+      "name": "PR031-03 내추럴회벽_아이보리",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -451,
+      "name": "F346-2",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -445,
+      "name": "9184-3",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -137,
+      "name": "PR058-01 백야_블랙화이트",
+      "brand": "LX Z:IN(LX지인)",
+      "categoryId": 108
+    },
+    {
+      "id": -425,
+      "name": "6516-2",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -453,
+      "name": "F2327-3",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -440,
+      "name": "152-1",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -433,
+      "name": "2328-11",
+      "brand": "서울벽지",
+      "categoryId": 108
+    },
+    {
+      "id": -430,
+      "name": "2348-3",
+      "brand": "서울벽지",
+      "categoryId": 108
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+$ dotenv -e ../../.env.local -- next build
+▲ Next.js 16.2.12 (Turbopack)
+- Experiments (use with caution):
+  · serverActions
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.7s
+  Skipping validation of types
+  Finished TypeScript config validation in 9ms ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/13) ...
+  Generating static pages using 15 workers (3/13) 
+  Generating static pages using 15 workers (6/13) 
+  Generating static pages using 15 workers (9/13) 
+✓ Generating static pages using 15 workers (13/13) in 464ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /_not-found
+├ ƒ /api/ai/auth
+├ ƒ /api/ai/chat
+├ ƒ /api/ai/img3d
+├ ƒ /api/apartments/[id]/interior-info
+├ ƒ /api/apartments/[id]/plans
+├ ƒ /api/apartments/[id]/plans/[planId]/image
+├ ƒ /api/apartments/[id]/plans/[planId]/vector
+├ ƒ /api/apartments/dataset
+├ ƒ /api/apt-feedback
+├ ƒ /api/health
+├ ƒ /api/intm/estimates
+├ ƒ /api/intm/materials
+├ ƒ /api/intm/projects
+├ ƒ /api/materials/rawpainter
+├ ƒ /api/materials/rawpainter/asset/[id]
+├ ƒ /api/scenes
+├ ƒ /api/scenes/[id]
+├ ƒ /api/scenes/[id]/events
+├ ƒ /api/scenes/[id]/thumbnail
+├ ƒ /api/scenes/[id]/versions
+├ ƒ /api/scenes/[id]/versions/[version]
+├ ○ /apt
+├ ƒ /apt/debug
+├ ƒ /apt/trace
+├ ○ /editor
+├ ○ /privacy
+├ ƒ /scene/[id]
+├ ƒ /scenes
+└ ○ /terms
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

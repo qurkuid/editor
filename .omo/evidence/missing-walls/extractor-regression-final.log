@@ -1,0 +1,16 @@
+real segments: raw=55 kept=51
+kept: left bedroom divider
+kept: kitchen/living divider runs=2
+kept: entrance/dress separator
+synthetic: entrance separator kept=True
+synthetic: kitchen/living divider kept=True
+synthetic: left bedroom divider kept=True
+synthetic: short corner fragment kept=False
+synthetic: short thin symbol fragment kept=False
+synthetic: short thick pier kept=True
+synthetic: shifted long wall offset=1.5px kept=True
+synthetic: shifted long wall offset=2px kept=True
+synthetic: local 3px drift kept as one continuous wall
+synthetic: true gap split into two supported runs
+legacy left-bath doorway preserved: endpoint_error=0.09px
+entrance OCR gate: empty OCR rejected

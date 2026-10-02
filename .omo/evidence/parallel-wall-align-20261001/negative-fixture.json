@@ -1,0 +1,458 @@
+{
+  "format": "pascal-parallel-wall-negative-fixture/v1",
+  "description": "Disconnected same-level groups for negative parallel-wall alignment browser checks.",
+  "graph": {
+    "nodes": {
+      "site_parallel_negative_fixture": {
+        "object": "node",
+        "id": "site_parallel_negative_fixture",
+        "type": "site",
+        "parentId": null,
+        "visible": true,
+        "metadata": {},
+        "polygon": {
+          "type": "polygon",
+          "points": [
+            [
+              -10,
+              -10
+            ],
+            [
+              80,
+              -10
+            ],
+            [
+              80,
+              20
+            ],
+            [
+              -10,
+              20
+            ]
+          ]
+        },
+        "children": [
+          "building_parallel_negative_fixture"
+        ]
+      },
+      "building_parallel_negative_fixture": {
+        "object": "node",
+        "id": "building_parallel_negative_fixture",
+        "type": "building",
+        "parentId": "site_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [
+          "level_parallel_negative_fixture"
+        ],
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "level_parallel_negative_fixture": {
+        "object": "node",
+        "id": "level_parallel_negative_fixture",
+        "type": "level",
+        "parentId": "building_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [
+          "wall_neg_perpendicular_selected",
+          "wall_neg_perpendicular_ref",
+          "wall_neg_ambiguous_selected",
+          "wall_neg_ambiguous_ref_a",
+          "wall_neg_ambiguous_ref_b",
+          "wall_neg_t_selected",
+          "wall_neg_t_ref",
+          "wall_neg_t_branch",
+          "wall_neg_overflow_selected",
+          "wall_neg_overflow_ref",
+          "wall_neg_overflow_linked"
+        ],
+        "level": 0
+      },
+      "wall_neg_perpendicular_selected": {
+        "object": "node",
+        "id": "wall_neg_perpendicular_selected",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          0,
+          0
+        ],
+        "end": [
+          4,
+          0
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_perpendicular_ref": {
+        "object": "node",
+        "id": "wall_neg_perpendicular_ref",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          4,
+          0
+        ],
+        "end": [
+          4,
+          3
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_ambiguous_selected": {
+        "object": "node",
+        "id": "wall_neg_ambiguous_selected",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          20,
+          0
+        ],
+        "end": [
+          24,
+          0.2
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_ambiguous_ref_a": {
+        "object": "node",
+        "id": "wall_neg_ambiguous_ref_a",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          20,
+          0
+        ],
+        "end": [
+          16,
+          -0.2
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_ambiguous_ref_b": {
+        "object": "node",
+        "id": "wall_neg_ambiguous_ref_b",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          20,
+          0
+        ],
+        "end": [
+          15,
+          -0.25
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_t_selected": {
+        "object": "node",
+        "id": "wall_neg_t_selected",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          40,
+          0
+        ],
+        "end": [
+          44,
+          0.1
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_t_ref": {
+        "object": "node",
+        "id": "wall_neg_t_ref",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          44,
+          0.1
+        ],
+        "end": [
+          48,
+          0.1
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_t_branch": {
+        "object": "node",
+        "id": "wall_neg_t_branch",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          42,
+          0.05
+        ],
+        "end": [
+          42,
+          2
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_overflow_selected": {
+        "object": "node",
+        "id": "wall_neg_overflow_selected",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          60,
+          0
+        ],
+        "end": [
+          64,
+          0.1
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_overflow_ref": {
+        "object": "node",
+        "id": "wall_neg_overflow_ref",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [],
+        "start": [
+          64,
+          0.1
+        ],
+        "end": [
+          68,
+          0.1
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "wall_neg_overflow_linked": {
+        "object": "node",
+        "id": "wall_neg_overflow_linked",
+        "type": "wall",
+        "parentId": "level_parallel_negative_fixture",
+        "visible": true,
+        "metadata": {},
+        "children": [
+          "door_neg_overflow"
+        ],
+        "start": [
+          60,
+          0
+        ],
+        "end": [
+          60,
+          0.5
+        ],
+        "frontSide": "unknown",
+        "backSide": "unknown"
+      },
+      "door_neg_overflow": {
+        "object": "node",
+        "id": "door_neg_overflow",
+        "type": "door",
+        "parentId": "wall_neg_overflow_linked",
+        "visible": true,
+        "metadata": {},
+        "position": [
+          0.45,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "wallId": "wall_neg_overflow_linked",
+        "width": 0.1,
+        "height": 2.1,
+        "constructionType": "framed",
+        "dimensionReference": "nominal",
+        "doorCategory": "interior",
+        "doorType": "hinged",
+        "leafCount": 1,
+        "operationState": 0,
+        "slideDirection": "left",
+        "trackStyle": "none",
+        "garagePanelCount": 4,
+        "openingKind": "door",
+        "openingShape": "rectangle",
+        "openingRadiusMode": "all",
+        "openingTopRadii": [
+          0.15,
+          0.15
+        ],
+        "cornerRadius": 0.15,
+        "archHeight": 0.45,
+        "openingRevealRadius": 0.025,
+        "frameThickness": 0.05,
+        "frameDepth": 0.07,
+        "threshold": true,
+        "thresholdHeight": 0.02,
+        "hingesSide": "left",
+        "swingDirection": "inward",
+        "swingAngle": 0,
+        "segments": [
+          {
+            "type": "panel",
+            "heightRatio": 0.4,
+            "columnRatios": [
+              1
+            ],
+            "dividerThickness": 0.03,
+            "panelDepth": 0.01,
+            "panelInset": 0.04
+          },
+          {
+            "type": "panel",
+            "heightRatio": 0.6,
+            "columnRatios": [
+              1
+            ],
+            "dividerThickness": 0.03,
+            "panelDepth": 0.01,
+            "panelInset": 0.04
+          }
+        ],
+        "handle": true,
+        "handleHeight": 1.05,
+        "handleSide": "right",
+        "contentPadding": [
+          0.04,
+          0.04
+        ],
+        "doorCloser": false,
+        "panicBar": false,
+        "panicBarHeight": 1
+      }
+    },
+    "rootNodeIds": [
+      "site_parallel_negative_fixture"
+    ],
+    "collections": {},
+    "materials": {}
+  },
+  "cases": [
+    {
+      "id": "perpendicular-only",
+      "selectedWallId": "wall_neg_perpendicular_selected",
+      "expectedError": "no-parallel-continuation",
+      "purpose": "A single endpoint branch is perpendicular and must not qualify."
+    },
+    {
+      "id": "ambiguous-two-refs",
+      "selectedWallId": "wall_neg_ambiguous_selected",
+      "expectedError": "ambiguous-parallel-continuation",
+      "purpose": "Two opposite parallel continuations share the selected start."
+    },
+    {
+      "id": "protected-interior-t",
+      "selectedWallId": "wall_neg_t_selected",
+      "expectedError": "detached-wall-junction",
+      "purpose": "A branch starts on the selected wall interior and would detach."
+    },
+    {
+      "id": "hosted-overflow-linked",
+      "selectedWallId": "wall_neg_overflow_selected",
+      "expectedError": "attachment-outside-wall",
+      "purpose": "A linked wall shortens and its hosted opening no longer fits."
+    }
+  ],
+  "uiReadyCheck": {
+    "selectEach": [
+      {
+        "id": "perpendicular-only",
+        "selectedWallId": "wall_neg_perpendicular_selected",
+        "expectedError": "no-parallel-continuation",
+        "action": "click the shared single-wall parallel-alignment action",
+        "assert": "graph and undo history remain unchanged"
+      },
+      {
+        "id": "ambiguous-two-refs",
+        "selectedWallId": "wall_neg_ambiguous_selected",
+        "expectedError": "ambiguous-parallel-continuation",
+        "action": "click the shared single-wall parallel-alignment action",
+        "assert": "graph and undo history remain unchanged"
+      },
+      {
+        "id": "protected-interior-t",
+        "selectedWallId": "wall_neg_t_selected",
+        "expectedError": "detached-wall-junction",
+        "action": "click the shared single-wall parallel-alignment action",
+        "assert": "graph and undo history remain unchanged"
+      },
+      {
+        "id": "hosted-overflow-linked",
+        "selectedWallId": "wall_neg_overflow_selected",
+        "expectedError": "attachment-outside-wall",
+        "action": "click the shared single-wall parallel-alignment action",
+        "assert": "graph and undo history remain unchanged"
+      }
+    ],
+    "disconnectedGroups": {
+      "perpendicular": [
+        "wall_neg_perpendicular_selected",
+        "wall_neg_perpendicular_ref"
+      ],
+      "ambiguous": [
+        "wall_neg_ambiguous_selected",
+        "wall_neg_ambiguous_ref_a",
+        "wall_neg_ambiguous_ref_b"
+      ],
+      "protectedT": [
+        "wall_neg_t_selected",
+        "wall_neg_t_ref",
+        "wall_neg_t_branch"
+      ],
+      "hostedOverflow": [
+        "wall_neg_overflow_selected",
+        "wall_neg_overflow_ref",
+        "wall_neg_overflow_linked",
+        "door_neg_overflow"
+      ]
+    }
+  }
+}

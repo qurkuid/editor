@@ -1,0 +1,1356 @@
+diff --git a/apps/editor/app/apt/trace/page.tsx b/apps/editor/app/apt/trace/page.tsx
+index bd2ab459..8e234bed 100644
+--- a/apps/editor/app/apt/trace/page.tsx
++++ b/apps/editor/app/apt/trace/page.tsx
+@@ -15,9 +15,11 @@ export default async function AptTracePage({
+     name?: string
+     type?: string
+     vector?: string
++    flipX?: string
++    flipY?: string
+   }>
+ }) {
+-  const { apartmentId, planId, name, type, vector } = await searchParams
++  const { apartmentId, planId, name, type, vector, flipX, flipY } = await searchParams
+ 
+   if (!apartmentId || !planId) {
+     return (
+@@ -36,6 +38,8 @@ export default async function AptTracePage({
+       name={name ?? ''}
+       planId={planId}
+       type={type ?? ''}
++      flipX={flipX === '1'}
++      flipY={flipY === '1'}
+       vector={vector === '1'}
+     />
+   )
+diff --git a/apps/editor/components/apt-search-panel.tsx b/apps/editor/components/apt-search-panel.tsx
+index 44a247dd..babf83c1 100644
+--- a/apps/editor/components/apt-search-panel.tsx
++++ b/apps/editor/components/apt-search-panel.tsx
+@@ -6,6 +6,15 @@ import { ArrowLeft, Building2, Check, ExternalLink, Wand2 } from 'lucide-react'
+ import Link from 'next/link'
+ import { useCallback, useState } from 'react'
+ import { typeWithPyeong } from '@/lib/apt-format'
++import {
++  type AptPlanOrientation,
++  aptImageTransform,
++  findAptDerivedSurfaceIdsForLevel,
++  findAptGuideForLevel,
++  getAptGuideImportFrame,
++  getAptGuideTransformError,
++  isAptVectorNodeForLevel,
++} from '@/lib/apt-import-frame'
+ import { type AptVectorDoc, buildVectorNodes } from '@/lib/apt-vector-scene'
+ import { withBasePath } from '@/lib/base-path'
+ import {
+@@ -29,9 +38,11 @@ export function AptSearchPanel() {
+   const createNode = useScene((s) => s.createNode)
+   const setSelectedReferenceId = useEditor((s) => s.setSelectedReferenceId)
+   const [addedPlanId, setAddedPlanId] = useState<string | null>(null)
+-  const [autoPlan, setAutoPlan] = useState<{ planId: string; status: 'loading' | 'error' } | null>(
+-    null,
+-  )
++  const [autoPlan, setAutoPlan] = useState<{
++    planId: string
++    status: 'loading' | 'error'
++    message?: string
++  } | null>(null)
+ 
+   const markAdded = useCallback((planId: string) => {
+     setAddedPlanId(planId)
+@@ -39,7 +50,7 @@ export function AptSearchPanel() {
+   }, [])
+ 
+   const buildGuide = useCallback(
+-    (complex: AptComplex, plan: AptPlan, scale: number) =>
++    (complex: AptComplex, plan: AptPlan, scale: number, orientation: AptPlanOrientation) =>
+       GuideNode.parse({
+         name: [complex.name, plan.type].filter(Boolean).join(' '),
+         url: withBasePath(
+@@ -48,6 +59,8 @@ export function AptSearchPanel() {
+         position: [0, 0, 0],
+         rotation: [0, 0, 0],
+         scale,
++        flipX: orientation.flipX,
++        flipY: orientation.flipY,
+         opacity: 50,
+         scaleReference: null,
+         metadata: { apartmentId: complex.apartmentId, planId: plan.planId },
+@@ -56,9 +69,9 @@ export function AptSearchPanel() {
+   )
+ 
+   const addPlanToScene = useCallback(
+-    (complex: AptComplex, plan: AptPlan) => {
++    (complex: AptComplex, plan: AptPlan, orientation: AptPlanOrientation) => {
+       if (!levelId) return
+-      const guide = buildGuide(complex, plan, 1)
++      const guide = buildGuide(complex, plan, 1, orientation)
+       createNode(guide, levelId as never)
+       setShowGuides(true)
+       setSelectedReferenceId(guide.id)
+@@ -71,7 +84,7 @@ export function AptSearchPanel() {
+   // in the active level as ONE undoable step. Failure leaves the scene
+   // untouched — the plain "현재 씬에 깔기" path stays available.
+   const autoModelPlan = useCallback(
+-    async (complex: AptComplex, plan: AptPlan) => {
++    async (complex: AptComplex, plan: AptPlan, orientation: AptPlanOrientation) => {
+       if (!levelId) return
+       setAutoPlan({ planId: plan.planId, status: 'loading' })
+       try {
+@@ -84,41 +97,88 @@ export function AptSearchPanel() {
+         const body = response.ok
+           ? ((await response.json()) as { code: string; data?: AptVectorDoc })
+           : null
+-        const built = body?.code === 'OK' && body.data ? buildVectorNodes(body.data) : null
++        const existingNodes = useScene.getState().nodes
++        const existingGuide = findAptGuideForLevel(
++          existingNodes,
++          levelId,
++          complex.apartmentId,
++          plan.planId,
++        )
++        if (existingGuide) {
++          const transformError = getAptGuideTransformError(existingGuide)
++          if (transformError) {
++            setAutoPlan({ planId: plan.planId, status: 'error', message: transformError })
++            return
++          }
++        }
++        const built =
++          body?.code === 'OK' && body.data
++            ? buildVectorNodes(body.data, {
++                ...orientation,
++                ...(existingGuide ? getAptGuideImportFrame(existingGuide) : {}),
++              })
++            : null
+         if (!built) {
+-          setAutoPlan({ planId: plan.planId, status: 'error' })
++          setAutoPlan({
++            planId: plan.planId,
++            status: 'error',
++            message: '도면 분석 결과를 만들지 못했습니다. 밑그림만 추가해 보세요.',
++          })
+           return
+         }
+-        const guide = buildGuide(complex, plan, built.guideScale)
+-        const tag = { source: 'apt-vector', planId: plan.planId }
++        const guide = existingGuide ?? buildGuide(complex, plan, built.guideScale, orientation)
++        const tag = { source: 'apt-vector', apartmentId: complex.apartmentId, planId: plan.planId }
+         for (const node of [...built.walls, ...built.openings, ...built.zones]) {
+           node.metadata = { ...(node.metadata as Record<string, unknown>), ...tag }
+         }
+         runAsSingleSceneHistoryStep(useScene, () => {
+-          const { createNode: create, deleteNodes, nodes } = useScene.getState()
++          const { applyNodeChanges, nodes } = useScene.getState()
+           // rerunning on the same plan REPLACES the previous auto-model
+-          // output (and its guide), so iteration doesn't stack duplicates
++          // roots in the active level, so iteration doesn't stack duplicates.
+           const stale = Object.values(nodes)
+-            .filter((node) => {
+-              const meta = node.metadata as { source?: string; planId?: string } | undefined
+-              if (meta?.planId !== plan.planId) return false
+-              return meta.source === 'apt-vector' || node.type === 'guide'
+-            })
++            .filter((node) =>
++              isAptVectorNodeForLevel(node, levelId, complex.apartmentId, plan.planId),
++            )
+             .map((node) => node.id)
+-          if (stale.length) deleteNodes(stale as never[])
+-          create(guide, levelId as never)
+-          for (const wall of built.walls) create(wall, levelId as never)
+-          for (const opening of built.openings) {
+-            if (opening.wallId) create(opening, opening.wallId as never)
+-          }
+-          for (const zone of built.zones) create(zone, levelId as never)
++          const staleSurfaces = findAptDerivedSurfaceIdsForLevel(
++            nodes,
++            levelId,
++            complex.apartmentId,
++            plan.planId,
++          )
++          applyNodeChanges({
++            delete: [...stale, ...staleSurfaces] as never[],
++            update: existingGuide
++              ? [
++                  {
++                    id: existingGuide.id,
++                    data: {
++                      flipX: orientation.flipX,
++                      flipY: orientation.flipY,
++                    },
++                  },
++                ]
++              : [],
++            create: [
++              ...(existingGuide ? [] : [{ node: guide, parentId: levelId as never }]),
++              ...built.walls.map((wall) => ({ node: wall, parentId: levelId as never })),
++              ...built.openings.flatMap((opening) =>
++                opening.wallId ? [{ node: opening, parentId: opening.wallId as never }] : [],
++              ),
++              ...built.zones.map((zone) => ({ node: zone, parentId: levelId as never })),
++            ],
++          })
+         })
+         setShowGuides(true)
+         setSelectedReferenceId(guide.id)
+         setAutoPlan(null)
+         markAdded(plan.planId)
+       } catch {
+-        setAutoPlan({ planId: plan.planId, status: 'error' })
++        setAutoPlan({
++          planId: plan.planId,
++          status: 'error',
++          message: '자동 모델링을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.',
++        })
+       }
+     },
+     [levelId, setShowGuides, setSelectedReferenceId, buildGuide, markAdded],
+@@ -147,6 +207,7 @@ export function AptSearchPanel() {
+             canAdd={!!levelId}
+             complex={search.selected}
+             interiorState={search.interiorState}
++            levelId={levelId}
+             onAdd={addPlanToScene}
+             onAutoModel={autoModelPlan}
+             onBack={search.clearSelection}
+@@ -199,6 +260,7 @@ function ComplexDetail({
+   plansLoading,
+   teamScenes,
+   canAdd,
++  levelId,
+   addedPlanId,
+   autoPlan,
+   onAdd,
+@@ -211,10 +273,11 @@ function ComplexDetail({
+   plansLoading: boolean
+   teamScenes: { id: string; name: string; updatedAt: string }[]
+   canAdd: boolean
++  levelId: string | null
+   addedPlanId: string | null
+-  autoPlan: { planId: string; status: 'loading' | 'error' } | null
+-  onAdd: (complex: AptComplex, plan: AptPlan) => void
+-  onAutoModel: (complex: AptComplex, plan: AptPlan) => void
++  autoPlan: { planId: string; status: 'loading' | 'error'; message?: string } | null
++  onAdd: (complex: AptComplex, plan: AptPlan, orientation: AptPlanOrientation) => void
++  onAutoModel: (complex: AptComplex, plan: AptPlan, orientation: AptPlanOrientation) => void
+   onBack: () => void
+ }) {
+   return (
+@@ -264,69 +327,136 @@ function ComplexDetail({
+       )}
+       <div className="flex flex-col gap-3">
+         {plans.map((plan) => (
+-          <div className="rounded-lg border border-border/60 p-2" key={plan.planId}>
+-            <p className="mb-1 font-medium text-xs">{typeWithPyeong(plan.type)}</p>
+-            <img
+-              alt={plan.name || plan.type}
+-              className="w-full rounded-md bg-white"
+-              loading="lazy"
+-              referrerPolicy="no-referrer"
+-              src={plan.planPic}
+-            />
+-            <div className="mt-1.5 flex gap-1.5">
+-              <button
+-                className="flex-1 rounded-md bg-accent px-2 py-1.5 font-medium text-xs hover:bg-accent/80 disabled:opacity-50"
+-                disabled={!canAdd}
+-                onClick={() => onAdd(complex, plan)}
+-                title={canAdd ? undefined : '레벨을 먼저 선택하세요'}
+-                type="button"
+-              >
+-                {addedPlanId === plan.planId ? (
+-                  <span className="inline-flex items-center gap-1">
+-                    <Check className="h-3 w-3" /> 씬에 추가됨
+-                  </span>
+-                ) : (
+-                  '현재 씬에 깔기'
+-                )}
+-              </button>
+-              <button
+-                className="rounded-md border border-border px-2 py-1.5 text-xs hover:bg-accent/40"
+-                onClick={() =>
+-                  window.location.assign(
+-                    withBasePath(
+-                      `/apt/trace?apartmentId=${encodeURIComponent(complex.apartmentId)}&planId=${encodeURIComponent(plan.planId)}&name=${encodeURIComponent(complex.name)}&type=${encodeURIComponent(plan.type)}`,
+-                    ),
+-                  )
+-                }
+-                type="button"
+-              >
+-                새 씬으로
+-              </button>
+-            </div>
+-            <button
+-              className="mt-1.5 w-full rounded-md border border-border px-2 py-1.5 font-medium text-xs hover:bg-accent/40 disabled:opacity-50"
+-              disabled={!canAdd || autoPlan?.status === 'loading'}
+-              onClick={() => onAutoModel(complex, plan)}
+-              title={canAdd ? undefined : '레벨을 먼저 선택하세요'}
+-              type="button"
+-            >
+-              {autoPlan?.planId === plan.planId && autoPlan.status === 'loading' ? (
+-                '도면 분석 중… (최초 10초)'
+-              ) : autoPlan?.planId === plan.planId && autoPlan.status === 'error' ? (
+-                '자동 모델링 실패 — 밑그림만 추가해 보세요'
+-              ) : (
+-                <span className="inline-flex items-center gap-1">
+-                  <Wand2 className="h-3 w-3" /> 자동 모델링 (벽·문·창)
+-                </span>
+-              )}
+-            </button>
+-          </div>
++          <PanelPlanCard
++            added={addedPlanId === plan.planId}
++            autoPlan={autoPlan?.planId === plan.planId ? autoPlan : null}
++            canAdd={canAdd}
++            complex={complex}
++            key={`${complex.apartmentId}:${plan.planId}:${levelId ?? 'none'}`}
++            levelId={levelId}
++            onAdd={onAdd}
++            onAutoModel={onAutoModel}
++            plan={plan}
++          />
+         ))}
+       </div>
+     </div>
+   )
+ }
+ 
++function PanelPlanCard({
++  added,
++  autoPlan,
++  canAdd,
++  complex,
++  levelId,
++  onAdd,
++  onAutoModel,
++  plan,
++}: {
++  added: boolean
++  autoPlan: { planId: string; status: 'loading' | 'error'; message?: string } | null
++  canAdd: boolean
++  complex: AptComplex
++  levelId: string | null
++  onAdd: (complex: AptComplex, plan: AptPlan, orientation: AptPlanOrientation) => void
++  onAutoModel: (complex: AptComplex, plan: AptPlan, orientation: AptPlanOrientation) => void
++  plan: AptPlan
++}) {
++  const existingGuide = useScene((state) =>
++    levelId ? findAptGuideForLevel(state.nodes, levelId, complex.apartmentId, plan.planId) : null,
++  )
++  const [flipX, setFlipX] = useState(() => existingGuide?.flipX ?? false)
++  const [flipY, setFlipY] = useState(() => existingGuide?.flipY ?? false)
++  const orientation = { flipX, flipY }
++  const traceParams = new URLSearchParams({
++    apartmentId: complex.apartmentId,
++    planId: plan.planId,
++    name: complex.name,
++    type: plan.type,
++  })
++  if (flipX) traceParams.set('flipX', '1')
++  if (flipY) traceParams.set('flipY', '1')
++
++  return (
++    <div className="rounded-lg border border-border/60 p-2">
++      <p className="mb-1 font-medium text-xs">{typeWithPyeong(plan.type)}</p>
++      <img
++        alt={plan.name || plan.type}
++        className="w-full rounded-md bg-white"
++        loading="lazy"
++        referrerPolicy="no-referrer"
++        src={plan.planPic}
++        style={{ transform: aptImageTransform(orientation) }}
++      />
++      <div aria-label="도면 방향" className="mt-1.5 flex gap-1.5" role="group">
++        <button
++          aria-pressed={flipX}
++          className={`flex-1 rounded-md border px-2 py-1 font-medium text-xs hover:bg-accent/40 ${flipX ? 'border-primary bg-accent text-foreground' : 'border-border text-muted-foreground'}`}
++          onClick={() => setFlipX((active) => !active)}
++          type="button"
++        >
++          좌우 반전
++        </button>
++        <button
++          aria-pressed={flipY}
++          className={`flex-1 rounded-md border px-2 py-1 font-medium text-xs hover:bg-accent/40 ${flipY ? 'border-primary bg-accent text-foreground' : 'border-border text-muted-foreground'}`}
++          onClick={() => setFlipY((active) => !active)}
++          type="button"
++        >
++          상하 반전
++        </button>
++      </div>
++      <div className="mt-1.5 flex gap-1.5">
++        <button
++          className="flex-1 rounded-md bg-accent px-2 py-1.5 font-medium text-xs hover:bg-accent/80 disabled:opacity-50"
++          disabled={!canAdd}
++          onClick={() => onAdd(complex, plan, orientation)}
++          title={canAdd ? undefined : '레벨을 먼저 선택하세요'}
++          type="button"
++        >
++          {added ? (
++            <span className="inline-flex items-center gap-1">
++              <Check className="h-3 w-3" /> 씬에 추가됨
++            </span>
++          ) : (
++            '현재 씬에 깔기'
++          )}
++        </button>
++        <button
++          className="rounded-md border border-border px-2 py-1.5 text-xs hover:bg-accent/40"
++          onClick={() =>
++            window.location.assign(withBasePath(`/apt/trace?${traceParams.toString()}`))
++          }
++          type="button"
++        >
++          새 씬으로
++        </button>
++      </div>
++      <button
++        className="mt-1.5 w-full rounded-md border border-border px-2 py-1.5 font-medium text-xs hover:bg-accent/40 disabled:opacity-50"
++        disabled={!canAdd || autoPlan?.status === 'loading'}
++        onClick={() => onAutoModel(complex, plan, orientation)}
++        title={canAdd ? undefined : '레벨을 먼저 선택하세요'}
++        type="button"
++      >
++        {autoPlan?.status === 'loading' ? (
++          '도면 분석 중… (최초 10초)'
++        ) : autoPlan?.status === 'error' ? (
++          '자동 모델링 실패 — 밑그림만 추가해 보세요'
++        ) : (
++          <span className="inline-flex items-center gap-1">
++            <Wand2 className="h-3 w-3" /> 자동 모델링 (벽·문·창)
++          </span>
++        )}
++      </button>
++      {autoPlan?.status === 'error' && autoPlan.message && (
++        <p className="mt-1.5 text-destructive text-[11px] leading-4">{autoPlan.message}</p>
++      )}
++    </div>
++  )
++}
++
+ function InteriorFacts({ state }: { state: AptInteriorState }) {
+   if (state.status === 'loading') {
+     return <p className="mt-2 text-muted-foreground text-xs">단지 정보를 확인하는 중…</p>
+diff --git a/apps/editor/components/apt-search.module.css b/apps/editor/components/apt-search.module.css
+index 60a74d5d..3d1d45f7 100644
+--- a/apps/editor/components/apt-search.module.css
++++ b/apps/editor/components/apt-search.module.css
+@@ -277,6 +277,31 @@
+   border: 1px solid #eee;
+   background: #fafafa;
+ }
++.orientationControls {
++  display: flex;
++  gap: 6px;
++  margin-top: 7px;
++}
++.orientationButton {
++  flex: 1;
++  padding: 6px 7px;
++  border: 1px solid #cbd5e1;
++  border-radius: 7px;
++  background: #fff;
++  color: #475569;
++  font-size: 11px;
++  font-weight: 700;
++  cursor: pointer;
++}
++.orientationButton:hover {
++  border-color: #93c5fd;
++  background: #eff6ff;
++}
++.orientationButtonActive {
++  border-color: #2563eb;
++  background: #dbeafe;
++  color: #1d4ed8;
++}
+ .planZoomLabel {
+   position: absolute;
+   right: 6px;
+diff --git a/apps/editor/components/apt-search.tsx b/apps/editor/components/apt-search.tsx
+index bf180a32..50aaac1a 100644
+--- a/apps/editor/components/apt-search.tsx
++++ b/apps/editor/components/apt-search.tsx
+@@ -3,6 +3,7 @@
+ import Link from 'next/link'
+ import { useEffect, useRef, useState } from 'react'
+ import { typeWithPyeong } from '@/lib/apt-format'
++import { type AptPlanOrientation, aptImageTransform } from '@/lib/apt-import-frame'
+ import {
+   type AptComplex,
+   type AptInteriorState,
+@@ -13,7 +14,12 @@ import {
+ } from '@/lib/use-apt-search'
+ import styles from './apt-search.module.css'
+ 
+-type ViewerState = { pic: string; name: string; type: string } | null
++type ViewerState = {
++  pic: string
++  name: string
++  type: string
++  orientation: AptPlanOrientation
++} | null
+ 
+ /**
+  * The public front door: search a complex → read its facts → pick a floor
+@@ -137,6 +143,7 @@ export function AptSearch() {
+             className={styles.viewerImage}
+             referrerPolicy="no-referrer"
+             src={viewer.pic}
++            style={{ transform: aptImageTransform(viewer.orientation) }}
+           />
+           <div className={styles.viewerCaption}>
+             {[typeWithPyeong(viewer.type), viewer.name].filter(Boolean).join(' · ')}
+@@ -221,8 +228,19 @@ function PlanCard({
+   onZoom: (viewer: ViewerState) => void
+ }) {
+   const [imgFailed, setImgFailed] = useState(false)
++  const [flipX, setFlipX] = useState(false)
++  const [flipY, setFlipY] = useState(false)
+   const typeLabel = typeWithPyeong(plan.type)
+-  const traceHref = `/apt/trace?apartmentId=${encodeURIComponent(complex.apartmentId)}&planId=${encodeURIComponent(plan.planId)}&name=${encodeURIComponent(complex.name)}&type=${encodeURIComponent(plan.type)}`
++  const orientation = { flipX, flipY }
++  const traceParams = new URLSearchParams({
++    apartmentId: complex.apartmentId,
++    planId: plan.planId,
++    name: complex.name,
++    type: plan.type,
++  })
++  if (flipX) traceParams.set('flipX', '1')
++  if (flipY) traceParams.set('flipY', '1')
++  const traceHref = `/apt/trace?${traceParams.toString()}`
+ 
+   return (
+     <div className={styles.plan}>
+@@ -231,7 +249,9 @@ function PlanCard({
+         <button
+           aria-label={`${plan.name || typeLabel} 크게 보기`}
+           className={styles.planThumb}
+-          onClick={() => onZoom({ pic: plan.planPic, name: plan.name, type: plan.type })}
++          onClick={() =>
++            onZoom({ pic: plan.planPic, name: plan.name, type: plan.type, orientation })
++          }
+           type="button"
+         >
+           <img
+@@ -240,10 +260,29 @@ function PlanCard({
+             onError={() => setImgFailed(true)}
+             referrerPolicy="no-referrer"
+             src={plan.planPic}
++            style={{ transform: aptImageTransform(orientation) }}
+           />
+           <span className={styles.planZoomLabel}>크게 보기</span>
+         </button>
+       )}
++      <div aria-label="도면 방향" className={styles.orientationControls} role="group">
++        <button
++          aria-pressed={flipX}
++          className={`${styles.orientationButton} ${flipX ? styles.orientationButtonActive : ''}`}
++          onClick={() => setFlipX((active) => !active)}
++          type="button"
++        >
++          좌우 반전
++        </button>
++        <button
++          aria-pressed={flipY}
++          className={`${styles.orientationButton} ${flipY ? styles.orientationButtonActive : ''}`}
++          onClick={() => setFlipY((active) => !active)}
++          type="button"
++        >
++          상하 반전
++        </button>
++      </div>
+       <Link className={styles.planTraceLink} href={traceHref}>
+         이 도면 위에 그리기 → ✏️
+       </Link>
+diff --git a/apps/editor/components/apt-trace.tsx b/apps/editor/components/apt-trace.tsx
+index e7b2a77b..de9a37de 100644
+--- a/apps/editor/components/apt-trace.tsx
++++ b/apps/editor/components/apt-trace.tsx
+@@ -3,6 +3,7 @@
+ import Link from 'next/link'
+ import { useCallback, useEffect, useRef, useState } from 'react'
+ import { typeWithPyeong } from '@/lib/apt-format'
++import type { AptPlanOrientation } from '@/lib/apt-import-frame'
+ import { type AptVectorDoc, buildVectorNodes, type VectorSceneNodes } from '@/lib/apt-vector-scene'
+ import { withBasePath } from '@/lib/base-path'
+ 
+@@ -26,12 +27,16 @@ export function AptTrace({
+   planId,
+   name,
+   type,
++  flipX = false,
++  flipY = false,
+   vector = false,
+ }: {
+   apartmentId: string
+   planId: string
+   name: string
+   type: string
++  flipX?: AptPlanOrientation['flipX']
++  flipY?: AptPlanOrientation['flipY']
+   vector?: boolean
+ }) {
+   const startedRef = useRef(false)
+@@ -55,7 +60,7 @@ export function AptTrace({
+         if (response.ok) {
+           const body = (await response.json()) as { code: string; data?: AptVectorDoc }
+           if (body.code === 'OK' && body.data) {
+-            vectorNodes = buildVectorNodes(body.data)
++            vectorNodes = buildVectorNodes(body.data, { flipX, flipY })
+             pipelineVersion = body.data.docVersion
+           }
+         }
+@@ -89,7 +94,7 @@ export function AptTrace({
+     const extraNodes: Record<string, unknown> = {}
+     const levelChildIds: string[] = []
+     if (vectorNodes) {
+-      const tag = { source: 'apt-vector', planId }
++      const tag = { source: 'apt-vector', apartmentId, planId }
+       const childIdsByWall = new Map<string, string[]>()
+       for (const opening of vectorNodes.openings) {
+         if (!opening.wallId) continue
+@@ -155,6 +160,8 @@ export function AptTrace({
+           position: [0, 0, 0],
+           rotation: [0, 0, 0],
+           scale: vectorNodes?.guideScale ?? 1,
++          flipX,
++          flipY,
+           opacity: 50,
+           scaleReference: null,
+           perspectiveCorners: null,
+@@ -191,7 +198,7 @@ export function AptTrace({
+     } catch (err) {
+       setError(err instanceof Error ? err.message : '씬 생성에 실패했습니다.')
+     }
+-  }, [apartmentId, planId, name, type, vector])
++  }, [apartmentId, planId, name, type, flipX, flipY, vector])
+ 
+   // The run-once guard matters: React StrictMode double-invokes effects in
+   // dev, and without it every visit would create two scenes.
+diff --git a/apps/editor/lib/apt-vector-scene.test.ts b/apps/editor/lib/apt-vector-scene.test.ts
+index 62eb85f8..a9e49361 100644
+--- a/apps/editor/lib/apt-vector-scene.test.ts
++++ b/apps/editor/lib/apt-vector-scene.test.ts
+@@ -61,6 +61,95 @@ const doc: AptVectorDoc = {
+ }
+ 
+ describe('buildVectorNodes', () => {
++  test('applies centered image flips to all planar output and preserves opening semantics', () => {
++    const base = buildVectorNodes(doc)!
++    const horizontal = buildVectorNodes(doc, { flipX: true })!
++    const vertical = buildVectorNodes(doc, { flipY: true })!
++    const combined = buildVectorNodes(doc, { flipX: true, flipY: true })!
++
++    for (const [flipped, flipX, flipY] of [
++      [horizontal, true, false],
++      [vertical, false, true],
++      [combined, true, true],
++    ] as const) {
++      expect(flipped.walls).toHaveLength(base.walls.length)
++      expect(flipped.zones).toHaveLength(base.zones.length)
++      expect(flipped.guideScale).toBe(base.guideScale)
++      for (let index = 0; index < base.walls.length; index += 1) {
++        const source = base.walls[index]!
++        const target = flipped.walls[index]!
++        expect(target.thickness).toBeCloseTo(source.thickness)
++        expect(segLenOf(target)).toBeCloseTo(segLenOf(source))
++        expect(target.start[0]).toBeCloseTo(flipX ? -source.start[0] : source.start[0])
++        expect(target.start[1]).toBeCloseTo(flipY ? -source.start[1] : source.start[1])
++        expect(target.end[0]).toBeCloseTo(flipX ? -source.end[0] : source.end[0])
++        expect(target.end[1]).toBeCloseTo(flipY ? -source.end[1] : source.end[1])
++      }
++      for (let index = 0; index < base.zones.length; index += 1) {
++        const source = base.zones[index]!
++        const target = flipped.zones[index]!
++        for (let pointIndex = 0; pointIndex < source.polygon.length; pointIndex += 1) {
++          const sourcePoint = source.polygon[pointIndex]!
++          const targetPoint = target.polygon[pointIndex]!
++          expect(targetPoint[0]).toBeCloseTo(flipX ? -sourcePoint[0] : sourcePoint[0])
++          expect(targetPoint[1]).toBeCloseTo(flipY ? -sourcePoint[1] : sourcePoint[1])
++        }
++      }
++      const baseDoor = base.openings.find((opening) => opening.type === 'door')!
++      const flippedDoor = flipped.openings.find((opening) => opening.type === 'door')!
++      expect(flippedDoor.width).toBeCloseTo(baseDoor.width)
++      expect(flippedDoor.position[0]).toBeCloseTo(baseDoor.position[0])
++      expect(flippedDoor.hingesSide).toBe(baseDoor.hingesSide)
++      expect(flippedDoor.swingDirection).toBe(
++        flipX !== flipY
++          ? baseDoor.swingDirection === 'inward'
++            ? 'outward'
++            : 'inward'
++          : baseDoor.swingDirection,
++      )
++      expect(flippedDoor.metadata).toEqual(baseDoor.metadata)
++    }
++  })
++
++  test('applies a moved, yaw-rotated, uniformly scaled guide frame after extraction', () => {
++    const base = buildVectorNodes(doc)!
++    const framed = buildVectorNodes(doc, {
++      position: [2, 0, 3],
++      rotationY: Math.PI / 2,
++      scale: 1.5,
++    })!
++    const transform = ([x, z]: [number, number]) => [2 + 1.5 * z, 3 - 1.5 * x] as [number, number]
++    expect(framed.guideScale).toBe(1.5)
++    for (let index = 0; index < base.walls.length; index += 1) {
++      const source = base.walls[index]!
++      const target = framed.walls[index]!
++      const expectedStart = transform(source.start)
++      const expectedEnd = transform(source.end)
++      expect(target.start[0]).toBeCloseTo(expectedStart[0])
++      expect(target.start[1]).toBeCloseTo(expectedStart[1])
++      expect(target.end[0]).toBeCloseTo(expectedEnd[0])
++      expect(target.end[1]).toBeCloseTo(expectedEnd[1])
++      expect(target.thickness).toBeCloseTo(source.thickness * 1.5)
++      expect(target.faceBands?.construction?.upper?.layers[0]?.thickness).toBeCloseTo(
++        source.thickness * 1.5,
++      )
++    }
++    const baseDoor = base.openings.find((opening) => opening.type === 'door')!
++    const framedDoor = framed.openings.find((opening) => opening.type === 'door')!
++    expect(framedDoor.width).toBeCloseTo(baseDoor.width * 1.5)
++    expect(framedDoor.position[0]).toBeCloseTo(baseDoor.position[0] * 1.5)
++    expect(framedDoor.wallId).toBeTruthy()
++    expect(framed.walls.find((wall) => wall.id === framedDoor.wallId)?.children).toContain(
++      framedDoor.id,
++    )
++    expect(framedDoor.metadata).toEqual(baseDoor.metadata)
++  })
++
++  test('rejects non-finite or non-positive guide frame scales', () => {
++    expect(buildVectorNodes(doc, { scale: 0 })).toBeNull()
++    expect(buildVectorNodes(doc, { scale: Number.NaN })).toBeNull()
++  })
++
+   test('connects X and T crossings without overlapping wall footprints and preserves openings', () => {
+     const crossing: AptVectorDoc = {
+       ...doc,
+@@ -220,6 +309,60 @@ describe('buildVectorNodes', () => {
+     expect(opening.wallId).toBe(host.id)
+   })
+ 
++  test('reconciles apartment zones to finalized T-split wall spaces', () => {
++    const tPlan: AptVectorDoc = {
++      unit: 'mm',
++      imageSize: [1000, 1000],
++      mmPerPx: 10,
++      walls: [
++        { id: 'bottom', kind: 'exterior', start: [1000, 1000], end: [9000, 1000], thickness: 200 },
++        { id: 'right', kind: 'exterior', start: [9000, 1000], end: [9000, 9000], thickness: 200 },
++        { id: 'top', kind: 'exterior', start: [9000, 9000], end: [1000, 9000], thickness: 200 },
++        { id: 'left', kind: 'exterior', start: [1000, 9000], end: [1000, 1000], thickness: 200 },
++        { id: 'branch', kind: 'interior', start: [3000, 1000], end: [3000, 4000], thickness: 100 },
++      ],
++      openings: [],
++      rooms: [
++        {
++          id: 'r1',
++          name: '거실',
++          cls: 'living',
++          areaM2: 60,
++          polygon: [
++            [1100, 1100],
++            [8900, 1100],
++            [8900, 8900],
++            [1100, 8900],
++          ],
++        },
++      ],
++    }
++
++    const built = buildVectorNodes(tPlan)!
++    const expectedSpace = detectSpacesForLevel('apt-vector-import', built.walls).spaces[0]!
++    const zone = built.zones[0]!
++    const bottomSegments = built.walls.filter(
++      (wall) => Math.abs(wall.start[1] + 4) < 1e-7 && Math.abs(wall.end[1] + 4) < 1e-7,
++    )
++    const branch = built.walls.find(
++      (wall) =>
++        Math.abs(wall.start[0] + 2) < 1e-7 &&
++        Math.abs(wall.end[0] + 2) < 1e-7 &&
++        Math.abs(wall.end[1] - wall.start[1]) > 1,
++    )
++
++    expect(bottomSegments).toHaveLength(2)
++    for (const wall of bottomSegments) expect(expectedSpace.wallIds).toContain(wall.id)
++    expect(zone.autoFromWalls).toBe(true)
++    expect(zone.polygon).toEqual(expectedSpace.polygon)
++    expect(new Set(zone.boundaryWallIds)).toEqual(new Set(expectedSpace.wallIds))
++    expect(zone.metadata).toMatchObject({ source: 'apt-vector', sourceRoomId: 'r1', cls: 'living' })
++    expect(zone.name).toBe('거실')
++    expect(zone.color).toBe('#8f8878')
++    expect(branch).toBeDefined()
++    expect(zone.boundaryWallIds).not.toContain(branch?.id)
++  })
++
+   test('uses solid concrete for apartment walls while preserving detected thickness', () => {
+     const { walls, openings } = buildVectorNodes(doc)!
+     expect(new Set(walls.map((wall) => wall.thickness))).toEqual(new Set([0.1, 0.2]))
+@@ -503,42 +646,6 @@ describe('buildVectorNodes', () => {
+     expect(zones.some((zone) => zone.name === '욕실')).toBe(true)
+   })
+ 
+-  test('reconciles an apartment zone to the finalized T-split wall space', () => {
+-    const sourceRoom: AptVectorDoc['rooms'][number] = {
+-      id: 'r-finalized',
+-      name: '거실',
+-      cls: 'living',
+-      areaM2: 48,
+-      polygon: [
+-        [1100, 1100],
+-        [8900, 1100],
+-        [8900, 6900],
+-        [1100, 6900],
+-      ],
+-    }
+-    const built = buildVectorNodes({
+-      ...doc,
+-      rooms: [sourceRoom],
+-      openings: [],
+-      walls: [
+-        { id: 'south', kind: 'exterior', start: [1000, 1000], end: [9000, 1000], thickness: 200 },
+-        { id: 'east', kind: 'exterior', start: [9000, 1000], end: [9000, 7000], thickness: 200 },
+-        { id: 'north', kind: 'exterior', start: [9000, 7000], end: [1000, 7000], thickness: 200 },
+-        { id: 'west', kind: 'exterior', start: [1000, 7000], end: [1000, 1000], thickness: 200 },
+-        { id: 'branch', kind: 'interior', start: [5000, 1000], end: [5000, 4000], thickness: 100 },
+-      ],
+-    })!
+-    const expected = detectSpacesForLevel('apt-vector-import', built.walls).spaces.find(
+-      (space) => !space.isExterior,
+-    )!
+-    const zone = built.zones[0]!
+-    expect(zone.autoFromWalls).toBe(true)
+-    expect(zone.polygon).toEqual(expected.polygon)
+-    expect(new Set(zone.boundaryWallIds)).toEqual(new Set(expected.wallIds))
+-    expect(zone.metadata).toMatchObject({ source: 'apt-vector', sourceRoomId: 'r-finalized' })
+-    expect(zone.name).toBe('거실')
+-  })
+-
+   test('snaps corner and tee gaps closed along each wall axis', () => {
+     const gappy: AptVectorDoc = {
+       ...doc,
+diff --git a/apps/editor/lib/apt-vector-scene.ts b/apps/editor/lib/apt-vector-scene.ts
+index 700fb56b..a1cfb1d7 100644
+--- a/apps/editor/lib/apt-vector-scene.ts
++++ b/apps/editor/lib/apt-vector-scene.ts
+@@ -68,6 +68,16 @@ export type VectorSceneNodes = {
+   diagnostics: VectorDiagnostics
+ }
+ 
++/** Optional image orientation and guide pose applied after vector extraction. */
++export type AptPlanImportFrame = {
++  readonly flipX?: boolean
++  readonly flipY?: boolean
++  readonly position?: readonly [number, number, number]
++  readonly rotationY?: number
++  /** World guide scale. The extracted scene's derived guide scale is the base. */
++  readonly scale?: number
++}
++
+ const MIN_WALL_LENGTH_M = 0.12
+ const FLANK_LATERAL_M = 0.25
+ const FLANK_ALONG_M = 0.45
+@@ -132,7 +142,11 @@ type OpeningPlacement = { doc: AptVectorDoc['openings'][number]; group: number;
+  * (no scale, degraded render variant, or too few walls) so callers can fall
+  * back to the plain guide flow.
+  */
+-export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
++export function buildVectorNodes(
++  doc: AptVectorDoc,
++  frame: AptPlanImportFrame = {},
++): VectorSceneNodes | null {
++  if (!isValidAptPlanImportFrame(frame)) return null
+   if (doc.unit !== 'mm' || !doc.mmPerPx || doc.mmPerPx <= 0) return null
+   if (
+     doc.metrics?.style === 'wood-dense' &&
+@@ -526,13 +540,66 @@ export function buildVectorNodes(doc: AptVectorDoc): VectorSceneNodes | null {
+     const update = zoneUpdates.get(zone.id)
+     return update ? ZoneNode.parse({ ...zone, ...update }) : zone
+   })
+-
+-  return {
++  const scene = {
+     ...connected,
+     zones: reconciledZones,
+     guideScale: (imageW * doc.mmPerPx) / 10000,
+     diagnostics: { unhostedOpeningIds, dedupedOpeningIds, droppedWallIds },
+   }
++  return applyAptPlanImportFrame(scene, frame)
++}
++
++function applyAptPlanImportFrame(
++  scene: VectorSceneNodes,
++  frame: AptPlanImportFrame,
++): VectorSceneNodes {
++  const guideScale = scene.guideScale
++  const scale = frame.scale === undefined ? 1 : frame.scale / guideScale
++  const [offsetX, _offsetY, offsetZ] = frame.position ?? [0, 0, 0]
++  const yaw = frame.rotationY ?? 0
++  const cos = Math.cos(yaw)
++  const sin = Math.sin(yaw)
++  const reflectX = frame.flipX ? -1 : 1
++  const reflectZ = frame.flipY ? -1 : 1
++  const transformPoint = ([x, z]: Vec2): Vec2 => {
++    const reflectedX = reflectX * x
++    const reflectedZ = reflectZ * z
++    return [
++      offsetX + scale * (cos * reflectedX + sin * reflectedZ),
++      offsetZ + scale * (-sin * reflectedX + cos * reflectedZ),
++    ]
++  }
++  const oddReflection = Boolean(frame.flipX) !== Boolean(frame.flipY)
++
++  const walls = scene.walls.map((wall) => {
++    const thickness = (wall.thickness ?? 0.1) * scale
++    return WallNode.parse({
++      ...wall,
++      start: transformPoint(wall.start),
++      end: transformPoint(wall.end),
++      thickness,
++      faceBands: createDefaultWallFaceBands(thickness),
++    })
++  })
++  const openings = scene.openings.map((opening) => {
++    const patch = {
++      ...opening,
++      width: opening.width * scale,
++      position: [opening.position[0] * scale, opening.position[1], opening.position[2] * scale] as [
++        number,
++        number,
++        number,
++      ],
++      ...(opening.type === 'door' && oddReflection
++        ? { swingDirection: opening.swingDirection === 'inward' ? 'outward' : 'inward' }
++        : {}),
++    }
++    return opening.type === 'door' ? DoorNode.parse(patch) : WindowNode.parse(patch)
++  })
++  const zones = scene.zones.map((zone) =>
++    ZoneNode.parse({ ...zone, polygon: zone.polygon.map(transformPoint) }),
++  )
++  return { ...scene, walls, openings, zones, guideScale: frame.scale ?? scene.guideScale }
+ }
+ 
+ export function connectWallJunctions(walls: WallNode[], openings: (DoorNode | WindowNode)[]) {
+@@ -986,6 +1053,17 @@ function isFiniteVec2(value: readonly number[]): value is Vec2 {
+   return value.length === 2 && value.every((component) => Number.isFinite(component))
+ }
+ 
++function isValidAptPlanImportFrame(frame: AptPlanImportFrame): boolean {
++  if (
++    frame.position &&
++    (frame.position.length !== 3 || frame.position.some((component) => !Number.isFinite(component)))
++  )
++    return false
++  if (frame.rotationY !== undefined && !Number.isFinite(frame.rotationY)) return false
++  if (frame.scale !== undefined && (!Number.isFinite(frame.scale) || frame.scale <= 0)) return false
++  return true
++}
++
+ function openingMetadata(
+   opening: AptVectorDoc['openings'][number],
+   width: number,
+diff --git a/packages/core/src/index.ts b/packages/core/src/index.ts
+index 0da4b51f..2da4ad40 100644
+--- a/packages/core/src/index.ts
++++ b/packages/core/src/index.ts
+@@ -268,6 +268,7 @@ export {
+   slidingFrontPose,
+ } from './lib/furniture'
+ export {
++  canonicalizeGuidePerspectiveCorners,
+   type GuideImagePoint,
+   projectGuidePerspectivePoint,
+ } from './lib/guide-perspective'
+diff --git a/packages/core/src/lib/guide-perspective.test.ts b/packages/core/src/lib/guide-perspective.test.ts
+index 96b5aa24..0e922831 100644
+--- a/packages/core/src/lib/guide-perspective.test.ts
++++ b/packages/core/src/lib/guide-perspective.test.ts
+@@ -1,6 +1,9 @@
+ import { describe, expect, test } from 'bun:test'
+ import type { GuidePerspectiveCorners } from '../schema/nodes/guide'
+-import { projectGuidePerspectivePoint } from './guide-perspective'
++import {
++  canonicalizeGuidePerspectiveCorners,
++  projectGuidePerspectivePoint,
++} from './guide-perspective'
+ 
+ const corners: GuidePerspectiveCorners = [
+   [0.1, 0.9],
+@@ -10,6 +13,17 @@ const corners: GuidePerspectiveCorners = [
+ ]
+ 
+ describe('guide perspective projection', () => {
++  test.each([
++    [false, false, [0, 1, 2, 3]],
++    [true, false, [1, 0, 3, 2]],
++    [false, true, [3, 2, 1, 0]],
++    [true, true, [2, 3, 0, 1]],
++  ])('canonicalizes displayed corners for %s/%s flips', (flipX, flipY, order) => {
++    expect(canonicalizeGuidePerspectiveCorners(corners, flipX, flipY)).toEqual(
++      order.map((index) => corners[index as 0 | 1 | 2 | 3]),
++    )
++  })
++
+   test('maps each corrected rectangle corner to the selected source-image corner', () => {
+     for (const [point, expected] of [
+       [[0, 0], corners[0]],
+diff --git a/packages/core/src/lib/guide-perspective.ts b/packages/core/src/lib/guide-perspective.ts
+index be31432b..4f945adb 100644
+--- a/packages/core/src/lib/guide-perspective.ts
++++ b/packages/core/src/lib/guide-perspective.ts
+@@ -2,6 +2,22 @@ import type { GuidePerspectiveCorners } from '../schema/nodes/guide'
+ 
+ export type GuideImagePoint = readonly [number, number]
+ 
++/** Reorders displayed calibration clicks into the guide's canonical image order. */
++export function canonicalizeGuidePerspectiveCorners(
++  corners: GuidePerspectiveCorners,
++  flipX = false,
++  flipY = false,
++): GuidePerspectiveCorners {
++  const order = flipX
++    ? flipY
++      ? ([2, 3, 0, 1] as const)
++      : ([1, 0, 3, 2] as const)
++    : flipY
++      ? ([3, 2, 1, 0] as const)
++      : ([0, 1, 2, 3] as const)
++  return order.map((index) => corners[index]) as GuidePerspectiveCorners
++}
++
+ export function projectGuidePerspectivePoint(
+   corners: GuidePerspectiveCorners,
+   point: GuideImagePoint,
+diff --git a/packages/core/src/schema/nodes/guide.test.ts b/packages/core/src/schema/nodes/guide.test.ts
+index 33654cc4..340ad3ba 100644
+--- a/packages/core/src/schema/nodes/guide.test.ts
++++ b/packages/core/src/schema/nodes/guide.test.ts
+@@ -6,6 +6,21 @@ describe('GuideNode image calibration', () => {
+     const guide = GuideNode.parse({ url: 'asset://floor-plan' })
+ 
+     expect(guide.perspectiveCorners).toBeNull()
++    expect(guide.flipX).toBe(false)
++    expect(guide.flipY).toBe(false)
++  })
++
++  test('round-trips independent image-space orientation flags', () => {
++    expect(GuideNode.parse({ url: 'asset://floor-plan', flipX: true, flipY: false })).toMatchObject(
++      { flipX: true, flipY: false },
++    )
++    expect(GuideNode.parse({ url: 'asset://floor-plan', flipX: false, flipY: true })).toMatchObject(
++      { flipX: false, flipY: true },
++    )
++    expect(GuideNode.parse({ url: 'asset://floor-plan', flipX: true, flipY: true })).toMatchObject({
++      flipX: true,
++      flipY: true,
++    })
+   })
+ 
+   test('parses four normalized source-image corners', () => {
+diff --git a/packages/core/src/schema/nodes/guide.ts b/packages/core/src/schema/nodes/guide.ts
+index 1184d38a..8c7922b1 100644
+--- a/packages/core/src/schema/nodes/guide.ts
++++ b/packages/core/src/schema/nodes/guide.ts
+@@ -27,6 +27,8 @@ export const GuideNode = BaseNode.extend({
+   position: z.tuple([z.number(), z.number(), z.number()]).default([0, 0, 0]),
+   rotation: z.tuple([z.number(), z.number(), z.number()]).default([0, 0, 0]),
+   scale: z.number().default(1),
++  flipX: z.boolean().default(false),
++  flipY: z.boolean().default(false),
+   opacity: z.number().min(0).max(100).default(50),
+   scaleReference: GuideScaleReference.nullable().default(null),
+   perspectiveCorners: GuidePerspectiveCorners.nullable().default(null),
+diff --git a/packages/editor/src/components/editor/floorplan-panel.tsx b/packages/editor/src/components/editor/floorplan-panel.tsx
+index 193ee670..cd417182 100644
+--- a/packages/editor/src/components/editor/floorplan-panel.tsx
++++ b/packages/editor/src/components/editor/floorplan-panel.tsx
+@@ -3202,15 +3202,17 @@ function FloorplanGuideImage({
+           y={-planHeight / 2}
+         />
+       ) : null}
+-      <image
+-        height={planHeight}
+-        href={resolvedUrl}
+-        pointerEvents="none"
+-        preserveAspectRatio="none"
+-        width={planWidth}
+-        x={-planWidth / 2}
+-        y={-planHeight / 2}
+-      />
++      <g transform={`scale(${guide.flipX ? -1 : 1} ${guide.flipY ? -1 : 1})`}>
++        <image
++          height={planHeight}
++          href={resolvedUrl}
++          pointerEvents="none"
++          preserveAspectRatio="none"
++          width={planWidth}
++          x={-planWidth / 2}
++          y={-planHeight / 2}
++        />
++      </g>
+     </g>
+   )
+ }
+diff --git a/packages/editor/src/components/ui/panels/use-guide-perspective-calibration.ts b/packages/editor/src/components/ui/panels/use-guide-perspective-calibration.ts
+index 7bf3f2d8..a1318db3 100644
+--- a/packages/editor/src/components/ui/panels/use-guide-perspective-calibration.ts
++++ b/packages/editor/src/components/ui/panels/use-guide-perspective-calibration.ts
+@@ -1,5 +1,6 @@
+ import {
+   emitter,
++  canonicalizeGuidePerspectiveCorners,
+   type GuideEvent,
+   type GuideImagePoint,
+   type GuideNode,
+@@ -37,13 +38,21 @@ export function useGuidePerspectiveCalibration(
+         return
+       }
+       const parsed = GuidePerspectiveCorners.safeParse(nextPoints)
+-      if (parsed.success) onUpdate({ perspectiveCorners: parsed.data })
++      if (parsed.success) {
++        onUpdate({
++          perspectiveCorners: canonicalizeGuidePerspectiveCorners(
++            parsed.data,
++            guide.flipX,
++            guide.flipY,
++          ),
++        })
++      }
+       setPoints(null)
+     }
+ 
+     emitter.on('guide:click', collectPoint)
+     return () => emitter.off('guide:click', collectPoint)
+-  }, [guide.id, onUpdate, points])
++  }, [guide.flipX, guide.flipY, guide.id, onUpdate, points])
+ 
+   useEffect(() => {
+     if (!points) return
+diff --git a/packages/mcp/src/modeling-agent-manual.ts b/packages/mcp/src/modeling-agent-manual.ts
+index cbab8f02..ade350fb 100644
+--- a/packages/mcp/src/modeling-agent-manual.ts
++++ b/packages/mcp/src/modeling-agent-manual.ts
+@@ -22,6 +22,7 @@ export const MODELING_AGENT_MANUAL = [
+   '- Apartment raster extraction classifies a door only with source-backed local swing-arc evidence; exterior or repeated glazing may be a window, while uncertain internal fixtures remain `opening`. Preserve the source opening id, type, hinge, radius, room id, and measured semantic width in node metadata. Reject non-finite or below-minimum measured widths instead of inflating a tiny gap. Use semantic opening endpoints for host geometry; an optional full room barrier and barrier thickness protect source room extraction only and must not widen the rendered opening. Keep source-backed boundaries, protect small labeled rooms from area filtering, and treat conflicting OCR labels as distinct source evidence or fail closed; labels never create wall boundaries.',
+   '- Apartment extraction separates contained room labels into semantic zones without creating physical walls. Such open-space zone divisions are approximate. Window frames require a bright ridge between darker rails; a gray silhouette edge or an open floor line is insufficient. Openings already inside a retained wall use that wall as their host, and measured crossing-wall hosts may close short endpoint gaps only after both ends are validated. A wood render is accepted only with measured wall coverage and predominantly labeled valid room polygons. Nearly straight wall continuations with different thicknesses use a thickness step instead of a long miter taper.',
+   '- Initial apartment imports finalize wall merge/snap/weld/T/X contacts before zone reconciliation. With the explicit `adoptContainedApartmentZones` import context, an `apt-vector` zone is adopted to the exact detected polygon and boundary wall ids only when it covers at least 90% of exactly one current enclosed space and no other apartment zone claims that space; preserve names, colors, classes, source ids, and open or ambiguous semantic subdivisions. Reactive wall sync keeps its existing bidirectional room matching and review behavior.',
++  '- Apartment imports apply horizontal/vertical source-image flips around the image center to the guide, generated walls, openings, and zones in the same undoable import; an odd reflection toggles door swing direction while preserving hinge side and source metadata.',
+   '- `mergeWalls` is the semantic operation for merging two or more selected walls. It accepts one exact contiguous, collinear, straight chain on the same parent with matching style, support, height, slots, and construction metadata; overlapping, branched, curved, incompatible, or disconnected walls are rejected. A reversed wall with hosted content or directional paint/trim/side metadata is rejected rather than silently changing its local frame. The first selected wall id is retained, hosted children keep their world positions, rotations, side, `wallT`, and links, and collection membership, `supportOffset`, and `fillToTerrain` are preserved. Commit the whole merge as one undo step.',
+   '- `splitWall` is the semantic operation for splitting one straight wall at a finite distance in metres from its authored start. The distance must be strictly inside the wall and cannot cross a door, window, or wall-hosted item span. The first wall id is retained and the second id is generated or explicitly supplied only when unused; hosted children keep their world positions, rotations, side, links, and updated `wallT`, while parent/root links, collections, `supportOffset`, and `fillToTerrain` are preserved. Commit the split as one undo step.',
+   '- `buildWallSplitAtContacts` is the semantic operation behind the shared 2D/3D wall split control: it finds same-parent straight-wall T/X contacts in the selected wall interior, deduplicates them, and validates all descending splits before one undoable mutation. If it raises `no-wall-contacts`, the UI falls back to the typed `splitWall` distance; crossing an attachment fails atomically. AI/MCP distance splits remain explicit `splitWall` operations.',
+diff --git a/packages/mcp/src/ontology-manual.test.ts b/packages/mcp/src/ontology-manual.test.ts
+index 2274cafd..b51c82b1 100644
+--- a/packages/mcp/src/ontology-manual.test.ts
++++ b/packages/mcp/src/ontology-manual.test.ts
+@@ -67,6 +67,12 @@ describe('Phase 2 ontology manual contract', () => {
+     )
+   })
+ 
++  test('documents shared apartment import orientation', () => {
++    expect(MODELING_AGENT_MANUAL).toContain('horizontal/vertical source-image flips')
++    expect(MODELING_AGENT_MANUAL).toContain('same undoable import')
++    expect(MODELING_AGENT_MANUAL).toContain('image center')
++  })
++
+   test('documents source-backed opening and room boundary contracts', () => {
+     expect(MODELING_AGENT_MANUAL).toContain('local swing-arc evidence')
+     expect(MODELING_AGENT_MANUAL).toContain('uncertain internal fixtures remain `opening`')
+diff --git a/packages/nodes/src/guide/definition.test.ts b/packages/nodes/src/guide/definition.test.ts
+index 25305139..047587f0 100644
+--- a/packages/nodes/src/guide/definition.test.ts
++++ b/packages/nodes/src/guide/definition.test.ts
+@@ -2,6 +2,10 @@ import { describe, expect, test } from 'bun:test'
+ import { guideDefinition } from './definition'
+ 
+ describe('guide image interaction ownership', () => {
++  test('versions persisted orientation fields', () => {
++    expect(guideDefinition.schemaVersion).toBe(2)
++  })
++
+   test('keeps guide clicks out of ordinary scene selection', () => {
+     expect(guideDefinition.capabilities?.selectable).toBeUndefined()
+   })
+diff --git a/packages/nodes/src/guide/definition.ts b/packages/nodes/src/guide/definition.ts
+index 8b05cfa9..dfeb303d 100644
+--- a/packages/nodes/src/guide/definition.ts
++++ b/packages/nodes/src/guide/definition.ts
+@@ -13,7 +13,7 @@ export const guideDefinition: NodeDefinition<typeof GuideNode> = {
+   // Floorplan image reference: stripped from the bake, re-added live from
+   // scene_graph in the viewer (see plans → Part D; glb-reference-nodes.tsx).
+   bake: 'strip',
+-  schemaVersion: 1,
++  schemaVersion: 2,
+   schema: GuideNode,
+   category: 'site',
+ 
+diff --git a/packages/nodes/src/guide/geometry.test.ts b/packages/nodes/src/guide/geometry.test.ts
+index 4cc58f34..54edf164 100644
+--- a/packages/nodes/src/guide/geometry.test.ts
++++ b/packages/nodes/src/guide/geometry.test.ts
+@@ -3,6 +3,30 @@ import type { GuidePerspectiveCorners } from '@pascal-app/core'
+ import { createGuidePlaneGeometry } from './geometry'
+ 
+ describe('guide plane perspective geometry', () => {
++  test.each([
++    ['none', false, false],
++    ['horizontal', true, false],
++    ['vertical', false, true],
++    ['combined', true, true],
++  ])('applies %s image-space flips without changing plane dimensions', (_name, flipX, flipY) => {
++    const geometry = createGuidePlaneGeometry({
++      flipX,
++      flipY,
++      height: 5,
++      perspectiveCorners: null,
++      segments: 1,
++      width: 10,
++    })
++    const uv = geometry.getAttribute('uv')
++    expect(geometry.parameters.width).toBe(10)
++    expect(geometry.parameters.height).toBe(5)
++    expect(uv.getX(0)).toBe(flipX ? 1 : 0)
++    expect(uv.getY(0)).toBe(flipY ? 0 : 1)
++    expect(uv.getX(3)).toBe(flipX ? 0 : 1)
++    expect(uv.getY(3)).toBe(flipY ? 1 : 0)
++    geometry.dispose()
++  })
++
+   test('maps the corrected rectangle UV corners to the four selected image points', () => {
+     const corners: GuidePerspectiveCorners = [
+       [0.1, 0.9],
+@@ -30,4 +54,34 @@ describe('guide plane perspective geometry', () => {
+     }
+     geometry.dispose()
+   })
++
++  test('applies image flips before perspective correction', () => {
++    const corners: GuidePerspectiveCorners = [
++      [0.1, 0.9],
++      [0.9, 0.8],
++      [0.85, 0.1],
++      [0.15, 0.05],
++    ]
++
++    const geometry = createGuidePlaneGeometry({
++      flipX: true,
++      flipY: true,
++      height: 5,
++      perspectiveCorners: corners,
++      segments: 1,
++      width: 10,
++    })
++    const uv = geometry.getAttribute('uv')
++
++    for (const [index, expected] of [
++      [0, corners[2]],
++      [1, corners[3]],
++      [2, corners[1]],
++      [3, corners[0]],
++    ] as const) {
++      expect(uv.getX(index)).toBeCloseTo(expected[0])
++      expect(uv.getY(index)).toBeCloseTo(expected[1])
++    }
++    geometry.dispose()
++  })
+ })
+diff --git a/packages/nodes/src/guide/geometry.ts b/packages/nodes/src/guide/geometry.ts
+index 5f00c2cb..35c47695 100644
+--- a/packages/nodes/src/guide/geometry.ts
++++ b/packages/nodes/src/guide/geometry.ts
+@@ -2,26 +2,37 @@ import { type GuidePerspectiveCorners, projectGuidePerspectivePoint } from '@pas
+ import { PlaneGeometry } from 'three'
+ 
+ export function createGuidePlaneGeometry({
++  flipX = false,
++  flipY = false,
+   height,
+   perspectiveCorners,
+   segments = 24,
+   width,
+ }: {
++  readonly flipX?: boolean
++  readonly flipY?: boolean
+   readonly height: number
+   readonly perspectiveCorners: GuidePerspectiveCorners | null
+   readonly segments?: number
+   readonly width: number
+ }): PlaneGeometry {
+   const geometry = new PlaneGeometry(width, height, segments, segments)
+-  if (!perspectiveCorners) return geometry
+-
+   const uv = geometry.getAttribute('uv')
++  if (!perspectiveCorners && !flipX && !flipY) return geometry
++
+   for (let index = 0; index < uv.count; index += 1) {
+-    const projected = projectGuidePerspectivePoint(perspectiveCorners, [
+-      uv.getX(index),
+-      1 - uv.getY(index),
+-    ])
+-    uv.setXY(index, projected[0], projected[1])
++    if (perspectiveCorners) {
++      const q = [uv.getX(index), 1 - uv.getY(index)] as const
++      const corrected: [number, number] = [flipX ? 1 - q[0] : q[0], flipY ? 1 - q[1] : q[1]]
++      const projected = projectGuidePerspectivePoint(perspectiveCorners, corrected)
++      uv.setXY(index, projected[0], projected[1])
++      continue
++    }
++    uv.setXY(
++      index,
++      flipX ? 1 - uv.getX(index) : uv.getX(index),
++      flipY ? 1 - uv.getY(index) : uv.getY(index),
++    )
+   }
+   uv.needsUpdate = true
+   return geometry
+diff --git a/packages/nodes/src/guide/renderer.tsx b/packages/nodes/src/guide/renderer.tsx
+index bfbb51bd..7c0e1dab 100644
+--- a/packages/nodes/src/guide/renderer.tsx
++++ b/packages/nodes/src/guide/renderer.tsx
+@@ -28,6 +28,8 @@ export const GuideRenderer = ({ node }: { node: GuideNode }) => {
+       {resolvedUrl && (
+         <Suspense>
+           <GuidePlane
++            flipX={node.flipX}
++            flipY={node.flipY}
+             opacity={node.opacity}
+             perspectiveCorners={node.perspectiveCorners}
+             scale={node.scale}
+@@ -40,11 +42,15 @@ export const GuideRenderer = ({ node }: { node: GuideNode }) => {
+ }
+ 
+ const GuidePlane = ({
++  flipX,
++  flipY,
+   url,
+   scale,
+   opacity,
+   perspectiveCorners,
+-}: Pick<GuideNode, 'opacity' | 'perspectiveCorners' | 'scale'> & { readonly url: string }) => {
++}: Pick<GuideNode, 'flipX' | 'flipY' | 'opacity' | 'perspectiveCorners' | 'scale'> & {
++  readonly url: string
++}) => {
+   const tex = useLoader(TextureLoader, url) as Texture
+ 
+   // Pass the geometry as a prop. JSX-child `<planeGeometry>` plus
+@@ -74,6 +80,8 @@ const GuidePlane = ({
+     })
+ 
+     const geom = createGuidePlaneGeometry({
++      flipX,
++      flipY,
+       height: planeHeight,
+       perspectiveCorners,
+       width: planeWidth,
+@@ -82,7 +90,7 @@ const GuidePlane = ({
+     geom.boundingSphere = null
+ 
+     return { geometry: geom, material: mat }
+-  }, [opacity, perspectiveCorners, scale, tex])
++  }, [flipX, flipY, opacity, perspectiveCorners, scale, tex])
+   useEffect(
+     () => () => {
+       geometry.dispose()

@@ -1,0 +1,14 @@
+bun install v1.3.11 (af24e281)
+Resolving dependencies
+Resolved, downloaded and extracted [93]
+
++ @biomejs/biome@2.4.16
++ @typescript/native-preview@7.0.0-dev.20260624.1
++ dotenv-cli@11.0.0
++ turbo@2.9.17
++ typescript@6.0.3
++ ultracite@7.8.2
++ @tailwindcss/oxide-darwin-arm64@4.3.0
++ lightningcss-darwin-arm64@1.32.0
+
+1378 packages installed [4.30s]

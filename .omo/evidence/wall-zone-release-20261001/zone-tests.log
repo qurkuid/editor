@@ -1,0 +1,104 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/apt-vector-scene.test.ts:
+(pass) buildVectorNodes > connects X and T crossings without overlapping wall footprints and preserves openings [9.55ms]
+(pass) buildVectorNodes > uses solid concrete for apartment walls while preserving detected thickness [1.37ms]
+(pass) buildVectorNodes > keeps an opening whole when a detected branch meets its span [0.21ms]
+(pass) buildVectorNodes > merges gap-flanking walls and maps to centred level metres [0.53ms]
+(pass) buildVectorNodes > hosts openings inside the merged wall with wall-local positions [0.77ms]
+(pass) buildVectorNodes > uses the semantic opening span and preserves source provenance [0.83ms]
+(pass) buildVectorNodes > recovers an ordered fixture-split door only onto an anchored sibling host [1.16ms]
+(pass) buildVectorNodes > preserves a narrow source opening and rejects invalid tiny spans [0.77ms]
+(pass) buildVectorNodes > creates room zones from labeled polygons [0.65ms]
+(pass) buildVectorNodes > reconciles an apartment zone to the finalized T-split wall space [1.42ms]
+(pass) buildVectorNodes > snaps corner and tee gaps closed along each wall axis [0.41ms]
+(pass) buildVectorNodes > deduplicates overlapping opening detections on one wall [0.35ms]
+(pass) buildVectorNodes > reports what the conversion left out [0.32ms]
+(pass) buildVectorNodes > extends a single flank across a corner-door gap [0.17ms]
+(pass) buildVectorNodes > refuses untrustworthy documents [0.02ms]
+(pass) buildVectorNodes > hosts an opening embedded in an already continuous source wall [0.27ms]
+(pass) buildVectorNodes > absorbs a short angled duplicate fully inside a longer source wall body [0.09ms]
+(pass) buildVectorNodes > admits a wood render only with measured walls and predominantly labeled polygons [0.25ms]
+(pass) buildVectorNodes > anchors a measured window to both short crossing-wall endpoints [0.35ms]
+
+apps/editor/lib/ai-contract.test.ts:
+(pass) AI modeling operation contract > accepts canonical semantic operation ids across internal schemas [1.37ms]
+(pass) AI modeling operation contract > publishes every canonical operation id in the provider JSON schema [0.02ms]
+(pass) AI modeling operation contract > keeps AI operation fields strict and emits the canonical manifest once [11.40ms]
+
+packages/mcp/src/ontology-manual.test.ts:
+(pass) Phase 2 ontology manual contract > documents weak endpoint inference separately from explicit angle locking [0.02ms]
+(pass) Phase 2 ontology manual contract > documents validated length edits and boundary review [0.02ms]
+(pass) Phase 2 ontology manual contract > documents ontology discovery and evidence requirements [0.04ms]
+(pass) Phase 2 ontology manual contract > documents the canonical Body transform and direct scale interactions [0.15ms]
+(pass) Phase 2 ontology manual contract > documents apartment wall extraction and junction continuity [0.02ms]
+(pass) Phase 2 ontology manual contract > documents source-backed opening and room boundary contracts [0.03ms]
+(pass) Phase 2 ontology manual contract > documents persistent Body sub-entity selection [0.07ms]
+(pass) Phase 2 ontology manual contract > documents Body Autofold constraints [0.07ms]
+(pass) Phase 2 ontology manual contract > documents whole-Body array operations
+(pass) Phase 2 ontology manual contract > documents editor-only Body container edit routing
+(pass) Phase 2 ontology manual contract > documents solid inspection and Body boolean operations
+(pass) Phase 2 ontology manual contract > documents Solid Tools ordering and tool lifetime [0.21ms]
+(pass) Phase 2 ontology manual contract > documents the canonical Body offset operation and signed interaction [0.13ms]
+(pass) Phase 2 ontology manual contract > documents signed imprint through-cuts and the 2D render-only boundary
+(pass) Phase 2 ontology manual contract > documents sampled Arc parity through existing Body operations [0.07ms]
+
+packages/core/src/lib/space-detection.test.ts:
+(pass) planAutoCeilingsForLevel > creates auto ceilings height-less so they follow the level top [1.02ms]
+(pass) planAutoCeilingsForLevel > never writes a height onto a matched auto ceiling [0.03ms]
+(pass) planAutoCeilingsForLevel > creates and reconciles an auto ceiling at the enclosing wall top
+(pass) planAutoCeilingsForLevel > a leftover explicit height on a matched auto ceiling is not rewritten [0.30ms]
+(pass) planAutoCeilingsForLevel > does not replace a manual ceiling with an auto ceiling [0.08ms]
+(pass) planAutoCeilingsForLevel > demotes an orphaned auto ceiling to manual with its polygon untouched
+(pass) planAutoCeilingsForLevel > deletes an unmatched auto ceiling absorbed by a room merge [0.25ms]
+(pass) planAutoCeilingsForLevel > a demoted ceiling suppresses re-creating an auto ceiling when the room re-forms [0.14ms]
+(pass) stage 3-B ceiling clamp bound > height-less auto ceilings resolve under the covering-slab bound at read time [1.04ms]
+(pass) stage 3-B ceiling clamp bound > clamps a manual ceiling above the bound down to it (plane-only degradation) [0.08ms]
+(pass) stage 3-B ceiling clamp bound > never raises a manual ceiling sitting below the bound [0.03ms]
+(pass) stage 3-B ceiling clamp bound > skips follows-mode manual ceilings (never converts them to explicit) [0.06ms]
+(pass) stage 3-B ceiling clamp bound > a flush deck above clamps a manual ceiling at the plane margin to its underside [0.02ms]
+(pass) reactive ceiling re-clamp through the detection sync > a flush deck created on the level above clamps the existing manual ceiling below [2.31ms]
+(pass) raised auto-room surfaces > inherits the enclosing walls construction plane when the room closes [0.75ms]
+(pass) detectSpacesForLevel > detects an isolated four-wall room [0.19ms]
+(pass) detectSpacesForLevel > excludes dangling wall branches from a room boundary [0.37ms]
+(pass) detectSpacesForLevel > detects a room closed against the middle of an existing wall (T-junction) [0.42ms]
+(pass) procedural zones > reactive wall deletion updates imported zone review state without changing its source identity [1.15ms]
+(pass) procedural zones > follows an imported approximate room through a wall edit and marks a removed boundary for review [0.37ms]
+(pass) procedural zones > split wall IDs with unchanged room geometry update the binding without a false warning [0.22ms]
+(pass) procedural zones > a deleted imported room boundary reports uncertainty without renaming or merging rooms [0.16ms]
+(pass) procedural zones > adopts an exact room footprint and records its enclosing walls [0.13ms]
+(pass) procedural zones > derives the live polygon from effective wall endpoints [0.26ms]
+(pass) procedural zones > leaves an unrelated site zone manual
+(pass) procedural zones > adopts one inset apartment zone to the exact detected space footprint [0.21ms]
+(pass) procedural zones > keeps ambiguous apartment subdivisions when an exact and inset zone claim one space [0.12ms]
+(pass) procedural zones > requires the import flag and apt-vector provenance before contained adoption
+(pass) wallClosesRoom > is false while a chain is still open, true once it encloses a room [0.27ms]
+(pass) wallClosesRoom > fires when a bay is sealed against the middle of an existing wall [0.21ms]
+(pass) planAutoSlabsForLevel > creates and reconciles an auto slab on the enclosing wall plane [0.05ms]
+(pass) planAutoSlabsForLevel > matches two identical rooms to their own existing auto-slabs without churn
+(pass) planAutoSlabsForLevel > deletes an extra auto-slab when only one identical room is detected
+(pass) planAutoSlabsForLevel > demotes an orphaned auto slab to manual when its room disappears
+(pass) planAutoSlabsForLevel > deletes an unmatched auto slab whose area was absorbed by a room merge [0.24ms]
+(pass) planAutoSlabsForLevel > a demoted slab suppresses re-creating an auto slab when the room re-forms
+(pass) planAutoSlabsForLevel > manual slabs that split one room suppress a replacement full-room slab
+
+packages/core/src/lib/space-detection-history.test.ts:
+(pass) undo/redo restores zone review metadata without regenerating the restored snapshot [2.41ms]
+
+packages/mcp/src/resources/resources.test.ts:
+(pass) pascal://scene/current > returns the full scene JSON [6.73ms]
+(pass) pascal://scene/current > reflects mutations to the store [1.61ms]
+(pass) pascal://scene/current/summary > returns markdown with counts and bbox [0.78ms]
+(pass) pascal://scene/current/summary > estimated floor area sums zone polygon areas [0.45ms]
+(pass) pascal://scene/current/summary > empty scene returns a markdown skeleton without crashing [0.48ms]
+(pass) pascal://catalog/items > returns built-in catalog subset [0.18ms]
+(pass) pascal://agent-guide > agent guide returns MCP-first project guidance [1.82ms]
+(pass) pascal://agent-guide > keeps the legacy agent guide URI as an alias [0.75ms]
+(pass) pascal://constraints/{levelId} > returns slabs + wall footprints for a known level [1.38ms]
+(pass) pascal://constraints/{levelId} > returns {error:"level_not_found"} for unknown levelId [0.41ms]
+(pass) pascal://debug/state > returns structural diagnostics without viewport data [0.89ms]
+
+ 86 pass
+ 0 fail
+ 488 expect() calls
+Ran 86 tests across 6 files. [265.00ms]

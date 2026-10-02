@@ -1,0 +1,25 @@
+래미안장전 FAIL zones 9 / 10 probes 8 / 10 dangling 0 outside []
+  {"kind": "room", "probe": "living", "message": "거실 기준점의 존 누락 또는 이름·용도 불일치", "actual": [{"id": "zone_gfshvyqdp2olveyk", "sourceRoomId": "r5", "name": "발코니", "cls": "balcony"}]}
+  {"kind": "room", "probe": "kitchen", "message": "부엌 기준점의 존 누락 또는 이름·용도 불일치", "actual": [{"id": "zone_gfshvyqdp2olveyk", "sourceRoomId": "r5", "name": "발코니", "cls": "balcony"}]}
+  {"kind": "merged-zones", "message": "도면상 다른 공간 기준점이 같은 존을 재사용함", "details": [{"zoneId": "zone_gfshvyqdp2olveyk", "probes": ["living", "kitchen"]}]}
+  {"kind": "room-count", "expected": 10, "actual": 9}
+해운대자이2차 FAIL zones 13 / 12 probes 12 / 12 dangling 2 outside []
+  {"kind": "extra-zones", "message": "도면 기준 공간과 대응하지 않는 추가 존", "details": [{"sourceRoomId": "r4", "name": "욕실", "areaM2": 0.2148630400000009}]}
+  {"kind": "room-count", "expected": 12, "actual": 13}
+  {"kind": "missing-separation", "message": "도면상 벽 또는 문·창 호스트로 나뉘는 공간이 같은 물리 영역으로 연결됨", "pairs": [["bed-left", "living"], ["bed-top", "dress"]]}
+  {"kind": "missing-wall", "probe": "bed-left-door-host", "message": "좌측 하부 안방 상부 출입문 호스트 13점 검사에서 벽 또는 개구부 호스트 누락", "maxBodyDistanceM": 0.4499}
+  {"kind": "missing-wall", "probe": "bed-top-southwest-join", "message": "상부 안방·드레스룸 접합부 13점 검사에서 벽 또는 개구부 호스트 누락", "maxBodyDistanceM": 0.0947}
+  {"kind": "false-wall", "probe": "hallway-block", "message": "거실에서 욕실 앞 복도로 통하는 열린 구간에 도면에 없는 벽·창 호스트가 생성됨", "blockedSamples": 9}
+화명롯데캐슬카이저 FAIL zones 14 / 14 probes 11 / 14 dangling 5 outside ['bath-left', 'entrance', 'living']
+  {"kind": "room", "probe": "dress", "message": "드레스룸 기준점의 존 누락 또는 이름·용도 불일치", "actual": [{"id": "zone_op4l1412kzt1b4s7", "sourceRoomId": "r10", "name": "방", "cls": "bedroom"}]}
+  {"kind": "room", "probe": "entrance", "message": "현관 기준점의 존 누락 또는 이름·용도 불일치", "actual": [{"id": "zone_abt2oelpoz8o2wve", "sourceRoomId": "r9", "name": "발코니", "cls": "balcony"}]}
+  {"kind": "room", "probe": "living", "message": "거실 기준점의 존 누락 또는 이름·용도 불일치", "actual": [{"id": "zone_abt2oelpoz8o2wve", "sourceRoomId": "r9", "name": "발코니", "cls": "balcony"}]}
+  {"kind": "merged-zones", "message": "도면상 다른 공간 기준점이 같은 존을 재사용함", "details": [{"zoneId": "zone_abt2oelpoz8o2wve", "probes": ["entrance", "living"]}]}
+  {"kind": "extra-zones", "message": "도면 기준 공간과 대응하지 않는 추가 존", "details": [{"sourceRoomId": "r8", "name": "방", "areaM2": 1.3644751199999998}]}
+  {"kind": "exterior-leak", "message": "실제 벽 두께를 그린 뒤에도 공간 기준점이 외부와 연결됨", "probes": ["bath-left", "entrance", "living"]}
+  {"kind": "missing-separation", "message": "도면상 벽 또는 문·창 호스트로 나뉘는 공간이 같은 물리 영역으로 연결됨", "pairs": [["bed-top-left", "balcony-top-left"], ["kitchen", "balcony-top-mid"]]}
+  {"kind": "missing-wall", "probe": "entrance-diagonal", "message": "현관 상부 대각 외벽·문 호스트 13점 검사에서 벽 또는 개구부 호스트 누락", "maxBodyDistanceM": 0.8357}
+  {"kind": "missing-wall", "probe": "bath-left-northwest", "message": "좌측 욕실 외벽 북서 접합부 13점 검사에서 벽 또는 개구부 호스트 누락", "maxBodyDistanceM": 0.1137}
+  {"kind": "missing-wall", "probe": "bed-top-left-balcony-host", "message": "상부 좌측 안방·발코니 경계 호스트 13점 검사에서 벽 또는 개구부 호스트 누락", "maxBodyDistanceM": 0.7127}
+  {"kind": "missing-wall", "probe": "kitchen-balcony-host", "message": "부엌·상부 중앙 발코니 경계 호스트 13점 검사에서 벽 또는 개구부 호스트 누락", "maxBodyDistanceM": 0.9247}
+  {"kind": "unhosted-opening", "ids": ["o12"]}

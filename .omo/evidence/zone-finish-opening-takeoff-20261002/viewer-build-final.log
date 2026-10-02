@@ -1,0 +1,3 @@
+$ tsc --build
+
+EXIT:0

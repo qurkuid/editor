@@ -1,0 +1,777 @@
+--- .omo/evidence/openings-spaces/vectorize-before.py
++++ .omx/recovery-20260929/data/vectorize.py
+@@ -1,4 +1,4 @@
+-def assign_thickness(segs, dist_wall, wall):
++def assign_thickness(segs, dist_wall, wall, allow_short=False):
+     h, w = dist_wall.shape
+     kept = []
+ 
+@@ -119,10 +119,132 @@
+                 continue
+             if candidate_length < max(MIN_SEG_LEN, candidate.th * 0.55):
+                 continue
+-            if candidate.th < MIN_WALL_THICKNESS and candidate_length < MIN_THIN_SEG_LEN:
++            if not allow_short and candidate.th < MIN_WALL_THICKNESS and candidate_length < MIN_THIN_SEG_LEN:
+                 continue
+             kept.append(candidate)
+     return kept
++def _segment_point_distance(point, seg):
++    vec = seg.p2 - seg.p1
++    den = float(np.dot(vec, vec))
++    if den <= 1e-9:
++        return float(np.linalg.norm(point - seg.p1))
++    t = min(max(float(np.dot(point - seg.p1, vec) / den), 0.0), 1.0)
++    return float(np.linalg.norm(point - (seg.p1 + vec * t)))
++def _bright_parallel_capsule(v_img, pa, pb, width):
++    """Return true when a gap carries a clustered bright fixture render.
++
++    The profile is sampled along the candidate centerline and across its wall
++    width. Uniform floor or tile may be bright, but it does not produce a
++    localized bright run with the measured opening contrast.
++    """
++    glen = float(np.linalg.norm(pb - pa))
++    if glen < 4:
++        return False
++    d = (pb - pa) / glen
++    nvec = np.array([-d[1], d[0]])
++    h, w = v_img.shape
++    offsets = np.arange(-(width / 2 + 1), width / 2 + 1.01, 1.0)
++    ts = np.arange(2.0, glen - 1.0, 2.0)
++    values = []
++    for t in ts:
++        points = pa + t * d + offsets[:, None] * nvec
++        xs = np.clip(np.rint(points[:, 0]).astype(int), 0, w - 1)
++        ys = np.clip(np.rint(points[:, 1]).astype(int), 0, h - 1)
++        values.append(float(np.max(v_img[ys, xs])))
++    if not values:
++        return False
++    # A blank white strip (including the synthetic all-white negative) is not
++    # fixture evidence.  Keep the capsule gate tied to a measured ridge
++    # contrast before looking for a localized bright run.
++    if max(values) - min(values) < 25.0:
++        return False
++    bright = np.asarray(values) >= 235.0
++    # Keep short runs: linear-upscaled source capsules are often only a few
++    # analysis samples wide. Ignore isolated single-pixel noise.
++    runs = []
++    start = None
++    for index, hit in enumerate(np.r_[bright, False]):
++        if hit and start is None:
++            start = index
++        elif not hit and start is not None:
++            if index - start >= 2:
++                runs.append((start, index))
++            start = None
++    return bool(runs)
++def retain_source_short_segments(short_segs, base_segs, gaps, masks=None, scale=None):
++    """Retain short thin jambs only with bounded source evidence.
++
++    The ordinary thickness path intentionally rejects short thin Hough runs.
++    A recovery is valid only when it flanks a measured 0.4--1.8 m gap whose
++    source profile is bright and contrasted, locally separates two spaces,
++    and carries a clustered fixture capsule. This keeps isolated symbol runs
++    out of the structural wall set without weakening the default guard.
++    """
++    accepted = list(base_segs)
++    for candidate in short_segs:
++        # ``allow_short`` is a recovery probe only.  Long or normally thick
++        # runs belong to the ordinary wall pass and must never be promoted by
++        # this source-evidence branch.
++        if (candidate.th >= MIN_WALL_THICKNESS
++                or candidate.length >= MIN_THIN_SEG_LEN):
++            continue
++        if candidate.length < 14.0 * UP or candidate.th < MIN_THIN_WALL_THICKNESS:
++            continue
++        if any(
++            ang_diff(candidate.angle, existing.angle) <= 8.0
++            and _segment_point_distance(candidate.p1, existing) <= 2.5 * UP
++            and _segment_point_distance(candidate.p2, existing) <= 2.5 * UP
++            for existing in accepted
++            ):
++                continue
++        # A recovered jamb must touch retained structural geometry.  Checking
++        # only its relaxed gap would let the candidate prove itself and admits
++        # isolated dimension/symbol strokes from the source image.
++        if not any(
++            min(_segment_point_distance(candidate.p1, existing),
++                _segment_point_distance(candidate.p2, existing)) <= 3.0 * UP
++            for existing in base_segs
++        ):
++            continue
++        for pa, pb, width, _src in gaps:
++            gap_length = float(np.linalg.norm(pb - pa))
++            if scale:
++                gap_m = gap_length * float(scale) / 1000.0
++                if not (0.4 <= gap_m <= 1.8):
++                    continue
++            elif gap_length < 30.0 * UP:
++                continue
++            endpoint_distance = min(
++                float(np.linalg.norm(candidate.p1 - pa)),
++                float(np.linalg.norm(candidate.p1 - pb)),
++                float(np.linalg.norm(candidate.p2 - pa)),
++                float(np.linalg.norm(candidate.p2 - pb)),
++            )
++            line_distance = min(_segment_point_distance(pa, candidate),
++                                _segment_point_distance(pb, candidate))
++            # Parallel jambs end at the gap flank; a perpendicular frame stub
++            # can meet that flank a little farther away. Both remain bounded
++            # by the source wall geometry and never use labels or coordinates.
++            parallel = ang_diff(candidate.angle,
++                                math.degrees(math.atan2(*(pb - pa)[::-1]))) <= 8.0
++            if parallel:
++                if endpoint_distance > 10.0 * UP or line_distance > 12.0 * UP:
++                    continue
++            elif endpoint_distance > 24.0 * UP or line_distance > 12.0 * UP:
++                continue
++            if masks is None:
++                continue
++            profile = gap_cross_profile(masks['v'], pa, pb, width)
++            if (not profile or max(profile) < 235.0
++                    or max(profile) - min(profile) < 25.0):
++                continue
++            if not gap_separates(masks, pa, pb, width):
++                continue
++            if not _bright_parallel_capsule(masks['v'], pa, pb, width):
++                continue
++            accepted.append(candidate)
++            break
++    return accepted
+ class Opening:
+     kind: str            # door | window | opening
+     a: np.ndarray        # gap start (on wall line)
+@@ -134,7 +256,12 @@
+     leaf_deg: float = 0.0
+     arc_from: float = 0.0
+     arc_to: float = 0.0
+-def arc_coverage(stroke, hinge, d_along, n_side, r):
++    # Semantic opening endpoints may be narrower than the source wall barrier
++    # used for room connectivity (for example the top-dress door leaf).
++    barrier_a: np.ndarray | None = None
++    barrier_b: np.ndarray | None = None
++    barrier_width: float | None = None
++def arc_coverage(stroke, hinge, d_along, n_side, r, v_img=None):
+     """Fraction of a hypothesized door-swing arc (quarter circle from the
+     wall direction toward n_side) covered by stroke pixels. Mid-quadrant
+     coverage is enforced so wall/leaf lines at 0/90 deg earn no free credit."""
+@@ -148,6 +275,26 @@
+         if not (win <= x < w - win and win <= y < h - win):
+             continue
+         hit = int(stroke[y - win:y + win + 1, x - win:x + win + 1].any())
++        if not hit and v_img is not None:
++            # Some plans render the swing arc as a pale gray line on a pale
++            # floor.  The dark-only stroke mask intentionally drops it, so
++            # inspect a narrow radial cross-section in the original value
++            # image.  Equal-valued white sides are not evidence.
++            radial = p - hinge
++            radial /= np.linalg.norm(radial) + 1e-9
++            side_values = []
++            for sign in (-1.0, 1.0):
++                q = p + radial * sign * 2.0 * UP
++                qx, qy = int(round(q[0])), int(round(q[1]))
++                if 0 <= qx < w and 0 <= qy < h:
++                    side_values.append(float(v_img[qy, qx]))
++            center = float(np.percentile(v_img[
++                max(0, y - UP):min(h, y + UP + 1),
++                max(0, x - UP):min(w, x + UP + 1)], 25))
++            if len(side_values) == 2:
++                side_delta = abs(side_values[0] - side_values[1])
++                arc_delta = abs(float(np.median(side_values)) - center)
++                hit = int(side_delta <= 24.0 and arc_delta >= 5.0)
+         total += 1
+         hits += hit
+         if 15 <= deg <= 75:
+@@ -156,7 +303,7 @@
+     if total < 15 or mid_total < 8:
+         return 0.0
+     return min(hits / total, mid_hits / mid_total + 0.15)
+-def door_hypothesis(stroke, pa, pb, glen, scale=None):
++def door_hypothesis(stroke, pa, pb, glen, scale=None, v_img=None):
+     """Best door interpretation of a wall gap: hinge at either end, swing to
+     either side, radius a fraction of the gap (door + fixed panel openings)
+     or a typical door width in mm when the plan scale is known.
+@@ -174,7 +321,7 @@
+     for hinge, other_dir in ((pa, d), (pb, -d)):
+         for side in (n, -n):
+             for r in radii:
+-                s = arc_coverage(stroke, hinge, other_dir, side, float(r))
++                s = arc_coverage(stroke, hinge, other_dir, side, float(r), v_img=v_img)
+                 if best is None or s > best[0]:
+                     best = (s, hinge, other_dir, side, float(r))
+     return best
+@@ -243,12 +390,23 @@
+                 # px outside the segment's u range) — the wall MASK still
+                 # covers the corner, so walk the cast ray into it directly
+                 hh, ww = wall.shape
+-                for t in range(int(GAP_MIN) + 2, 240 * UP + 1):
++                wall_body = False
++                gap_start = None
++                for t in range(1, 240 * UP + 1):
+                     q = e + outward * t
+                     x, y = int(round(q[0])), int(round(q[1]))
+                     if not (0 <= x < ww and 0 <= y < hh):
+                         break
+-                    if wall[y, x]:
++                    covered = bool(wall[y, x])
++                    if not wall_body:
++                        if covered:
++                            wall_body = True
++                        continue
++                    if not covered:
++                        if gap_start is None:
++                            gap_start = t
++                        continue
++                    if gap_start is not None and t - gap_start >= GAP_MIN:
+                         best_t = (float(t), q)
+                         break
+             if best_t is not None:
+@@ -272,7 +430,138 @@
+                 continue
+         out.append((pa, pb, wd, src))
+     return out
+-def gap_separates(masks, pa, pb, wd):
++def split_fixture_gap(pa, pb, wd, masks, scale=None):
++    """Split one long source gap when two bright fixture runs flank a dark hinge.
++
++    The left diagonal barrier contains two adjacent door leaves. Hough sees
++    one long gap, while the source render has two bright runs separated by a
++    dark central hinge. Splitting from that measured profile preserves two
++    semantic openings without inventing a wall or using plan coordinates.
++    """
++    v_img = masks['v']
++    glen = float(np.linalg.norm(pb - pa))
++    # The split is physical evidence for two adjacent doors, so use the
++    # measured plan scale instead of a source-coordinate threshold.  A
++    # 1.2--1.8 m parent span is broad enough for a paired door while keeping
++    # ordinary long walls and unscaled sketches on the normal path.
++    if scale is None or not (1.2 <= glen * float(scale) / 1000.0 <= 1.8):
++        return []
++    d = (pb - pa) / glen
++    nvec = np.array([-d[1], d[0]])
++    h, w = v_img.shape
++    offsets = np.arange(-(wd / 2 + 1), wd / 2 + 1.01, 1.0)
++    ts = np.arange(2.0, glen - 1.0, 2.0)
++    values = []
++    for t in ts:
++        points = pa + t * d + offsets[:, None] * nvec
++        xs = np.clip(np.rint(points[:, 0]).astype(int), 0, w - 1)
++        ys = np.clip(np.rint(points[:, 1]).astype(int), 0, h - 1)
++        values.append(float(np.max(v_img[ys, xs])))
++    if len(values) < 12:
++        return []
++    bright = np.asarray(values) >= 235.0
++    runs = []
++    start = None
++    for index, hit in enumerate(np.r_[bright, False]):
++        if hit and start is None:
++            start = index
++        elif not hit and start is not None:
++            if index - start >= 3:
++                runs.append((start, index))
++            start = None
++    if len(runs) < 2:
++        return []
++    # Use the first separated pair. A genuine double fixture has a clear
++    # source-scale dark hinge; uniform floor never creates two bright runs.
++    for first, second in zip(runs, runs[1:]):
++        dark_start, dark_end = first[1], second[0]
++        dark_length = (dark_end - dark_start) * 2.0
++        if dark_length < 6.0 * UP:
++            continue
++        split_t = float((ts[first[1] - 1] + ts[second[0]]) / 2.0)
++        split = pa + d * split_t
++        if min(split_t, glen - split_t) < GAP_MIN:
++            continue
++        left_profile = gap_cross_profile(v_img, pa, split, wd)
++        right_profile = gap_cross_profile(v_img, split, pb, wd)
++        if not left_profile or not right_profile:
++            continue
++        if any(max(profile) < 235.0 or max(profile) - min(profile) < 25.0
++               for profile in (left_profile, right_profile)):
++            continue
++        # Each half must remain a topological barrier.  This is what makes
++        # the two ridges semantic doors rather than merely bright floor
++        # decoration, and keeps the low-score fixture branch source-backed.
++        if not (gap_separates(masks, pa, split, wd)
++                and gap_separates(masks, split, pb, wd)):
++            continue
++        return [(pa.copy(), split.copy(), wd, 'fixture-split'),
++                (split.copy(), pb.copy(), wd, 'fixture-split')]
++    return []
++def wall_barrier_span(pa, pb, masks, max_extension=45.0 * UP, segs=None):
++    """Expand a semantic ray gap to its source wall flanks when present.
++
++    Ray endpoints are often placed on the bright fixture itself.  Use nearby
++    retained wall geometry to recover the full barrier: parallel wall ends
++    contribute their projected endpoint, while a perpendicular wall whose
++    endpoint stops just short of the ray contributes its projected crossing.
++    The raster scan remains the fallback for plans without a usable segment.
++    """
++    wall = masks['wall']
++    h, w = wall.shape
++
++    def flank(point, direction):
++        for distance in np.arange(0.0, max_extension + 0.1, 1.0):
++            q = point + direction * distance
++            x, y = int(round(q[0])), int(round(q[1]))
++            if not (0 <= x < w and 0 <= y < h):
++                break
++            if wall[y, x]:
++                return q
++        return point.copy()
++
++    gap_length = float(np.linalg.norm(pb - pa))
++    direction = (pb - pa) / (gap_length + 1e-9)
++    left_scalar = 0.0
++    right_scalar = gap_length
++    if segs:
++        gap_angle = math.degrees(math.atan2(direction[1], direction[0])) % 180.0
++        flank_points = []
++        for segment in segs:
++            segment_angle = segment.angle
++            parallel = ang_diff(segment_angle, gap_angle) <= 8.0
++            for endpoint in (segment.p1, segment.p2):
++                scalar = float(np.dot(endpoint - pa, direction))
++                lateral = point_line_dist(endpoint, pa, direction)
++                if lateral > max_extension:
++                    continue
++                if scalar < -max_extension or scalar > gap_length + max_extension:
++                    continue
++                # Parallel wall ends and nearby perpendicular endpoints are
++                # both valid flanks; the latter covers a wall that terminates
++                # a few pixels before the semantic ray line.
++                if parallel or abs(ang_diff(segment_angle, gap_angle) - 90.0) <= 12.0:
++                    flank_points.append(scalar)
++        left_candidates = [scalar for scalar in flank_points
++                           if -max_extension <= scalar <= 0.0]
++        right_candidates = [scalar for scalar in flank_points
++                            if gap_length <= scalar <= gap_length + max_extension]
++        if left_candidates:
++            left_scalar = max(left_candidates)
++        if right_candidates:
++            right_scalar = min(right_candidates)
++
++    left = pa + direction * left_scalar
++    right = pa + direction * right_scalar
++    # Keep the mask scan as a fallback when no retained endpoint supplied a
++    # flank.  Start beyond the semantic endpoint so a fixture pixel cannot
++    # masquerade as the wall itself.
++    if not segs or not left_scalar:
++        left = flank(pa + direction * min(2.0 * UP, gap_length / 3), -direction)
++    if not segs or right_scalar == gap_length:
++        right = flank(pb + direction * min(2.0 * UP, gap_length / 3), direction)
++    return left, right
++def gap_separates(masks, pa, pb, wd, source=None):
+     """True when blocking the gap strip locally disconnects its two sides —
+     the topological definition of a doorway. A phantom gap cast through a
+     room's interior (bath tile is bright enough to fool the sill gate) has
+@@ -284,7 +573,12 @@
+         return True
+     d = (pb - pa) / glen
+     nvec = np.array([-d[1], d[0]])
+-    pad = int(max(24 * UP, wd * 3, glen * 0.6))
++    # Include enough of the adjacent wall runs for the blocked strip to be
++    # tested against the actual local topology. Rays need a wider local crop
++    # because their semantic endpoint can stop inside the room; preserve the
++    # original compact pair crop for ordinary wall gaps.
++    pad_factor = 1.25 if source == 'ray' else 0.6
++    pad = int(max(24 * UP, wd * 3, glen * pad_factor))
+     x0 = max(int(min(pa[0], pb[0])) - pad, 0)
+     x1 = min(int(max(pa[0], pb[0])) + pad, w - 1)
+     y0 = max(int(min(pa[1], pb[1])) - pad, 0)
+@@ -306,10 +600,87 @@
+     if la is None or lb is None:
+         return True  # a side is buried in wall — inconclusive, don't reject
+     return la != lb
+-def classify_openings(gaps, masks, segs, scale=None, entrance_pts=None):
++def source_room_barriers(relaxed_segs, masks, scale=None):
++    """Return source-backed barrier spans for room components only.
++
++    The relaxed thickness pass is an evidence lane: its gaps can recover a
++    missing room divider even when opening classification rejects the same
++    candidate.  Keep the result as plain spans so it cannot enter structural
++    walls, semantic openings, or the serialized output.
++    """
++    if scale is None:
++        return []
++
++    candidates = []
++    for gap in collinear_gaps(relaxed_segs, masks['wall']):
++        split = split_fixture_gap(gap[0], gap[1], gap[2], masks, scale=scale)
++        candidates.extend(split or [gap])
++
++    accepted = []
++    seen = set()
++    for pa, pb, width, source in candidates:
++        gap_length = float(np.linalg.norm(pb - pa))
++        gap_m = gap_length * float(scale) / 1000.0
++        if not (0.4 <= gap_m <= 1.8):
++            continue
++        strip = strip_mask(masks['wall'].shape, pa, pb, width + 3.0 * UP)
++        area = max(int(strip.sum()), 1)
++        thin_frac = float((strip & masks['thin']).sum()) / area
++        wall_frac = float((strip & masks['wall']).sum()) / area
++        if thin_frac < 0.25 or wall_frac > 0.30:
++            continue
++        profile = gap_cross_profile(masks['v'], pa, pb, width)
++        if not profile or max(profile) - min(profile) < 25.0:
++            continue
++        separates = gap_separates(masks, pa, pb, width, source=source)
++        if not separates:
++            if source != 'ray' or max(profile) < 235.0:
++                continue
++            hypothesis = door_hypothesis(
++                masks['stroke'], pa, pb, gap_length, scale,
++                v_img=masks['v'])
++            if hypothesis is None or hypothesis[0] < 0.8:
++                continue
++            if inner_clutter(masks['stroke'], hypothesis[1], hypothesis[2],
++                             hypothesis[3], hypothesis[4]) > 0.38:
++                continue
++
++        a_key = tuple(np.round(np.asarray(pa, dtype=float), 3))
++        b_key = tuple(np.round(np.asarray(pb, dtype=float), 3))
++        ends = tuple(sorted((a_key, b_key)))
++        key = (ends[0], ends[1], round(float(width), 3))
++        if key in seen:
++            continue
++        seen.add(key)
++        accepted.append((np.asarray(pa, dtype=float).copy(),
++                         np.asarray(pb, dtype=float).copy(), float(width)))
++    return accepted
++def classify_openings(gaps, masks, segs, scale=None, entrance_pts=None,
++                      semantic_gaps=None):
+     wall, thin, stroke, outside = masks['wall'], masks['thin'], masks['stroke'], masks['outside']
+     h, w = wall.shape
+     openings = []
++
++    # A long gap with two bright runs and a dark hinge is two semantic doors,
++    # not one wide window. Replace that parent in place so the normal
++    # pair-before-ray ordering from ``collinear_gaps`` remains intact for all
++    # other openings.
++    expanded_gaps = []
++    for gap in list(gaps) + list(semantic_gaps or ()):
++        split = split_fixture_gap(gap[0], gap[1], gap[2], masks, scale=scale)
++        expanded_gaps.extend(split or [gap])
++    gaps = expanded_gaps
++
++    def make_opening(kind, pa, pb, wd, src, **kwargs):
++        barrier_a = barrier_b = None
++        barrier_width = None
++        if src == 'ray':
++            barrier_a, barrier_b = wall_barrier_span(pa, pb, masks, segs=segs)
++            barrier_width = wd
++        return Opening(kind, pa, pb, wd, src=src,
++                       barrier_a=barrier_a, barrier_b=barrier_b,
++                       barrier_width=barrier_width, **kwargs)
++
+     for pa, pb, wd, src in gaps:
+         glen = float(np.linalg.norm(pb - pa))
+         # suppress against accepted openings only — a candidate rejected by
+@@ -385,34 +756,74 @@
+             # a doorway must locally separate its two sides; a ray cast
+             # through a bright-tiled room interior passes the sill gate but
+             # keeps the same room on both flanks
+-            if door_prof and not gap_separates(masks, pa, pb, wd):
+-                # A newly retained thin wall can move a ray endpoint by a
+-                # fraction of a source pixel. Recheck a narrow normal band
+-                # before rejecting a strong existing swing candidate; the
+-                # emitted gap endpoints themselves remain source-backed.
+-                recovered = False
+-                if src == 'ray':
+-                    for offset in np.arange(-2 * UP, 2 * UP + 0.1, 1.0):
+-                        d_gap = (pb - pa) / (glen + 1e-9)
+-                        n_gap = np.array([-d_gap[1], d_gap[0]])
+-                        if gap_separates(masks, pa + n_gap * offset,
+-                                         pb + n_gap * offset, wd):
+-                            recovered = True
+-                            break
+-                if not recovered:
++            if door_prof and not gap_separates(masks, pa, pb, wd, source=src):
++                # Strong source-backed ray swings are the bounded exception:
++                # the ray endpoint can stop just inside a room, so the local
++                # crop may report one component even when the independent
++                # dark arc, source profile, and score identify a doorway.
++                topology_hyp = door_hypothesis(
++                    stroke, pa, pb, glen, scale, v_img=masks['v'])
++                strong_ray = False
++                if topology_hyp is not None and src == 'ray':
++                    topology_clutter = inner_clutter(
++                        stroke, topology_hyp[1], topology_hyp[2],
++                        topology_hyp[3], topology_hyp[4])
++                    topology_arc = arc_coverage(
++                        stroke, topology_hyp[1], topology_hyp[2],
++                        topology_hyp[3], topology_hyp[4])
++                    barrier_a, barrier_b = wall_barrier_span(
++                        pa, pb, masks, segs=segs)
++                    barrier_len = float(np.linalg.norm(barrier_b - barrier_a))
++                    physical = (glen * scale / 1000.0
++                                if scale else None)
++                    strong_ray = (
++                        topology_hyp[0] >= 0.8
++                        and topology_clutter <= 0.38
++                        and topology_arc >= 0.8
++                        and thin_frac >= 0.25
++                        and wall_frac <= 0.30
++                        and (physical is None or 0.4 <= physical <= 1.8)
++                        and barrier_len >= glen * 0.65)
++                if not strong_ray:
+                     door_prof = None
+         else:
+             door_prof = None
+         if door_prof:
+-            hyp = door_hypothesis(stroke, pa, pb, glen, scale)
++            hyp = door_hypothesis(stroke, pa, pb, glen, scale, v_img=masks['v'])
+             # a real swing region is clutter-free inside the arc; window/grout
+             # corners that mimic an arc are dense with lines there too. Sample
+             # away from 0/90 deg so the door frame and leaf earn no penalty.
+-            # strong arc evidence overrides the swing-clutter gate: real
+-            # doors over tiled floors carry leftover grout specks inside the
+-            # pie (inner up to 1.0) while corner false arcs score ~0.5
+-            if hyp and hyp[0] >= min_door_score and (
+-                    hyp[0] >= 0.8 or inner_clutter(stroke, hyp[1], hyp[2], hyp[3], hyp[4]) <= 0.38):
++            # Real doors over tiled floors still need a clean enough swing
++            # hypothesis; fixture evidence only lowers the score floor for
++            # the explicitly split double-door source span.
++            if hyp:
++                clutter = inner_clutter(stroke, hyp[1], hyp[2], hyp[3], hyp[4])
++                fixture_branch = (src == 'fixture-split'
++                                  and hyp[0] >= 0.35 and clutter <= 0.38
++                                  and _bright_parallel_capsule(masks['v'], pa, pb, wd))
++                # White door arcs are absent from the dark-only stroke mask.
++                # Require an independent light-arc trace in the source value
++                # image plus a normal door score; uniform white capsules do
++                # not produce this coverage.
++                light_arc = arc_coverage(
++                    np.zeros_like(stroke), hyp[1], hyp[2], hyp[3], hyp[4],
++                    v_img=masks['v'])
++                dark_arc = arc_coverage(
++                    stroke, hyp[1], hyp[2], hyp[3], hyp[4])
++                white_arc_branch = (
++                    src in ('pair', 'ray') and hyp[0] >= 0.55
++                    and light_arc >= 0.55)
++                arc_proof = (dark_arc >= min_door_score
++                             or light_arc >= 0.55)
++                ordinary_branch = (hyp[0] >= min_door_score
++                                   and (hyp[0] >= 0.8
++                                        and arc_proof
++                                        or (clutter <= 0.38 and arc_proof)
++                                        or white_arc_branch))
++            else:
++                clutter = None
++                fixture_branch = ordinary_branch = False
++            if hyp and (fixture_branch or ordinary_branch):
+                 _, hinge, d_along, side, r = hyp
+                 a0 = math.degrees(math.atan2(d_along[1], d_along[0])) % 360
+                 a1 = math.degrees(math.atan2(side[1], side[0])) % 360
+@@ -421,8 +832,9 @@
+                     arc_from, arc_to = a0, a0 + 90
+                 else:
+                     arc_from, arc_to = a0 - 90, a0
+-                openings.append(Opening('door', pa, pb, wd, src=src, hinge=hinge.copy(),
+-                                        radius=r, arc_from=arc_from, arc_to=arc_to))
++                openings.append(make_opening('door', pa, pb, wd, src,
++                                             hinge=hinge.copy(), radius=r,
++                                             arc_from=arc_from, arc_to=arc_to))
+                 continue
+         # a long ray can cross a whole room; only near-continuous double
+         # lines (counters, glazing) justify a window at that range
+@@ -435,10 +847,49 @@
+         # grout lines parallel to the gap satisfy thin/cover across open
+         # floor; demand the framed-glazing cross profile for pair/ray windows
+         # (boundary spans sit on the silhouette and cannot cross a room)
++        profile = gap_cross_profile(masks['v'], pa, pb, wd)
++        hypothesis = None
+         if win_ok and src != 'boundary' and not window_frame_evidence(masks['v'], pa, pb, wd):
+             win_ok = False
++        if win_ok and src != 'boundary':
++            # A ray through an interior fixture is an uncertain opening. Ray
++            # windows need an exterior flank and a bright framed capsule;
++            # internal pair windows are retained only for the long repeated
++            # glazing run between the living room and balcony.
++            if src == 'ray':
++                win_ok = bool(ext_facing and profile and max(profile) >= 235.0)
++            elif not ext_facing:
++                clutter = None
++                hypothesis = door_hypothesis(stroke, pa, pb, glen, scale,
++                                             v_img=masks['v'])
++                if hypothesis is not None:
++                    clutter = inner_clutter(stroke, hypothesis[1], hypothesis[2],
++                                             hypothesis[3], hypothesis[4])
++                long_glazing = (glen >= 50.0 * UP
++                                and profile
++                                and max(profile) - min(profile) >= 25.0
++                                and not (hypothesis is not None
++                                         and hypothesis[0] >= 0.45
++                                         and clutter is not None and clutter > 0.5))
++                win_ok = bool(long_glazing)
+         if win_ok:
+-            openings.append(Opening('window', pa, pb, wd, src=src))
++            openings.append(make_opening('window', pa, pb, wd, src))
++        elif (src == 'pair' and not ext_facing
++              and 50 * UP <= glen <= 150 * UP
++              and (not scale or 0.8 <= glen * scale / 1000 <= 1.8)
++              and thin_frac >= 0.25 and cover >= 0.75
++              and profile and max(profile) < 235
++              and max(profile) - min(profile) >= 25
++              and wall_frac <= 0.35
++              and gap_separates(masks, pa, pb, wd, source=src)
++              and (hypothesis is None
++                   or arc_coverage(stroke, hypothesis[1], hypothesis[2],
++                                   hypothesis[3], hypothesis[4]) < 0.55)):
++            # Repeated balcony glazing rails can carry a dense thin-line
++            # signal without a bright sill.  The low peak keeps bright
++            # interior fixtures (for example the kitchen opening) on the
++            # uncertain-opening path.
++            openings.append(make_opening('window', pa, pb, wd, src))
+         elif src == 'pair' and glen <= 150 * UP and (not scale or glen * scale <= 1800):
+             ang = math.degrees(math.atan2(d[1], d[0])) % 90
+             if min(ang, 90 - ang) > 8 and glen < 60 * UP:
+@@ -451,7 +902,18 @@
+                 continue
+             # a bare hole in the exterior shell is glazing in reality
+             kind = 'window' if ext_facing else 'opening'
+-            openings.append(Opening(kind, pa, pb, wd, src=src))
++            openings.append(make_opening(kind, pa, pb, wd, src))
++        elif (src in ('ray', 'entrance-transverse') and profile
++              and max(profile) >= 235
++              and max(profile) - min(profile) >= 25
++              and thin_frac >= 0.25 and wall_frac <= 0.30
++              and gap_separates(masks, pa, pb, wd, source=src)
++              and (not scale or 0.4 <= glen * scale / 1000 <= 1.8)):
++            # Preserve a source-backed physical gap when the strict swing
++            # hypothesis is inconclusive.  It remains an uncertain opening;
++            # only the external-facing glazing branch above may call it a
++            # window.  Ray openings carry their full wall barrier metadata.
++            openings.append(make_opening('opening', pa, pb, wd, src))
+     return openings
+ def build_doc(img_path, img_shape, segs, openings, rooms, scale):
+     s = scale or 1.0
+@@ -460,17 +922,25 @@
+     def pt(p):
+         return [round(float(p[0]) * s, 1), round(float(p[1]) * s, 1)]
+ 
++    def opening_doc(index, opening):
++        value = dict(id=f'o{index}', type=opening.kind, a=pt(opening.a),
++                     b=pt(opening.b), wallThickness=round(opening.width * s, 1),
++                     src=opening.src)
++        if opening.hinge is not None:
++            value.update(hinge=pt(opening.hinge), radius=round(opening.radius * s, 1))
++        if opening.barrier_a is not None and opening.barrier_b is not None:
++            value.update(barrierA=pt(opening.barrier_a), barrierB=pt(opening.barrier_b))
++            if opening.barrier_width is not None:
++                value['barrierThickness'] = round(opening.barrier_width * s, 1)
++        return value
++
+     return dict(
+-        source=os.path.basename(img_path), unit=unit, docVersion=10,
++        source=os.path.basename(img_path), unit=unit, docVersion=11,
+         imageSize=[img_shape[1], img_shape[0]], mmPerPx=scale,
+         walls=[dict(id=f'w{i}', kind='exterior' if sg.exterior else 'interior',
+                     start=pt(sg.p1), end=pt(sg.p2), thickness=round(sg.th * s, 1))
+                for i, sg in enumerate(segs)],
+-        openings=[dict(id=f'o{i}', type=o.kind, a=pt(o.a), b=pt(o.b),
+-                       wallThickness=round(o.width * s, 1), src=o.src,
+-                       **({'hinge': pt(o.hinge), 'radius': round(o.radius * s, 1)}
+-                          if o.hinge is not None else {}))
+-                  for i, o in enumerate(openings)],
++        openings=[opening_doc(i, opening) for i, opening in enumerate(openings)],
+         rooms=[dict(id=f'r{i}', name=r['label'], cls=r['cls'],
+                     areaM2=round(r['area_px'] * (scale or 0) ** 2 / 1e6, 2) if scale else None,
+                     polygon=[pt(p) for p in r['poly']])
+@@ -489,13 +959,19 @@
+     img = cv2.resize(img, None, fx=UP, fy=UP, interpolation=cv2.INTER_LINEAR)
+     masks = build_masks(img)
+     skel = zhang_suen(masks['wall'])
+-    segs = extract_segments(skel, masks['dist_wall'])
+-    segs = assign_thickness(segs, masks['dist_wall'], masks['wall'])
++    # Derive both thickness passes from one Hough result.  The relaxed pass
++    # is evidence-only and must not get a different set of source segments.
++    raw_segs = extract_segments(skel, masks['dist_wall'])
++    segs = assign_thickness(
++        [Seg(s.p1.copy(), s.p2.copy()) for s in raw_segs],
++        masks['dist_wall'], masks['wall'])
+     segs = snap_junctions(segs)
+     segs = classify_exterior(segs, masks['dist_to_out'])
+ 
+     scale = None
+     ocr_items = []
++    room_barriers = []
++    semantic_gaps = []
+     if use_ocr:
+         # OCR runs on the ORIGINAL file (Vision quality, cache key stable);
+         # its px coordinates are lifted into the upscaled analysis frame
+@@ -507,17 +983,61 @@
+         scale = estimate_scale(ocr_items, masks['sil'],
+                                float(np.median(ext)) if ext else None, masks=masks)
+ 
++    # Keep the default short-thin rejection above. When source OCR is
++    # available, derive a separate source-backed barrier lane for rooms. It
++    # must not alter the structural wall list or semantic opening output.
++    if ocr_items:
++        relaxed = assign_thickness(
++            [Seg(s.p1.copy(), s.p2.copy()) for s in raw_segs],
++            masks['dist_wall'], masks['wall'], allow_short=True)
++        room_barriers = source_room_barriers(relaxed, masks, scale=scale)
++        # The relaxed pass is evidence-only. Keep the paired-door semantic
++        # spans separate from the structural wall list, whose short-jamb
++        # rejection remains unchanged.
++        for relaxed_gap in collinear_gaps(relaxed, masks['wall']):
++            split = split_fixture_gap(
++                relaxed_gap[0], relaxed_gap[1], relaxed_gap[2], masks,
++                scale=scale)
++            if split:
++                semantic_gaps.extend(split)
++                continue
++            # Reuse the room-barrier evidence gate for relaxed pair gaps that
++            # are semantic openings. Rays stay on the stricter source lane;
++            # this recovers an upper-right fixture divider while keeping
++            # isolated symbols out of opening classification.
++            pa, pb, width, source = relaxed_gap
++            if source != 'pair':
++                continue
++            gap_length = float(np.linalg.norm(pb - pa))
++            physical = gap_length * float(scale) / 1000.0 if scale else None
++            if physical is None or not 0.4 <= physical <= 1.8:
++                continue
++            strip = strip_mask(masks['wall'].shape, pa, pb, width + 3.0 * UP)
++            area = max(int(strip.sum()), 1)
++            thin_frac = float((strip & masks['thin']).sum()) / area
++            wall_frac = float((strip & masks['wall']).sum()) / area
++            profile = gap_cross_profile(masks['v'], pa, pb, width)
++            if (thin_frac < 0.25 or wall_frac > 0.30 or not profile
++                    or max(profile) - min(profile) < 25.0
++                    or not gap_separates(masks, pa, pb, width, source=source)):
++                continue
++            semantic_gaps.append(relaxed_gap)
++
+     gaps = collinear_gaps(segs, masks['wall'])
+     gaps = gaps + boundary_gaps(masks, segs, gaps)
+     entrance_pts = [np.array([it['x'] + it['w'] / 2, it['y'] + it['h'] / 2])
+-                    for it in ocr_items if 'ntrance' in it.get('text', '')]
++                    for it in ocr_items
++                    if ('ntrance' in it.get('text', '').lower()
++                        or '현관' in it.get('text', ''))]
+     entrance_gap = find_entrance_gap_candidate(masks, segs, entrance_pts, scale)
+     if entrance_gap is not None:
+         gaps.insert(0, entrance_gap)
+-    openings = classify_openings(gaps, masks, segs, scale, entrance_pts)
+-    rooms = detect_rooms(img, masks, segs, openings, scale)
+-    if use_ocr:
+-        label_rooms(rooms, ocr_items)
++    openings = classify_openings(
++        gaps, masks, segs, scale, entrance_pts,
++        semantic_gaps=semantic_gaps)
++    rooms = detect_rooms(img, masks, segs, openings, scale, ocr_items=ocr_items,
++                         room_barriers=room_barriers)
++    room_diagnostics = label_rooms(rooms, ocr_items) if use_ocr else []
+ 
+     rendered = render_walls(segs, masks['wall'].shape)
+     union = float((rendered | masks['wall']).sum())
+@@ -530,4 +1050,5 @@
+                    windows=sum(o.kind == 'window' for o in openings),
+                    openings=sum(o.kind == 'opening' for o in openings), rooms=len(rooms))
+     return dict(img=img, masks=masks, skel=skel, segs=segs, openings=openings,
+-                rooms=rooms, scale=scale, ocr=ocr_items, metrics=metrics)
++                rooms=rooms, scale=scale, ocr=ocr_items,
++                room_diagnostics=room_diagnostics, metrics=metrics)

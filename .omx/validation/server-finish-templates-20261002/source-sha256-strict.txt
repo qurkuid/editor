@@ -1,0 +1,13 @@
+99048f6f5b2cd9ea833f06698ad2a6ff56fc98ce0a1fedf17e2cc9126cbbab30  apps/editor/app/api/finish-templates/route.ts
+9274ed793753ca605087a7df859808895767b557ccb605fd3e9a061911a7307a  apps/editor/app/api/finish-templates/[id]/route.ts
+90f9a58826353a93f79744f7dcdd7a755a391b3e076eeabe8fa2629b1b08cdb4  apps/editor/app/api/finish-templates/route.test.ts
+f1a532b3d08af977933a98ffa9c6369aae8acde53d84d2d28a3a5cfc287fdb08  apps/editor/lib/finish-template-schema.ts
+c00c6472f192dbadffd4f24e245f4fed8ba0997fcdb19922871ca2d9367f7406  apps/editor/lib/finish-template-schema.test.ts
+4a4eb054dcbfeea9e36632e5bac52ae49840a2a5100a250fd69146459c9d5677  apps/editor/lib/finish-template-server.ts
+ca7156b2d79f4e80ce101885c757547862a3ee0808955878b3e1782d7c0c82f8  apps/editor/lib/finish-template-server.test.ts
+064cec277568c3d668a6b75047d0e5ef2a6dc559fad38df80feca8d88208adf9  apps/editor/lib/scene-api-security.ts
+4102c4f01d459e0b993aa0eee530426a4f430976fdaecf1b8bcd6ef96b2a775e  apps/editor/lib/scene-store-server.ts
+e023c6e69145fd78417f8c65c6e0ac555a9265e868e2e85d3024fe92b4ce06c4  packages/mcp/src/storage/index.ts
+34f1c230559eadcce5f51f5729fbd6b711844da681654350942a8fc642d6837e  packages/mcp/src/storage/types.ts
+5a6050f811f8bc1b44451ab4260024789587f14a658425388ae8cbcebb71156b  packages/mcp/src/storage/sqlite-scene-store.ts
+662715cce6e1756f20145b7568ec5a05cff33b739e49293498ea1b2869100dfb  packages/mcp/src/storage/sqlite-scene-store.test.ts

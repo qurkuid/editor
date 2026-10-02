@@ -1,0 +1,9 @@
+[rooms] label diagnostics: [{"kind": "conflicted-room", "room": 3, "labels": ["욕실", "드레스룸", "드레스룸", "안방"]}, {"kind": "conflicted-room", "room": 2, "labels": ["안방", "드레스룸"]}, {"kind": "conflicted-room", "room": 8, "labels": ["발코니", "발코니"]}]
+metrics {"doors": 5, "openings": 3, "planId": "source-plan", "rooms": 9, "scale": 10.992, "style": "standard", "wallIoU": 0.811, "walls": 51, "windows": 3}
+Traceback (most recent call last):
+  File "/Users/changseok/editor/.omo/evidence/openings-spaces/source-regression.py", line 202, in <module>
+    run(Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_IMAGE)
+  File "/Users/changseok/editor/.omo/evidence/openings-spaces/source-regression.py", line 149, in run
+    assert len({matches[0] for matches in owners.values()}) == len(owners), owners
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'드레스룸@935.0': [0], '욕실@712.0': [1], '욕실@477.0': [3], '드레스룸@530.0': [4], '현관@590.0': [5], '안방@857.0': [2], '드레스룸@505.0': [3], '드레스룸@699.0': [2], '드레스룸@585.0': [3], '안방@471.0': [3], '거실@784.0': [6], '부엌@585.0': [7], '발코니@752.0': [8], '발코니@843.0': [8]}

@@ -1,0 +1,54 @@
+{
+  "source": ".omo/evidence/missing-walls/source-plan.jpg",
+  "api": ".omo/evidence/openings-spaces/api-vector-after.json",
+  "roomId": "r6",
+  "roomClass": "bedroom",
+  "apiMmPerPx": 10.992,
+  "apiImageSize": [
+    2484,
+    1656
+  ],
+  "sourceImageSize": [
+    1242,
+    828
+  ],
+  "analysisToSourceScale": 2.0,
+  "sourcePolygonPx": [
+    [
+      417.999,
+      271.998
+    ],
+    [
+      290.998,
+      395.501
+    ],
+    [
+      365.502,
+      472.498
+    ],
+    [
+      477.502,
+      363.0
+    ],
+    [
+      444.501,
+      324.5
+    ],
+    [
+      454.499,
+      308.001
+    ]
+  ],
+  "cropBoxSourcePx": {
+    "x": 274,
+    "y": 255,
+    "w": 221,
+    "h": 235
+  },
+  "mask": "pixels outside room r6 polygon set to white before crop",
+  "upscale": {
+    "factor": 3,
+    "interpolation": "INTER_CUBIC"
+  },
+  "output": ".omo/evidence/space-boundary-repair/ocr/upper-left-bedroom-3x.png"
+}

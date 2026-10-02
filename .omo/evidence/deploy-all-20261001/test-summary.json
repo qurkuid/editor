@@ -1,0 +1,9 @@
+{
+  "files": 502,
+  "pass": 4150,
+  "skip": 1,
+  "failedFiles": [
+    "packages/nodes/src/body/move-session.test.ts",
+    "packages/nodes/src/duct-fitting/parametrics.test.ts"
+  ]
+}

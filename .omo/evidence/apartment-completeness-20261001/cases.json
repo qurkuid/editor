@@ -1,0 +1,26 @@
+[
+  {
+    "key": "jangjeon",
+    "apartmentId": "3FO4KH7SYCOC",
+    "planId": "3FO3YBET8M3M",
+    "name": "래미안장전",
+    "type": "89B㎡",
+    "sceneId": "831134af538d"
+  },
+  {
+    "key": "haeundae",
+    "apartmentId": "3FO4KH3VQEHW",
+    "planId": "3FO3Y8VP946W",
+    "name": "해운대자이2차",
+    "type": "109A㎡",
+    "sceneId": "cd2724237c2f"
+  },
+  {
+    "key": "hwmyeong",
+    "apartmentId": "3FO4KGYRR0PR",
+    "planId": "3FO3YD1THDWY",
+    "name": "화명롯데캐슬카이저",
+    "type": "177B㎡",
+    "sceneId": "377fefabb604"
+  }
+]

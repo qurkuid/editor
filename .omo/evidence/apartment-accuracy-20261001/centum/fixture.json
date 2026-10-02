@@ -1,0 +1,266 @@
+{
+  "sourceImageSize": [
+    1242,
+    828
+  ],
+  "origin": "원본 도면 육안 판독 후 생성 결과 확인 전에 동결한 기준점",
+  "expectedRooms": 17,
+  "roomProbes": [
+    {
+      "id": "bedroom-0",
+      "label": "bedroom",
+      "source": [
+        316,
+        421
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "bedroom-1",
+      "label": "bedroom",
+      "source": [
+        390,
+        471
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "bedroom-2",
+      "label": "bedroom",
+      "source": [
+        539,
+        455
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "bedroom-3",
+      "label": "bedroom",
+      "source": [
+        838,
+        273
+      ],
+      "cls": "bedroom",
+      "acceptedNames": [
+        "안방",
+        "방"
+      ]
+    },
+    {
+      "id": "bath-4",
+      "label": "bath",
+      "source": [
+        688,
+        232
+      ],
+      "cls": "bath",
+      "acceptedNames": [
+        "욕실"
+      ]
+    },
+    {
+      "id": "bath-5",
+      "label": "bath",
+      "source": [
+        481,
+        313
+      ],
+      "cls": "bath",
+      "acceptedNames": [
+        "욕실"
+      ]
+    },
+    {
+      "id": "entrance-6",
+      "label": "entrance",
+      "source": [
+        545,
+        301
+      ],
+      "cls": "entrance",
+      "acceptedNames": [
+        "현관",
+        "전실"
+      ]
+    },
+    {
+      "id": "entrance-7",
+      "label": "entrance",
+      "source": [
+        523,
+        216
+      ],
+      "cls": "entrance",
+      "acceptedNames": [
+        "현관",
+        "전실"
+      ]
+    },
+    {
+      "id": "living-8",
+      "label": "living",
+      "source": [
+        722,
+        402
+      ],
+      "cls": "living",
+      "acceptedNames": [
+        "거실"
+      ]
+    },
+    {
+      "id": "kitchen-9",
+      "label": "kitchen",
+      "source": [
+        655,
+        458
+      ],
+      "cls": "kitchen",
+      "acceptedNames": [
+        "부엌",
+        "주방"
+      ]
+    },
+    {
+      "id": "balcony-10",
+      "label": "balcony",
+      "source": [
+        941,
+        271
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-11",
+      "label": "balcony",
+      "source": [
+        953,
+        481
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-12",
+      "label": "balcony",
+      "source": [
+        317,
+        513
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-13",
+      "label": "balcony",
+      "source": [
+        425,
+        514
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-14",
+      "label": "balcony",
+      "source": [
+        538,
+        514
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-15",
+      "label": "balcony",
+      "source": [
+        655,
+        544
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    },
+    {
+      "id": "balcony-16",
+      "label": "balcony",
+      "source": [
+        752,
+        544
+      ],
+      "cls": "balcony",
+      "acceptedNames": [
+        "발코니"
+      ]
+    }
+  ],
+  "wallProbes": [
+    {
+      "id": "wall-0",
+      "label": "원본 실벽",
+      "a": [
+        374,
+        424
+      ],
+      "b": [
+        374,
+        484
+      ]
+    },
+    {
+      "id": "wall-1",
+      "label": "원본 실벽",
+      "a": [
+        470,
+        430
+      ],
+      "b": [
+        470,
+        493
+      ]
+    },
+    {
+      "id": "wall-2",
+      "label": "원본 실벽",
+      "a": [
+        750,
+        209
+      ],
+      "b": [
+        750,
+        301
+      ]
+    }
+  ],
+  "forbiddenWallProbes": [],
+  "closedHostPairs": [],
+  "tolerances": {
+    "wallBodyDistanceM": 0.06,
+    "overlapInteriorAreaM2": 0.005,
+    "endpointGapM": 0.02
+  }
+}

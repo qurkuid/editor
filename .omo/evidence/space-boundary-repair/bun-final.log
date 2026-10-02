@@ -1,0 +1,56 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/apt-vector-scene.test.ts:
+(pass) buildVectorNodes > connects X and T crossings without overlapping wall footprints and preserves openings [21.87ms]
+(pass) buildVectorNodes > uses solid concrete for apartment walls while preserving detected thickness [1.56ms]
+(pass) buildVectorNodes > keeps an opening whole when a detected branch meets its span [0.31ms]
+(pass) buildVectorNodes > merges gap-flanking walls and maps to centred level metres [2.63ms]
+(pass) buildVectorNodes > hosts openings inside the merged wall with wall-local positions [2.49ms]
+(pass) buildVectorNodes > uses the semantic opening span and preserves source provenance [3.96ms]
+(pass) buildVectorNodes > recovers an ordered fixture-split door only onto an anchored sibling host [4.90ms]
+(pass) buildVectorNodes > preserves a narrow source opening and rejects invalid tiny spans [1.59ms]
+(pass) buildVectorNodes > creates room zones from labeled polygons [0.68ms]
+(pass) buildVectorNodes > snaps corner and tee gaps closed along each wall axis [0.18ms]
+(pass) buildVectorNodes > deduplicates overlapping opening detections on one wall [0.23ms]
+(pass) buildVectorNodes > reports what the conversion left out [0.29ms]
+(pass) buildVectorNodes > extends a single flank across a corner-door gap [0.10ms]
+(pass) buildVectorNodes > refuses untrustworthy documents
+
+packages/mcp/src/ontology-manual.test.ts:
+(pass) Phase 2 ontology manual contract > documents ontology discovery and evidence requirements
+(pass) Phase 2 ontology manual contract > documents the canonical Body transform and direct scale interactions [0.33ms]
+(pass) Phase 2 ontology manual contract > documents apartment wall extraction and junction continuity
+(pass) Phase 2 ontology manual contract > documents source-backed opening and room boundary contracts [0.26ms]
+(pass) Phase 2 ontology manual contract > documents persistent Body sub-entity selection
+(pass) Phase 2 ontology manual contract > documents Body Autofold constraints [0.18ms]
+(pass) Phase 2 ontology manual contract > documents whole-Body array operations
+(pass) Phase 2 ontology manual contract > documents editor-only Body container edit routing [0.23ms]
+(pass) Phase 2 ontology manual contract > documents solid inspection and Body boolean operations
+(pass) Phase 2 ontology manual contract > documents Solid Tools ordering and tool lifetime [0.32ms]
+(pass) Phase 2 ontology manual contract > documents the canonical Body offset operation and signed interaction [0.05ms]
+(pass) Phase 2 ontology manual contract > documents signed imprint through-cuts and the 2D render-only boundary
+(pass) Phase 2 ontology manual contract > documents sampled Arc parity through existing Body operations
+
+packages/mcp/src/resources/resources.test.ts:
+(pass) pascal://scene/current > returns the full scene JSON [10.60ms]
+(pass) pascal://scene/current > reflects mutations to the store [3.56ms]
+(pass) pascal://scene/current/summary > returns markdown with counts and bbox [0.86ms]
+(pass) pascal://scene/current/summary > estimated floor area sums zone polygon areas [1.30ms]
+(pass) pascal://scene/current/summary > empty scene returns a markdown skeleton without crashing [1.20ms]
+(pass) pascal://catalog/items > returns built-in catalog subset [0.69ms]
+(pass) pascal://agent-guide > agent guide returns MCP-first project guidance [1.21ms]
+(pass) pascal://agent-guide > keeps the legacy agent guide URI as an alias [0.36ms]
+(pass) pascal://constraints/{levelId} > returns slabs + wall footprints for a known level [1.10ms]
+(pass) pascal://constraints/{levelId} > returns {error:"level_not_found"} for unknown levelId [0.50ms]
+(pass) pascal://debug/state > returns structural diagnostics without viewport data [1.03ms]
+
+packages/editor/src/hooks/use-auto-save.test.ts:
+(pass) isSuspiciousNodeDrop > blocks populated scenes from being flushed as empty skeletons [0.05ms]
+(pass) isSuspiciousNodeDrop > blocks small scenes from collapsing to zero (the trace-bootstrap wipe)
+(pass) isSuspiciousNodeDrop > allows explicit undo to restore the pre-import skeleton
+(pass) isSuspiciousNodeDrop > allows ordinary edits, small-scene edits, and empty starting scenes
+
+ 42 pass
+ 0 fail
+ 313 expect() calls
+Ran 42 tests across 4 files. [448.00ms]

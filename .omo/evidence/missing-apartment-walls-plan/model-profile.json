@@ -1,0 +1,22 @@
+[
+  {
+    "type": "session_meta",
+    "id": "01a0f020-4a3a-7a11-94b0-e537fe1493a2",
+    "source": {
+      "subagent": {
+        "thread_spawn": {
+          "parent_thread_id": "01a0efee-8283-7270-a215-825f5e109bcf",
+          "depth": 1,
+          "agent_path": "/root/missing_wall_plan",
+          "agent_nickname": "Medium Worker the 2nd",
+          "agent_role": "default"
+        }
+      }
+    }
+  },
+  {
+    "type": "turn_context",
+    "model": "gpt-6-astra",
+    "effort": "high"
+  }
+]

@@ -1,0 +1,688 @@
+{
+  "file": "/Users/changseok/editor/outputs/onheuk-straight-10/cut-layout-600x2400/onheuk-10-cut-layout-600x2400.skp",
+  "sheet_count": 6,
+  "part_count": 89,
+  "all_solid": true,
+  "all_positions_verified": true,
+  "no_overlap": true,
+  "kerf_mm": 4,
+  "margin_mm": 10,
+  "source_geometry_preserved": true,
+  "fabrication_status": "치수 및 결합부 미확정 — 재단 보류",
+  "scenes": [
+    "00 온장 전체 배치",
+    "12T-01",
+    "15T-01",
+    "15T-02",
+    "15T-03",
+    "15T-04",
+    "15T-05"
+  ],
+  "sheets": [
+    {
+      "sheet": "12T-01",
+      "thickness_mm": 12,
+      "part_count": 9,
+      "parts": [
+        {
+          "id": "P06-01",
+          "solid": true,
+          "volume_mm3": 601440.0,
+          "position_verified": true,
+          "thickness_mm": 12
+        },
+        {
+          "id": "P06-02",
+          "solid": true,
+          "volume_mm3": 429600.0,
+          "position_verified": true,
+          "thickness_mm": 12
+        },
+        {
+          "id": "P06-03",
+          "solid": true,
+          "volume_mm3": 207600.0,
+          "position_verified": true,
+          "thickness_mm": 12
+        },
+        {
+          "id": "P06-04",
+          "solid": true,
+          "volume_mm3": 201600.0,
+          "position_verified": true,
+          "thickness_mm": 12
+        },
+        {
+          "id": "P06-05",
+          "solid": true,
+          "volume_mm3": 117600.0,
+          "position_verified": true,
+          "thickness_mm": 12
+        },
+        {
+          "id": "P06-06",
+          "solid": true,
+          "volume_mm3": 406896.0,
+          "position_verified": true,
+          "thickness_mm": 12
+        },
+        {
+          "id": "P06-07",
+          "solid": true,
+          "volume_mm3": 190992.0,
+          "position_verified": true,
+          "thickness_mm": 12
+        },
+        {
+          "id": "P06-08",
+          "solid": true,
+          "volume_mm3": 28800.0,
+          "position_verified": true,
+          "thickness_mm": 12
+        },
+        {
+          "id": "P06-09",
+          "solid": true,
+          "volume_mm3": 28800.0,
+          "position_verified": true,
+          "thickness_mm": 12
+        }
+      ]
+    },
+    {
+      "sheet": "15T-01",
+      "thickness_mm": 15,
+      "part_count": 18,
+      "parts": [
+        {
+          "id": "P01-08",
+          "solid": true,
+          "volume_mm3": 240000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-02",
+          "solid": true,
+          "volume_mm3": 1366800.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-04",
+          "solid": true,
+          "volume_mm3": 1366800.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-04",
+          "solid": true,
+          "volume_mm3": 796950.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-09",
+          "solid": true,
+          "volume_mm3": 5964000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-10",
+          "solid": true,
+          "volume_mm3": 263437.5,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-11",
+          "solid": true,
+          "volume_mm3": 263437.5,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-12",
+          "solid": true,
+          "volume_mm3": 263437.5,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-13",
+          "solid": true,
+          "volume_mm3": 263437.5,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P05-01",
+          "solid": true,
+          "volume_mm3": 2103750.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P05-02",
+          "solid": true,
+          "volume_mm3": 1048800.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P05-03",
+          "solid": true,
+          "volume_mm3": 101250.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P05-04",
+          "solid": true,
+          "volume_mm3": 173250.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-01",
+          "solid": true,
+          "volume_mm3": 536250.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-03",
+          "solid": true,
+          "volume_mm3": 536250.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-05",
+          "solid": true,
+          "volume_mm3": 2471625.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-08",
+          "solid": true,
+          "volume_mm3": 347625.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-12",
+          "solid": true,
+          "volume_mm3": 327375.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        }
+      ]
+    },
+    {
+      "sheet": "15T-02",
+      "thickness_mm": 15,
+      "part_count": 17,
+      "parts": [
+        {
+          "id": "P01-01",
+          "solid": true,
+          "volume_mm3": 1115775.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P02-03",
+          "solid": true,
+          "volume_mm3": 1518750.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P02-07",
+          "solid": true,
+          "volume_mm3": 567000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-01",
+          "solid": true,
+          "volume_mm3": 1366800.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-03",
+          "solid": true,
+          "volume_mm3": 1366800.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-11",
+          "solid": true,
+          "volume_mm3": 1518000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-13",
+          "solid": true,
+          "volume_mm3": 172500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-07",
+          "solid": true,
+          "volume_mm3": 2950500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-08",
+          "solid": true,
+          "volume_mm3": 2950500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P07-06",
+          "solid": true,
+          "volume_mm3": 328500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-02",
+          "solid": true,
+          "volume_mm3": 322500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-04",
+          "solid": true,
+          "volume_mm3": 322500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-06",
+          "solid": true,
+          "volume_mm3": 2471625.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-01",
+          "solid": true,
+          "volume_mm3": 798000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-02",
+          "solid": true,
+          "volume_mm3": 798000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-04",
+          "solid": true,
+          "volume_mm3": 99000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-09",
+          "solid": true,
+          "volume_mm3": 99000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        }
+      ]
+    },
+    {
+      "sheet": "15T-03",
+      "thickness_mm": 15,
+      "part_count": 19,
+      "parts": [
+        {
+          "id": "P01-02",
+          "solid": true,
+          "volume_mm3": 1115775.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P01-04",
+          "solid": true,
+          "volume_mm3": 1115775.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P02-06",
+          "solid": true,
+          "volume_mm3": 283500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-05",
+          "solid": true,
+          "volume_mm3": 1518000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-06",
+          "solid": true,
+          "volume_mm3": 172500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-07",
+          "solid": true,
+          "volume_mm3": 172500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-08",
+          "solid": true,
+          "volume_mm3": 1518000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-09",
+          "solid": true,
+          "volume_mm3": 172500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-10",
+          "solid": true,
+          "volume_mm3": 172500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P03-12",
+          "solid": true,
+          "volume_mm3": 172500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P08-01",
+          "solid": true,
+          "volume_mm3": 2973375.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P08-02",
+          "solid": true,
+          "volume_mm3": 2973375.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P08-03",
+          "solid": true,
+          "volume_mm3": 3448125.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P08-04",
+          "solid": true,
+          "volume_mm3": 436500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P08-06",
+          "solid": true,
+          "volume_mm3": 363750.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-09",
+          "solid": true,
+          "volume_mm3": 386250.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-10",
+          "solid": true,
+          "volume_mm3": 337500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-11",
+          "solid": true,
+          "volume_mm3": 337500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-10",
+          "solid": true,
+          "volume_mm3": 99000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        }
+      ]
+    },
+    {
+      "sheet": "15T-04",
+      "thickness_mm": 15,
+      "part_count": 6,
+      "parts": [
+        {
+          "id": "P02-05",
+          "solid": true,
+          "volume_mm3": 283500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P07-01",
+          "solid": true,
+          "volume_mm3": 3487500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P07-02",
+          "solid": true,
+          "volume_mm3": 3487500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P07-03",
+          "solid": true,
+          "volume_mm3": 2956500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P08-05",
+          "solid": true,
+          "volume_mm3": 3164625.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P09-07",
+          "solid": true,
+          "volume_mm3": 3746625.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        }
+      ]
+    },
+    {
+      "sheet": "15T-05",
+      "thickness_mm": 15,
+      "part_count": 20,
+      "parts": [
+        {
+          "id": "P01-03",
+          "solid": true,
+          "volume_mm3": 1115775.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P01-05",
+          "solid": true,
+          "volume_mm3": 897750.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P01-06",
+          "solid": true,
+          "volume_mm3": 897750.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P01-07",
+          "solid": true,
+          "volume_mm3": 1536000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P01-09",
+          "solid": true,
+          "volume_mm3": 240000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P02-01",
+          "solid": true,
+          "volume_mm3": 2430000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P02-02",
+          "solid": true,
+          "volume_mm3": 2430000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P02-04",
+          "solid": true,
+          "volume_mm3": 1417500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-01",
+          "solid": true,
+          "volume_mm3": 869400.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-02",
+          "solid": true,
+          "volume_mm3": 869400.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-03",
+          "solid": true,
+          "volume_mm3": 796950.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-05",
+          "solid": true,
+          "volume_mm3": 869400.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P04-06",
+          "solid": true,
+          "volume_mm3": 869400.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P07-04",
+          "solid": true,
+          "volume_mm3": 427050.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P07-05",
+          "solid": true,
+          "volume_mm3": 328500.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-03",
+          "solid": true,
+          "volume_mm3": 99000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-05",
+          "solid": true,
+          "volume_mm3": 99000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-06",
+          "solid": true,
+          "volume_mm3": 99000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-07",
+          "solid": true,
+          "volume_mm3": 99000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        },
+        {
+          "id": "P10-08",
+          "solid": true,
+          "volume_mm3": 99000.0,
+          "position_verified": true,
+          "thickness_mm": 15
+        }
+      ]
+    }
+  ]
+}

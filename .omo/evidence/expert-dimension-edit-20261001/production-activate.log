@@ -1,0 +1,28 @@
+[PM2] Applying action deleteProcessId on app [apt-subdomain](ids: [ 12 ])
+[PM2] [apt-subdomain](12) ✓
+┌────┬────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name           │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ agentflow      │ default     │ 1.1.0   │ fork    │ 6686     │ 29D    │ 573  │ online    │ 0.5%     │ 40.1mb   │ baegcha… │ disabled │
+│ 1  │ intm-cmp339    │ default     │ N/A     │ fork    │ 3037     │ 29D    │ 0    │ online    │ 0%       │ 4.9mb    │ baegcha… │ disabled │
+│ 5  │ paperclip      │ default     │ 0.3.1   │ fork    │ 61779    │ 28D    │ 3    │ online    │ 0%       │ 891.3mb  │ baegcha… │ disabled │
+│ 2  │ pnpm-start     │ default     │ 16.0.10 │ fork    │ 889      │ 66m    │ 15   │ online    │ 0%       │ 440.3mb  │ baegcha… │ disabled │
+│ 7  │ social-desk    │ default     │ 1.0.0   │ fork    │ 21948    │ 35h    │ 24   │ online    │ 0%       │ 51.1mb   │ baegcha… │ disabled │
+└────┴────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2][WARN] Applications apt-subdomain not running, starting...
+[PM2] App [apt-subdomain] launched (1 instances)
+┌────┬──────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name             │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ agentflow        │ default     │ 1.1.0   │ fork    │ 6686     │ 29D    │ 573  │ online    │ 0%       │ 40.1mb   │ baegcha… │ disabled │
+│ 13 │ apt-subdomain    │ default     │ 16.2.12 │ fork    │ 77183    │ 0s     │ 0    │ online    │ 0%       │ 944.0kb  │ baegcha… │ disabled │
+│ 1  │ intm-cmp339      │ default     │ N/A     │ fork    │ 3037     │ 29D    │ 0    │ online    │ 0%       │ 4.9mb    │ baegcha… │ disabled │
+│ 5  │ paperclip        │ default     │ 0.3.1   │ fork    │ 61779    │ 28D    │ 3    │ online    │ 0%       │ 891.3mb  │ baegcha… │ disabled │
+│ 2  │ pnpm-start       │ default     │ 16.0.10 │ fork    │ 889      │ 66m    │ 15   │ online    │ 0%       │ 440.3mb  │ baegcha… │ disabled │
+│ 7  │ social-desk      │ default     │ 1.0.0   │ fork    │ 21948    │ 35h    │ 24   │ online    │ 0%       │ 51.1mb   │ baegcha… │ disabled │
+└────┴──────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /Users/baegchangseog/.pm2/dump.pm2
+{"name":"apt-subdomain","pid":77183,"status":"online","cwd":"/Volumes/DATABASE/floorplan-releases/20261001-d121617a/apps/editor","script":"/Volumes/DATABASE/floorplan-releases/20261001-d121617a/apps/editor/node_modules/next/dist/bin/next"}
+curl: (7) Failed to connect to 127.0.0.1 port 3024 after 0 ms: Couldn't connect to server
+Local HTTP: 200

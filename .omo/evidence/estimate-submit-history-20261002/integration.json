@@ -1,0 +1,15 @@
+{
+  "base": "f705593d5d2287736d1bc47903c8c105f8a41918",
+  "ownedFiles": [
+    "apps/editor/app/api/intm/materials/route.ts",
+    "apps/editor/components/stats-tab.tsx",
+    "apps/editor/lib/scene-project-link.ts",
+    "apps/editor/lib/scene-project-link.test.ts",
+    "packages/editor/src/i18n/dictionary/furniture.ts"
+  ],
+  "unrelatedTrackedDiffPreserved": true,
+  "unrelatedDiffSha256": "daf993f66301348fbfde696e6c6c65bd0966a9ef6d8a7df537a46aa1bf2f7f82",
+  "sourceMatchesValidatedWorktree": true,
+  "historyCommit": "2215e094fefdf96f3f74d7cbd7afbb2d11ed4c0f",
+  "historyPushed": true
+}

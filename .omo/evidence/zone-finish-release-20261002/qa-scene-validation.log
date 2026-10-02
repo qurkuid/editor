@@ -1,0 +1,96 @@
+{
+  "fixture": "/Users/changseok/editor/.omo/evidence/zone-finish-release-20261002/qa-scene.json",
+  "validation": {
+    "ok": true,
+    "schemaIssueCount": 0,
+    "errors": 0,
+    "warnings": 0,
+    "stats": {
+      "total": 8,
+      "byType": {
+        "site": 1,
+        "building": 1,
+        "level": 1,
+        "wall": 4,
+        "zone": 1
+      },
+      "pluginTypes": {},
+      "unknownTypes": {},
+      "floorAreaM2": 0
+    }
+  },
+  "graph": {
+    "nodes": 8,
+    "rootNodeIds": [
+      "site_qa"
+    ],
+    "wallCount": 4,
+    "wallWinding": "CCW",
+    "footprintM": "4x4",
+    "slabCount": 0,
+    "ceilingCount": 0
+  },
+  "detectedSpace": {
+    "count": 1,
+    "boundaryFaces": [
+      "wall_qa_bottom:front",
+      "wall_qa_right:front",
+      "wall_qa_top:front",
+      "wall_qa_left:front"
+    ]
+  },
+  "zoneFinishInspection": {
+    "zoneId": "zone_qa_room",
+    "wallFaces": [
+      {
+        "key": "wall_qa_bottom:front",
+        "side": "interior",
+        "roles": [
+          "interior",
+          "lowerInterior",
+          "upperInterior"
+        ]
+      },
+      {
+        "key": "wall_qa_right:front",
+        "side": "interior",
+        "roles": [
+          "interior",
+          "lowerInterior",
+          "upperInterior"
+        ]
+      },
+      {
+        "key": "wall_qa_top:front",
+        "side": "interior",
+        "roles": [
+          "interior",
+          "lowerInterior",
+          "upperInterior"
+        ]
+      },
+      {
+        "key": "wall_qa_left:front",
+        "side": "interior",
+        "roles": [
+          "interior",
+          "lowerInterior",
+          "upperInterior"
+        ]
+      }
+    ],
+    "floor": {
+      "status": "creatable"
+    },
+    "ceiling": {
+      "status": "creatable",
+      "explicit": false
+    },
+    "completion": {
+      "explicit": 12,
+      "total": 12,
+      "missing": []
+    }
+  }
+}
+QA_VALIDATION_EXIT=0

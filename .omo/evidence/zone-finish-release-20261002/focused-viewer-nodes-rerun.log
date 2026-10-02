@@ -1,0 +1,71 @@
+bun test v1.3.11 (af24e281)
+
+packages/nodes/src/wall/paint.test.ts:
+(pass) resolveWallRole > maps one wall face to lower, middle, and upper band slots by hit height [0.81ms]
+(pass) resolveWallRole > uses adjusted band heights from the wall config [0.04ms]
+(pass) resolveWallRole > falls back to whole-side roles when bands are disabled [0.02ms]
+(pass) resolveWallRole > maps four wall bands to lower, middle, upper, and top slots [0.10ms]
+(pass) resolveWallRole > falls back to whole-side roles by default [0.05ms]
+(pass) resolveWallRole > uses direct trim slot hits and exposes trim default materials [2.08ms]
+(pass) resolveWallRole > prefers trim child ray hits over the broad wall face role [1.41ms]
+(pass) resolveWallRole > resolves appended finish-region material indexes to their semantic band role [0.14ms]
+(pass) wallPaint finish-region clearing > updates the base role and removes only matching same-side region overrides in one undo [0.61ms]
+(pass) wallPaint finish-region clearing > previews the effective base and appended region slots before restoring the array [0.54ms]
+
+packages/nodes/src/wall/construction-preview.test.tsx:
+(pass) keeps the base envelope and construction assembly mutually exclusive for every presentation row
+THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) wall construction edits atomically replace complete meshes and export includes hidden finish layers [247.15ms]
+
+packages/viewer/src/lib/materials.test.ts:
+(pass) legacy texture repeat values > normalizes tuple, scalar, and Vector2-shaped repeats [0.05ms]
+(pass) legacy texture repeat values > falls back to scale for malformed repeats [0.04ms]
+(pass) legacy texture repeat values > keeps distinct Vector2-shaped repeats in distinct cache entries [0.07ms]
+(pass) scene KTX2 textures > creates a mapless material and attaches the resolved compressed textures [2.13ms]
+(pass) scene KTX2 textures > keeps the authored flat material renderable after a KTX2 rejection [2.62ms]
+(pass) scene KTX2 textures > keeps ordinary image textures on the synchronous TextureLoader path [0.57ms]
+
+packages/viewer/src/systems/wall/wall-material-override.test.ts:
+(pass) wall material override claim > only a claimed material array reports an override
+(pass) wall finish region material plan > orders side ranges deterministically and resolves the region index [1.59ms]
+(pass) wall finish region material plan > splits straight wall geometry at finish stations while preserving UV and UV2 arrays [0.50ms]
+(pass) wall finish region material plan > maps four bands across two finish ranges and preserves opposite material groups [1.41ms]
+(pass) wall finish region material plan > keeps door and window holes through a finish boundary while preserving split groups [5.31ms]
+(pass) wall finish region material plan > projects generated rotated finish regions with metre-stable world UVs [1.32ms]
+[viewer] Failed to load material texture https://editor.pascal.app/material/concrete/prepared_drywall/prepared_drywall_basecolor_512.ktx2 warn: THREE.KTX2Loader: Missing initialization with `.detectSupport( renderer )`.
+      at load (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/examples/jsm/loaders/KTX2Loader.js:379:14)
+      at <anonymous> (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/build/three.core.js:44367:10)
+      at new Promise (1:11)
+      at loadAsync (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/build/three.core.js:44365:10)
+
+[viewer] Failed to load material texture https://editor.pascal.app/material/concrete/prepared_drywall/prepared_drywall_normal_512.ktx2 warn: THREE.KTX2Loader: Missing initialization with `.detectSupport( renderer )`.
+      at load (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/examples/jsm/loaders/KTX2Loader.js:379:14)
+      at <anonymous> (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/build/three.core.js:44367:10)
+      at new Promise (1:11)
+      at loadAsync (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/build/three.core.js:44365:10)
+
+[viewer] Failed to load material texture https://editor.pascal.app/material/concrete/prepared_drywall/prepared_drywall_roughness_512.ktx2 warn: THREE.KTX2Loader: Missing initialization with `.detectSupport( renderer )`.
+      at load (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/examples/jsm/loaders/KTX2Loader.js:379:14)
+      at <anonymous> (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/build/three.core.js:44367:10)
+      at new Promise (1:11)
+      at loadAsync (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/build/three.core.js:44365:10)
+
+[viewer] Failed to load material texture https://editor.pascal.app/material/concrete/prepared_drywall/prepared_drywall_ao_512.ktx2 warn: THREE.KTX2Loader: Missing initialization with `.detectSupport( renderer )`.
+      at load (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/examples/jsm/loaders/KTX2Loader.js:379:14)
+      at <anonymous> (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/build/three.core.js:44367:10)
+      at new Promise (1:11)
+      at loadAsync (/private/tmp/pascal-zone-finish-release/node_modules/.bun/three@0.185.1/node_modules/three/build/three.core.js:44365:10)
+
+(pass) wall material cache transitions > keeps old region geometry material indices valid when a finish is removed [6.86ms]
+(pass) wall material cache transitions > changes textures-off hashes and preserves cardinality across add/remove [3.94ms]
+(pass) wall region material texture propagation > attaches a cold scene KTX2 texture to the shared region material [5.28ms]
+(pass) wall region material texture propagation > attaches a cold library KTX2 texture to the shared region material [2.88ms]
+
+ 28 pass
+ 0 fail
+ 567 expect() calls
+Ran 28 tests across 4 files. [732.00ms]

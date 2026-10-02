@@ -1,0 +1,18 @@
+metrics {'planId': 'wall-missing-plan', 'style': 'standard', 'wallIoU': 0.81, 'scale': None, 'walls': 51, 'doors': 5, 'windows': 8, 'openings': 0, 'rooms': 11}
+0 window pair a [590.51 321.6 ] b [605.5  321.93] width 4.775000095367432 hinge None r 0.0
+1 door pair a [705.5 276.5] b [730.  276.5] width 4.775000095367432 hinge [730.  276.5] r 24.0
+2 window pair a [578.   409.04] b [600.12 409.25] width 4.775000095367432 hinge None r 0.0
+3 door pair a [557.5 293. ] b [557.5 253.5] width 4.775000095367432 hinge [557.5 293. ] r 18.0
+4 door pair a [742.   409.32] b [789.  409.1] width 4.775000095367432 hinge [742.   409.32] r 24.0
+5 door pair a [674.25 570.91] b [674.25 499.28] width 5.730000019073486 hinge [674.25 570.91] r 18.0
+6 window pair a [815.7  584.58] b [873.   584.52] width 5.730000019073486 hinge None r 0.0
+7 window ray a [779. 614.] b [779.   589.58] width 5.730000019073486 hinge None r 0.0
+8 door ray a [479.73 285.56] b [463.65 303.19] width 4.107900142669678 hinge [463.65 303.19] r 24.0
+9 window ray a [960. 164.] b [960. 150.] width 8.595000267028809 hinge None r 0.0
+10 window ray a [774.5 288.5] b [774.5 335.5] width 4.775000095367432 hinge None r 0.0
+11 window boundary a [737.49 631.46] b [767.49 631.38] width 8.008650064468384 hinge None r 0.0
+12 window boundary a [803.49 631.29] b [896.49 631.05] width 8.008650064468384 hinge None r 0.0
+wall 24 [414.9 265.9] [457.  306.5] th 4.107900142669678 ext False
+wall 30 [484.8 280. ] [528.7 321.8] th 3.2792999744415283 ext False
+gap ray [479.7 285.6] [463.7 303.2] wd 4.107900142669678 L 23.862919419886268
+gap ray [484.3 359.4] [523.8 319.9] wd 3.6935999393463135 L 55.79912205760697

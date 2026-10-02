@@ -1,0 +1,26 @@
+[
+  {
+    "agent": "/root/dimension_ui",
+    "file": "rollout-2026-10-01T21-55-41-01a0f788-edeb-7c82-ba68-993ca5adacd7.jsonl",
+    "model": "gpt-5.6-luna",
+    "effort": "max"
+  },
+  {
+    "agent": "/root/axis_stretch_implementation",
+    "file": "rollout-2026-10-01T20-20-19-01a0f731-a01b-7a02-ba6d-953874e18a55.jsonl",
+    "model": "gpt-5.6-luna",
+    "effort": "max"
+  },
+  {
+    "agent": "/root/wall_plan",
+    "file": "rollout-2026-10-01T15-26-17-01a0f624-6b8b-7050-b0d1-5b9d941a8d83.jsonl",
+    "model": "gpt-5.6-sol",
+    "effort": "high"
+  },
+  {
+    "agent": "/root/dimension_core_tests",
+    "file": "rollout-2026-10-01T22-34-22-01a0f7ac-58d1-7962-b0a1-de9f79ecd8d9.jsonl",
+    "model": "gpt-5.6-luna",
+    "effort": "max"
+  }
+]

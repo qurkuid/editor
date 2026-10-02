@@ -1,0 +1,37 @@
+bun test v1.3.11 (af24e281)
+
+packages/core/src/store/use-scene-commits.test.ts:
+(pass) scene commit boundary > emits one local commit with before/current snapshots and skips semantic no-ops [4.38ms]
+(pass) scene commit boundary > coalesces a compound transaction into one commit and one undo step [0.35ms]
+(pass) scene commit boundary > coalesces a capped empty-baseline transaction without losing its undo target [1.52ms]
+(pass) scene commit boundary > preserves the capped history prefix around a long single-step transaction [1.33ms]
+(pass) scene commit boundary > restores the exact capped baseline when a pressured transaction is a semantic no-op [0.64ms]
+(pass) scene commit boundary > nested single-step wrappers still produce one commit and one undo step [0.11ms]
+(pass) scene commit boundary > clears redo history on the first write after an undo inside a wrapper [0.07ms]
+(pass) scene commit boundary > drops a compound transaction that returns to its semantic baseline [0.03ms]
+(pass) scene commit boundary > applies host patches without local history and marks node and parent dirty [0.54ms]
+(pass) scene commit boundary > applies material patches atomically and dirties nodes that reference them [0.81ms]
+(pass) scene commit boundary > keeps host patches untracked across nested history pauses [0.11ms]
+(pass) scene commit boundary > applies host patches through read-only and restores the UI lock [0.07ms]
+(pass) scene commit boundary > keeps read-only active until every owner releases its lease [0.07ms]
+(pass) scene commit boundary > restores read-only and history tracking when a host patch throws [0.42ms]
+(pass) scene commit boundary > rejects a host patch atomically when any target is missing [0.03ms]
+(pass) scene commit boundary > rejects patches that would change a node identity [0.04ms]
+(pass) scene commit boundary > applies a disjoint host patch while a local interaction has history paused [0.07ms]
+(pass) scene commit boundary > defers a host patch that collides with a live node or structural parent [0.13ms]
+(pass) scene commit boundary > validates registered creates and updates without stripping forward-compatible fields [0.42ms]
+(pass) scene commit boundary > applies exact structural, field, and material changes in one host commit [0.52ms]
+(pass) scene commit boundary > does not leave deleted ancestors in the dirty set after subtree deletion [0.06ms]
+(pass) scene commit boundary > dirties surviving siblings after a remote structural deletion [0.06ms]
+(pass) scene commit boundary > preserves an external tool history pause while applying a remote patch [0.05ms]
+(pass) scene commit boundary > rejects an invalid structural operation before mutating any field or material [0.08ms]
+(pass) scene commit boundary > keeps dirty work bounded when structurally patching a 10k-node scene [9.04ms]
+(pass) scene commit boundary > applies a host snapshot as a history floor and clears live state [1.09ms]
+(pass) scene commit boundary > rejects snapshot replacement during a paused interaction [0.05ms]
+(pass) scene commit boundary > isolates a throwing listener so later listeners and Zundo still run [0.08ms]
+(pass) scene commit boundary > semantic equality short-circuits shared nodes in a large scene [0.38ms]
+
+ 29 pass
+ 0 fail
+ 149 expect() calls
+Ran 29 tests across 1 file. [82.00ms]

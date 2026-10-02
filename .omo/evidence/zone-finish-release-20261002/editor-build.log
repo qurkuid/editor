@@ -1,0 +1,19 @@
+packages/editor/src/lib/glb-wall-topology.test.ts(6,38): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/systems/wall/wall-system.tsx' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via '../../../viewer/src/systems/wall/wall-system' from file '/private/tmp/pascal-zone-finish-release/packages/editor/src/lib/glb-wall-topology.test.ts'
+    Imported via '../../../viewer/src/systems/wall/wall-system' from file '/private/tmp/pascal-zone-finish-release/packages/editor/src/lib/stl-export.test.ts'
+packages/viewer/src/lib/materials.ts(17,48): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/asset-url.ts' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via './asset-url' from file '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/materials.ts'
+    Imported via './asset-url' from file '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/texture-reference.ts'
+packages/viewer/src/lib/materials.ts(18,54): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/ktx2-loader.ts' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.
+packages/viewer/src/lib/materials.ts(19,31): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/scene-themes.ts' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.
+packages/viewer/src/lib/materials.ts(20,39): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/texture-reference.ts' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.
+packages/viewer/src/systems/wall/wall-materials.ts(31,8): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/materials.ts' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.
+packages/viewer/src/systems/wall/wall-system.tsx(41,72): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/csg-utils.ts' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.
+  The file is in the program because:
+    Imported via '../../lib/csg-utils' from file '/private/tmp/pascal-zone-finish-release/packages/viewer/src/systems/wall/wall-system.tsx'
+    Imported via './csg-utils' from file '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/terrain-perimeter-fill.ts'
+packages/viewer/src/systems/wall/wall-system.tsx(42,51): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/lib/terrain-perimeter-fill.ts' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.
+packages/viewer/src/systems/wall/wall-system.tsx(46,8): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/systems/wall/opening-cutout-geometry.ts' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.
+packages/viewer/src/systems/wall/wall-system.tsx(52,8): error TS6059: File '/private/tmp/pascal-zone-finish-release/packages/viewer/src/systems/wall/wall-materials.ts' is not under 'rootDir' '/private/tmp/pascal-zone-finish-release/packages/editor/src'. 'rootDir' is expected to contain all source files.

@@ -1,0 +1,235 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/ai-control.test.ts:
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > validates a structured modeling plan at the API boundary [14.01ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > applies detailed patches as one undo step [34.26ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > merges selected walls through the shared operation as one undo step [2.62ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > splits a wall through the shared AI operation as one undo step [1.64ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > does not mutate earlier wall operations when a later AI patch is invalid [0.53ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > adds the standard physical assembly to AI-created walls [0.43ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > rejects the whole plan before mutation when a parent is missing [0.28ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > builds a structural context without viewport pixels [0.11ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > includes the current hierarchy and selected nodes for precise chat control [1.02ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > pushes a body face by an exact metric distance as one undo step [6.51ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > arrays a whole Body through the AI operation as one undo step [3.41ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > intersects two Bodies through AI and restores both on one undo [18.24ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > applies union and subtraction Body booleans through AI with one undo each [17.28ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > applies Solid Tools through AI with exact tool lifetime and one undo [28.97ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > offsets a body face through the canonical executor as one undo step [3.56ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > imprints and raises a closed body face without guessing the inset face id [3.53ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > splits an open body face through the canonical AI operation with one undo [2.15ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > turns an exact recessed imprint into a through-cut through the AI operation [15.73ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > creates a rounded hollow frame as one structured operation and one undo step [3.35ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > creates normalized furniture through the shared operation in one undo step [6.87ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > keeps direct and AI tier interior edits structurally identical [1.42ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > does not create history for an identical tier interior operation [0.25ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > keeps direct and AI structural furniture edits identical in one undo step [1.44ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > rolls back a tier interior plan when a later target is invalid [0.34ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > applies repeated body face pushes in one plan and one undo step [0.56ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > paints one body face and restores the body and material with one undo [1.14ms]
+[zustand persist middleware] Unable to update item 'viewer-preferences', the given storage is currently unavailable.
+(pass) AI modeling control plane > replaces a scene material texture with the locally cached seamless asset [0.93ms]
+
+packages/mcp/src/ontology-manual.test.ts:
+(pass) Phase 2 ontology manual contract > documents validated length edits and boundary review [0.09ms]
+(pass) Phase 2 ontology manual contract > documents ontology discovery and evidence requirements [0.04ms]
+(pass) Phase 2 ontology manual contract > documents the canonical Body transform and direct scale interactions [0.09ms]
+(pass) Phase 2 ontology manual contract > documents apartment wall extraction and junction continuity [0.04ms]
+(pass) Phase 2 ontology manual contract > documents source-backed opening and room boundary contracts [0.05ms]
+(pass) Phase 2 ontology manual contract > documents persistent Body sub-entity selection [0.05ms]
+(pass) Phase 2 ontology manual contract > documents Body Autofold constraints [0.09ms]
+(pass) Phase 2 ontology manual contract > documents whole-Body array operations
+(pass) Phase 2 ontology manual contract > documents editor-only Body container edit routing
+(pass) Phase 2 ontology manual contract > documents solid inspection and Body boolean operations
+(pass) Phase 2 ontology manual contract > documents Solid Tools ordering and tool lifetime
+(pass) Phase 2 ontology manual contract > documents the canonical Body offset operation and signed interaction [0.33ms]
+(pass) Phase 2 ontology manual contract > documents signed imprint through-cuts and the 2D render-only boundary [0.03ms]
+(pass) Phase 2 ontology manual contract > documents sampled Arc parity through existing Body operations [0.08ms]
+
+packages/core/src/lib/space-detection.test.ts:
+(pass) planAutoCeilingsForLevel > creates auto ceilings height-less so they follow the level top [1.03ms]
+(pass) planAutoCeilingsForLevel > never writes a height onto a matched auto ceiling [0.21ms]
+(pass) planAutoCeilingsForLevel > creates and reconciles an auto ceiling at the enclosing wall top [0.10ms]
+(pass) planAutoCeilingsForLevel > a leftover explicit height on a matched auto ceiling is not rewritten [0.04ms]
+(pass) planAutoCeilingsForLevel > does not replace a manual ceiling with an auto ceiling [0.06ms]
+(pass) planAutoCeilingsForLevel > demotes an orphaned auto ceiling to manual with its polygon untouched [0.08ms]
+(pass) planAutoCeilingsForLevel > deletes an unmatched auto ceiling absorbed by a room merge [0.23ms]
+(pass) planAutoCeilingsForLevel > a demoted ceiling suppresses re-creating an auto ceiling when the room re-forms
+(pass) stage 3-B ceiling clamp bound > height-less auto ceilings resolve under the covering-slab bound at read time [1.17ms]
+(pass) stage 3-B ceiling clamp bound > clamps a manual ceiling above the bound down to it (plane-only degradation) [0.16ms]
+(pass) stage 3-B ceiling clamp bound > never raises a manual ceiling sitting below the bound
+(pass) stage 3-B ceiling clamp bound > skips follows-mode manual ceilings (never converts them to explicit) [0.16ms]
+(pass) stage 3-B ceiling clamp bound > a flush deck above clamps a manual ceiling at the plane margin to its underside [0.10ms]
+(pass) reactive ceiling re-clamp through the detection sync > a flush deck created on the level above clamps the existing manual ceiling below [2.40ms]
+(pass) raised auto-room surfaces > inherits the enclosing walls construction plane when the room closes [1.04ms]
+(pass) detectSpacesForLevel > detects an isolated four-wall room [0.25ms]
+(pass) detectSpacesForLevel > excludes dangling wall branches from a room boundary [0.14ms]
+(pass) detectSpacesForLevel > detects a room closed against the middle of an existing wall (T-junction) [0.39ms]
+(pass) procedural zones > reactive wall deletion updates imported zone review state without changing its source identity [1.62ms]
+(pass) procedural zones > follows an imported approximate room through a wall edit and marks a removed boundary for review [0.31ms]
+(pass) procedural zones > split wall IDs with unchanged room geometry update the binding without a false warning [0.20ms]
+(pass) procedural zones > a deleted imported room boundary reports uncertainty without renaming or merging rooms [0.15ms]
+(pass) procedural zones > adopts an exact room footprint and records its enclosing walls
+(pass) procedural zones > derives the live polygon from effective wall endpoints [0.32ms]
+(pass) procedural zones > leaves an unrelated site zone manual [0.10ms]
+(pass) wallClosesRoom > is false while a chain is still open, true once it encloses a room [0.27ms]
+(pass) wallClosesRoom > fires when a bay is sealed against the middle of an existing wall [0.22ms]
+(pass) planAutoSlabsForLevel > creates and reconciles an auto slab on the enclosing wall plane [0.14ms]
+(pass) planAutoSlabsForLevel > matches two identical rooms to their own existing auto-slabs without churn [0.06ms]
+(pass) planAutoSlabsForLevel > deletes an extra auto-slab when only one identical room is detected [0.05ms]
+(pass) planAutoSlabsForLevel > demotes an orphaned auto slab to manual when its room disappears [0.05ms]
+(pass) planAutoSlabsForLevel > deletes an unmatched auto slab whose area was absorbed by a room merge [0.08ms]
+(pass) planAutoSlabsForLevel > a demoted slab suppresses re-creating an auto slab when the room re-forms [0.08ms]
+(pass) planAutoSlabsForLevel > manual slabs that split one room suppress a replacement full-room slab [0.07ms]
+
+packages/core/src/lib/wall-operations.test.ts:
+(pass) wall operations > merges exact collinear walls and preserves hosted world positions and construction [3.95ms]
+(pass) wall operations > splits inside a wall, retains the first id, and preserves collection membership [0.28ms]
+(pass) wall operations > rejects an opening that would straddle the split [0.51ms]
+(pass) wall operations > supports a three-wall chain when the first selected wall is internal [0.29ms]
+(pass) wall operations > adds a secondary-only collection membership to the retained wall [0.14ms]
+(pass) wall operations > rejects reversed one-sided trims before changing their side [0.43ms]
+(pass) wall operations > rejects reversed walls with unequal front and back side metadata [0.16ms]
+(pass) wall operations > rejects a reversed hosted wall instead of changing its local frame [0.10ms]
+(pass) wall operations > projects rotated item width and depth when validating a split [0.14ms]
+(pass) wall operations > rejects an occupied requested split id [0.02ms]
+
+packages/core/src/lib/wall-length.test.ts:
+(pass) length input follows shared endpoints and validates all hosts before mutation [1.70ms]
+(pass) length input rejects loss of an interior T junction, collapsed neighbors and curved walls [0.17ms]
+
+packages/core/src/lib/space-detection-history.test.ts:
+(pass) undo/redo restores zone review metadata without regenerating the restored snapshot [3.03ms]
+
+packages/core/src/store/use-scene-commits.test.ts:
+(pass) scene commit boundary > emits one local commit with before/current snapshots and skips semantic no-ops [0.39ms]
+(pass) scene commit boundary > coalesces a compound transaction into one commit and one undo step [0.16ms]
+(pass) scene commit boundary > coalesces a capped empty-baseline transaction without losing its undo target [1.08ms]
+(pass) scene commit boundary > preserves the capped history prefix around a long single-step transaction [1.23ms]
+(pass) scene commit boundary > restores the exact capped baseline when a pressured transaction is a semantic no-op [0.88ms]
+(pass) scene commit boundary > nested single-step wrappers still produce one commit and one undo step [0.12ms]
+(pass) scene commit boundary > clears redo history on the first write after an undo inside a wrapper [0.09ms]
+(pass) scene commit boundary > drops a compound transaction that returns to its semantic baseline [0.09ms]
+(pass) scene commit boundary > applies host patches without local history and marks node and parent dirty [0.51ms]
+(pass) scene commit boundary > applies material patches atomically and dirties nodes that reference them [0.81ms]
+(pass) scene commit boundary > keeps host patches untracked across nested history pauses [0.11ms]
+(pass) scene commit boundary > applies host patches through read-only and restores the UI lock [0.12ms]
+(pass) scene commit boundary > keeps read-only active until every owner releases its lease [0.07ms]
+(pass) scene commit boundary > restores read-only and history tracking when a host patch throws [0.45ms]
+(pass) scene commit boundary > rejects a host patch atomically when any target is missing [0.05ms]
+(pass) scene commit boundary > rejects patches that would change a node identity [0.04ms]
+(pass) scene commit boundary > applies a disjoint host patch while a local interaction has history paused [0.07ms]
+(pass) scene commit boundary > defers a host patch that collides with a live node or structural parent [0.12ms]
+(pass) scene commit boundary > validates registered creates and updates without stripping forward-compatible fields [0.83ms]
+(pass) scene commit boundary > applies exact structural, field, and material changes in one host commit [0.26ms]
+(pass) scene commit boundary > does not leave deleted ancestors in the dirty set after subtree deletion [0.06ms]
+(pass) scene commit boundary > dirties surviving siblings after a remote structural deletion [0.06ms]
+(pass) scene commit boundary > preserves an external tool history pause while applying a remote patch [0.05ms]
+(pass) scene commit boundary > rejects an invalid structural operation before mutating any field or material [0.06ms]
+(pass) scene commit boundary > keeps dirty work bounded when structurally patching a 10k-node scene [11.07ms]
+(pass) scene commit boundary > applies a host snapshot as a history floor and clears live state [1.21ms]
+(pass) scene commit boundary > rejects snapshot replacement during a paused interaction [0.06ms]
+(pass) scene commit boundary > isolates a throwing listener so later listeners and Zundo still run [0.13ms]
+(pass) scene commit boundary > semantic equality short-circuits shared nodes in a large scene [0.55ms]
+
+packages/nodes/src/zone/floorplan.test.ts:
+(pass) buildZoneFloorplan room documentation > shows unresolved room boundaries in the 2D plan [4.86ms]
+(pass) buildZoneFloorplan room documentation > keeps a generic zone label unchanged [0.10ms]
+(pass) buildZoneFloorplan room documentation > centers room name, number, finish, and height information as room annotations [0.23ms]
+
+packages/mcp/src/resources/resources.test.ts:
+(pass) pascal://scene/current > returns the full scene JSON [6.55ms]
+(pass) pascal://scene/current > reflects mutations to the store [1.10ms]
+(pass) pascal://scene/current/summary > returns markdown with counts and bbox [0.83ms]
+(pass) pascal://scene/current/summary > estimated floor area sums zone polygon areas [0.65ms]
+(pass) pascal://scene/current/summary > empty scene returns a markdown skeleton without crashing [0.43ms]
+(pass) pascal://catalog/items > returns built-in catalog subset [0.56ms]
+(pass) pascal://agent-guide > agent guide returns MCP-first project guidance [1.22ms]
+(pass) pascal://agent-guide > keeps the legacy agent guide URI as an alias [0.98ms]
+(pass) pascal://constraints/{levelId} > returns slabs + wall footprints for a known level [1.52ms]
+(pass) pascal://constraints/{levelId} > returns {error:"level_not_found"} for unknown levelId [0.45ms]
+(pass) pascal://debug/state > returns structural diagnostics without viewport data [0.81ms]
+
+packages/editor/src/lib/wall-direction-lock.test.ts:
+(pass) wall direction holds the current ray while length follows a 1 mm step [0.64ms]
+
+packages/editor/src/components/tools/wall/wall-drafting.test.ts:
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > a direction-locked wall keeps its endpoint near a host corner [1.42ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > endpoint near an existing corner attaches to the corner instead of splitting [0.37ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > new walls start with a single 100 mm concrete layer
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > committed wall preserves the ghost construction elevation on ground [0.25ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > 2D terrain construction options freeze the first-point elevation and wall height [0.79ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > endpoint near the host start corner snaps there without splitting [0.31ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > genuine mid-wall endpoint still splits the host (T junction) [0.34ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > exact duplicate segment is rejected [0.04ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > grid mode: endpoint resolved onto a wall body still splits the host [0.24ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > grid mode: endpoint beyond the connect radius is left alone (no residual snap) [0.19ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > mid-span split migrates the host attachments to the covering half [0.59ms]
+[zustand persist middleware] Unable to update item 'pascal-editor-ui-preferences', the given storage is currently unavailable.
+(pass) createWallOnCurrentLevel > a splitting commit lands as a single undo step [0.25ms]
+(pass) resolveEndpointWallSplit > endpoint dropped mid-span splits the host and returns the projection [0.18ms]
+(pass) resolveEndpointWallSplit > mid-span split migrates host attachments to the covering half [0.20ms]
+(pass) resolveEndpointWallSplit > a drop near an existing corner resolves to the corner without splitting [0.04ms]
+(pass) resolveEndpointWallSplit > an opening straddling the drop point skips the split but still resolves the point [0.11ms]
+(pass) resolveEndpointWallSplit > a drop beyond the connect radius resolves nothing and splits nothing [0.03ms]
+(pass) resolveEndpointWallSplit > ignored walls (the moved wall and its commit siblings) are never split
+(pass) resolveEndpointWallSplit > split + endpoint write compose into a single history step [0.20ms]
+(pass) snapWallDraftPointDetailed > bypassSnap returns the raw point without endpoint or angle snap [0.10ms]
+(pass) snapWallDraftPointDetailed > a stale linked-wall corner swallows a sub-connect-radius correction unless ignored [0.30ms]
+(pass) construction guide snapping > sticks a nearby point to the guide line foot [0.07ms]
+(pass) construction guide snapping > ignores guides outside the stick radius [0.02ms]
+(pass) construction guide snapping > a guide intersection beats the nearest single line [0.03ms]
+(pass) construction guide snapping > an angle-locked ray slides along the ray to the guide
+(pass) construction guide snapping > snapWallDraftPointDetailed lands the drafted point on an off-grid guide [0.02ms]
+(pass) construction guide snapping > Alt bypass skips guides too [0.04ms]
+(pass) guide snapping is on by default from the scene store > auto-collects the active level guides when none are passed [0.06ms]
+
+ 160 pass
+ 0 fail
+ 769 expect() calls
+Ran 160 tests across 11 files. [1185.00ms]

@@ -1,0 +1,16 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/scene-api-security.test.ts:
+(pass) reads gzip-compressed JSON request bodies [1.56ms]
+(pass) allows loopback scene API requests without a token [0.38ms]
+(pass) requires a token for non-loopback scene API requests [0.25ms]
+(pass) accepts an INTM session cookie when INTM auth is enabled [0.23ms]
+(pass) still rejects an INTM-enabled request without a session cookie [0.06ms]
+(pass) accepts bearer token auth when configured [0.06ms]
+(pass) allows same-origin requests through a reverse proxy [0.16ms]
+(pass) applies configured CORS origins for preflight [0.11ms]
+
+ 8 pass
+ 0 fail
+ 11 expect() calls
+Ran 8 tests across 1 file. [57.00ms]

@@ -1,0 +1,63 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/quantity-takeoff.test.ts:
+(pass) board takeoff > a module counts sides, top, bottom, back and shelves [0.29ms]
+(pass) board takeoff > door and drawer faces are counted as front board, open shelving is not [0.14ms]
+(pass) board takeoff > a degenerate module contributes nothing rather than a zero-area line
+(pass) furniture and countertop > a run reports itself, its bays, and its worktop area [0.26ms]
+(pass) furniture and countertop > a run without a worktop reports no countertop [0.04ms]
+(pass) areas and finishes > floor and ceiling areas come from their polygons [0.02ms]
+(pass) areas and finishes > ceiling drop zones add their reveal faces, skipping open edges [0.10ms]
+(pass) areas and finishes > painted wall faces group by material, not by wall [0.68ms]
+(pass) areas and finishes > unpainted walls contribute no finish line [0.07ms]
+(pass) lighting > fixtures aggregate per light type [0.03ms]
+(pass) lighting > a divided run counts its full fixture count from one node [0.04ms]
+(pass) lighting > a linked product groups by its ref and carries it as materialRef
+(pass) lighting > linear fixtures add a run-length measure
+(pass) scoping > a level filter excludes other levels [0.09ms]
+(pass) walls are a quantity even before anyone picks a finish > an unpainted wall still reports face area and length [0.07ms]
+(pass) walls are a quantity even before anyone picks a finish > painting it adds finish lines without removing the wall quantity [0.04ms]
+(pass) walls are a quantity even before anyone picks a finish > wall areas aggregate across walls [2.21ms]
+(pass) a wall expands into what actually gets ordered > an explicit stud build-up yields its materials, not just an area [0.24ms]
+(pass) a wall expands into what actually gets ordered > 각재 is ordered by the metre and 석고보드 by the sheet [0.07ms]
+(pass) a wall expands into what actually gets ordered > a cavity is not ordered — it is empty space [0.07ms]
+(pass) a wall expands into what actually gets ordered > the same layer aggregates across walls [0.07ms]
+(pass) a wall expands into what actually gets ordered > face area and run length are marked as measures, materials are not [0.08ms]
+(pass) a wall expands into what actually gets ordered > a wall with no build-up recorded still reports its area
+(pass) a wall expands into what actually gets ordered > a wall with no height set is measured at the same default core uses
+(pass) placed models > items count per product, aggregating duplicates
+(pass) placed models > an item with no asset metadata still gets counted
+(pass) furniture run make-up > reports total run length alongside the bay count
+(pass) furniture run make-up > bays group by width
+(pass) furniture run make-up > a run with no bays reports no length or make-up
+(pass) floor and ceiling openings > area comes from the polygon field
+(pass) floor and ceiling openings > holes are deducted — a stairwell is not floor
+(pass) floor and ceiling openings > holes larger than the slab clamp at zero rather than going negative
+(pass) floor and ceiling build-up > a ceiling expands into furring and board, under the ceiling heading [0.46ms]
+(pass) floor and ceiling build-up > floor screed is measured by volume
+(pass) floor and ceiling build-up > holes reduce the build-up too, not just the headline area [0.11ms]
+(pass) floor and ceiling build-up > a surface with no construction still reports its area
+
+apps/editor/lib/wall-assembly-takeoff.test.ts:
+(pass) a wall band becomes order lines > the default concrete wall produces an area material line
+(pass) a wall band becomes order lines > an explicit stud build-up gives 각재 by the metre and 석고보드 by the sheet [0.12ms]
+(pass) a wall band becomes order lines > a wall boarded both sides counts both skins under one key
+(pass) a wall band becomes order lines > a cavity is empty space, and the finish skin is priced by the slot [0.08ms]
+(pass) a wall band becomes order lines > a wall with no build-up recorded expands to nothing [0.02ms]
+(pass) a floor or ceiling build-up > furring is counted at its spacing and ordered by the metre
+(pass) a floor or ceiling build-up > screed is poured, so it is bought by volume
+(pass) a floor or ceiling build-up > sheet goods are rounded up to whole sheets, waste included
+(pass) a floor or ceiling build-up > a sheet layer with no sheet size falls back to area
+(pass) a floor or ceiling build-up > framing with no spacing recorded yields nothing rather than a guess
+(pass) a floor or ceiling build-up > a cavity yields nothing — it is empty space
+
+packages/mcp/src/tools/photo-to-scene/photo-to-scene.test.ts:
+(pass) photo_to_scene > happy path: vision reply → walls + rooms + scene in bridge + saved [12.24ms]
+(pass) photo_to_scene > sampling unavailable → sampling_unavailable error [0.86ms]
+(pass) photo_to_scene > invalid JSON reply → sampling_response_unparseable [0.63ms]
+(pass) photo_to_scene > save=false → returns graph inline, no sceneId [1.13ms]
+
+ 51 pass
+ 0 fail
+ 122 expect() calls
+Ran 51 tests across 3 files. [150.00ms]

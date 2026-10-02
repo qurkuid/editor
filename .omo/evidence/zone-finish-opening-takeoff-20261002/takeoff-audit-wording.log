@@ -1,0 +1,122 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/quantity-takeoff.test.ts:
+(pass) board takeoff > a module counts sides, top, bottom, back and shelves [2.65ms]
+(pass) board takeoff > door and drawer faces are counted as front board, open shelving is not [0.20ms]
+(pass) board takeoff > a degenerate module contributes nothing rather than a zero-area line
+(pass) furniture and countertop > a run reports itself, its bays, and its worktop area [0.20ms]
+(pass) furniture and countertop > a run without a worktop reports no countertop
+(pass) areas and finishes > floor and ceiling areas come from their polygons [0.13ms]
+(pass) areas and finishes > ceiling drop zones add their reveal faces, skipping open edges [0.04ms]
+(pass) areas and finishes > painted wall faces group by material, not by wall [1.06ms]
+(pass) areas and finishes > unpainted walls contribute no finish line [0.15ms]
+(pass) areas and finishes > a straight wall splits an unbanded partial finish between its region and base [0.20ms]
+(pass) areas and finishes > a partial finish without a base material leaves uncovered area unpriced
+(pass) areas and finishes > active two, three and four band spans use their exact heights and side fallback [0.49ms]
+(pass) areas and finishes > band regions match only their active role and fall back to the whole side [0.13ms]
+(pass) areas and finishes > adjacent and disjoint regions recombine by material and keep one wall id [0.12ms]
+(pass) areas and finishes > curved walls keep arc-length base area and ignore partial regions [0.25ms]
+(pass) areas and finishes > wall-hosted openings with no modeled geometry remain conservative gross [0.19ms]
+(pass) areas and finishes > a modeled rectangle opening is deducted from both painted faces [1.03ms]
+519 |           slots: { interior: 'library:base' },
+520 |         },
+521 |       ),
+522 |     )
+523 | 
+524 |     expect(line(report, 'finish', 'library:base')).toMatchObject({
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "grossQuantity": 30,
++   "category": "finish",
++   "grossQuantity": 15,
++   "key": "library:base",
++   "label": "벽 마감 library:base",
++   "materialRef": "library:base",
+    "nodeIds": [
+      "wall_fully_deducted",
+      "wall_positive",
+    ],
+    "openingAdjustment": "deducted",
+-   "openingDeductedQuantity": 20,
+-   "quantity": 10,
++   "openingDeductedQuantity": 10,
++   "quantity": 5,
++   "role": "material",
++   "unit": "m2",
+  }
+
+- Expected  - 3
++ Received  + 9
+
+      at <anonymous> (/Users/changseok/.codex/worktrees/zone-finish-takeoff/editor/apps/editor/lib/quantity-takeoff.test.ts:524:52)
+(fail) areas and finishes > merges a fully deducted wall audit into a positive same-material line [3.74ms]
+(pass) areas and finishes > band and exact-role region clip one opening into each active cell [0.93ms]
+(pass) areas and finishes > an opening crossing a region boundary is split between material cells [0.28ms]
+(pass) areas and finishes > overlapping openings are unioned before deduction [0.22ms]
+(pass) areas and finishes > ignores a hosted opening that is absent from wall children [0.17ms]
+(pass) areas and finishes > curved wall keeps the affected finish gross and marks it unsupported
+(pass) areas and finishes > invalid geometry keeps the affected finish gross and marks it unsupported
+(pass) areas and finishes > missing child keeps the affected finish gross and marks it unsupported
+(pass) areas and finishes > item cutout keeps the affected finish gross and marks it unsupported
+(pass) areas and finishes > a supported and unsupported wall aggregate as mixed with known deduction audit
+(pass) areas and finishes > wall finish takeoff does not mutate frozen scene input [0.59ms]
+(pass) lighting > fixtures aggregate per light type [0.07ms]
+(pass) lighting > a divided run counts its full fixture count from one node
+(pass) lighting > a linked product groups by its ref and carries it as materialRef [0.08ms]
+(pass) lighting > linear fixtures add a run-length measure [0.01ms]
+(pass) scoping > a level filter excludes other levels
+(pass) walls are a quantity even before anyone picks a finish > an unpainted wall still reports face area and length
+(pass) walls are a quantity even before anyone picks a finish > painting it adds finish lines without removing the wall quantity [0.17ms]
+(pass) walls are a quantity even before anyone picks a finish > wall areas aggregate across walls
+(pass) a wall expands into what actually gets ordered > an explicit stud build-up yields its materials, not just an area
+(pass) a wall expands into what actually gets ordered > 각재 is ordered by the metre and 석고보드 by the sheet
+(pass) a wall expands into what actually gets ordered > a cavity is not ordered — it is empty space
+(pass) a wall expands into what actually gets ordered > the same layer aggregates across walls
+(pass) a wall expands into what actually gets ordered > face area and run length are marked as measures, materials are not
+(pass) a wall expands into what actually gets ordered > a wall with no build-up recorded still reports its area [0.40ms]
+(pass) a wall expands into what actually gets ordered > a wall with no height set is measured at the same default core uses
+(pass) placed models > items count per product, aggregating duplicates [0.09ms]
+(pass) placed models > an item with no asset metadata still gets counted [0.02ms]
+(pass) furniture run make-up > reports total run length alongside the bay count [0.09ms]
+(pass) furniture run make-up > bays group by width
+(pass) furniture run make-up > a run with no bays reports no length or make-up
+(pass) floor and ceiling openings > area comes from the polygon field
+(pass) floor and ceiling openings > holes are deducted — a stairwell is not floor
+(pass) floor and ceiling openings > holes larger than the slab clamp at zero rather than going negative
+(pass) floor and ceiling build-up > a ceiling expands into furring and board, under the ceiling heading
+(pass) floor and ceiling build-up > floor screed is measured by volume [0.25ms]
+(pass) floor and ceiling build-up > holes reduce the build-up too, not just the headline area [0.02ms]
+(pass) floor and ceiling build-up > a surface with no construction still reports its area
+
+apps/editor/lib/estimate-submit.test.ts:
+(pass) line items > a priced line becomes an INTM item with its converted quantity [0.09ms]
+(pass) line items > the description traces the line back to the drawing
+(pass) line items > a no-material line is left out
+(pass) line items > a no-coverage line is left out
+(pass) line items > a no-price line is left out
+(pass) line items > a priced line with zero quantity is left out too
+(pass) line items > a mixed draft submits only what is resolved
+(pass) line items > carries the deducted opening basis into the INTM description
+(pass) line items > carries the mixed opening basis into the INTM description [0.15ms]
+(pass) line items > carries the unsupported opening basis into the INTM description [0.01ms]
+(pass) submission > posts the items to INTM with the caller session [0.32ms]
+(pass) submission > creates the document first, then posts each item to it [0.08ms]
+(pass) submission > counts item failures instead of discarding the estimate [0.04ms]
+(pass) submission > keeps a link when every item fails after the document is created [0.03ms]
+(pass) submission > normalizes the configured base and encodes the estimate id in the link
+(pass) submission > refuses with no project before any request
+(pass) submission > refuses with no title before any request
+(pass) submission > refuses to create an estimate with nothing resolved [0.14ms]
+(pass) submission > reports a refusal instead of pretending it worked
+(pass) submission > a 200 with no estimate id is still a failure [0.09ms]
+(pass) submission > no session and no INTM both refuse before any request [0.03ms]
+
+1 tests failed:
+(fail) areas and finishes > merges a fully deducted wall audit into a positive same-material line [3.74ms]
+
+ 75 pass
+ 1 fail
+ 148 expect() calls
+Ran 76 tests across 2 files. [453.00ms]

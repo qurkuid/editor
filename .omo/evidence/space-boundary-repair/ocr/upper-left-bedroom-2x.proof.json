@@ -1,0 +1,43 @@
+{
+  "source": ".omo/evidence/missing-walls/source-plan.jpg",
+  "api": ".omo/evidence/openings-spaces/api-vector-after.json",
+  "crop": ".omo/evidence/space-boundary-repair/ocr/upper-left-bedroom-2x.png",
+  "cropMeta": "upper-left-bedroom-2x.json",
+  "rawOcr": "upper-left-bedroom-2x.ocr.json",
+  "helper": {
+    "binary": ".omx/recovery-20260929/data/.build/ocr_vision",
+    "source": ".omx/recovery-20260929/data/ocr_vision.swift",
+    "command": "./.omx/recovery-20260929/data/.build/ocr_vision .omo/evidence/space-boundary-repair/ocr/upper-left-bedroom-2x.png",
+    "recognitionLevel": "accurate",
+    "recognitionLanguages": [
+      "ko-KR",
+      "en-US"
+    ],
+    "usesLanguageCorrection": false,
+    "cache": false
+  },
+  "rawItems": [
+    {
+      "y": 213.9999999272727,
+      "conf": 1,
+      "h": 31.999999999999993,
+      "w": 60.00000000000001,
+      "text": "안방",
+      "x": 197.9999999
+    }
+  ],
+  "transformedLabelBoxesSourcePx": [
+    {
+      "text": "안방",
+      "confidence": 1,
+      "x": 373.0,
+      "y": 362.0,
+      "w": 30.0,
+      "h": 16.0,
+      "cx": 388.0,
+      "cy": 370.0,
+      "centerInsideRoomPolygon": true
+    }
+  ],
+  "success": true
+}

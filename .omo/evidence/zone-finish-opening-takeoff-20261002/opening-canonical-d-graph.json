@@ -1,0 +1,236 @@
+{
+  "nodes": {
+    "site_opening_qa_d": {
+      "object": "node",
+      "id": "site_opening_qa_d",
+      "type": "site",
+      "parentId": null,
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "building_opening_qa_d"
+      ],
+      "polygon": {
+        "type": "polygon",
+        "points": [
+          [
+            -2,
+            -2
+          ],
+          [
+            6,
+            -2
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            -2,
+            6
+          ]
+        ]
+      }
+    },
+    "building_opening_qa_d": {
+      "object": "node",
+      "id": "building_opening_qa_d",
+      "type": "building",
+      "parentId": "site_opening_qa_d",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "level_opening_qa_d"
+      ],
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    "level_opening_qa_d": {
+      "object": "node",
+      "id": "level_opening_qa_d",
+      "type": "level",
+      "parentId": "building_opening_qa_d",
+      "visible": true,
+      "metadata": {},
+      "children": [
+        "wall_opening_qa_d",
+        "zone_opening_qa_d"
+      ],
+      "level": 0,
+      "height": 2.5
+    },
+    "wall_opening_qa_d": {
+      "object": "node",
+      "id": "wall_opening_qa_d",
+      "type": "wall",
+      "parentId": "level_opening_qa_d",
+      "visible": true,
+      "metadata": {
+        "qaFixture": "zone-opening-canonical-4x2.5-door-floor-aligned"
+      },
+      "children": [
+        "door_opening_qa_d"
+      ],
+      "start": [
+        0,
+        0
+      ],
+      "end": [
+        4,
+        0
+      ],
+      "thickness": 0.2,
+      "height": 2.5,
+      "frontSide": "interior",
+      "backSide": "exterior",
+      "slots": {
+        "interior": "library:flooring-rusticbrick",
+        "lowerInterior": "library:flooring-rusticbrick",
+        "upperInterior": "library:wood-finewood27",
+        "exterior": "library:wood-finewood26"
+      },
+      "faceBands": {
+        "enabled": true,
+        "count": 2,
+        "lowerHeight": 1,
+        "middleHeight": 0,
+        "upperHeight": 1.5
+      }
+    },
+    "door_opening_qa_d": {
+      "object": "node",
+      "id": "door_opening_qa_d",
+      "type": "door",
+      "parentId": "wall_opening_qa_d",
+      "visible": true,
+      "metadata": {
+        "qaFixture": "rectangular-opening-0.9x2.1-floor-aligned"
+      },
+      "position": [
+        1,
+        1.05,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "wallId": "wall_opening_qa_d",
+      "width": 0.9,
+      "height": 2.1,
+      "openingKind": "opening",
+      "openingShape": "rectangle",
+      "doorType": "hinged",
+      "doorCategory": "interior",
+      "constructionType": "framed",
+      "dimensionReference": "nominal",
+      "leafCount": 1,
+      "operationState": 0,
+      "slideDirection": "left",
+      "trackStyle": "none",
+      "garagePanelCount": 4,
+      "openingRadiusMode": "all",
+      "openingTopRadii": [
+        0.15,
+        0.15
+      ],
+      "cornerRadius": 0.15,
+      "archHeight": 0.45,
+      "openingRevealRadius": 0.025,
+      "frameThickness": 0.05,
+      "frameDepth": 0.07,
+      "threshold": true,
+      "thresholdHeight": 0.02,
+      "hingesSide": "left",
+      "swingDirection": "inward",
+      "swingAngle": 0,
+      "segments": [
+        {
+          "type": "panel",
+          "heightRatio": 0.4,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        },
+        {
+          "type": "panel",
+          "heightRatio": 0.6,
+          "columnRatios": [
+            1
+          ],
+          "dividerThickness": 0.03,
+          "panelDepth": 0.01,
+          "panelInset": 0.04
+        }
+      ],
+      "handle": true,
+      "handleHeight": 1.05,
+      "handleSide": "right",
+      "contentPadding": [
+        0.04,
+        0.04
+      ],
+      "doorCloser": false,
+      "panicBar": false,
+      "panicBarHeight": 1
+    },
+    "zone_opening_qa_d": {
+      "object": "node",
+      "id": "zone_opening_qa_d",
+      "type": "zone",
+      "parentId": "level_opening_qa_d",
+      "visible": true,
+      "metadata": {
+        "qaFixture": "half-wall-zone-canonical"
+      },
+      "name": "Half Opening Zone",
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "autoFromWalls": false,
+      "boundaryWallIds": [],
+      "spaceRole": "room",
+      "roomNumber": "O-001",
+      "enclosureStatus": "open",
+      "floorFinish": "",
+      "wallFinish": "",
+      "ceilingFinish": "",
+      "ceilingHeight": 2.5,
+      "occupancy": "",
+      "clearDimensionPolicy": "inside-faces",
+      "color": "#3b82f6"
+    }
+  },
+  "rootNodeIds": [
+    "site_opening_qa_d"
+  ],
+  "collections": {},
+  "materials": {}
+}

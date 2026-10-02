@@ -271,6 +271,7 @@ export {
   slidingFrontPose,
 } from './lib/furniture'
 export {
+  canonicalizeGuidePerspectiveCorners,
   type GuideImagePoint,
   projectGuidePerspectivePoint,
 } from './lib/guide-perspective'

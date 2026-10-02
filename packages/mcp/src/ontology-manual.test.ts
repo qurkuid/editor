@@ -91,6 +91,12 @@ describe('Phase 2 ontology manual contract', () => {
     )
   })
 
+  test('documents shared apartment import orientation', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('horizontal/vertical source-image flips')
+    expect(MODELING_AGENT_MANUAL).toContain('same undoable import')
+    expect(MODELING_AGENT_MANUAL).toContain('image center')
+  })
+
   test('documents preserved Zone boundaries and structural membership UI', () => {
     expect(MODELING_AGENT_MANUAL).toContain('deletion-only boundary loss preserves')
     expect(MODELING_AGENT_MANUAL).toContain('read-only Zone membership')

@@ -1,0 +1,62 @@
+bun test v1.3.11 (af24e281)
+
+apps/editor/lib/quantity-takeoff.test.ts:
+(pass) board takeoff > a module counts sides, top, bottom, back and shelves [3.52ms]
+(pass) board takeoff > door and drawer faces are counted as front board, open shelving is not [0.36ms]
+(pass) board takeoff > a degenerate module contributes nothing rather than a zero-area line
+(pass) furniture and countertop > a run reports itself, its bays, and its worktop area [0.16ms]
+(pass) furniture and countertop > a run without a worktop reports no countertop [0.03ms]
+(pass) areas and finishes > floor and ceiling areas come from their polygons [0.12ms]
+(pass) areas and finishes > ceiling drop zones add their reveal faces, skipping open edges [0.06ms]
+(pass) areas and finishes > painted wall faces group by material, not by wall [1.13ms]
+(pass) areas and finishes > unpainted walls contribute no finish line [0.24ms]
+(pass) areas and finishes > a straight wall splits an unbanded partial finish between its region and base [0.29ms]
+(pass) areas and finishes > a partial finish without a base material leaves uncovered area unpriced [0.07ms]
+(pass) areas and finishes > active two, three and four band spans use their exact heights and side fallback [0.52ms]
+(pass) areas and finishes > band regions match only their active role and fall back to the whole side [0.22ms]
+(pass) areas and finishes > adjacent and disjoint regions recombine by material and keep one wall id [0.13ms]
+(pass) areas and finishes > curved walls keep arc-length base area and ignore partial regions [0.42ms]
+(pass) areas and finishes > wall-hosted openings with no modeled geometry remain conservative gross [4.51ms]
+(pass) areas and finishes > a modeled rectangle opening is deducted from both painted faces [1.43ms]
+(pass) areas and finishes > band and exact-role region clip one opening into each active cell [0.53ms]
+(pass) areas and finishes > an opening crossing a region boundary is split between material cells [0.35ms]
+(pass) areas and finishes > overlapping openings are unioned before deduction [0.37ms]
+(pass) areas and finishes > ignores a hosted opening that is absent from wall children [0.11ms]
+(pass) areas and finishes > curved wall keeps the affected finish gross and marks it unsupported [0.18ms]
+(pass) areas and finishes > invalid geometry keeps the affected finish gross and marks it unsupported [0.05ms]
+(pass) areas and finishes > missing child keeps the affected finish gross and marks it unsupported
+(pass) areas and finishes > item cutout keeps the affected finish gross and marks it unsupported [0.09ms]
+(pass) areas and finishes > a supported and unsupported wall aggregate as mixed with known deduction audit [0.15ms]
+(pass) areas and finishes > wall finish takeoff does not mutate frozen scene input [0.27ms]
+(pass) lighting > fixtures aggregate per light type [0.06ms]
+(pass) lighting > a divided run counts its full fixture count from one node [0.03ms]
+(pass) lighting > a linked product groups by its ref and carries it as materialRef
+(pass) lighting > linear fixtures add a run-length measure [0.06ms]
+(pass) scoping > a level filter excludes other levels [0.02ms]
+(pass) walls are a quantity even before anyone picks a finish > an unpainted wall still reports face area and length [0.07ms]
+(pass) walls are a quantity even before anyone picks a finish > painting it adds finish lines without removing the wall quantity [0.07ms]
+(pass) walls are a quantity even before anyone picks a finish > wall areas aggregate across walls [0.11ms]
+(pass) a wall expands into what actually gets ordered > an explicit stud build-up yields its materials, not just an area [0.07ms]
+(pass) a wall expands into what actually gets ordered > 각재 is ordered by the metre and 석고보드 by the sheet
+(pass) a wall expands into what actually gets ordered > a cavity is not ordered — it is empty space [0.24ms]
+(pass) a wall expands into what actually gets ordered > the same layer aggregates across walls
+(pass) a wall expands into what actually gets ordered > face area and run length are marked as measures, materials are not
+(pass) a wall expands into what actually gets ordered > a wall with no build-up recorded still reports its area [0.28ms]
+(pass) a wall expands into what actually gets ordered > a wall with no height set is measured at the same default core uses [0.07ms]
+(pass) placed models > items count per product, aggregating duplicates [0.04ms]
+(pass) placed models > an item with no asset metadata still gets counted
+(pass) furniture run make-up > reports total run length alongside the bay count [0.14ms]
+(pass) furniture run make-up > bays group by width [0.04ms]
+(pass) furniture run make-up > a run with no bays reports no length or make-up [0.03ms]
+(pass) floor and ceiling openings > area comes from the polygon field
+(pass) floor and ceiling openings > holes are deducted — a stairwell is not floor [0.05ms]
+(pass) floor and ceiling openings > holes larger than the slab clamp at zero rather than going negative [0.02ms]
+(pass) floor and ceiling build-up > a ceiling expands into furring and board, under the ceiling heading [0.13ms]
+(pass) floor and ceiling build-up > floor screed is measured by volume [0.04ms]
+(pass) floor and ceiling build-up > holes reduce the build-up too, not just the headline area
+(pass) floor and ceiling build-up > a surface with no construction still reports its area
+
+ 54 pass
+ 0 fail
+ 117 expect() calls
+Ran 54 tests across 1 file. [638.00ms]

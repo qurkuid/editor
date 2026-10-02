@@ -1,0 +1,82 @@
+[
+  {
+    "key": "jangjeon",
+    "matchesLocalV13": {
+      "walls": false,
+      "openings": true,
+      "rooms": true,
+      "mmPerPx": true,
+      "imageSize": true
+    }
+  },
+  {
+    "key": "haeundae",
+    "matchesLocalV13": {
+      "walls": true,
+      "openings": true,
+      "rooms": true,
+      "mmPerPx": true,
+      "imageSize": true
+    }
+  },
+  {
+    "key": "hwmyeong",
+    "matchesLocalV13": {
+      "walls": true,
+      "openings": true,
+      "rooms": true,
+      "mmPerPx": true,
+      "imageSize": true
+    }
+  },
+  {
+    "key": "daeyeon",
+    "matchesLocalV13": {
+      "walls": false,
+      "openings": true,
+      "rooms": true,
+      "mmPerPx": true,
+      "imageSize": true
+    }
+  },
+  {
+    "key": "centum",
+    "matchesLocalV13": {
+      "walls": true,
+      "openings": true,
+      "rooms": true,
+      "mmPerPx": true,
+      "imageSize": true
+    }
+  },
+  {
+    "key": "forest",
+    "matchesLocalV13": {
+      "walls": true,
+      "openings": true,
+      "rooms": true,
+      "mmPerPx": true,
+      "imageSize": true
+    }
+  },
+  {
+    "key": "sajik",
+    "matchesLocalV13": {
+      "walls": true,
+      "openings": true,
+      "rooms": true,
+      "mmPerPx": true,
+      "imageSize": true
+    }
+  },
+  {
+    "key": "beonyeong",
+    "matchesLocalV13": {
+      "walls": true,
+      "openings": true,
+      "rooms": true,
+      "mmPerPx": true,
+      "imageSize": true
+    }
+  }
+]

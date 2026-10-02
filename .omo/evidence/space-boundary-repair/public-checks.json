@@ -1,0 +1,60 @@
+{
+  "bun": {
+    "exitCode": 0,
+    "testsPassed": 42,
+    "assertions": 313,
+    "log": "bun-final.log"
+  },
+  "editorTypecheck": {
+    "exitCode": 0,
+    "log": "typecheck-final.log"
+  },
+  "biome": {
+    "exitCode": 0,
+    "files": 4,
+    "log": "biome-final.log"
+  },
+  "isolatedEditorProductionBuild": {
+    "exitCode": 0,
+    "log": "build-final.log"
+  },
+  "physicalBoundaryRuntime": {
+    "status": "PASS",
+    "sourceSpans": 7,
+    "sourceSamples": 63,
+    "log": "source-final.log",
+    "savedGraphCheck": "saved-boundaries.json"
+  },
+  "roomAndOpeningRuntime": {
+    "status": "PASS",
+    "rooms": 15,
+    "bedrooms": 3,
+    "door": 9,
+    "window": 3,
+    "uncertainOpening": 5,
+    "check": "frame-new.json"
+  },
+  "browser": {
+    "sceneId": "44f699bf5823",
+    "savedVersion": 7,
+    "nodes": 118,
+    "walls": 56,
+    "rooms": 15,
+    "openings": 17,
+    "errors": 0,
+    "undoSavedVersion": 6,
+    "undoNodes": 4,
+    "redoExactGraph": true
+  },
+  "originalScene": {
+    "sceneId": "e963e1022cab",
+    "nodes": 101,
+    "exactGraphPreserved": true
+  },
+  "scope": {
+    "implementedBy": "root directly after user override",
+    "environment": "local development",
+    "privateVectorizer": ".omx/recovery-20260929/data/vectorize.py",
+    "deployment": "not requested"
+  }
+}

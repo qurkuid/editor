@@ -1,0 +1,54 @@
+{
+  "sourceCommit": "df1d7a1da95843c81a3e24c70d193cf19868d33f",
+  "productionUrl": "https://apt.intm.kr",
+  "status": "deployed-and-verified",
+  "localBuildId": "hsKV3qIpSm-Rs-UTMr2-q",
+  "tests": {
+    "corePass": 1244,
+    "wallFocusedPass": 83,
+    "zoneAndManualPass": 86
+  },
+  "localTypes": "passed",
+  "changedFileBiome": "passed",
+  "review": "approved",
+  "githubActions": "no runs returned",
+  "localBrowser": {
+    "sceneId": "fb320d907f4e",
+    "walls": 65,
+    "zones": 12,
+    "autoZones": 9,
+    "autoZoneVertexErrorM": 0,
+    "undoGraphExact": true,
+    "consoleErrors": []
+  },
+  "verifiedAt": "2026-10-01T10:03:49.236625+00:00",
+  "runtimeCommit": "df1d7a1da95843c81a3e24c70d193cf19868d33f",
+  "runtimeBuildId": "9gq8ocvxjLV4JQQprAyVL",
+  "runtimeProcess": {
+    "name": "apt-subdomain",
+    "pid": 48786,
+    "status": "online",
+    "cwd": "/Volumes/DATABASE/floorplan-releases/20261001-df1d7a1d/apps/editor",
+    "restarts": 0
+  },
+  "publicAsset": {
+    "publicAsset": "/_next/static/chunks/38ok0_0h2b4_v.js",
+    "sha256": "207cd571bdf86d240e891c139700729059d7a686551171e3c8c7e1200f04a9ed"
+  },
+  "publicHttp": 200,
+  "publicServerHashMatch": true,
+  "productionBrowser": {
+    "sceneId": "40acd7120944",
+    "version": 1,
+    "walls": 65,
+    "zones": 12,
+    "autoZones": 9,
+    "autoZoneVertexErrorM": 0,
+    "manualRoomIds": [
+      "r4",
+      "r8",
+      "r9"
+    ],
+    "consoleErrors": []
+  }
+}

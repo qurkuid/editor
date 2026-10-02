@@ -1,0 +1,3014 @@
+[
+  {
+    "file": "packages/core/src/material-size.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/material-library.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/utils/heal-scene-graph.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/utils/clone-scene-graph.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/ontology/semantic-ref.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/modeling/manipulation.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/modeling/operations.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/material.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/asset-url.test.ts",
+    "exit": 0,
+    "pass": 39,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/roof-segment-surface.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/measurement.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/lighting.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/roof-segment-walls.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/construction-dimension.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/roof-segment-trim.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/roof-segment-shape.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/level.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/structural-grid.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/ridge-vent-defaults.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/zone.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/guide.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/wall.test.ts",
+    "exit": 0,
+    "pass": 19,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/schema/nodes/site.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/hooks/scene-registry/scene-registry.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/hooks/spatial-grid/wall-slab-overlap.test.ts",
+    "exit": 0,
+    "pass": 28,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/hooks/spatial-grid/live-override-support.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/hooks/spatial-grid/floor-placed-elevation.test.ts",
+    "exit": 0,
+    "pass": 17,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/hooks/spatial-grid/spatial-grid-sync.test.ts",
+    "exit": 0,
+    "pass": 17,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/hooks/spatial-grid/support-host.test.ts",
+    "exit": 0,
+    "pass": 19,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/hooks/spatial-grid/pointer-support-cap.test.ts",
+    "exit": 0,
+    "pass": 17,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/hooks/spatial-grid/fence-support-patch.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/registry/relations-resolver.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/registry/subtree.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/registry/registry.test.ts",
+    "exit": 0,
+    "pass": 26,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/registry/scene-api.test.ts",
+    "exit": 0,
+    "pass": 14,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/slab-polygon.test.ts",
+    "exit": 0,
+    "pass": 35,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-csg.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-face-split.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-feature-move.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-transform.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/space-detection.test.ts",
+    "exit": 0,
+    "pass": 34,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-containers.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/lighting.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-solid.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-face-imprint.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/terrain-field.test.ts",
+    "exit": 0,
+    "pass": 36,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/terrain-source.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/link-default-construction.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/wall-operations.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-sweep.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/wall-construction.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/measurement-geometry.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-frame-edit.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/space-detection-pause.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/guide-perspective.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/zone-quantities.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-array.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/wall-length.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-offset.test.ts",
+    "exit": 0,
+    "pass": 18,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/construction-material-match.test.ts",
+    "exit": 0,
+    "pass": 18,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/terrain-support.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/terrain-raycast.test.ts",
+    "exit": 0,
+    "pass": 17,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/terrain-codec.test.ts",
+    "exit": 0,
+    "pass": 18,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/space-detection-history.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/terrain-brush.test.ts",
+    "exit": 0,
+    "pass": 31,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-topology.test.ts",
+    "exit": 0,
+    "pass": 15,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/body-curves.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/furniture/furniture.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/furniture/operations.test.ts",
+    "exit": 0,
+    "pass": 28,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/furniture/assembly.test.ts",
+    "exit": 0,
+    "pass": 37,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/lib/furniture/front-pose.test.ts",
+    "exit": 0,
+    "pass": 14,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/wall/wall-top.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/wall/wall-mitering.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/wall/wall-footprint.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/slab/slab-placement.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/slab/slab-support.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/stair/stair-opening-preview.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/stair/stair-rise.test.ts",
+    "exit": 0,
+    "pass": 27,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/stair/stair-opening-sync.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/fence/fence-spline.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/elevator/elevator-opening-system.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/elevator/elevator-runtime.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/systems/elevator/elevator-opening-sync.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/opening-guides.test.ts",
+    "exit": 0,
+    "pass": 23,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/drag-session.test.ts",
+    "exit": 0,
+    "pass": 14,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/movement.test.ts",
+    "exit": 0,
+    "pass": 16,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/port-connectivity.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/storey.test.ts",
+    "exit": 0,
+    "pass": 37,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/single-undo-dance.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/validate-dwv.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/alignment.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/level-height.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/alignment-anchors.test.ts",
+    "exit": 0,
+    "pass": 22,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/wall-flush-snap.test.ts",
+    "exit": 0,
+    "pass": 16,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/snap.test.ts",
+    "exit": 0,
+    "pass": 23,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/system-graph.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/hosting.test.ts",
+    "exit": 0,
+    "pass": 21,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/services/riser-diagram.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/validation/validate-build-json.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-plugins.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-retired-floorplan-migration.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-construction-dimension-migration.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-commits.test.ts",
+    "exit": 0,
+    "pass": 29,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-measurement-roundtrip.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-site-child-migration.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-saved-views.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-dirty-tracking.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-elevator-migration.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-vertical-migration.test.ts",
+    "exit": 0,
+    "pass": 17,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-window-migration.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-scene-wall-slot-migration.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/use-live-terrain.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/actions/node-mutation-sanitize.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/actions/ridge-vent-update.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/core/src/store/actions/reparent.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/ui/snap-target-badge.test.tsx",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/ui/sidebar/tab-bar.test.tsx",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/ui/sidebar/panels/settings-panel/index.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/ui/item-catalog/item-catalog.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/ui/panels/panel-wrapper.test.tsx",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/ui/panels/selection-breakdown.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/ui/controls/material-paint-panel.test.tsx",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/ui/controls/scene-material-seamless-action.test.tsx",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/tools/wall/wall-snap-geometry.test.ts",
+    "exit": 0,
+    "pass": 15,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/tools/wall/wall-drafting.test.ts",
+    "exit": 0,
+    "pass": 29,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/tools/stair/stair-click-guard.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/tools/shared/pointer-support-cap.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/tools/furniture/furniture-alignment.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/tools/item/placement-math.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/tools/site/stroke-pointer-ownership.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/tools/select/select-candidates.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/tools/select/marquee-geometry.test.ts",
+    "exit": 0,
+    "pass": 15,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor-2d/floorplan-cursor-indicator-position.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor-2d/floorplan-render-context.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor-2d/floorplan-measurement-tool-layer.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor-2d/renderers/floorplan-label-angle.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor-2d/renderers/floorplan-geometry-renderer.test.tsx",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor-2d/renderers/floorplan-annotation-layout.test.ts",
+    "exit": 0,
+    "pass": 14,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor-2d/renderers/floorplan-dimension-renderer.test.tsx",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts",
+    "exit": 0,
+    "pass": 14,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/use-floorplan-hit-testing.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/node-action-menu.test.tsx",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/floorplan-camera-sync.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/floorplan-background-selection.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/camera-dragging-lifecycle.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/floorplan-navigation-presentation.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/group-transform-shared.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/handles/preview-overrides.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/handles/handle-drag-history.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/handles/resize-snap.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/first-person/terrain-collider.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/components/editor/first-person/build-collider-world.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/hooks/use-auto-save.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/hooks/use-draft-length-input.test.tsx",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/snapping-mode.test.ts",
+    "exit": 0,
+    "pass": 17,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/manipulation-conformance.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/camera-pose.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/host-integration.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/keyboard-shortcuts.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/stl-export.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/stair-levels.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/direct-manipulation.test.ts",
+    "exit": 0,
+    "pass": 15,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/wall-direction-lock.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/elevation-guides.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/dxf-export.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/measurements.test.ts",
+    "exit": 0,
+    "pass": 25,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/selection-routing.test.ts",
+    "exit": 0,
+    "pass": 20,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/planar-cursor-placement.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/stair-duplication.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/sketchup-wall-contract.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/history.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/draft-length-input.test.ts",
+    "exit": 0,
+    "pass": 15,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/terrain-verb-color.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/contextual-help.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/fresh-planar-placement.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/plugin-panels.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/asset-path.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/quick-action-nodes.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/floorplan-image-export.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/paint-scope.test.ts",
+    "exit": 0,
+    "pass": 26,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/measurement-kind.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/wheel-zoom.test.ts",
+    "exit": 0,
+    "pass": 14,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/quick-measurement.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/scene-bounds.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/body-boolean.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/terrain-sculpt.test.ts",
+    "exit": 0,
+    "pass": 23,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/pivot-rotate-math.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/surface-plan-snap.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/active-placement-surface.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/material-seamless-status.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/glb-wall-topology.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/glb-export.test.ts",
+    "exit": 0,
+    "pass": 24,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/pascal-bundle.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/touch-gesture-priority.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/site-boundary.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/guide-surface-placement.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/measurement-label.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/scene-clipboard.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/sfx-player.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/slab-plan-snap.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/level-duplication.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/sfx/movement-tick.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/floorplan/floorplan-extension.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/floorplan/floorplan-pdfkit-renderer.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/floorplan/floorplan-mode.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/floorplan/drawing-coordination.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/floorplan/apply-alignment.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/floorplan/annotation-visibility.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/floorplan/floorplan-export.test.ts",
+    "exit": 0,
+    "pass": 17,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/interaction/hot-set.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/lib/interaction/overlay-policy.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/i18n/use-t.test.tsx",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/i18n/locale-store.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/i18n/translate.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/use-interaction-scope.test.ts",
+    "exit": 0,
+    "pass": 14,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/body-container-edit.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/paint-sampling-mode.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/camera-pose-store.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/use-pivot-rotate.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/use-drawing-view.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/use-measurement-draft.test.ts",
+    "exit": 0,
+    "pass": 23,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/navigation-sync-pose-store.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/use-draft-length-hud.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/live-draft-preview-stores.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/terrain-sculpt-mode.test.ts",
+    "exit": 0,
+    "pass": 20,
+    "skip": 0
+  },
+  {
+    "file": "packages/editor/src/store/use-quick-measurement-hud.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/index.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/ontology-mappings.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/guide/geometry.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/guide/definition.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/dormer/__tests__/schema.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/dormer/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/construction-geometry.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/construction-dimensions.test.ts",
+    "exit": 0,
+    "pass": 37,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/measurement.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/construction-dimension-reference-policy.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/definition.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/construction-visual.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/floorplan-affordances.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/floorplan-overrides.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/floorplan.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/preview.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/paint.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/construction-preview.test.tsx",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/wall/treatments.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/measurement/body-transform-resolve.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/measurement/smart-surface.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/measurement/tool.test.ts",
+    "exit": 0,
+    "pass": 24,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/measurement/definition.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/measurement/renderer.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/measurement/edit.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/measurement/floorplan.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/measurement/resolve.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/measurement/surface-query.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/slab/placement-ownership.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/slab/__tests__/move-edge-affordance.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/slab/__tests__/elevation-limit.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/slab/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/slab/__tests__/definition.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/solar-panel/__tests__/schema.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/solar-panel/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 20,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/lighting-fixture/floorplan.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/construction-guide/floorplan.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/stair/destination.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/stair/documentation.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/stair/floorplan.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/stair/floor-stack.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/panel.test.tsx",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/placement-snap.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/drag-bounds.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/wall-depth-companions.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/delete-corner-group.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/tree-structure.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/front-style.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/duplicate-subtree.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/resize-limits.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/context-aware-depth.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/wall-snap.test.ts",
+    "exit": 0,
+    "pass": 23,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/defaults.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/run-ops.test.ts",
+    "exit": 0,
+    "pass": 37,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 82,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/placement-collision.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/wall-depth-handles.test.ts",
+    "exit": 0,
+    "pass": 18,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/wardrobe-parity.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/island-set.test.ts",
+    "exit": 0,
+    "pass": 15,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/move-frame.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/run-resize.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/run-surface-depth.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/floorplan.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/furniture-resize.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/furniture-doors.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/stack.test.ts",
+    "exit": 0,
+    "pass": 27,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/furniture-geometry.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/quick-actions.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/furniture-presets.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/continuous-placement.test.ts",
+    "exit": 0,
+    "pass": 20,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cabinet/__tests__/countertop-cutouts.test.ts",
+    "exit": 0,
+    "pass": 19,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/structural-grid/floorplan-tool.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/structural-grid/definition.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/structural-grid/coordination.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/structural-grid/floorplan.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/zone/room-documentation.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/zone/room-clear-dimensions.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/zone/floorplan.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/face-target.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/primitive-draft.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/offset-session.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/measurement.test.ts",
+    "exit": 0,
+    "pass": 19,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/offset-mounted.test.tsx",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/geometry.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/offset.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/push-pull.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/rectangle-draft.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/push-pull-session.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/offset-interaction.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/floorplan.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/parametrics.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/push-pull-snap.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/paint.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/push-pull-mounted.test.tsx",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/move-session.test.ts",
+    "exit": 1,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/feature-selection.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/body/scale-handles.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/column/floorplan.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/run-translation-offset.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/roof-surface-placement-guides.test.ts",
+    "exit": 0,
+    "pass": 23,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/floor-placement.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/polygon-measurement.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/pipe-vertical-offset.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/dimension-string.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/opening-documentation.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/vertical-offset.test.ts",
+    "exit": 0,
+    "pass": 18,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/surface-texture-transform.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/floorplan-cursor.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/roof-surface.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/polygon-vertex-affordance.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/port-connectivity-pipe.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/pipe-auto-fitting.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/auto-fitting.test.ts",
+    "exit": 0,
+    "pass": 42,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/quick-measurement.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/pipe-run-translation-offset.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/auto-offset-tag.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/opening-width-affordances.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/ridge-snap.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/construction-length.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/contextual-floorplan-dimensions.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shared/opening-placement-dimensions.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/lighting-switch/circuits.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/lighting-switch/floorplan.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/turbine-vent/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/ceiling/materials.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/ceiling/presets.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/eyebrow-vent/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/construction-dimension/floorplan-tool.test.ts",
+    "exit": 0,
+    "pass": 14,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/construction-dimension/definition.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/construction-dimension/floorplan-affordances.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/construction-dimension/drawing-coordination.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/construction-dimension/floorplan.test.ts",
+    "exit": 0,
+    "pass": 18,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/duct-fitting/parametrics.test.ts",
+    "exit": 1,
+    "pass": 0,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/fence/__tests__/lift.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/item/floorplan-move.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/item/model-source.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/item/model-loader.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/chimney/__tests__/schema.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/chimney/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/chimney/__tests__/presets.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/site/terrain-mesh.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/site/recessed-slab-ground-holes.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/site/terrain-drape.test.ts",
+    "exit": 0,
+    "pass": 20,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/site/terrain-geometry.test.ts",
+    "exit": 0,
+    "pass": 27,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/roof-segment/floorplan.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/lighting/placement.test.ts",
+    "exit": 0,
+    "pass": 26,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shelf/__tests__/schema.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/shelf/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 19,
+    "skip": 1
+  },
+  {
+    "file": "packages/nodes/src/pipe-fitting/parametrics.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/cupola/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/ridge-vent/__tests__/schema.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/ridge-vent/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/skylight/__tests__/schema.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/skylight/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/spawn/__tests__/parity.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/box-vent/__tests__/schema.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/box-vent/__tests__/geometry.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/building/definition.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/nodes/src/door/floorplan.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/components/viewer/scene-bvh.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/lib/merged-outline-node.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/lib/texture-reference.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/lib/materials.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/lib/polygon-union.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/lib/csg-utils.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/wall/wall-opening-cutout.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/wall/opening-cutout-geometry.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/wall/wall-terrain-bottom.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/wall/wall-support-extension.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/wall/wall-material-override.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/slab/slab-system.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/ceiling/ceiling-feature-geometry.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/geometry/geometry-system.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/door/door-floor-alignment.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/systems/door/door-animation.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/viewer/src/store/use-viewer.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/index.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/ontology-registration.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/ontology-manual.test.ts",
+    "exit": 0,
+    "pass": 15,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/create-level.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/create-wall.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/cut-opening.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/describe-node.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/get-scene.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/export-json.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/place-item.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/measurement.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/room-tools.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/validate-scene.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/set-zone.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/duplicate-level.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/delete-node.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/apply-patch.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/measure.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/construction-tools.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/export-glb.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/redo.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/check-collisions.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/preflight-modeling-operation.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/find-nodes.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/get-node.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/undo.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/scene-query.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/commit-modeling-operation.test.ts",
+    "exit": 0,
+    "pass": 17,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/variants/generate-variants.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/variants/mutations.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/photo-to-scene/photo-to-scene.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/scene-lifecycle/list-scenes.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/scene-lifecycle/session-context.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/scene-lifecycle/save-scene.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/scene-lifecycle/delete-scene.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/scene-lifecycle/project-session-workflow.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/scene-lifecycle/load-scene.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/scene-lifecycle/project-status.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/scene-lifecycle/rename-scene.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/vision/analyze-room-photo.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/vision/analyze-floorplan-image.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/tools/templates/templates.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/bridge/scene-bridge.test.ts",
+    "exit": 0,
+    "pass": 56,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/transports/http.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/transports/stdio.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/resources/modeling-operations.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/resources/resources.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/ontology/query.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/ontology/rule.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/ontology/pack.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/operations/scene-operations.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/storage/store.test.ts",
+    "exit": 0,
+    "pass": 22,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/storage/turbopack-boundary.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/storage/sqlite-scene-store.test.ts",
+    "exit": 0,
+    "pass": 29,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/lib/safe-fetch.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/prompts/prompts.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "packages/mcp/src/templates/templates.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/intm-materials.test.ts",
+    "exit": 0,
+    "pass": 16,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/link-layer-material.test.ts",
+    "exit": 0,
+    "pass": 12,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/material-seamless-cache.test.ts",
+    "exit": 0,
+    "pass": 1,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-body-transform.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/quantity-takeoff.test.ts",
+    "exit": 0,
+    "pass": 36,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-provider.test.ts",
+    "exit": 0,
+    "pass": 18,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/img3d-provider.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/unified-material-catalog.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/body-offset-cross-surface.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/img3d-compiler.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/intm-construction-materials.test.ts",
+    "exit": 0,
+    "pass": 23,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/auth-gate.test.ts",
+    "exit": 0,
+    "pass": 32,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/apt-format.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/wall-assembly-takeoff.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-cli-provider.test.ts",
+    "exit": 0,
+    "pass": 34,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-chat-history.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-failure.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/apt-vector-scene.test.ts",
+    "exit": 0,
+    "pass": 18,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/rawpainter-adapter.test.ts",
+    "exit": 0,
+    "pass": 11,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/img3d-contract.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-body-offset.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-control-persistence.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/body-modeling-cross-surface.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/local-editor-save-status.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-ontology.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/material-favorites-store.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/scene-store-server.test.ts",
+    "exit": 0,
+    "pass": 4,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/estimate-lines.test.ts",
+    "exit": 0,
+    "pass": 15,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-contract.test.ts",
+    "exit": 0,
+    "pass": 3,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/graph-schema.test.ts",
+    "exit": 0,
+    "pass": 2,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-claude-provider.test.ts",
+    "exit": 0,
+    "pass": 14,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/scene-project-link.test.ts",
+    "exit": 0,
+    "pass": 9,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/estimate-submit.test.ts",
+    "exit": 0,
+    "pass": 16,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/seamless-image.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/self-url.test.ts",
+    "exit": 0,
+    "pass": 7,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/intm-session.test.ts",
+    "exit": 0,
+    "pass": 10,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/scene-api-security.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/scene-material-overrides.test.ts",
+    "exit": 0,
+    "pass": 5,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/intm-projects.test.ts",
+    "exit": 0,
+    "pass": 13,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/material-coverage.test.ts",
+    "exit": 0,
+    "pass": 42,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-control.test.ts",
+    "exit": 0,
+    "pass": 27,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-chat-queue.test.ts",
+    "exit": 0,
+    "pass": 6,
+    "skip": 0
+  },
+  {
+    "file": "apps/editor/lib/ai-auth-login.test.ts",
+    "exit": 0,
+    "pass": 8,
+    "skip": 0
+  }
+]

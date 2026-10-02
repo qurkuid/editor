@@ -1,0 +1,5 @@
+timestamp=2026-10-02T17:44:50+09:00
+command=python3 test_recovery.py (lock and changed-index guards)
+exit_code=0
+lock_guard=true
+result=held sync.lock and changed index were rejected before repair

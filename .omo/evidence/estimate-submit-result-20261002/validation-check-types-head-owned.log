@@ -1,0 +1,7 @@
+$ next typegen && tsgo --noEmit
+Generating route types...
+✓ Types generated successfully
+.next/types/app/api/ai/img3d/route.ts(14,13): error TS2344: Type 'OmitWithTag<typeof import("/private/var/folders/rs/jj352sx14j190g918q0kjlhr0000gn/T/pascal-estimate-90o5jkcr/apps/editor/app/api/ai/img3d/route"), "DELETE" | "GET" | "HEAD" | "OPTIONS" | ... 13 more ... | "unstable_instant", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'handleImg3dPost' is incompatible with index signature.
+    Type '(request: Request, routeDependencies: Img3dRouteDependencies) => Promise<NextResponse<unknown>>' is not assignable to type 'never'.
+error: script "check-types" exited with code 1
