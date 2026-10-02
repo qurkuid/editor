@@ -4,9 +4,9 @@ import { emitter } from '@pascal-app/core'
 import { Check, Crop, Loader2, Maximize2, Monitor, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useIsMobile } from '../../hooks/use-mobile'
-import { triggerSFX } from '../../lib/sfx-bus'
 import type { MessageId } from '../../i18n/translate'
 import { useT } from '../../i18n/use-t'
+import { triggerSFX } from '../../lib/sfx-bus'
 import useEditor, {
   type SnapshotCropMode,
   type SnapshotStandardAspect,

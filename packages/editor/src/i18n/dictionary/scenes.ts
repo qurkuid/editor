@@ -41,6 +41,9 @@ export const scenesDictionary = {
   },
   'scenes.versionRestoreFailed': { ko: '복원 실패', en: 'Restore failed' },
   'scenes.versionEmpty': { ko: '저장된 버전이 없습니다.', en: 'No versions recorded.' },
-  'scenes.versionLoadFailed': { ko: '버전 목록을 불러오지 못했습니다.', en: 'Failed to load versions.' },
+  'scenes.versionLoadFailed': {
+    ko: '버전 목록을 불러오지 못했습니다.',
+    en: 'Failed to load versions.',
+  },
   'scenes.close': { ko: '닫기', en: 'Close' },
 } as const satisfies Dictionary

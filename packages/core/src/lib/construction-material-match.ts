@@ -68,7 +68,8 @@ export function matchScore(name: string, layer: Partial<WallConstructionLayer>):
   const sheet = sheetFromName(name)
   if (sheet && layer.sheetWidth && layer.sheetHeight) {
     const fits =
-      (near(sheet.width, layer.sheetWidth, 0.005) && near(sheet.height, layer.sheetHeight, 0.005)) ||
+      (near(sheet.width, layer.sheetWidth, 0.005) &&
+        near(sheet.height, layer.sheetHeight, 0.005)) ||
       (near(sheet.height, layer.sheetWidth, 0.005) && near(sheet.width, layer.sheetHeight, 0.005))
     if (fits) score += 3
   }
@@ -104,7 +105,10 @@ export function bestConstructionMaterial(
   for (const material of materials) {
     const score = matchScore(material.label, layer)
     if (score === 0) continue
-    if (score > bestScore || (score === bestScore && best && material.label.length < best.label.length)) {
+    if (
+      score > bestScore ||
+      (score === bestScore && best && material.label.length < best.label.length)
+    ) {
       best = material
       bestScore = score
     }

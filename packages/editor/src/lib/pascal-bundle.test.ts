@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { attachPascalBundleAsset, parsePascalBundle, PascalBundleError } from './pascal-bundle'
+import { attachPascalBundleAsset, PascalBundleError, parsePascalBundle } from './pascal-bundle'
 
 function bundle(scene: unknown, model: Uint8Array): ArrayBuffer {
   const magic = new TextEncoder().encode('PASCALB1')

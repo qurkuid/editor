@@ -93,7 +93,18 @@ export const FloorplanNodePreview = memo(function FloorplanNodePreview({
     }
 
     return (builder as (n: AnyNode, c: GeometryContext) => FloorplanGeometry | null)(node, ctx)
-  }, [highlighted, hovered, metricNotation, moving, node, nodes, parentNode, renderContext, selected, unit])
+  }, [
+    highlighted,
+    hovered,
+    metricNotation,
+    moving,
+    node,
+    nodes,
+    parentNode,
+    renderContext,
+    selected,
+    unit,
+  ])
   if (!geometry) return null
 
   return (

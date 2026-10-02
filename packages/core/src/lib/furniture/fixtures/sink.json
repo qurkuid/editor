@@ -46,7 +46,14 @@
           "door": "hinged2",
           "face": "front",
           "tierMarkers": {
-            "induction": { "enabled": true, "x": 100, "y": 100, "w": 600, "d": 522, "model": "samsung_3" }
+            "induction": {
+              "enabled": true,
+              "x": 100,
+              "y": 100,
+              "w": 600,
+              "d": 522,
+              "model": "samsung_3"
+            }
           }
         }
       ]

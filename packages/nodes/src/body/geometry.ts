@@ -129,16 +129,17 @@ export function buildBodyGeometry(body: BodyNode, ctx?: GeometryContext): Group 
     ])
     const materialKey = face.surface.materialRef ?? 'default'
     const cachedMaterial = importedFromSketchUp ? importedMaterials.get(materialKey) : undefined
-    const resolvedMaterial = cachedMaterial ?? resolveMaterialRef(face.surface.materialRef, ctx?.materials)?.clone()
+    const resolvedMaterial =
+      cachedMaterial ?? resolveMaterialRef(face.surface.materialRef, ctx?.materials)?.clone()
     if (resolvedMaterial) resolvedMaterial.side = DoubleSide
     const material =
       resolvedMaterial ??
       new MeshStandardMaterial({
-          color: '#94a3b8',
-          roughness: 0.82,
-          metalness: 0,
-          side: DoubleSide,
-        })
+        color: '#94a3b8',
+        roughness: 0.82,
+        metalness: 0,
+        side: DoubleSide,
+      })
     if (importedFromSketchUp && !importedMaterials.has(materialKey)) {
       importedMaterials.set(materialKey, material)
     }

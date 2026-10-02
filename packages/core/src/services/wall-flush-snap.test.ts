@@ -20,7 +20,14 @@ function wall(id: string, start: [number, number], end: [number, number]): WallN
 function scene(withCorner = false): Readonly<Record<AnyNodeId, AnyNode>> {
   const nodes: Record<string, AnyNode> = {
     lvl: node({ id: 'lvl', type: 'level', children: withCorner ? ['w1', 'w2'] : ['w1'] }),
-    w1: node({ id: 'w1', type: 'wall', parentId: 'lvl', start: [0, 0], end: [4, 0], thickness: 0.1 }),
+    w1: node({
+      id: 'w1',
+      type: 'wall',
+      parentId: 'lvl',
+      start: [0, 0],
+      end: [4, 0],
+      thickness: 0.1,
+    }),
   }
   if (withCorner) {
     nodes.w2 = node({

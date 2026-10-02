@@ -62,9 +62,10 @@ describe('a painted face finds the INTM product it was painted with', () => {
 
   test('library refs pass through untouched — they already match by tail', () => {
     expect(
-      intmOverridesFromSceneMaterials({ mat_abc: sceneMaterial({ provider: 'intm', externalId: 'u' }) }, [
-        line({ materialRef: 'library:intm:u', key: 'library:intm:u' }),
-      ]),
+      intmOverridesFromSceneMaterials(
+        { mat_abc: sceneMaterial({ provider: 'intm', externalId: 'u' }) },
+        [line({ materialRef: 'library:intm:u', key: 'library:intm:u' })],
+      ),
     ).toEqual({})
   })
 })

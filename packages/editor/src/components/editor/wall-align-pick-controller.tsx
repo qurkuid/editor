@@ -25,9 +25,7 @@ export function WallAlignPickController() {
         alignNodeToWall(request.nodeId, node as WallNode, request.side)
         // The click that picked the wall also selected it; put the item's
         // selection back after the click's sync handlers finish.
-        queueMicrotask(() =>
-          useViewer.getState().setSelection({ selectedIds: [request.nodeId] }),
-        )
+        queueMicrotask(() => useViewer.getState().setSelection({ selectedIds: [request.nodeId] }))
       }
       useWallAlignPick.getState().cancel()
     }

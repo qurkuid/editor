@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import type { IntmMaterial } from './intm-materials'
 import { constructionKindsFor, toConstructionCatalogItems } from './intm-construction-materials'
+import type { IntmMaterial } from './intm-materials'
 
 function material(name: string, overrides: Partial<IntmMaterial> = {}): IntmMaterial {
   return { id: `mat_${name}`, name, unit: '장', unitPrice: 5000, ...overrides }
@@ -21,30 +21,34 @@ describe('what a catalogue entry can stand in for', () => {
 
   // The same trap that made the coverage seed over-match: these read like
   // materials but are trades. Offering them as a wall layer is nonsense.
-  test.each([['타일 철거'], ['도배 인건비'], ['석고보드 시공비'], ['폐기물 운반']])(
-    '%s is not a material',
-    (name) => {
-      expect(constructionKindsFor(name)).toEqual([])
-    },
-  )
+  test.each([
+    ['타일 철거'],
+    ['도배 인건비'],
+    ['석고보드 시공비'],
+    ['폐기물 운반'],
+  ])('%s is not a material', (name) => {
+    expect(constructionKindsFor(name)).toEqual([])
+  })
 
   // Korean compounds swallow these words whole: 수(도배)관 contains 도배, and
   // the live catalogue was offering a plumbing move as a wall finish.
   // Fittings borrow finish words: this is an electrical accessory, and it was
   // being offered as the wall's 마감 layer.
-  test.each([['스위치 높이조절 필름 1t (5ea)'], ['콘센트 커버'], ['조명 필름']])(
-    '%s is a fitting, not a finish',
-    (name) => {
-      expect(constructionKindsFor(name)).toEqual([])
-    },
-  )
+  test.each([
+    ['스위치 높이조절 필름 1t (5ea)'],
+    ['콘센트 커버'],
+    ['조명 필름'],
+  ])('%s is a fitting, not a finish', (name) => {
+    expect(constructionKindsFor(name)).toEqual([])
+  })
 
-  test.each([['수도배관이설'], ['전기배선 이설'], ['위생설비 교체']])(
-    '%s is not swallowed by a substring match',
-    (name) => {
-      expect(constructionKindsFor(name)).toEqual([])
-    },
-  )
+  test.each([
+    ['수도배관이설'],
+    ['전기배선 이설'],
+    ['위생설비 교체'],
+  ])('%s is not swallowed by a substring match', (name) => {
+    expect(constructionKindsFor(name)).toEqual([])
+  })
 
   test('a name that says nothing is left unclassified', () => {
     expect(constructionKindsFor('기타 잡자재')).toEqual([])

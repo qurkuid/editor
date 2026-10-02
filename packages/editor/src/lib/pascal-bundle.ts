@@ -29,14 +29,19 @@ export async function parsePascalBundle(buffer: ArrayBuffer): Promise<PascalBund
   if (sceneLength === 0 || modelOffset >= bytes.length) {
     throw new PascalBundleError('invalid_length')
   }
-  if (bytes.length - modelOffset < 4 || String.fromCharCode(...bytes.slice(modelOffset, modelOffset + 4)) !== 'glTF') {
+  if (
+    bytes.length - modelOffset < 4 ||
+    String.fromCharCode(...bytes.slice(modelOffset, modelOffset + 4)) !== 'glTF'
+  ) {
     throw new PascalBundleError('invalid_model')
   }
   try {
     const sceneBytes = isV2
       ? new Uint8Array(
           await new Response(
-            new Blob([bytes.slice(HEADER_BYTES, modelOffset)]).stream().pipeThrough(new DecompressionStream('gzip')),
+            new Blob([bytes.slice(HEADER_BYTES, modelOffset)])
+              .stream()
+              .pipeThrough(new DecompressionStream('gzip')),
           ).arrayBuffer(),
         )
       : bytes.slice(HEADER_BYTES, modelOffset)

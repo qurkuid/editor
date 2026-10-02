@@ -3,8 +3,8 @@ import {
   nodeRegistry,
   resolveWallAlignedPlacement,
   useScene,
-  wallAnchorForViewerSide,
   type WallNode,
+  wallAnchorForViewerSide,
 } from '@pascal-app/core'
 import { create } from 'zustand'
 

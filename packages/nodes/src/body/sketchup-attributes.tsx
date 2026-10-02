@@ -1,8 +1,8 @@
 'use client'
 
 import { useScene } from '@pascal-app/core'
-import { useViewer } from '@pascal-app/viewer'
 import { PanelSection } from '@pascal-app/editor'
+import { useViewer } from '@pascal-app/viewer'
 
 type AttributeValue = string | number | boolean | null
 type AttributeDictionaries = Record<string, Record<string, AttributeValue>>
@@ -16,7 +16,12 @@ function attributeDictionaries(metadata: unknown): AttributeDictionaries {
     if (!values || typeof values !== 'object' || Array.isArray(values)) continue
     result[dictionary] = {}
     for (const [key, value] of Object.entries(values)) {
-      if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      if (
+        value === null ||
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
         result[dictionary][key] = value
       }
     }
@@ -26,7 +31,9 @@ function attributeDictionaries(metadata: unknown): AttributeDictionaries {
 
 export default function SketchUpAttributes() {
   const selectedId = useViewer((state) => state.selection.selectedIds[0])
-  const node = useScene((state) => Object.values(state.nodes).find((candidate) => candidate.id === selectedId))
+  const node = useScene((state) =>
+    Object.values(state.nodes).find((candidate) => candidate.id === selectedId),
+  )
   const dictionaries = attributeDictionaries(node?.metadata)
   if (!node || Object.keys(dictionaries).length === 0) return null
 
@@ -35,9 +42,10 @@ export default function SketchUpAttributes() {
     const values = next[dictionary]
     if (!values) return
     values[key] = value
-    const metadata = node.metadata && typeof node.metadata === 'object' && !Array.isArray(node.metadata)
-      ? node.metadata
-      : {}
+    const metadata =
+      node.metadata && typeof node.metadata === 'object' && !Array.isArray(node.metadata)
+        ? node.metadata
+        : {}
     useScene.getState().updateNode(node.id, {
       metadata: { ...metadata, attributes: next },
     })
@@ -48,7 +56,9 @@ export default function SketchUpAttributes() {
       {Object.entries(dictionaries).flatMap(([dictionary, values]) =>
         Object.entries(values).map(([key, value]) => (
           <label className="mb-2 block" key={`${dictionary}:${key}`}>
-            <span className="mb-1 block text-xs text-zinc-400">{dictionary} · {key}</span>
+            <span className="mb-1 block text-xs text-zinc-400">
+              {dictionary} · {key}
+            </span>
             <input
               className="w-full rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm"
               defaultValue={String(value ?? '')}

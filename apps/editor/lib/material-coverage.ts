@@ -199,7 +199,12 @@ export function buildCoveragePatch(
   }
 
   const wastePercent = Number(waste)
-  if (waste.trim() !== '' && Number.isFinite(wastePercent) && wastePercent >= 0 && wastePercent < 100) {
+  if (
+    waste.trim() !== '' &&
+    Number.isFinite(wastePercent) &&
+    wastePercent >= 0 &&
+    wastePercent < 100
+  ) {
     patch.wasteRate = wastePercent / 100
   }
 

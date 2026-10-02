@@ -593,7 +593,9 @@ export function LightingTab() {
                 )}
                 key={lightingSwitch.id}
               >
-                <div className={cn('flex items-center gap-2 text-xs font-medium', expanded && 'mb-2')}>
+                <div
+                  className={cn('flex items-center gap-2 text-xs font-medium', expanded && 'mb-2')}
+                >
                   <button
                     aria-expanded={expanded}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
@@ -630,176 +632,181 @@ export function LightingTab() {
                     +
                   </button>
                 </div>
-                {expanded ? <div className="space-y-1 border-border border-l pl-2">
-                  {ownedCircuitIds.map((ownedCircuitId, gangIndex) => {
-                    const circuit = circuits.find((item) => item.id === ownedCircuitId)
-                    if (!circuit) return null
-                    const circuitFixtures = fixtures.filter(
-                      (fixture) => fixture.circuitId === circuit.id,
-                    )
-                    const lightCount = circuitFixtures.reduce(
-                      (total, fixture) => total + resolveLightingFixtureCount(fixture),
-                      0,
-                    )
-                    const selected =
-                      circuit.id === (selectedFixture?.circuitId ?? circuitId) && switchSelected
-                    const dropTarget = draggedFixtureId !== null && dragOverCircuitId === circuit.id
-                    const defaultCircuitName = t('lighting.circuits.defaultName').replace(
-                      '{n}',
-                      String(circuit.circuitNumber),
-                    )
-                    return (
-                      <div
-                        className={cn(
-                          'rounded-md px-2 py-1.5 transition-colors',
-                          selected && 'bg-amber-500/10',
-                          dropTarget && 'bg-teal-500/15 ring-1 ring-teal-400',
-                        )}
-                        data-circuit-id={circuit.id}
-                        key={`${lightingSwitch.id}-${gangIndex}`}
-                        onDragOver={(event) => {
-                          if (!draggedFixtureId) return
-                          event.preventDefault()
-                          event.dataTransfer.dropEffect = 'move'
-                          setDragOverCircuitId(circuit.id)
-                        }}
-                        onPointerEnter={() => {
-                          if (draggedFixtureId) setDragOverCircuitId(circuit.id)
-                        }}
-                        onPointerUp={() => moveDraggedFixture(circuit.id)}
-                        onDrop={(event) => {
-                          event.preventDefault()
-                          moveDraggedFixture(circuit.id)
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <button
-                            aria-label={t('lighting.circuits.use').replace(
-                              '{name}',
-                              circuit.name ?? defaultCircuitName,
-                            )}
-                            aria-pressed={selected}
-                            className={cn(
-                              'h-3 w-3 rounded-full border',
-                              selected
-                                ? 'border-amber-400 bg-amber-400'
-                                : 'border-muted-foreground',
-                            )}
-                            onClick={() => {
-                              useViewer
-                                .getState()
-                                .setSelection({ selectedIds: [lightingSwitch.id], zoneId: null })
-                              useLightingToolOptions.getState().setCircuitId(circuit.id)
-                            }}
-                            type="button"
-                          />
-                          <span className="w-6 text-[10px] text-muted-foreground">
-                            {gangIndex + 1}구
-                          </span>
-                          <input
-                            className="min-w-0 flex-1 bg-transparent text-xs outline-none"
-                            defaultValue={circuit.name ?? defaultCircuitName}
-                            onBlur={(event) => {
-                              const name = event.target.value.trim()
-                              if (name && name !== circuit.name) updateNode(circuit.id, { name })
-                            }}
-                          />
-                          <span className="text-[10px] text-muted-foreground">
-                            조명 {lightCount}
-                          </span>
-                          <button
-                            className={cn(
-                              'rounded p-1',
-                              circuit.enabled ? 'text-emerald-400' : 'text-muted-foreground',
-                            )}
-                            onClick={() => updateNode(circuit.id, { enabled: !circuit.enabled })}
-                            title={
-                              circuit.enabled
-                                ? t('lighting.circuits.turnOff')
-                                : t('lighting.circuits.turnOn')
-                            }
-                            type="button"
-                          >
-                            <Power className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            aria-label={t('lighting.circuits.removeFromSwitch')}
-                            className="rounded px-1 text-muted-foreground hover:text-destructive disabled:opacity-30"
-                            disabled={lightingSwitch.gangCount <= 1}
-                            onClick={() => removeSwitchCircuit(lightingSwitch, circuit, gangIndex)}
-                            type="button"
-                          >
-                            −
-                          </button>
-                        </div>
-                        <div className="mt-1 space-y-1 pl-5">
-                          {circuitFixtures.length === 0 ? (
-                            <p className="rounded border border-dashed border-border/60 px-2 py-1 text-[10px] text-muted-foreground">
-                              {dropTarget
-                                ? t('lighting.circuits.dropFixture')
-                                : t('lighting.circuits.noFixtures')}
-                            </p>
-                          ) : (
-                            circuitFixtures.map((fixture, fixtureIndex) => {
-                              const fixtureSelected = selectedIds[0] === fixture.id
-                              const fixtureName =
-                                fixture.name ??
-                                fixture.asset?.name ??
-                                t('lighting.fixture.defaultName').replace(
-                                  '{n}',
-                                  String(fixtureIndex + 1),
-                                )
-                              return (
-                                <button
-                                  aria-label={t('lighting.fixture.select').replace(
-                                    '{name}',
-                                    fixtureName,
-                                  )}
-                                  aria-pressed={fixtureSelected}
-                                  className={cn(
-                                    'flex w-full cursor-grab items-center gap-1.5 rounded border border-border/60 bg-background/50 px-1.5 py-1 text-left text-[10px] active:cursor-grabbing',
-                                    fixtureSelected &&
-                                      'border-teal-400 bg-teal-500/10 text-teal-100',
-                                    draggedFixtureId === fixture.id && 'opacity-40',
-                                  )}
-                                  data-fixture-id={fixture.id}
-                                  draggable
-                                  key={fixture.id}
-                                  onClick={() => {
-                                    useLightingToolOptions.getState().setCircuitId(circuit.id)
-                                    useViewer.getState().setSelection({
-                                      selectedIds: [fixture.id],
-                                      zoneId: null,
-                                    })
-                                  }}
-                                  onDragEnd={() => {
-                                    setDraggedFixtureId(null)
-                                    setDragOverCircuitId(null)
-                                  }}
-                                  onDragStart={(event) => {
-                                    event.dataTransfer.effectAllowed = 'move'
-                                    event.dataTransfer.setData('text/plain', fixture.id)
-                                    setDraggedFixtureId(fixture.id)
-                                  }}
-                                  onPointerDown={() => setDraggedFixtureId(fixture.id)}
-                                  type="button"
-                                >
-                                  <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                  <span className="min-w-0 flex-1 truncate">{fixtureName}</span>
-                                  {resolveLightingFixtureCount(fixture) > 1 ? (
-                                    <span className="text-muted-foreground">
-                                      ×{resolveLightingFixtureCount(fixture)}
-                                    </span>
-                                  ) : null}
-                                </button>
-                              )
-                            })
+                {expanded ? (
+                  <div className="space-y-1 border-border border-l pl-2">
+                    {ownedCircuitIds.map((ownedCircuitId, gangIndex) => {
+                      const circuit = circuits.find((item) => item.id === ownedCircuitId)
+                      if (!circuit) return null
+                      const circuitFixtures = fixtures.filter(
+                        (fixture) => fixture.circuitId === circuit.id,
+                      )
+                      const lightCount = circuitFixtures.reduce(
+                        (total, fixture) => total + resolveLightingFixtureCount(fixture),
+                        0,
+                      )
+                      const selected =
+                        circuit.id === (selectedFixture?.circuitId ?? circuitId) && switchSelected
+                      const dropTarget =
+                        draggedFixtureId !== null && dragOverCircuitId === circuit.id
+                      const defaultCircuitName = t('lighting.circuits.defaultName').replace(
+                        '{n}',
+                        String(circuit.circuitNumber),
+                      )
+                      return (
+                        <div
+                          className={cn(
+                            'rounded-md px-2 py-1.5 transition-colors',
+                            selected && 'bg-amber-500/10',
+                            dropTarget && 'bg-teal-500/15 ring-1 ring-teal-400',
                           )}
+                          data-circuit-id={circuit.id}
+                          key={`${lightingSwitch.id}-${gangIndex}`}
+                          onDragOver={(event) => {
+                            if (!draggedFixtureId) return
+                            event.preventDefault()
+                            event.dataTransfer.dropEffect = 'move'
+                            setDragOverCircuitId(circuit.id)
+                          }}
+                          onPointerEnter={() => {
+                            if (draggedFixtureId) setDragOverCircuitId(circuit.id)
+                          }}
+                          onPointerUp={() => moveDraggedFixture(circuit.id)}
+                          onDrop={(event) => {
+                            event.preventDefault()
+                            moveDraggedFixture(circuit.id)
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <button
+                              aria-label={t('lighting.circuits.use').replace(
+                                '{name}',
+                                circuit.name ?? defaultCircuitName,
+                              )}
+                              aria-pressed={selected}
+                              className={cn(
+                                'h-3 w-3 rounded-full border',
+                                selected
+                                  ? 'border-amber-400 bg-amber-400'
+                                  : 'border-muted-foreground',
+                              )}
+                              onClick={() => {
+                                useViewer
+                                  .getState()
+                                  .setSelection({ selectedIds: [lightingSwitch.id], zoneId: null })
+                                useLightingToolOptions.getState().setCircuitId(circuit.id)
+                              }}
+                              type="button"
+                            />
+                            <span className="w-6 text-[10px] text-muted-foreground">
+                              {gangIndex + 1}구
+                            </span>
+                            <input
+                              className="min-w-0 flex-1 bg-transparent text-xs outline-none"
+                              defaultValue={circuit.name ?? defaultCircuitName}
+                              onBlur={(event) => {
+                                const name = event.target.value.trim()
+                                if (name && name !== circuit.name) updateNode(circuit.id, { name })
+                              }}
+                            />
+                            <span className="text-[10px] text-muted-foreground">
+                              조명 {lightCount}
+                            </span>
+                            <button
+                              className={cn(
+                                'rounded p-1',
+                                circuit.enabled ? 'text-emerald-400' : 'text-muted-foreground',
+                              )}
+                              onClick={() => updateNode(circuit.id, { enabled: !circuit.enabled })}
+                              title={
+                                circuit.enabled
+                                  ? t('lighting.circuits.turnOff')
+                                  : t('lighting.circuits.turnOn')
+                              }
+                              type="button"
+                            >
+                              <Power className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              aria-label={t('lighting.circuits.removeFromSwitch')}
+                              className="rounded px-1 text-muted-foreground hover:text-destructive disabled:opacity-30"
+                              disabled={lightingSwitch.gangCount <= 1}
+                              onClick={() =>
+                                removeSwitchCircuit(lightingSwitch, circuit, gangIndex)
+                              }
+                              type="button"
+                            >
+                              −
+                            </button>
+                          </div>
+                          <div className="mt-1 space-y-1 pl-5">
+                            {circuitFixtures.length === 0 ? (
+                              <p className="rounded border border-dashed border-border/60 px-2 py-1 text-[10px] text-muted-foreground">
+                                {dropTarget
+                                  ? t('lighting.circuits.dropFixture')
+                                  : t('lighting.circuits.noFixtures')}
+                              </p>
+                            ) : (
+                              circuitFixtures.map((fixture, fixtureIndex) => {
+                                const fixtureSelected = selectedIds[0] === fixture.id
+                                const fixtureName =
+                                  fixture.name ??
+                                  fixture.asset?.name ??
+                                  t('lighting.fixture.defaultName').replace(
+                                    '{n}',
+                                    String(fixtureIndex + 1),
+                                  )
+                                return (
+                                  <button
+                                    aria-label={t('lighting.fixture.select').replace(
+                                      '{name}',
+                                      fixtureName,
+                                    )}
+                                    aria-pressed={fixtureSelected}
+                                    className={cn(
+                                      'flex w-full cursor-grab items-center gap-1.5 rounded border border-border/60 bg-background/50 px-1.5 py-1 text-left text-[10px] active:cursor-grabbing',
+                                      fixtureSelected &&
+                                        'border-teal-400 bg-teal-500/10 text-teal-100',
+                                      draggedFixtureId === fixture.id && 'opacity-40',
+                                    )}
+                                    data-fixture-id={fixture.id}
+                                    draggable
+                                    key={fixture.id}
+                                    onClick={() => {
+                                      useLightingToolOptions.getState().setCircuitId(circuit.id)
+                                      useViewer.getState().setSelection({
+                                        selectedIds: [fixture.id],
+                                        zoneId: null,
+                                      })
+                                    }}
+                                    onDragEnd={() => {
+                                      setDraggedFixtureId(null)
+                                      setDragOverCircuitId(null)
+                                    }}
+                                    onDragStart={(event) => {
+                                      event.dataTransfer.effectAllowed = 'move'
+                                      event.dataTransfer.setData('text/plain', fixture.id)
+                                      setDraggedFixtureId(fixture.id)
+                                    }}
+                                    onPointerDown={() => setDraggedFixtureId(fixture.id)}
+                                    type="button"
+                                  >
+                                    <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                    <span className="min-w-0 flex-1 truncate">{fixtureName}</span>
+                                    {resolveLightingFixtureCount(fixture) > 1 ? (
+                                      <span className="text-muted-foreground">
+                                        ×{resolveLightingFixtureCount(fixture)}
+                                      </span>
+                                    ) : null}
+                                  </button>
+                                )
+                              })
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div> : null}
+                      )
+                    })}
+                  </div>
+                ) : null}
               </div>
             )
           })}

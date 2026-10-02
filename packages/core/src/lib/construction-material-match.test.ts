@@ -13,7 +13,12 @@ function product(label: string): MaterialCatalogItem {
 }
 
 // The defaults a layer starts from: 석고 9.5T 900×1800, MDF 9T 600×2400.
-const GYPSUM = { kind: 'gypsum-board' as const, thickness: 0.0095, sheetWidth: 0.9, sheetHeight: 1.8 }
+const GYPSUM = {
+  kind: 'gypsum-board' as const,
+  thickness: 0.0095,
+  sheetWidth: 0.9,
+  sheetHeight: 1.8,
+}
 const MDF = { kind: 'mdf' as const, thickness: 0.009, sheetWidth: 0.6, sheetHeight: 2.4 }
 
 describe('reading a product name', () => {
@@ -63,7 +68,9 @@ describe('picking the closest product', () => {
   // A different thickness is the wrong board, not a worse one.
   test('a mismatched thickness is refused outright', () => {
     expect(matchScore('석고보드 12.5T 3x6 (900x1800)', GYPSUM)).toBe(0)
-    expect(bestConstructionMaterial([product('석고보드 12.5T 3x6 (900x1800)')], GYPSUM)).toBeUndefined()
+    expect(
+      bestConstructionMaterial([product('석고보드 12.5T 3x6 (900x1800)')], GYPSUM),
+    ).toBeUndefined()
   })
 
   test('the right thickness in another sheet size is still offered', () => {
@@ -73,7 +80,9 @@ describe('picking the closest product', () => {
 
   // Better an empty field than a plausible-looking wrong board.
   test('a name that says nothing is never offered', () => {
-    expect(bestConstructionMaterial([product('방수석고'), product('석고본드')], GYPSUM)).toBeUndefined()
+    expect(
+      bestConstructionMaterial([product('방수석고'), product('석고본드')], GYPSUM),
+    ).toBeUndefined()
   })
 
   test('nothing to choose from yields nothing', () => {

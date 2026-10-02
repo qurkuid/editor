@@ -200,7 +200,7 @@ describe('house default waste rate', () => {
   })
 })
 
-describe('the spec editor speaks the line\'s own unit', () => {
+describe("the spec editor speaks the line's own unit", () => {
   // 각재 is measured by the metre, and the editor said ㎡ — inviting an area
   // for a length and reading like the quantity itself was computed by area.
   test.each([

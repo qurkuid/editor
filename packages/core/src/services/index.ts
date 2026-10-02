@@ -130,6 +130,6 @@ export {
   resolveWallFlushSnap,
   WALL_FLUSH_SNAP_THRESHOLD_M,
   type WallAlignAnchor,
-  wallAnchorForViewerSide,
   type WallFlushSnapInput,
+  wallAnchorForViewerSide,
 } from './wall-flush-snap'

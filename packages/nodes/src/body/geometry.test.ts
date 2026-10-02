@@ -57,8 +57,11 @@ describe('buildBodyGeometry', () => {
   })
 
   test('merges imported SketchUp faces into one selectable mesh', () => {
-    const source = pushPullBodyFace(createRectangleBody({ width: 1.2, depth: 0.8 }), 'face:0', 1)
-      .body
+    const source = pushPullBodyFace(
+      createRectangleBody({ width: 1.2, depth: 0.8 }),
+      'face:0',
+      1,
+    ).body
     const body = { ...source, metadata: { source: 'SketchUp' } }
     const group = buildBodyGeometry(body)
     const mesh = group.children[0] as Mesh

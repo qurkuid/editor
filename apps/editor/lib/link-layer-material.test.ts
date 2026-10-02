@@ -32,13 +32,17 @@ describe('linking a product to every wall behind one line', () => {
   test('every wall that fed the line is patched', () => {
     const nodes = scene(wall('wall_a', STUD_AND_BOARD), wall('wall_b', STUD_AND_BOARD))
     expect(
-      layerMaterialPatches(nodes, ['wall_a', 'wall_b'], 'gypsum-board', CHOICE).map((p) => p.nodeId),
+      layerMaterialPatches(nodes, ['wall_a', 'wall_b'], 'gypsum-board', CHOICE).map(
+        (p) => p.nodeId,
+      ),
     ).toEqual(['wall_a', 'wall_b'])
   })
 
   test('a node repeated in the line is patched once', () => {
     const nodes = scene(wall('wall_a', STUD_AND_BOARD))
-    expect(layerMaterialPatches(nodes, ['wall_a', 'wall_a'], 'gypsum-board', CHOICE)).toHaveLength(1)
+    expect(layerMaterialPatches(nodes, ['wall_a', 'wall_a'], 'gypsum-board', CHOICE)).toHaveLength(
+      1,
+    )
   })
 
   test('other layers are left alone', () => {
@@ -63,8 +67,11 @@ describe('linking a product to every wall behind one line', () => {
       },
     })
     const [patch] = layerMaterialPatches(nodes, ['wall_a'], 'gypsum-board', CHOICE)
-    const construction = (patch?.patch.faceBands as { construction: Record<string, { layers: Array<Record<string, unknown>> }> })
-      .construction
+    const construction = (
+      patch?.patch.faceBands as {
+        construction: Record<string, { layers: Array<Record<string, unknown>> }>
+      }
+    ).construction
 
     expect(construction.lower?.layers[0]?.productRef).toBe('intm:mat_gyp')
     expect(construction.upper?.layers[0]?.productRef).toBe('intm:mat_gyp')
@@ -74,7 +81,10 @@ describe('linking a product to every wall behind one line', () => {
     const nodes = scene({
       id: 'slab_a',
       type: 'slab',
-      construction: [{ kind: 'screed', thickness: 0.05 }, { kind: 'plywood', thickness: 0.012 }],
+      construction: [
+        { kind: 'screed', thickness: 0.05 },
+        { kind: 'plywood', thickness: 0.012 },
+      ],
     })
     const [patch] = layerMaterialPatches(nodes, ['slab_a'], 'plywood', CHOICE)
     const layers = patch?.patch.construction as Array<Record<string, unknown>>
@@ -96,7 +106,12 @@ describe('what must not be invented', () => {
 
   test('a node with no build-up at all is left untouched', () => {
     expect(
-      layerMaterialPatches(scene({ id: 'wall_a', type: 'wall' }), ['wall_a'], 'gypsum-board', CHOICE),
+      layerMaterialPatches(
+        scene({ id: 'wall_a', type: 'wall' }),
+        ['wall_a'],
+        'gypsum-board',
+        CHOICE,
+      ),
     ).toEqual([])
   })
 })
@@ -106,14 +121,19 @@ describe('the sheet size follows the product', () => {
   // still set to 3x6 would order the right board in the wrong quantity.
   test('a product that states its size corrects the layer', () => {
     const nodes = scene(
-      wall('wall_a', [{ kind: 'gypsum-board', thickness: 0.0095, sheetWidth: 0.9, sheetHeight: 1.8 }]),
+      wall('wall_a', [
+        { kind: 'gypsum-board', thickness: 0.0095, sheetWidth: 0.9, sheetHeight: 1.8 },
+      ]),
     )
     const [patch] = layerMaterialPatches(nodes, ['wall_a'], 'gypsum-board', {
       ...CHOICE,
       name: '석고보드 9.5T 4x8 (1220x2440)',
     })
-    const layers = (patch?.patch.faceBands as { construction: Record<string, { layers: Array<Record<string, unknown>> }> })
-      .construction.upper.layers
+    const layers = (
+      patch?.patch.faceBands as {
+        construction: Record<string, { layers: Array<Record<string, unknown>> }>
+      }
+    ).construction.upper.layers
 
     expect(layers[0]?.sheetWidth).toBeCloseTo(1.22)
     expect(layers[0]?.sheetHeight).toBeCloseTo(2.44)
@@ -121,14 +141,19 @@ describe('the sheet size follows the product', () => {
 
   test('a name with no size leaves the layer as the user set it', () => {
     const nodes = scene(
-      wall('wall_a', [{ kind: 'gypsum-board', thickness: 0.0095, sheetWidth: 0.9, sheetHeight: 1.8 }]),
+      wall('wall_a', [
+        { kind: 'gypsum-board', thickness: 0.0095, sheetWidth: 0.9, sheetHeight: 1.8 },
+      ]),
     )
     const [patch] = layerMaterialPatches(nodes, ['wall_a'], 'gypsum-board', {
       ...CHOICE,
       name: '방수석고',
     })
-    const layers = (patch?.patch.faceBands as { construction: Record<string, { layers: Array<Record<string, unknown>> }> })
-      .construction.upper.layers
+    const layers = (
+      patch?.patch.faceBands as {
+        construction: Record<string, { layers: Array<Record<string, unknown>> }>
+      }
+    ).construction.upper.layers
 
     expect(layers[0]?.sheetWidth).toBeCloseTo(0.9)
   })
@@ -140,8 +165,11 @@ describe('the sheet size follows the product', () => {
       ...CHOICE,
       name: '각재 40x40 3600mm',
     })
-    const layers = (patch?.patch.faceBands as { construction: Record<string, { layers: Array<Record<string, unknown>> }> })
-      .construction.upper.layers
+    const layers = (
+      patch?.patch.faceBands as {
+        construction: Record<string, { layers: Array<Record<string, unknown>> }>
+      }
+    ).construction.upper.layers
 
     expect(layers[0]?.sheetWidth).toBeUndefined()
   })

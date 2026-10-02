@@ -25,7 +25,8 @@ function coerceProjects(body: ProjectsResponse): IntmProject[] {
     if (!row || typeof row !== 'object') return []
     const record = row as Record<string, unknown>
     if (typeof record.id !== 'string' || typeof record.name !== 'string') return []
-    const text = (key: string) => (typeof record[key] === 'string' ? (record[key] as string) : undefined)
+    const text = (key: string) =>
+      typeof record[key] === 'string' ? (record[key] as string) : undefined
     return [
       {
         id: record.id,
@@ -75,12 +76,7 @@ export function searchProjects(
   const terms = needle.split(/\s+/)
   return projects
     .filter((project) => {
-      const haystack = [
-        project.name,
-        project.customerName,
-        project.apartmentName,
-        project.address,
-      ]
+      const haystack = [project.name, project.customerName, project.apartmentName, project.address]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()

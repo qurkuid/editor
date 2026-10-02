@@ -55,22 +55,16 @@ export function CeilingSectionEditor({
   // stroke widths visually constant regardless of the profile's extent.
   const upx = viewBox.w / 270
 
-  const toProfilePoint = useCallback(
-    (clientX: number, clientY: number): ProfilePoint | null => {
-      const svg = svgRef.current
-      const vb = frozenViewBox.current
-      if (!(svg && vb)) return null
-      const rect = svg.getBoundingClientRect()
-      const u = vb.x + ((clientX - rect.left) / rect.width) * vb.w
-      const y = vb.y + ((clientY - rect.top) / rect.height) * vb.h
-      const snap = (value: number) => Math.round(value / SNAP) * SNAP
-      return [
-        Math.min(U_MAX, Math.max(0, snap(u))),
-        Math.min(V_MAX, Math.max(V_MIN, snap(-y))),
-      ]
-    },
-    [],
-  )
+  const toProfilePoint = useCallback((clientX: number, clientY: number): ProfilePoint | null => {
+    const svg = svgRef.current
+    const vb = frozenViewBox.current
+    if (!(svg && vb)) return null
+    const rect = svg.getBoundingClientRect()
+    const u = vb.x + ((clientX - rect.left) / rect.width) * vb.w
+    const y = vb.y + ((clientY - rect.top) / rect.height) * vb.h
+    const snap = (value: number) => Math.round(value / SNAP) * SNAP
+    return [Math.min(U_MAX, Math.max(0, snap(u))), Math.min(V_MAX, Math.max(V_MIN, snap(-y)))]
+  }, [])
 
   const handleVertexPointerDown = useCallback((index: number, e: React.PointerEvent) => {
     e.preventDefault()
@@ -105,8 +99,8 @@ export function CeilingSectionEditor({
       const a = profile[edgeIndex]!
       const b = profile[(edgeIndex + 1) % profile.length]!
       const mid: ProfilePoint = [
-        Math.round(((a[0] + b[0]) / 2) / SNAP) * SNAP,
-        Math.round(((a[1] + b[1]) / 2) / SNAP) * SNAP,
+        Math.round((a[0] + b[0]) / 2 / SNAP) * SNAP,
+        Math.round((a[1] + b[1]) / 2 / SNAP) * SNAP,
       ]
       const next = profile.slice()
       next.splice(edgeIndex + 1, 0, mid)
@@ -155,7 +149,13 @@ export function CeilingSectionEditor({
           y2={viewBox.y + viewBox.h}
         />
 
-        <path d={`${path} Z`} fill="#f2eee6" fillOpacity={0.25} stroke="#f2eee6" strokeWidth={1.5 * upx} />
+        <path
+          d={`${path} Z`}
+          fill="#f2eee6"
+          fillOpacity={0.25}
+          stroke="#f2eee6"
+          strokeWidth={1.5 * upx}
+        />
 
         {/* Midpoint insert dots. */}
         {profile.map(([u, v], i) => {

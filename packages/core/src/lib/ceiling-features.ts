@@ -43,7 +43,13 @@ export function ceilingFeatureEdgeFrame(
     (start[0] + end[0]) / 2 + inward[0] * eps,
     (start[1] + end[1]) / 2 + inward[1] * eps,
   ]
-  if (!pointInPolygon(probe, polygon.map(([x, z]) => [x, z] as Point2D), { includeBoundary: false })) {
+  if (
+    !pointInPolygon(
+      probe,
+      polygon.map(([x, z]) => [x, z] as Point2D),
+      { includeBoundary: false },
+    )
+  ) {
     inward = [dir[1], -dir[0]]
   }
 

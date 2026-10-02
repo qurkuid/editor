@@ -2,7 +2,7 @@ name: mcp-ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, deploy/floorplan]
     paths:
       - 'packages/mcp/**'
       - 'packages/core/**'

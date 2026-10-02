@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { fetchIntmProjects, type IntmProject, projectSubtitle, searchProjects } from './intm-projects'
+import {
+  fetchIntmProjects,
+  type IntmProject,
+  projectSubtitle,
+  searchProjects,
+} from './intm-projects'
 
 const ORIGINAL = { ...process.env }
 afterEach(() => {
@@ -89,9 +94,9 @@ describe('reading them from INTM', () => {
     ],
   ])('%s yields no projects rather than throwing', async (_label, fetcher) => {
     process.env.INTM_BASE_URL = 'https://intm.kr'
-    expect(await fetchIntmProjects('session_token=abc', fetcher as unknown as typeof fetch)).toEqual(
-      [],
-    )
+    expect(
+      await fetchIntmProjects('session_token=abc', fetcher as unknown as typeof fetch),
+    ).toEqual([])
   })
 
   test('no session means no request at all', async () => {

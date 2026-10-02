@@ -124,7 +124,7 @@ function legacyCabinetToFurniture(source: RawRecord): RawRecord {
   return {
     ...source,
     bays: [bay],
-    furnitureKind: source.runTier === 'wall' ? 'upper-run' : source.runTier ?? 'base-run',
+    furnitureKind: source.runTier === 'wall' ? 'upper-run' : (source.runTier ?? 'base-run'),
     dimensions: {
       width: source.width,
       height: source.carcassHeight,
@@ -249,12 +249,7 @@ function normalizeCeilingStep(source: RawRecord, unit: DimensionUnit) {
   }
 }
 
-function normalizeStepSide(
-  enabled: unknown,
-  width: unknown,
-  height: unknown,
-  unit: DimensionUnit,
-) {
+function normalizeStepSide(enabled: unknown, width: unknown, height: unknown, unit: DimensionUnit) {
   const record = asRecord(enabled)
   return {
     enabled: record ? booleanValue(record.enabled, false) : booleanValue(enabled, false),
@@ -333,7 +328,10 @@ function normalizeBay(source: RawRecord, fallbackId: string, unit: DimensionUnit
       left: booleanValue(asRecord(source.endPanels)?.left ?? asRecord(source.ep)?.left, false),
       right: booleanValue(asRecord(source.endPanels)?.right ?? asRecord(source.ep)?.right, false),
     },
-    visible: source.visible === undefined ? !booleanValue(source.hidden, false) : booleanValue(source.visible, true),
+    visible:
+      source.visible === undefined
+        ? !booleanValue(source.hidden, false)
+        : booleanValue(source.visible, true),
     lowerStile:
       source.lowerStile === undefined
         ? !booleanValue(source.noLowerStile, false)
@@ -351,7 +349,11 @@ function normalizeBase(source: RawRecord, unit: DimensionUnit) {
   const normalizedType = type === 'floating' ? 'floating' : type === 'legs' ? 'legs' : 'plinth'
   return FurnitureBaseSchema.parse({
     type: normalizedType,
-    height: nonNegativeDimension(source.height, normalizedType === 'plinth' ? DEFAULT_BASE_HEIGHT : 0.1, unit),
+    height: nonNegativeDimension(
+      source.height,
+      normalizedType === 'plinth' ? DEFAULT_BASE_HEIGHT : 0.1,
+      unit,
+    ),
   })
 }
 
@@ -381,7 +383,10 @@ function normalizeTier(source: RawRecord, fallbackId: string, unit: DimensionUni
       top: finiteDimension(rawExtension.top, 0, unit),
       bottom: finiteDimension(rawExtension.bottom, 0, unit),
     },
-    visible: source.visible === undefined ? !booleanValue(source.hidden, false) : booleanValue(source.visible, true),
+    visible:
+      source.visible === undefined
+        ? !booleanValue(source.hidden, false)
+        : booleanValue(source.visible, true),
     heightLocked: booleanValue(source.heightLocked, false),
     shelves: normalizeCountHeights(source.shelves ?? source.shelfCount, 8, unit),
     hanger: booleanValue(source.hanger, false),
@@ -391,7 +396,10 @@ function normalizeTier(source: RawRecord, fallbackId: string, unit: DimensionUni
       middle: normalizeChannel(rawChannels.middle, 'middle', unit),
     },
     topPanel: normalizePanel(rawTopPanel, unit),
-    bottomPanel: normalizePanel(rawBottomPanel ?? (source.epBottom ? { enabled: true } : undefined), unit),
+    bottomPanel: normalizePanel(
+      rawBottomPanel ?? (source.epBottom ? { enabled: true } : undefined),
+      unit,
+    ),
     mergeNext: booleanValue(source.mergeNext, false),
     fixtures: normalizeTierFixtures(source, fallbackId, unit),
   }
@@ -459,7 +467,8 @@ function normalizeFront(input: unknown, source: RawRecord): FurnitureTier['front
   if (door === 'hinged1' || door === 'single-left' || door === 'single-right') {
     return FurnitureFrontSchema.parse({ kind: 'hinged', leaves: 1, color, materialId })
   }
-  if (door === 'glass') return FurnitureFrontSchema.parse({ kind: 'hinged', leaves: 2, glass: true, color, materialId })
+  if (door === 'glass')
+    return FurnitureFrontSchema.parse({ kind: 'hinged', leaves: 2, glass: true, color, materialId })
   if (door === 'hinged2' || door === 'double') {
     return FurnitureFrontSchema.parse({ kind: 'hinged', leaves: 2, color, materialId })
   }
@@ -481,7 +490,12 @@ function normalizeFront(input: unknown, source: RawRecord): FurnitureTier['front
     return FurnitureFrontSchema.parse({ kind: 'sliding', leaves: 2, color, materialId })
   }
   if (door === 'sliding3' || door === 'sliding4') {
-    return FurnitureFrontSchema.parse({ kind: 'sliding', leaves: Number(door.slice(-1)), color, materialId })
+    return FurnitureFrontSchema.parse({
+      kind: 'sliding',
+      leaves: Number(door.slice(-1)),
+      color,
+      materialId,
+    })
   }
   if (door === 'spice_pullout') {
     return FurnitureFrontSchema.parse({ kind: 'pull-out', style: 'spice', color, materialId })
@@ -518,9 +532,16 @@ function normalizeCountHeights(input: unknown, max: 2 | 8, unit: DimensionUnit) 
 
 function normalizeChannel(input: unknown, kind: 'top' | 'middle', unit: DimensionUnit) {
   const raw = asRecord(input)
-  const defaults = kind === 'top' ? { height: 0.04, depth: 0.022, handSpace: 0.02 } : { height: 0.08, depth: 0.022, handSpace: 0.02 }
+  const defaults =
+    kind === 'top'
+      ? { height: 0.04, depth: 0.022, handSpace: 0.02 }
+      : { height: 0.08, depth: 0.022, handSpace: 0.02 }
   if (!raw) {
-    return FurnitureChannelSchema.parse({ enabled: booleanValue(input, false), ...defaults, color: '' })
+    return FurnitureChannelSchema.parse({
+      enabled: booleanValue(input, false),
+      ...defaults,
+      color: '',
+    })
   }
   return FurnitureChannelSchema.parse({
     enabled: booleanValue(raw.enabled, false),
@@ -533,7 +554,8 @@ function normalizeChannel(input: unknown, kind: 'top' | 'middle', unit: Dimensio
 
 function normalizePanel(input: unknown, unit: DimensionUnit) {
   const raw = asRecord(input)
-  if (!raw || raw.enabled === false || raw.kind === 'none') return FurniturePanelSchema.parse({ kind: 'none' })
+  if (!raw || raw.enabled === false || raw.kind === 'none')
+    return FurniturePanelSchema.parse({ kind: 'none' })
   const rawChamfer = asRecord(raw.chamfer) ?? {}
   const materials = new Set(['ep', 'ceramic', 'stone', 'paint', 'mdf'])
   const material = stringValue(raw.material, 'ep')
@@ -550,21 +572,40 @@ function normalizePanel(input: unknown, unit: DimensionUnit) {
   })
 }
 
-function normalizeFixtures(input: unknown, prefix: string, unit: DimensionUnit): Array<FurnitureFixture | null> {
+function normalizeFixtures(
+  input: unknown,
+  prefix: string,
+  unit: DimensionUnit,
+): Array<FurnitureFixture | null> {
   if (!Array.isArray(input)) return []
-  return input.map((fixture, index) => normalizeFixture(asRecord(fixture) ?? {}, `${prefix}-${index}`, unit))
+  return input.map((fixture, index) =>
+    normalizeFixture(asRecord(fixture) ?? {}, `${prefix}-${index}`, unit),
+  )
 }
 
-function normalizeTierFixtures(source: RawRecord, prefix: string, unit: DimensionUnit): FurnitureFixture[] {
+function normalizeTierFixtures(
+  source: RawRecord,
+  prefix: string,
+  unit: DimensionUnit,
+): FurnitureFixture[] {
   const fixtures = normalizeFixtures(source.fixtures, `${prefix}-fixture`, unit).filter(
     (fixture): fixture is FurnitureFixture => fixture !== null,
   )
   const markers = asRecord(source.tierMarkers)
   if (markers) {
-    const induction = normalizeMarkerRect(markers.induction, 'induction', `${prefix}-induction`, unit)
+    const induction = normalizeMarkerRect(
+      markers.induction,
+      'induction',
+      `${prefix}-induction`,
+      unit,
+    )
     const sink = normalizeMarkerRect(markers.sinkBowl, 'sink-bowl', `${prefix}-sink-bowl`, unit)
     const faucet = normalizeMarkerPoint(markers.faucet, `${prefix}-faucet`, unit)
-    fixtures.push(...[induction, sink, faucet].filter((fixture): fixture is FurnitureFixture => fixture !== null))
+    fixtures.push(
+      ...[induction, sink, faucet].filter(
+        (fixture): fixture is FurnitureFixture => fixture !== null,
+      ),
+    )
   }
   fixtures.push(...normalizeLights(source.lights, `${prefix}-light`, unit))
   fixtures.push(...normalizeOutlets(source.outlets, `${prefix}-outlet`, unit))
@@ -572,16 +613,31 @@ function normalizeTierFixtures(source: RawRecord, prefix: string, unit: Dimensio
   return fixtures
 }
 
-function normalizeMarkerRect(input: unknown, type: 'induction' | 'sink-bowl', id: string, unit: DimensionUnit): FurnitureFixture | null {
+function normalizeMarkerRect(
+  input: unknown,
+  type: 'induction' | 'sink-bowl',
+  id: string,
+  unit: DimensionUnit,
+): FurnitureFixture | null {
   const raw = asRecord(input)
   if (!raw || !booleanValue(raw.enabled, false)) return null
-  const position = { x: nonNegativeDimension(raw.x, 0, unit), y: nonNegativeDimension(raw.y, 0, unit) }
+  const position = {
+    x: nonNegativeDimension(raw.x, 0, unit),
+    y: nonNegativeDimension(raw.y, 0, unit),
+  }
   const size = {
     width: positiveDimension(raw.w, type === 'induction' ? 0.6 : 0.828, unit),
     depth: positiveDimension(raw.d, type === 'induction' ? 0.522 : 0.432, unit),
   }
   if (type === 'induction') {
-    return FurnitureFixtureSchema.parse({ type, id, enabled: true, position, size, model: stringValue(raw.model, '') })
+    return FurnitureFixtureSchema.parse({
+      type,
+      id,
+      enabled: true,
+      position,
+      size,
+      model: stringValue(raw.model, ''),
+    })
   }
   return FurnitureFixtureSchema.parse({
     type,
@@ -595,7 +651,11 @@ function normalizeMarkerRect(input: unknown, type: 'induction' | 'sink-bowl', id
   })
 }
 
-function normalizeMarkerPoint(input: unknown, id: string, unit: DimensionUnit): FurnitureFixture | null {
+function normalizeMarkerPoint(
+  input: unknown,
+  id: string,
+  unit: DimensionUnit,
+): FurnitureFixture | null {
   const raw = asRecord(input)
   if (!raw || !booleanValue(raw.enabled, false)) return null
   return FurnitureFixtureSchema.parse({
@@ -638,7 +698,10 @@ function normalizeOutlets(input: unknown, prefix: string, unit: DimensionUnit): 
       type: 'outlet',
       id: stringValue(raw.id, `${prefix}-${index}`),
       mount: normalizeMount(raw.mount),
-      position: { x: nonNegativeDimension(raw.x, 0.1, unit), z: nonNegativeDimension(raw.z, 0.1, unit) },
+      position: {
+        x: nonNegativeDimension(raw.x, 0.1, unit),
+        z: nonNegativeDimension(raw.z, 0.1, unit),
+      },
       size: {
         width: positiveDimension(raw.w, 0.086, unit),
         height: positiveDimension(raw.h, 0.086, unit),
@@ -656,7 +719,10 @@ function normalizeSmps(input: unknown, prefix: string, unit: DimensionUnit): Fur
       type: 'smps',
       id: stringValue(raw.id, `${prefix}-${index}`),
       mount: normalizeMount(raw.mount),
-      position: { x: nonNegativeDimension(raw.x, 0.05, unit), z: nonNegativeDimension(raw.z, 0.05, unit) },
+      position: {
+        x: nonNegativeDimension(raw.x, 0.05, unit),
+        z: nonNegativeDimension(raw.z, 0.05, unit),
+      },
       size: {
         width: positiveDimension(raw.w, 0.2, unit),
         depth: positiveDimension(raw.d, 0.04, unit),
@@ -679,7 +745,11 @@ function normalizeLightMount(input: unknown) {
     : 'top'
 }
 
-function normalizeFixture(source: RawRecord, fallbackId: string, unit: DimensionUnit): FurnitureFixture | null {
+function normalizeFixture(
+  source: RawRecord,
+  fallbackId: string,
+  unit: DimensionUnit,
+): FurnitureFixture | null {
   const type = stringValue(source.type, '')
   if (!type) return null
   const id = stringValue(source.id, fallbackId)
@@ -691,8 +761,14 @@ function normalizeFixture(source: RawRecord, fallbackId: string, unit: Dimension
         type,
         id,
         enabled: booleanValue(source.enabled, true),
-        position: { x: nonNegativeDimension(position.x, 0, unit), y: nonNegativeDimension(position.y, 0, unit) },
-        size: { width: positiveDimension(size.width, 0.6, unit), depth: positiveDimension(size.depth, 0.522, unit) },
+        position: {
+          x: nonNegativeDimension(position.x, 0, unit),
+          y: nonNegativeDimension(position.y, 0, unit),
+        },
+        size: {
+          width: positiveDimension(size.width, 0.6, unit),
+          depth: positiveDimension(size.depth, 0.522, unit),
+        },
         model: stringValue(source.model, ''),
       })
     }
@@ -700,8 +776,14 @@ function normalizeFixture(source: RawRecord, fallbackId: string, unit: Dimension
       type,
       id,
       enabled: booleanValue(source.enabled, true),
-      position: { x: nonNegativeDimension(position.x, 0, unit), y: nonNegativeDimension(position.y, 0, unit) },
-      size: { width: positiveDimension(size.width, 0.828, unit), depth: positiveDimension(size.depth, 0.432, unit) },
+      position: {
+        x: nonNegativeDimension(position.x, 0, unit),
+        y: nonNegativeDimension(position.y, 0, unit),
+      },
+      size: {
+        width: positiveDimension(size.width, 0.828, unit),
+        depth: positiveDimension(size.depth, 0.432, unit),
+      },
       radius: nonNegativeDimension(source.radius, 0, unit),
       model: stringValue(source.model, ''),
       bowlHeight: nonNegativeDimension(source.bowlHeight, 0.2, unit),
@@ -713,7 +795,10 @@ function normalizeFixture(source: RawRecord, fallbackId: string, unit: Dimension
       type,
       id,
       enabled: booleanValue(source.enabled, true),
-      position: { x: nonNegativeDimension(position.x, 0, unit), y: nonNegativeDimension(position.y, 0, unit) },
+      position: {
+        x: nonNegativeDimension(position.x, 0, unit),
+        y: nonNegativeDimension(position.y, 0, unit),
+      },
       diameter: positiveDimension(source.diameter, 0.035, unit),
       componentName: stringValue(source.componentName, ''),
     })
@@ -739,13 +824,19 @@ function normalizeFixture(source: RawRecord, fallbackId: string, unit: Dimension
       type,
       id,
       mount: normalizeMount(source.mount),
-      position: { x: nonNegativeDimension(position.x, 0, unit), z: nonNegativeDimension(position.z, 0, unit) },
+      position: {
+        x: nonNegativeDimension(position.x, 0, unit),
+        z: nonNegativeDimension(position.z, 0, unit),
+      },
       componentName: stringValue(source.componentName, ''),
     }
     if (type === 'outlet') {
       return FurnitureFixtureSchema.parse({
         ...common,
-        size: { width: positiveDimension(size.width, 0.086, unit), height: positiveDimension(size.height, 0.086, unit) },
+        size: {
+          width: positiveDimension(size.width, 0.086, unit),
+          height: positiveDimension(size.height, 0.086, unit),
+        },
       })
     }
     return FurnitureFixtureSchema.parse({
