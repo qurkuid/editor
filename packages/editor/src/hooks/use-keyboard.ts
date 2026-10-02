@@ -151,20 +151,28 @@ const cancelInteractionForHistoryShortcut = () => {
   _toolCancelConsumed = false
   emitter.emit('tool:cancel')
   if (_toolCancelConsumed) return true
+
+  const scope = useInteractionScope.getState().scope
+  const inputDragging = useViewer.getState().inputDragging
+  const isTracking = useScene.temporal.getState().isTracking
   if (
-    isActive(useInteractionScope.getState().scope) ||
-    useViewer.getState().inputDragging ||
+    isActive(scope) ||
+    inputDragging ||
     // Paused history means a gesture session is live (draft placement, adopted
     // move, …) even when no scope/drag flag is set — the preset/item draft
     // cycle keeps temporal paused for the whole session, and a history jump
     // against a paused store would land on a stale baseline anyway.
-    !useScene.temporal.getState().isTracking
+    !isTracking
   ) {
     // A gesture is live but nothing consumed the cancel: finish it the way
     // Escape does — the mode switch is what actually cancels tools that hook
     // their teardown to unmount (preset/item placement).
     exitToSelectAfterUnconsumedCancel()
-    return true
+    // Paint owns its scope for the lifetime of the mode, including the idle
+    // interval after a committed click. Once the mode has been exited, the
+    // same shortcut can continue to the history arm unless a drag or paused
+    // temporal store still marks a live gesture.
+    return !(scope.kind === 'painting' && !inputDragging && isTracking)
   }
   return false
 }

@@ -32,6 +32,7 @@ import {
   CommunityViewerToolbarLeft,
   CommunityViewerToolbarRight,
 } from '@/components/viewer-toolbar'
+import { ZoneFinishInspectorFooter } from '@/components/zone-finish-panel'
 import { localEditorSaveStatusKey } from '@/lib/local-editor-save-status'
 import { rawPainterIntegrationAdapter } from '@/lib/rawpainter-adapter'
 
@@ -217,6 +218,7 @@ export default function Home() {
       <IntmMaterialLibrary />
       <Editor
         integrationAdapter={rawPainterIntegrationAdapter}
+        inspectorFooter={<ZoneFinishInspectorFooter />}
         layoutVersion="v2"
         onSaveStatusChange={setSaveStatus}
         projectId={PROJECT_ID}

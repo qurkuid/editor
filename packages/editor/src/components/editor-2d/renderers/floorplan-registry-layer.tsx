@@ -742,6 +742,14 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
       const sceneNodes = useScene.getState().nodes
       const sourceNode = sceneNodes[id]
       if (!sourceNode) return
+      // Zone labels and footprints remain the explicit room-selection route
+      // while material paint is active. Preserve the paint mode and avoid
+      // converting a room click into an element selection.
+      if (useEditor.getState().mode === 'material-paint' && sourceNode.type === 'zone') {
+        setSelection({ selectedIds: [], zoneId: sourceNode.id })
+        swallowNextClick(200)
+        return
+      }
       const resolvedNode = resolveCanvasSelectionNode({
         node: sourceNode,
         nodes: sceneNodes,

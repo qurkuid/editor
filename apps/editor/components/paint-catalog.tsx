@@ -7,6 +7,7 @@ import {
   getMaterialsForCategory,
   MATERIAL_CATEGORIES,
   type MaterialCatalogItem,
+  type MaterialSchema,
   registerLibraryMaterials,
   type SceneMaterialId,
   subscribeLibraryMaterials,
@@ -43,6 +44,7 @@ import useMaterialFavorites, {
 import {
   addImportedSceneMaterial,
   MATERIAL_IMPORT_MIME_TYPES,
+  prepareImportedSceneMaterial,
   readClipboardImage,
 } from '@/lib/material-import'
 import {
@@ -68,6 +70,13 @@ import { RawPainterProductCard } from './rawpainter-product-card'
 import { RawPainterSearch } from './rawpainter-search'
 
 type CatalogStatus = 'loading' | 'ready' | 'error'
+export type CatalogMaterialSelection = {
+  material?: MaterialSchema
+  materialPreset?: string
+  materialLabel?: string
+  sourceTarget: ReturnType<typeof useEditor.getState>['activePaintTarget']
+}
+export type MaterialSelectionSink = (selection: CatalogMaterialSelection) => void | Promise<void>
 type CatalogRequest = {
   // A vendor category id, or a negative synthetic id (builtin-only category).
   readonly categoryId: number | null
@@ -127,7 +136,7 @@ function useRawPainterProductActions() {
     setProcessingId(String(product.id))
     setActionError(null)
     try {
-      action(await prepareRawPainterCatalogItem(product))
+      await action(await prepareRawPainterCatalogItem(product))
     } catch (cause) {
       setActionError(errorMessage(cause))
     } finally {
@@ -135,13 +144,26 @@ function useRawPainterProductActions() {
     }
   }
 
-  const selectProduct = (product: RawPainterProduct) =>
-    withPreparedItem(product, (item) => {
+  const selectProduct = (product: RawPainterProduct, onSelectMaterial?: MaterialSelectionSink) => {
+    // Capture the sink and source target before the async normalization starts.
+    // A later target change must not redirect an in-flight catalog pick.
+    const sink = onSelectMaterial
+    const sourceTarget = useEditor.getState().activePaintTarget
+    return withPreparedItem(product, (item) => {
+      if (sink) {
+        return sink({
+          material: freezeHostMaterialCatalogItem(item),
+          materialLabel: item.label,
+          materialPreset: toLibraryMaterialRef(item.id),
+          sourceTarget,
+        })
+      }
       useEditor.getState().setActivePaintMaterial({
         material: freezeHostMaterialCatalogItem(item),
-        sourceTarget: useEditor.getState().activePaintTarget,
+        sourceTarget,
       })
     })
+  }
 
   const requestAiApply = (product: RawPainterProduct) =>
     withPreparedItem(product, (item) => {
@@ -214,8 +236,11 @@ function SwatchTile({
   return (
     <div className="group relative">
       <button
+        aria-pressed={selected}
         className={`flex w-full flex-col gap-1 rounded-xl p-1.5 transition-colors hover:cursor-pointer hover:bg-sidebar-accent ${
-          selected ? 'bg-sidebar-accent ring-1 ring-primary ring-inset' : ''
+          selected
+            ? 'bg-sidebar-accent ring-1 ring-primary ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+            : 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
         }`}
         onClick={onSelect}
         title={label}
@@ -328,7 +353,13 @@ function libraryFavorite(item: MaterialCatalogItem): MaterialFavorite {
  * the search header and every RawPainter request. The default view carries
  * no local sections at all.
  */
-export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boolean } = {}) {
+export function MergedMaterialCatalog({
+  sceneOnly = false,
+  onSelectMaterial,
+}: {
+  sceneOnly?: boolean
+  onSelectMaterial?: MaterialSelectionSink
+} = {}) {
   const t = useT()
   const [categories, setCategories] = useState<readonly RawPainterCategory[]>([])
   const [brands, setBrands] = useState<readonly RawPainterBrand[] | null>(null)
@@ -529,9 +560,11 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
   // Create a blank custom scene material, select it as the brush (`scene:` ref
   // so edits propagate), and open its inline editor.
   const createCustomMaterial = () => {
+    const sink = onSelectMaterial
+    const sourceTarget = useEditor.getState().activePaintTarget
     const id = generateSceneMaterialId()
     const count = Object.keys(useScene.getState().materials).length
-    useScene.getState().addSceneMaterial({
+    const sceneMaterial: { id: SceneMaterialId; name: string; material: MaterialSchema } = {
       id,
       name: `Material ${count + 1}`,
       material: {
@@ -545,31 +578,68 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
           side: 'front',
         },
       },
-    })
-    useEditor.getState().setActivePaintMaterial({
-      materialPreset: toSceneMaterialRef(id),
-      sourceTarget: useEditor.getState().activePaintTarget,
-    })
-    setAutoEditMaterialId(id)
+    }
+    if (sink) {
+      void sink({
+        material: sceneMaterial.material,
+        materialLabel: sceneMaterial.name,
+        materialPreset: toSceneMaterialRef(id),
+        sourceTarget,
+      })
+    } else {
+      useScene.getState().addSceneMaterial(sceneMaterial)
+      useEditor.getState().setActivePaintMaterial({
+        materialPreset: toSceneMaterialRef(id),
+        sourceTarget,
+      })
+    }
+    if (!sink) setAutoEditMaterialId(id)
   }
 
   const selectLibraryItem = (item: MaterialCatalogItem) => {
+    const sourceTarget = useEditor.getState().activePaintTarget
+    if (onSelectMaterial) {
+      void onSelectMaterial({
+        material: freezeHostMaterialCatalogItem(item),
+        materialLabel: item.label,
+        materialPreset: toLibraryMaterialRef(item.id),
+        sourceTarget,
+      })
+      return
+    }
     useEditor.getState().setActivePaintMaterial({
       materialPreset: toLibraryMaterialRef(item.id),
-      sourceTarget: useEditor.getState().activePaintTarget,
+      sourceTarget,
     })
   }
 
   // Shared tail of the file / clipboard import flows: create the textured
   // scene material, make it the brush, and open its inline editor.
   const importMaterialImage = async (image: Blob, name: string) => {
+    const sink = onSelectMaterial
+    const sourceTarget = useEditor.getState().activePaintTarget
     try {
-      const id = await addImportedSceneMaterial(image, name)
-      useEditor.getState().setActivePaintMaterial({
-        materialPreset: toSceneMaterialRef(id),
-        sourceTarget: useEditor.getState().activePaintTarget,
-      })
-      setAutoEditMaterialId(id)
+      const sceneMaterial = sink
+        ? await prepareImportedSceneMaterial(image, name)
+        : await addImportedSceneMaterial(image, name).then(
+            (id) => useScene.getState().materials[id],
+          )
+      if (!sceneMaterial) throw new Error('Imported material could not be registered.')
+      const sceneMaterialId = sceneMaterial.id as SceneMaterialId
+      if (sink) {
+        await sink({
+          material: sceneMaterial.material,
+          materialLabel: sceneMaterial.name,
+          materialPreset: toSceneMaterialRef(sceneMaterialId),
+          sourceTarget,
+        })
+      } else {
+        useEditor.getState().setActivePaintMaterial({
+          materialPreset: toSceneMaterialRef(sceneMaterialId),
+          sourceTarget,
+        })
+      }
+      if (!sink) setAutoEditMaterialId(sceneMaterialId)
       setImportError(null)
     } catch {
       setImportError(t('painting.importFailed'))
@@ -722,6 +792,7 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
               <SceneMaterialList
                 autoEditId={autoEditMaterialId}
                 filter={(_, sceneMaterial) => matchesQuery(sceneMaterial.name)}
+                onSelectMaterial={onSelectMaterial}
                 rowActions={(id, sceneMaterial) => (
                   <>
                     <button
@@ -897,7 +968,7 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
                           favorite={`rawpainter:${String(product.id)}` in favorites}
                           key={String(product.id)}
                           onAiRequest={(item) => void requestAiApply(item)}
-                          onSelect={(item) => void selectProduct(item)}
+                          onSelect={(item) => void selectProduct(item, onSelectMaterial)}
                           onToggleFavorite={(item) =>
                             toggleFavorite({ kind: 'rawpainter', product: item })
                           }
@@ -949,7 +1020,11 @@ export function MergedMaterialCatalog({ sceneOnly = false }: { sceneOnly?: boole
 }
 
 /** Starred materials across every source, resolved live where possible. */
-export function FavoriteMaterialsGrid() {
+export function FavoriteMaterialsGrid({
+  onSelectMaterial,
+}: {
+  onSelectMaterial?: MaterialSelectionSink
+} = {}) {
   const t = useT()
   const favorites = useMaterialFavorites((state) => state.favorites)
   const toggleFavorite = useMaterialFavorites((state) => state.toggleFavorite)
@@ -996,12 +1071,22 @@ export function FavoriteMaterialsGrid() {
                   key={materialFavoriteKey(favorite)}
                   label={sceneMaterial.name}
                   onAiRequest={() => requestAiMaterialApply({ name: sceneMaterial.name, ref })}
-                  onSelect={() =>
+                  onSelect={() => {
+                    const sourceTarget = useEditor.getState().activePaintTarget
+                    if (onSelectMaterial) {
+                      void onSelectMaterial({
+                        material: sceneMaterial.material,
+                        materialLabel: sceneMaterial.name,
+                        materialPreset: ref,
+                        sourceTarget,
+                      })
+                      return
+                    }
                     useEditor.getState().setActivePaintMaterial({
                       materialPreset: ref,
-                      sourceTarget: useEditor.getState().activePaintTarget,
+                      sourceTarget,
                     })
-                  }
+                  }}
                   onToggleFavorite={() => toggleFavorite(favorite)}
                   selected={activePaintRef === ref}
                 />
@@ -1024,9 +1109,19 @@ export function FavoriteMaterialsGrid() {
                 }
                 onSelect={() => {
                   if (!item) return
+                  const sourceTarget = useEditor.getState().activePaintTarget
+                  if (onSelectMaterial) {
+                    void onSelectMaterial({
+                      material: freezeHostMaterialCatalogItem(item),
+                      materialLabel: label,
+                      materialPreset: ref,
+                      sourceTarget,
+                    })
+                    return
+                  }
                   useEditor.getState().setActivePaintMaterial({
                     materialPreset: ref,
-                    sourceTarget: useEditor.getState().activePaintTarget,
+                    sourceTarget,
                   })
                 }}
                 onToggleFavorite={() => toggleFavorite(favorite)}
@@ -1045,7 +1140,7 @@ export function FavoriteMaterialsGrid() {
                 favorite
                 key={materialFavoriteKey(favorite)}
                 onAiRequest={(item) => void requestAiApply(item)}
-                onSelect={(item) => void selectProduct(item)}
+                onSelect={(item) => void selectProduct(item, onSelectMaterial)}
                 onToggleFavorite={() => toggleFavorite(favorite)}
                 processing={processingId === String(favorite.product.id)}
                 product={favorite.product}

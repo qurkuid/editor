@@ -48,13 +48,41 @@ export function sceneApiJson(request: Request, body: unknown, init?: ResponseIni
   return withSceneApiHeaders(request, NextResponse.json(body, init))
 }
 
-export async function readSceneApiJson(request: Request): Promise<unknown> {
-  if (request.headers.get('content-encoding') !== 'gzip') return request.json()
-  const compressed = Buffer.from(await request.arrayBuffer())
-  if (compressed.byteLength > MAX_COMPRESSED_REQUEST_BYTES) {
+export interface SceneApiJsonReadOptions {
+  maxCompressedBytes?: number
+  maxExpandedBytes?: number
+}
+
+export async function readSceneApiJson(
+  request: Request,
+  options: SceneApiJsonReadOptions = {},
+): Promise<unknown> {
+  const maxCompressedBytes = options.maxCompressedBytes ?? MAX_COMPRESSED_REQUEST_BYTES
+  const maxExpandedBytes = options.maxExpandedBytes ?? MAX_EXPANDED_REQUEST_BYTES
+  if (request.headers.get('content-encoding') !== 'gzip') {
+    if (options.maxExpandedBytes === undefined) return request.json()
+    const contentLength = Number(request.headers.get('content-length'))
+    if (Number.isFinite(contentLength) && contentLength > maxExpandedBytes) {
+      throw new RangeError('request body is too large')
+    }
+    const raw = Buffer.from(await request.arrayBuffer())
+    if (raw.byteLength > maxExpandedBytes) {
+      throw new RangeError('request body is too large')
+    }
+    return JSON.parse(raw.toString('utf8'))
+  }
+  const compressedLength = Number(request.headers.get('content-length'))
+  if (Number.isFinite(compressedLength) && compressedLength > maxCompressedBytes) {
     throw new RangeError('compressed request body is too large')
   }
-  const expanded = gunzipSync(compressed, { maxOutputLength: MAX_EXPANDED_REQUEST_BYTES })
+  const compressed = Buffer.from(await request.arrayBuffer())
+  if (compressed.byteLength > maxCompressedBytes) {
+    throw new RangeError('compressed request body is too large')
+  }
+  const expanded = gunzipSync(compressed, { maxOutputLength: maxExpandedBytes })
+  if (expanded.byteLength > maxExpandedBytes) {
+    throw new RangeError('expanded request body is too large')
+  }
   return JSON.parse(expanded.toString('utf8'))
 }
 
@@ -187,6 +215,11 @@ function isSameOrigin(request: Request, origin: string): boolean {
 function isLoopbackRequest(request: Request): boolean {
   const host = request.headers.get('host') ?? new URL(request.url).host
   return isLoopbackHostname(stripPort(host))
+}
+
+/** Used by local-first APIs that need a loopback-only anonymous principal. */
+export function isLoopbackSceneRequest(request: Request): boolean {
+  return isLoopbackRequest(request)
 }
 
 function isLoopbackHostname(hostname: string): boolean {

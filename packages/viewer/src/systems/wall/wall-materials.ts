@@ -3,6 +3,7 @@ import {
   getMaterialPresetByRef,
   getWallSurfaceMaterialSignature,
   getWallSurfaceSideFromBandSlot,
+  normalizeWallFinishRegions,
   parseMaterialRef,
   resolveMaterial,
   type SceneMaterial,
@@ -57,6 +58,71 @@ export interface WallMaterials {
 }
 
 const wallMaterialCache = new Map<string, WallMaterials>()
+
+export const WALL_SURFACE_MATERIAL_INDEX: Record<WallSurfaceSlotId, number> = {
+  interior: 1,
+  exterior: 2,
+  lowerInterior: 3,
+  middleInterior: 4,
+  upperInterior: 5,
+  topInterior: 6,
+  lowerExterior: 7,
+  middleExterior: 8,
+  upperExterior: 9,
+  topExterior: 10,
+  skirtingInterior: 0,
+  skirtingExterior: 0,
+  crownInterior: 0,
+  crownExterior: 0,
+  chairRailInterior: 0,
+  chairRailExterior: 0,
+}
+
+export type WallRegionMaterialPlanEntry = {
+  index: number
+  regionId: string
+  side: WallSurfaceSide
+  start: number
+  end: number
+  slotId: WallSurfaceSlotId
+  materialRef: string
+}
+
+export function getWallRegionMaterialPlan(wallNode: WallNode): WallRegionMaterialPlanEntry[] {
+  const entries: WallRegionMaterialPlanEntry[] = []
+  for (const region of normalizeWallFinishRegions(wallNode.finishRegions ?? [])) {
+    for (const [role, materialRef] of Object.entries(region.slots).sort(([left], [right]) =>
+      left.localeCompare(right),
+    )) {
+      const side = getWallSurfaceSideFromBandSlot(role)
+      if (!side || !materialRef || !(role in WALL_SURFACE_MATERIAL_INDEX)) continue
+      entries.push({
+        index: 11 + entries.length,
+        regionId: region.id,
+        side,
+        start: region.start,
+        end: region.end,
+        slotId: role as WallSurfaceSlotId,
+        materialRef,
+      })
+    }
+  }
+  return entries
+}
+
+export function getWallRegionMaterialIndex(
+  plan: readonly WallRegionMaterialPlanEntry[],
+  slotId: WallSurfaceSlotId,
+  station: number,
+): number {
+  const match = plan.find(
+    (entry) =>
+      entry.slotId === slotId &&
+      station >= entry.start - 1e-6 &&
+      (entry.end >= 1 - 1e-6 ? station <= entry.end + 1e-6 : station < entry.end - 1e-6),
+  )
+  return match?.index ?? WALL_SURFACE_MATERIAL_INDEX[slotId]
+}
 
 const dotPattern = Fn(() => {
   const scale = float(0.1)
@@ -196,6 +262,34 @@ function wallSlotMaterialSignature(
   return JSON.stringify({ default: WALL_SURFACE_SLOT_DEFAULTS[slotId] })
 }
 
+function wallRegionMaterialSignature(
+  wallNode: WallNode,
+  entry: WallRegionMaterialPlanEntry,
+  sceneMaterials: SceneMaterials,
+): unknown {
+  const parsed = parseMaterialRef(entry.materialRef)
+  if (parsed?.kind === 'scene') {
+    return {
+      regionId: entry.regionId,
+      side: entry.side,
+      start: entry.start,
+      end: entry.end,
+      slotId: entry.slotId,
+      ref: entry.materialRef,
+      material: sceneMaterials?.[parsed.id as SceneMaterialId]?.material ?? null,
+    }
+  }
+  return {
+    regionId: entry.regionId,
+    side: entry.side,
+    start: entry.start,
+    end: entry.end,
+    slotId: entry.slotId,
+    ref: entry.materialRef,
+    fallback: wallNode.slots?.[entry.slotId] ?? null,
+  }
+}
+
 // Slot-first tint for the cutaway/invisible wall variant.
 function resolveWallFaceColor(
   wallNode: WallNode,
@@ -238,6 +332,22 @@ function resolveWallSlotColor(
 
   const side = getWallSurfaceSideFromBandSlot(slotId)
   return side ? resolveWallFaceColor(wallNode, side, sceneMaterials, fallback) : fallback
+}
+
+function resolveRegionMaterialColor(
+  ref: string,
+  sceneMaterials: SceneMaterials,
+  fallback: string,
+): string {
+  const parsed = parseMaterialRef(ref)
+  if (parsed?.kind === 'library') {
+    return getMaterialPresetByRef(ref)?.mapProperties?.color ?? fallback
+  }
+  if (parsed?.kind === 'scene') {
+    const sceneMaterial = sceneMaterials?.[parsed.id as SceneMaterialId]
+    return sceneMaterial ? resolveMaterial(sceneMaterial.material).color : fallback
+  }
+  return fallback
 }
 
 function getSurfaceColor(spec: WallSurfaceMaterialSpec, fallback = DEFAULT_WALL_COLOR): string {
@@ -406,11 +516,21 @@ function disposeOwnedMaterials(materials: WallMaterialArray[]) {
   })
 }
 
+function padWallMaterialArray(
+  materials: WallMaterialArray,
+  minimumLength: number,
+): WallMaterialArray {
+  const slotZero = materials[0]
+  if (!slotZero || materials.length >= minimumLength) return materials
+  return [...materials, ...Array.from({ length: minimumLength - materials.length }, () => slotZero)]
+}
+
 export function getWallMaterialHash(
   wallNode: WallNode,
   shading: RenderShading,
   sceneMaterials?: SceneMaterials,
 ): string {
+  const regionPlan = getWallRegionMaterialPlan(wallNode)
   return JSON.stringify({
     shading,
     interior: wallFaceMaterialSignature(wallNode, 'interior', sceneMaterials),
@@ -423,6 +543,9 @@ export function getWallMaterialHash(
     middleExterior: wallSlotMaterialSignature(wallNode, 'middleExterior', sceneMaterials),
     upperExterior: wallSlotMaterialSignature(wallNode, 'upperExterior', sceneMaterials),
     topExterior: wallSlotMaterialSignature(wallNode, 'topExterior', sceneMaterials),
+    finishRegions: regionPlan.map((entry) =>
+      wallRegionMaterialSignature(wallNode, entry, sceneMaterials),
+    ),
   })
 }
 
@@ -435,9 +558,10 @@ export function getMaterialsForWall(
   sceneMaterials?: SceneMaterials,
 ): WallMaterials {
   const cacheKey = `${wallNode.id}-${shading}-${textures}-${colorPreset}-${sceneTheme ?? 'base'}`
+  const regionPlan = getWallRegionMaterialPlan(wallNode)
   const materialHash = textures
     ? getWallMaterialHash(wallNode, shading, sceneMaterials)
-    : JSON.stringify({ textures, colorPreset, sceneTheme })
+    : JSON.stringify({ textures, colorPreset, sceneTheme, regionMaterialCount: regionPlan.length })
 
   const existing = wallMaterialCache.get(cacheKey)
   if (existing && existing.materialHash === materialHash) {
@@ -453,6 +577,14 @@ export function getMaterialsForWall(
       existing.deleteTranslucent,
     ])
   }
+
+  const previousLengths = existing
+    ? {
+        visible: existing.visible.length,
+        invisible: existing.invisible.length,
+        translucent: existing.translucent.length,
+      }
+    : undefined
 
   const wallRoleMaterial = createSurfaceRoleMaterial('wall', colorPreset, undefined, sceneTheme)
 
@@ -473,8 +605,16 @@ export function getMaterialsForWall(
         resolveWallSlotMaterial(wallNode, 'middleExterior', shading, sceneMaterials),
         resolveWallSlotMaterial(wallNode, 'upperExterior', shading, sceneMaterials),
         resolveWallSlotMaterial(wallNode, 'topExterior', shading, sceneMaterials),
+        ...regionPlan.map(
+          (entry) =>
+            resolveMaterialRef(entry.materialRef, sceneMaterials, shading) ??
+            resolveWallSlotMaterial(wallNode, entry.slotId, shading, sceneMaterials),
+        ),
       ]
-    : Array.from({ length: 11 }, () => wallRoleMaterial)
+    : [
+        ...Array.from({ length: 11 }, () => wallRoleMaterial),
+        ...regionPlan.map(() => wallRoleMaterial),
+      ]
 
   const wallRoleColor = resolveSurfaceColor('wall', colorPreset, sceneTheme)
   const invisible: WallMaterialArray = [
@@ -502,6 +642,14 @@ export function getMaterialsForWall(
       createInvisibleWallMaterial(
         textures
           ? resolveWallSlotColor(wallNode, slotId, sceneMaterials, wallRoleColor)
+          : wallRoleColor,
+        textures ? shading : 'solid',
+      ),
+    ),
+    ...regionPlan.map((entry) =>
+      createInvisibleWallMaterial(
+        textures
+          ? resolveRegionMaterialColor(entry.materialRef, sceneMaterials, wallRoleColor)
           : wallRoleColor,
         textures ? shading : 'solid',
       ),
@@ -537,22 +685,40 @@ export function getMaterialsForWall(
         textures ? shading : 'solid',
       ),
     ),
+    ...regionPlan.map((entry) =>
+      createTranslucentWallMaterial(
+        textures
+          ? resolveRegionMaterialColor(entry.materialRef, sceneMaterials, wallRoleColor)
+          : wallRoleColor,
+        textures ? shading : 'solid',
+      ),
+    ),
   ]
 
-  const deleteVisible = mapWallMaterialArray(visible, (material) =>
+  const paddedVisible = padWallMaterialArray(visible, previousLengths?.visible ?? visible.length)
+  const paddedInvisible = padWallMaterialArray(
+    invisible,
+    previousLengths?.invisible ?? invisible.length,
+  )
+  const paddedTranslucent = padWallMaterialArray(
+    translucent,
+    previousLengths?.translucent ?? translucent.length,
+  )
+
+  const deleteVisible = mapWallMaterialArray(paddedVisible, (material) =>
     createHighlightedWallMaterial(material, 'delete'),
   )
-  const deleteInvisible = mapWallMaterialArray(invisible, (material) =>
+  const deleteInvisible = mapWallMaterialArray(paddedInvisible, (material) =>
     createHighlightedWallMaterial(material, 'delete'),
   )
-  const deleteTranslucent = mapWallMaterialArray(translucent, (material) =>
+  const deleteTranslucent = mapWallMaterialArray(paddedTranslucent, (material) =>
     createHighlightedWallMaterial(material, 'delete'),
   )
 
   const result: WallMaterials = {
-    visible,
-    invisible,
-    translucent,
+    visible: paddedVisible,
+    invisible: paddedInvisible,
+    translucent: paddedTranslucent,
     deleteVisible,
     deleteInvisible,
     deleteTranslucent,

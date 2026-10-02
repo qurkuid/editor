@@ -110,6 +110,12 @@ function ZoneLabelEditor({ zoneId }: { zoneId: ZoneNode['id'] }) {
 
   // Select zone + switch to zone mode from any mode
   const selectZone = useCallback(() => {
+    // Material paint keeps its mode and structure layer: labels are the
+    // explicit 2D/3D room-selection route for arming a finish target.
+    if (useEditor.getState().mode === 'material-paint') {
+      setSelection({ selectedIds: [], zoneId })
+      return
+    }
     useEditor.getState().setPhase('structure')
     useEditor.getState().setStructureLayer('zones')
     useEditor.getState().setMode('select')
@@ -127,6 +133,7 @@ function ZoneLabelEditor({ zoneId }: { zoneId: ZoneNode['id'] }) {
   useEffect(() => {
     const handler = (event: { zoneId: string }) => {
       if (event.zoneId === zoneId) {
+        if (useEditor.getState().mode === 'material-paint') return
         setValue(zoneNameRef.current)
         setEditing(true)
       }
@@ -234,7 +241,7 @@ function ZoneLabelEditor({ zoneId }: { zoneId: ZoneNode['id'] }) {
             setSelection({ zoneId: null })
             return
           }
-          if (isSelected) {
+          if (isSelected && mode !== 'material-paint') {
             // Already selected → enter text editing
             enterTextEditing()
           } else {
@@ -282,7 +289,7 @@ function ZoneLabelEditor({ zoneId }: { zoneId: ZoneNode['id'] }) {
         type="button"
       >
         <span>{zone?.name}</span>
-        {isSelected && (
+        {isSelected && mode !== 'material-paint' && (
           <span
             onClick={(e) => {
               e.stopPropagation()

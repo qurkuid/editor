@@ -103,6 +103,54 @@ describe('wall operations', () => {
     expect(result.nodes[levelId(result)].type).toBe('level')
   })
 
+  test('remaps finish regions before, across, and after a split while preserving ids', () => {
+    const input = scene()
+    delete input.nodes.door_main
+    input.nodes.wall_left = WallNode.parse({
+      ...(input.nodes.wall_left as any),
+      children: [],
+      finishRegions: [
+        {
+          id: 'before',
+          side: 'interior',
+          start: 0.1,
+          end: 0.2,
+          slots: { upperInterior: 'library:before' },
+        },
+        {
+          id: 'crossing',
+          side: 'interior',
+          start: 0.25,
+          end: 0.75,
+          slots: { upperInterior: 'library:crossing' },
+        },
+        {
+          id: 'after',
+          side: 'exterior',
+          start: 0.8,
+          end: 0.95,
+          slots: { upperExterior: 'library:after' },
+        },
+      ],
+    })
+
+    const result = buildWallSplit(input, 'wall_left', 1, 'wall_second')
+    const firstRegions = (result.nodes.wall_left as any).finishRegions
+    expect(firstRegions).toHaveLength(2)
+    expect(firstRegions[0]).toMatchObject({ id: 'before', start: 0.2 })
+    expect(firstRegions[0].end).toBeCloseTo(0.4)
+    expect(firstRegions[1]).toMatchObject({ id: 'crossing', start: 0.5, end: 1 })
+
+    const secondRegions = (result.nodes.wall_second as any).finishRegions
+    expect(secondRegions).toHaveLength(2)
+    const crossing = secondRegions.find((region: any) => region.id === 'crossing:2')
+    const after = secondRegions.find((region: any) => region.id === 'after')
+    expect(crossing).toMatchObject({ start: 0 })
+    expect(crossing.end).toBeCloseTo(0.5)
+    expect(after.start).toBeCloseTo(0.6)
+    expect(after.end).toBeCloseTo(0.9)
+  })
+
   test('rejects an opening that would straddle the split', () => {
     const input = scene()
     const wall = input.nodes.wall_left as any
@@ -154,6 +202,41 @@ describe('wall operations', () => {
     expect((result.nodes.wall_left as any).collectionIds).toEqual(['collection_test'])
   })
 
+  test('remaps aligned finish regions by physical chain length and mints duplicate ids', () => {
+    const input = scene()
+    delete input.nodes.item_main
+    input.nodes.wall_left = WallNode.parse({
+      ...(input.nodes.wall_left as any),
+      finishRegions: [
+        {
+          id: 'shared',
+          side: 'interior',
+          start: 0,
+          end: 0.5,
+          slots: { upperInterior: 'library:left' },
+        },
+      ],
+    })
+    input.nodes.wall_right = WallNode.parse({
+      ...(input.nodes.wall_right as any),
+      finishRegions: [
+        {
+          id: 'shared',
+          side: 'interior',
+          start: 0,
+          end: 1,
+          slots: { upperInterior: 'library:right' },
+        },
+      ],
+    })
+
+    const result = buildWallMerge(input, ['wall_left', 'wall_right'])
+    expect((result.nodes.wall_left as any).finishRegions).toMatchObject([
+      { id: 'shared', start: 0, end: 0.2 },
+      { id: 'shared:merge:wall_right', start: 0.4, end: 1 },
+    ])
+  })
+
   test('rejects reversed one-sided trims before changing their side', () => {
     const input = scene()
     delete input.nodes.item_main
@@ -203,6 +286,59 @@ describe('wall operations', () => {
     expect(() => buildWallMerge(input, ['wall_left', 'wall_right'])).toThrow(WallOperationError)
   })
 
+  test('rejects a reversed wall with finish regions before mutating the scene', () => {
+    const input = scene()
+    delete input.nodes.item_main
+    input.nodes.wall_right = WallNode.parse({
+      ...(input.nodes.wall_right as any),
+      start: [5, 0],
+      end: [2, 0],
+      finishRegions: [
+        {
+          id: 'reversed',
+          side: 'interior',
+          start: 0,
+          end: 1,
+          slots: { upperInterior: 'library:reversed' },
+        },
+      ],
+    })
+    const before = JSON.stringify(input)
+    expect(() => buildWallMerge(input, ['wall_left', 'wall_right'])).toThrow(
+      expect.objectContaining({ code: 'reversed-finish-regions' }),
+    )
+    expect(JSON.stringify(input)).toBe(before)
+  })
+
+  test('rejects overlapping mapped finish regions before any merge writes', () => {
+    const input = scene()
+    delete input.nodes.item_main
+    input.nodes.wall_left = {
+      ...(input.nodes.wall_left as any),
+      finishRegions: [
+        {
+          id: 'first',
+          side: 'interior',
+          start: 0,
+          end: 0.8,
+          slots: { upperInterior: 'library:first' },
+        },
+        {
+          id: 'second',
+          side: 'interior',
+          start: 0.5,
+          end: 1,
+          slots: { upperInterior: 'library:second' },
+        },
+      ],
+    } as any
+    const before = JSON.stringify(input)
+    expect(() => buildWallMerge(input, ['wall_left', 'wall_right'])).toThrow(
+      expect.objectContaining({ code: 'finish-region-conflict' }),
+    )
+    expect(JSON.stringify(input)).toBe(before)
+  })
+
   test('projects rotated item width and depth when validating a split', () => {
     const input = scene()
     const item = input.nodes.item_main as any
@@ -227,6 +363,15 @@ describe('wall operations', () => {
       ...(input.nodes.wall_left as any),
       end: [5, 0],
       children: [],
+      finishRegions: [
+        {
+          id: 'contact-region',
+          side: 'interior',
+          start: 0.2,
+          end: 0.8,
+          slots: { upperInterior: 'library:contact' },
+        },
+      ],
     })
     const level = input.nodes[input.rootNodeIds[0]!] as any
     const branchAtOne = WallNode.parse({
@@ -266,6 +411,14 @@ describe('wall operations', () => {
     expect(result.nodes.wall_branch_one).toEqual(branchAtOne)
     expect(result.nodes.wall_branch_duplicate).toEqual(duplicateBranch)
     expect(result.nodes.wall_branch_three).toEqual(branchAtThree)
+    const highContactRegions = (result.nodes[result.createdNodeIds[0]!] as any).finishRegions
+    expect(highContactRegions).toHaveLength(1)
+    expect(highContactRegions[0]).toMatchObject({ id: 'contact-region:2', start: 0 })
+    expect(highContactRegions[0].end).toBeCloseTo(0.5)
+    const lowContactRegions = (result.nodes[result.createdNodeIds[1]!] as any).finishRegions
+    expect(lowContactRegions).toEqual([
+      expect.objectContaining({ id: 'contact-region', start: 0, end: 1 }),
+    ])
   })
 
   test('ignores endpoint-only contacts and contacts on another level', () => {

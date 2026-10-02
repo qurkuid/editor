@@ -41,6 +41,7 @@ import { PaintingTab } from './painting-tab'
 import { SkpItemsPanel } from './skp-items-panel'
 import { StatsTab } from './stats-tab'
 import { CommunityViewerToolbarLeft, CommunityViewerToolbarRight } from './viewer-toolbar'
+import { ZoneFinishInspectorFooter } from './zone-finish-panel'
 
 export interface SceneMeta {
   id: string
@@ -423,6 +424,7 @@ export function SceneLoader({ meta }: SceneLoaderProps) {
       <IntmMaterialLibrary />
       <Editor
         actionMenuControls={<ModelingRailControls />}
+        inspectorFooter={<ZoneFinishInspectorFooter />}
         layoutVersion="v2"
         onLoad={handleLoad}
         onSave={handleSave}

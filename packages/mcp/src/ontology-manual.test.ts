@@ -183,4 +183,25 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('sampled open path on Enter')
     expect(MODELING_AGENT_MANUAL).toContain('closing chord on C')
   })
+
+  test('documents Zone finish face protection and atomic floor/template apply', () => {
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Zone finish targets resolve inward `Space.boundaryFaces`',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'reject the operation because the opposite face cannot be protected',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('Disjoint Slabs are ignored')
+    expect(MODELING_AGENT_MANUAL).toContain('invalid holes, recessed or stepped conflicts')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Zone ceiling finish resolves one exact same-level Ceiling',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('with no explicit height')
+    expect(MODELING_AGENT_MANUAL).toContain('manual-zone-subsegment-unsupported')
+    expect(MODELING_AGENT_MANUAL).toContain('curved-wall-partial-finish-unsupported')
+    expect(MODELING_AGENT_MANUAL).toContain('stable interval keys')
+    expect(MODELING_AGENT_MANUAL).toContain('gaps are left untouched')
+    expect(MODELING_AGENT_MANUAL).toContain('floor and canvas targets remain available')
+    expect(MODELING_AGENT_MANUAL).toContain('one atomic apply and one undo step')
+  })
 })

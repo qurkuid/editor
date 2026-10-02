@@ -7,6 +7,11 @@ import {
   getWallFaceBandConfig,
   getWallKind,
   isGlassWall,
+  mergeWallFinishRegions,
+  normalizeWallFinishRegions,
+  remapWallFinishRegionsForMerge,
+  splitWallFinishRegions,
+  validateWallFinishRegions,
   WALL_CHAIR_RAIL_DEFAULT,
   WALL_CHAIR_RAIL_SLOT_DEFAULT,
   WALL_CROWN_DEFAULT,
@@ -40,6 +45,111 @@ describe('wall support offset', () => {
     expect(WallNode.parse({ start: [0, 0], end: [4, 0], fillToTerrain: true }).fillToTerrain).toBe(
       true,
     )
+  })
+})
+
+describe('wall finish regions', () => {
+  test('normalizes and stably sorts side ranges while preserving material roles', () => {
+    const wall = WallNode.parse({
+      start: [0, 0],
+      end: [4, 0],
+      finishRegions: [
+        {
+          id: 'z',
+          side: 'interior',
+          start: 0.5,
+          end: 1,
+          slots: { upperInterior: 'library:paint-z' },
+        },
+        {
+          id: 'a',
+          side: 'interior',
+          start: 0,
+          end: 0.5,
+          slots: { upperInterior: 'library:paint-a' },
+        },
+      ],
+    })
+    expect(wall.finishRegions?.map(({ id, start, end }) => ({ id, start, end }))).toEqual([
+      { id: 'a', start: 0, end: 0.5 },
+      { id: 'z', start: 0.5, end: 1 },
+    ])
+    expect(validateWallFinishRegions(wall.finishRegions ?? [])).toEqual({ ok: true })
+  })
+
+  test('rejects overlapping same-side same-role ranges but allows different roles and sides', () => {
+    const valid = WallNode.safeParse({
+      start: [0, 0],
+      end: [4, 0],
+      finishRegions: [
+        {
+          id: 'interior',
+          side: 'interior',
+          start: 0,
+          end: 0.75,
+          slots: { lowerInterior: 'library:lower' },
+        },
+        {
+          id: 'middle',
+          side: 'interior',
+          start: 0.25,
+          end: 1,
+          slots: { middleInterior: 'library:middle' },
+        },
+        {
+          id: 'exterior',
+          side: 'exterior',
+          start: 0.25,
+          end: 0.5,
+          slots: { lowerExterior: 'library:exterior' },
+        },
+      ],
+    })
+    expect(valid.success).toBe(true)
+    expect(
+      WallNode.safeParse({
+        start: [0, 0],
+        end: [4, 0],
+        finishRegions: [
+          {
+            id: 'first',
+            side: 'interior',
+            start: 0,
+            end: 0.6,
+            slots: { upperInterior: 'library:first' },
+          },
+          {
+            id: 'second',
+            side: 'interior',
+            start: 0.5,
+            end: 1,
+            slots: { upperInterior: 'library:second' },
+          },
+        ],
+      }).success,
+    ).toBe(false)
+  })
+
+  test('remaps split and merge ranges without losing side or slot data', () => {
+    const regions = normalizeWallFinishRegions([
+      {
+        id: 'paint',
+        side: 'exterior',
+        start: 0.25,
+        end: 0.75,
+        slots: { upperExterior: 'library:paint' },
+      },
+    ])
+    const split = splitWallFinishRegions(regions, 0.5)
+    expect(split.first[0]).toMatchObject({ id: 'paint', start: 0.5, end: 1 })
+    expect(split.second[0]).toMatchObject({ id: 'paint:2', start: 0, end: 0.5 })
+    expect(
+      mergeWallFinishRegions(
+        remapWallFinishRegionsForMerge(split.first, 0, 2, 4).concat(
+          remapWallFinishRegionsForMerge(split.second, 2, 2, 4),
+        ),
+      ),
+    ).toEqual(regions)
   })
 })
 
@@ -410,7 +520,10 @@ describe('wall kinds', () => {
         faceBands: {
           ...WALL_FACE_BAND_DEFAULT,
           construction: {
-            upper: { mode: 'assembly', layers: [{ kind: 'glass', thickness: 0.012, wasteFactor: 0.05 }] },
+            upper: {
+              mode: 'assembly',
+              layers: [{ kind: 'glass', thickness: 0.012, wasteFactor: 0.05 }],
+            },
           },
         },
         slots: undefined,

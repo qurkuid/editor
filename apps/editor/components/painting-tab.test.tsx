@@ -17,6 +17,8 @@ test('presents one merged material catalog with a favorites tab', () => {
   expect(markup).toContain('Shift')
   expect(markup).toContain('지우개')
   expect(markup).toContain('즐겨찾기')
+  expect(markup).not.toContain('Zone 마감')
+  expect(markup).not.toContain('방 검색')
 
   // And: the default view is purely the unified drill-down. Built-ins live
   // INSIDE it (as a per-category pseudo-brand) and 내 자재 lives only behind

@@ -1,6 +1,11 @@
 'use client'
 
-import { generateSceneMaterialId, type SceneMaterialId, saveStoredAsset } from '@pascal-app/core'
+import {
+  generateSceneMaterialId,
+  type SceneMaterial,
+  type SceneMaterialId,
+  saveStoredAsset,
+} from '@pascal-app/core'
 import { useScene } from '@pascal-app/editor'
 
 export const MATERIAL_IMPORT_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
@@ -10,19 +15,14 @@ async function digestBlob(blob: Blob): Promise<string> {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-/**
- * Persist an imported image in the shared asset store and create a scene
- * material textured with it. The default 1×1 m physical size keeps the texture
- * at real-world scale until the user edits the size. Returns the new id so the
- * caller can select it as the brush and open its editor.
- */
-export async function addImportedSceneMaterial(
+/** Persist an imported image and prepare a scene material without mutating the scene. */
+export async function prepareImportedSceneMaterial(
   image: Blob,
   name: string,
-): Promise<SceneMaterialId> {
+): Promise<SceneMaterial> {
   const url = await saveStoredAsset(`import-${await digestBlob(image)}`, image)
   const id = generateSceneMaterialId()
-  useScene.getState().addSceneMaterial({
+  return {
     id,
     name,
     material: {
@@ -38,8 +38,22 @@ export async function addImportedSceneMaterial(
       physicalSize: { widthM: 1, heightM: 1 },
       texture: { url, repeat: [1, 1] },
     },
-  })
-  return id
+  }
+}
+
+/**
+ * Persist an imported image in the shared asset store and create a scene
+ * material textured with it. The default 1×1 m physical size keeps the texture
+ * at real-world scale until the user edits the size. Returns the new id so the
+ * caller can select it as the brush and open its editor.
+ */
+export async function addImportedSceneMaterial(
+  image: Blob,
+  name: string,
+): Promise<SceneMaterialId> {
+  const material = await prepareImportedSceneMaterial(image, name)
+  useScene.getState().addSceneMaterial(material)
+  return material.id as SceneMaterialId
 }
 
 /** Pull the first image off the async clipboard, or null when there is none. */

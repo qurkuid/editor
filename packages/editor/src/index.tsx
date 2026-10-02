@@ -262,6 +262,18 @@ export { PanelWrapper } from './components/ui/panels/panel-wrapper'
 export { ParametricInspector as Inspector } from './components/ui/panels/parametric-inspector'
 export { PALETTE_COLORS } from './components/ui/primitives/color-dot'
 export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from './components/ui/primitives/dialog'
+export {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -505,6 +517,11 @@ export {
   metersToLinearUnit,
   squareMetersToAreaUnit,
 } from './lib/measurements'
+export {
+  activeWallFaceSlotRoles,
+  wallFaceSideIsAmbiguous,
+  wallRoleForRoomFace,
+} from './lib/paint-scope'
 export { consumePlacementDragRelease } from './lib/placement-drag-release'
 export {
   addFreshPlacementMetadata,
@@ -588,6 +605,32 @@ export {
   snapBuildingLocalToWorldGrid,
   snapWorldXZForActiveBuilding,
 } from './lib/world-grid-snap'
+export {
+  applyHomeFinishTemplate,
+  applyMaterialToCapturedZoneTarget,
+  applyZoneFinishTemplate,
+  type CapturedZoneFinishTarget,
+  captureZoneFinishTemplate,
+  commitZoneFinishApply,
+  createHomeFinishTemplate,
+  type HomeFinishTemplate,
+  inspectZoneFinishTarget,
+  type PortableMaterialSnapshot,
+  planZoneFinishApply,
+  type ZoneFinishApplyPlan,
+  type ZoneFinishApplyResult,
+  type ZoneFinishBoundaryError,
+  type ZoneFinishContext,
+  type ZoneFinishError,
+  type ZoneFinishInspection,
+  type ZoneFinishTargetKind,
+  type ZoneFinishTemplateSnapshot,
+  type ZoneFinishWallFace,
+  type ZoneFinishWallInspection,
+  type ZoneFinishWallKey,
+  type ZoneSurfaceFingerprint,
+  type ZoneSurfaceWallFingerprint,
+} from './lib/zone-finish'
 export { default as useAlignmentGuides } from './store/use-alignment-guides'
 export { default as useAudio } from './store/use-audio'
 export { type CommandAction, useCommandRegistry } from './store/use-command-registry'

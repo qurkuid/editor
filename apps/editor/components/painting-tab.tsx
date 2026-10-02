@@ -15,6 +15,10 @@ import { FavoriteMaterialsGrid, MergedMaterialCatalog } from './paint-catalog'
 
 type CatalogView = 'materials' | 'favorites' | 'scene'
 
+/**
+ * The Painting tab owns the direct brush. Zone finish application lives in
+ * the right inspector footer so opening a Zone never changes the brush target.
+ */
 export function PaintingTab() {
   const t = useT()
   const paintScope = useEditor((state) => state.paintScope)
@@ -23,7 +27,6 @@ export function PaintingTab() {
   const setPaintEraser = useEditor((state) => state.setPaintEraser)
   const setActivePaintTarget = useEditor((state) => state.setActivePaintTarget)
   const [catalogView, setCatalogView] = useState<CatalogView>('materials')
-
   const selectedIds = useViewer((state) => state.selection.selectedIds)
   const nodes = useScene((state) => state.nodes)
   const selectedId = selectedIds.length === 1 ? (selectedIds[0] ?? null) : null
@@ -38,12 +41,11 @@ export function PaintingTab() {
     editor.setMode('material-paint')
   }, [])
 
-  // Keep the brush target in step with the selection (mirrors MaterialPaintPanel).
+  // Keep the normal brush target in step with the selected node. Zone selection
+  // has no selectedIds, so it intentionally cannot arm a brush target here.
   useEffect(() => {
     const selectedPaintTarget = resolvePaintTargetFromSelection({ nodes, selectedId })
-    if (selectedPaintTarget) {
-      setActivePaintTarget(selectedPaintTarget)
-    }
+    if (selectedPaintTarget) setActivePaintTarget(selectedPaintTarget)
   }, [nodes, selectedId, setActivePaintTarget])
 
   const resetSelection = () => {

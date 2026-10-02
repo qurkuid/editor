@@ -2,6 +2,8 @@ import {
   type AnyNode,
   type AnyNodeId,
   generateSceneMaterialId,
+  getWallBandSlotId,
+  getWallFaceBandConfig,
   type ItemNode,
   type MaterialSchema,
   nodeRegistry,
@@ -143,7 +145,11 @@ function distanceToPolyline(
   return distance
 }
 
-function wallRoleForRoomFace(role: string, wall: WallNode, face: 'front' | 'back'): string | null {
+export function wallRoleForRoomFace(
+  role: string,
+  wall: Pick<WallNode, 'frontSide' | 'backSide'>,
+  face: 'front' | 'back',
+): string | null {
   const semantic = face === 'front' ? wall.frontSide : wall.backSide
   const fallback = face === 'front' ? 'interior' : 'exterior'
   const side = semantic === 'interior' || semantic === 'exterior' ? semantic : fallback
@@ -154,6 +160,44 @@ function wallRoleForRoomFace(role: string, wall: WallNode, face: 'front' | 'back
   if (role.endsWith('Exterior'))
     return `${role.slice(0, -'Exterior'.length)}${side === 'interior' ? 'Interior' : 'Exterior'}`
   return null
+}
+
+/**
+ * Return the rendered wall slots for a room-facing wall face. The base side
+ * slot is always active; band slots are included only when the wall actually
+ * renders multiple vertical bands. Keeping this mapping beside the existing
+ * room paint resolver prevents a Zone finish from touching the opposite side
+ * or stale, hidden band overrides.
+ */
+export function activeWallFaceSlotRoles(
+  wall: Pick<WallNode, 'faceBands' | 'height' | 'frontSide' | 'backSide'>,
+  face: 'front' | 'back',
+): string[] {
+  const side = wallRoleForRoomFace('interior', wall, face)
+  if (side !== 'interior' && side !== 'exterior') return []
+
+  const bands = getWallFaceBandConfig(wall, wall.height ?? 2.5)
+  if (!bands.enabled || bands.count <= 1) return [side]
+
+  const names =
+    bands.count === 2
+      ? (['lower', 'upper'] as const)
+      : bands.count === 3
+        ? (['lower', 'middle', 'upper'] as const)
+        : (['lower', 'middle', 'upper', 'top'] as const)
+  return [side, ...names.map((band) => getWallBandSlotId(side, band))]
+}
+
+/**
+ * A malformed/imported wall may claim that both local faces share one semantic
+ * side. In that case the two room-facing surfaces resolve to the same slot,
+ * so a Zone finish cannot promise to preserve the opposite face. Callers must
+ * reject the face rather than silently painting both rooms through one ref.
+ */
+export function wallFaceSideIsAmbiguous(wall: Pick<WallNode, 'frontSide' | 'backSide'>): boolean {
+  const front = wallRoleForRoomFace('interior', wall, 'front')
+  const back = wallRoleForRoomFace('interior', wall, 'back')
+  return front !== null && front === back
 }
 
 function resolveWallPaintSpace(args: {

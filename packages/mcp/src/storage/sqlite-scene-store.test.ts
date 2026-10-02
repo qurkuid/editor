@@ -32,7 +32,10 @@ import {
   type SqliteSceneStoreOptions,
 } from './sqlite-scene-store'
 import {
+  FinishTemplateConflictError,
+  FinishTemplateForbiddenError,
   SceneInvalidError,
+  SceneNotFoundError,
   SceneTooLargeError,
   SceneVersionConflictError,
   SceneWipeBlockedError,
@@ -120,6 +123,190 @@ describe('SqliteSceneStore', () => {
 
   test('backend is "sqlite"', () => {
     expect(store.backend).toBe('sqlite')
+  })
+
+  test('stores finish templates with idempotent create, company scope, and CAS mutation', async () => {
+    const owner = { ownerId: 'user-a', companyId: 'company-a', local: false } as const
+    const peer = { ownerId: 'user-b', companyId: 'company-a', local: false } as const
+    const otherCompany = { ownerId: 'user-c', companyId: 'company-c', local: false } as const
+    const payload = { version: 1, id: 'zone-template_a', name: 'Kitchen', zones: [] }
+
+    const created = await store.createFinishTemplate({
+      id: payload.id,
+      kind: 'zone',
+      name: payload.name,
+      visibility: 'company',
+      ownerId: owner.ownerId,
+      companyId: owner.companyId,
+      payload,
+    })
+    expect(created.version).toBe(1)
+    expect(created.payload).toEqual(payload)
+
+    const retried = await store.createFinishTemplate({
+      id: payload.id,
+      kind: 'zone',
+      name: payload.name,
+      visibility: 'company',
+      ownerId: owner.ownerId,
+      companyId: owner.companyId,
+      payload: structuredClone(payload),
+    })
+    expect(retried).toEqual(created)
+
+    await expect(
+      store.createFinishTemplate({
+        id: payload.id,
+        kind: 'zone',
+        name: 'Changed',
+        visibility: 'company',
+        ownerId: owner.ownerId,
+        companyId: owner.companyId,
+        payload,
+      }),
+    ).rejects.toBeInstanceOf(FinishTemplateConflictError)
+
+    expect((await store.listFinishTemplates(owner)).map((entry) => entry.id)).toEqual([payload.id])
+    expect((await store.listFinishTemplates(peer)).map((entry) => entry.id)).toEqual([payload.id])
+    expect(await store.listFinishTemplates(otherCompany)).toEqual([])
+
+    const renamed = await store.renameFinishTemplate(payload.id, 'Kitchen updated', {
+      scope: owner,
+      expectedVersion: created.version,
+    })
+    expect(renamed.name).toBe('Kitchen updated')
+    expect(renamed.version).toBe(2)
+    await expect(
+      store.renameFinishTemplate(payload.id, 'stale', {
+        scope: owner,
+        expectedVersion: created.version,
+      }),
+    ).rejects.toMatchObject({ code: 'version_conflict', currentVersion: 2 })
+
+    await expect(
+      store.deleteFinishTemplate(payload.id, {
+        scope: peer,
+        expectedVersion: renamed.version,
+      }),
+    ).rejects.toBeInstanceOf(FinishTemplateForbiddenError)
+    expect(
+      await store.deleteFinishTemplate(payload.id, {
+        scope: owner,
+        expectedVersion: renamed.version,
+      }),
+    ).toBe(true)
+  })
+
+  test('separates all-visible, mine, and company list scopes', async () => {
+    const owner = { ownerId: 'user-a', companyId: 'company-a', local: false } as const
+    const peer = { ownerId: 'user-b', companyId: 'company-a', local: false } as const
+    const privatePayload = {
+      version: 1,
+      id: 'zone-template_scope_private',
+      name: 'Private',
+      zones: [],
+    }
+    const ownCompanyPayload = {
+      version: 1,
+      id: 'zone-template_scope_own_company',
+      name: 'Own company',
+      zones: [],
+    }
+    const peerCompanyPayload = {
+      version: 1,
+      id: 'zone-template_scope_peer_company',
+      name: 'Peer company',
+      zones: [],
+    }
+
+    for (const [entry, visibility, scope] of [
+      [privatePayload, 'private', owner] as const,
+      [ownCompanyPayload, 'company', owner] as const,
+      [peerCompanyPayload, 'company', peer] as const,
+    ]) {
+      await store.createFinishTemplate({
+        id: entry.id,
+        kind: 'zone',
+        name: entry.name,
+        visibility,
+        ownerId: scope.ownerId,
+        companyId: visibility === 'company' ? scope.companyId : null,
+        payload: entry,
+      })
+    }
+
+    const allVisible = (await store.listFinishTemplates(owner)).map((entry) => entry.id)
+    expect(new Set(allVisible)).toEqual(
+      new Set([privatePayload.id, ownCompanyPayload.id, peerCompanyPayload.id]),
+    )
+    expect(
+      new Set((await store.listFinishTemplates(owner, { scope: 'mine' })).map((entry) => entry.id)),
+    ).toEqual(new Set([privatePayload.id, ownCompanyPayload.id]))
+    expect(
+      new Set(
+        (await store.listFinishTemplates(owner, { scope: 'company' })).map((entry) => entry.id),
+      ),
+    ).toEqual(new Set([ownCompanyPayload.id, peerCompanyPayload.id]))
+  })
+
+  test('does not keep a company template readable after the owner changes companies', async () => {
+    const owner = { ownerId: 'user-a', companyId: 'company-a', local: false } as const
+    const changedCompany = { ownerId: 'user-a', companyId: 'company-b', local: false } as const
+    const privatePayload = { version: 1, id: 'zone-template_private', name: 'Private', zones: [] }
+    const companyPayload = { version: 1, id: 'zone-template_company', name: 'Company', zones: [] }
+
+    await store.createFinishTemplate({
+      id: privatePayload.id,
+      kind: 'zone',
+      name: privatePayload.name,
+      visibility: 'private',
+      ownerId: owner.ownerId,
+      companyId: null,
+      payload: privatePayload,
+    })
+    await store.createFinishTemplate({
+      id: companyPayload.id,
+      kind: 'zone',
+      name: companyPayload.name,
+      visibility: 'company',
+      ownerId: owner.ownerId,
+      companyId: owner.companyId,
+      payload: companyPayload,
+    })
+
+    expect(await store.getFinishTemplate(privatePayload.id, changedCompany)).not.toBeNull()
+    expect(await store.getFinishTemplate(companyPayload.id, changedCompany)).toBeNull()
+    expect((await store.listFinishTemplates(changedCompany)).map((entry) => entry.id)).toEqual([
+      privatePayload.id,
+    ])
+    await expect(
+      store.renameFinishTemplate(companyPayload.id, 'No access', {
+        scope: changedCompany,
+        expectedVersion: 1,
+      }),
+    ).rejects.toBeInstanceOf(SceneNotFoundError)
+  })
+
+  test('reloads templates from the existing SQLite database', async () => {
+    const scope = { ownerId: 'user-a', companyId: null, local: false } as const
+    const payload = { version: 1, id: 'zone-template_reopen', name: 'Reopen', zones: [] }
+    await store.createFinishTemplate({
+      id: payload.id,
+      kind: 'zone',
+      name: payload.name,
+      visibility: 'private',
+      ownerId: scope.ownerId,
+      companyId: null,
+      payload,
+    })
+
+    store.close()
+    store = createStore(rootDir)
+    expect(await store.getFinishTemplate(payload.id, scope)).toMatchObject({
+      id: payload.id,
+      name: payload.name,
+      payload,
+    })
   })
 
   test('round-trips a saved scene through a reopened database', async () => {

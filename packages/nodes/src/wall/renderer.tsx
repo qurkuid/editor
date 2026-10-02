@@ -3,6 +3,7 @@
 import {
   type AnyNode,
   type AnyNodeId,
+  emitter,
   useRegistry,
   useScene,
   type WallNode,
@@ -20,7 +21,11 @@ import type { Mesh } from 'three'
 import { useShallow } from 'zustand/react/shallow'
 import { createPlaceholderGeometry } from '../shared/placeholder-geometry'
 import { hasWallConstruction } from './construction-geometry'
-import { WallConstructionModel } from './construction-preview'
+import {
+  resolveWallPresentation,
+  type WallCaptureMode,
+  WallConstructionModel,
+} from './construction-preview'
 import { useWallTreatmentLevelData } from './treatment-level-data'
 import { createWallExtraSlotMaterials, WallTreatments } from './treatments'
 
@@ -66,9 +71,17 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
   const textures = useViewer((s) => s.textures)
   const colorPreset = useViewer((s) => s.colorPreset)
   const sceneTheme = useViewer((s) => s.sceneTheme)
+  const isExporting = useViewer((s) => s.isExporting)
   const showConstruction = useViewer((s) => s.selection.selectedIds.includes(node.id))
   const constructionDisplayMode = useWallConstructionDisplay((s) => s.mode)
   const construction = hasWallConstruction(node)
+  const capture = useRef<WallCaptureMode>(null)
+  const presentation = resolveWallPresentation({
+    hasConstruction: construction,
+    mode: showConstruction ? constructionDisplayMode : 'finish',
+    isExporting,
+    capture: capture.current,
+  })
   const childNodes = useScene(
     useShallow((state) =>
       (node.children ?? [])
@@ -93,7 +106,7 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
     sceneMaterials,
   )
   const visibleBaseMaterials = useMemo(() => {
-    if (!construction) return baseMaterials
+    if (presentation.baseVisible) return baseMaterials
     return baseMaterials.map((material) => {
       const transparentMaterial = material.clone()
       transparentMaterial.transparent = true
@@ -103,7 +116,7 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
       transparentMaterial.needsUpdate = true
       return markWallMaterialOverride(transparentMaterial)
     })
-  }, [baseMaterials, construction])
+  }, [baseMaterials, presentation.baseVisible])
   useEffect(
     () => () => {
       if (visibleBaseMaterials !== baseMaterials) {
@@ -112,6 +125,30 @@ const WallRenderer = ({ node }: { node: WallNode }) => {
     },
     [baseMaterials, visibleBaseMaterials],
   )
+  useEffect(() => {
+    const before = () => {
+      capture.current = useViewer.getState().isExporting ? 'export' : 'thumbnail'
+      const current = ref.current
+      if (!current) return
+      const captured = resolveWallPresentation({
+        hasConstruction: construction,
+        mode: showConstruction ? constructionDisplayMode : 'finish',
+        isExporting: useViewer.getState().isExporting,
+        capture: capture.current,
+      })
+      current.material = captured.baseVisible ? baseMaterials : visibleBaseMaterials
+    }
+    const after = () => {
+      capture.current = null
+      if (ref.current) ref.current.material = visibleBaseMaterials
+    }
+    emitter.on('thumbnail:before-capture', before)
+    emitter.on('thumbnail:after-capture', after)
+    return () => {
+      emitter.off('thumbnail:before-capture', before)
+      emitter.off('thumbnail:after-capture', after)
+    }
+  }, [baseMaterials, construction, constructionDisplayMode, showConstruction, visibleBaseMaterials])
   const extraMaterials = useMemo(
     () => createWallExtraSlotMaterials(node, shading, sceneMaterials),
     [node, sceneMaterials, shading],

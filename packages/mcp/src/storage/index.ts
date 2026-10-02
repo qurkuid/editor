@@ -1,4 +1,4 @@
-import type { SceneStore } from './types'
+import type { SqliteSceneStore } from './sqlite-scene-store'
 
 export * from './slug'
 export * from './sqlite-scene-store'
@@ -11,7 +11,7 @@ export * from './types'
  * writes to `~/.pascal/data/pascal.db`; set `PASCAL_DB_PATH` for an exact file
  * path or `PASCAL_DATA_DIR` for a directory containing `pascal.db`.
  */
-export async function createSceneStore(env?: NodeJS.ProcessEnv): Promise<SceneStore> {
+export async function createSceneStore(env?: NodeJS.ProcessEnv): Promise<SqliteSceneStore> {
   const mod = await import('./sqlite-scene-store')
   return new mod.SqliteSceneStore({ env })
 }

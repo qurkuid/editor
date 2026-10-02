@@ -9,6 +9,15 @@ import { z } from 'zod'
 import { generateSlug, isValidSlug, sanitizeSlug } from './slug'
 import { openSqliteDatabase, type SqliteDatabase } from './sqlite-driver'
 import {
+  FinishTemplateConflictError,
+  type FinishTemplateCreateOptions,
+  FinishTemplateForbiddenError,
+  type FinishTemplateKind,
+  type FinishTemplateListOptions,
+  type FinishTemplateMutateOptions,
+  type FinishTemplateRecord,
+  type FinishTemplateScope,
+  type FinishTemplateVisibility,
   type ProjectCreateOptions,
   type ProjectStatus,
   type SceneEvent,
@@ -48,6 +57,8 @@ const BACKUP_INTERVAL_MS = 60 * 60 * 1000
 const BACKUP_KEEP = 48
 const MAX_NAME_LENGTH = 200
 const MIN_NAME_LENGTH = 1
+const MAX_FINISH_TEMPLATE_ID_LENGTH = 160
+const MAX_FINISH_TEMPLATE_BYTES = 2 * 1024 * 1024
 
 export interface SqliteSceneStoreOptions {
   /** Exact SQLite database file path. If omitted, resolved from env. */
@@ -79,6 +90,19 @@ interface SceneEventRow {
   kind: string
   created_at: string
   graph_json: string
+}
+
+interface FinishTemplateRow {
+  id: string
+  kind: FinishTemplateKind
+  name: string
+  visibility: FinishTemplateVisibility
+  owner_id: string
+  company_id: string | null
+  version: number
+  created_at: string
+  updated_at: string
+  payload_json: string
 }
 
 interface ProjectPlaceholder {
@@ -234,6 +258,89 @@ function assertValidName(name: string): void {
       `Scene name must be ${MIN_NAME_LENGTH}-${MAX_NAME_LENGTH} characters (got ${name.length})`,
     )
   }
+}
+
+function assertValidFinishTemplateName(name: string): void {
+  if (typeof name !== 'string') {
+    throw new SceneInvalidError('Finish template name must be a string')
+  }
+  const trimmed = name.trim()
+  if (trimmed.length < MIN_NAME_LENGTH || name.length > MAX_NAME_LENGTH) {
+    throw new SceneInvalidError(
+      `Finish template name must be ${MIN_NAME_LENGTH}-${MAX_NAME_LENGTH} characters (got ${name.length})`,
+    )
+  }
+}
+
+function assertValidFinishTemplateId(id: string): void {
+  if (
+    typeof id !== 'string' ||
+    id.trim().length === 0 ||
+    id.length > MAX_FINISH_TEMPLATE_ID_LENGTH
+  ) {
+    throw new SceneInvalidError(
+      `Finish template id must be 1-${MAX_FINISH_TEMPLATE_ID_LENGTH} characters`,
+    )
+  }
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map((entry) => stableJson(entry)).join(',')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value as Record<string, unknown>)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableJson((value as Record<string, unknown>)[key])}`)
+      .join(',')}}`
+  }
+  const serialized = JSON.stringify(value)
+  if (serialized === undefined) throw new SceneInvalidError('Finish template payload must be JSON')
+  return serialized
+}
+
+function serializeFinishTemplatePayload(payload: unknown): string {
+  const raw = JSON.stringify(payload)
+  if (raw === undefined) throw new SceneInvalidError('Finish template payload must be JSON')
+  const size = Buffer.byteLength(raw, 'utf8')
+  if (size > MAX_FINISH_TEMPLATE_BYTES) {
+    throw new SceneTooLargeError(
+      `Finish template payload is ${size} bytes, exceeds cap of ${MAX_FINISH_TEMPLATE_BYTES} bytes`,
+    )
+  }
+  return raw
+}
+
+function parseFinishTemplatePayload(raw: string, id: string): unknown {
+  try {
+    return JSON.parse(raw)
+  } catch {
+    throw new SceneInvalidError(`Finish template "${id}" has invalid JSON payload`)
+  }
+}
+
+function rowToFinishTemplate(row: FinishTemplateRow): FinishTemplateRecord {
+  return {
+    id: row.id,
+    kind: row.kind,
+    name: row.name,
+    visibility: row.visibility,
+    ownerId: row.owner_id,
+    companyId: row.company_id,
+    version: Number(row.version),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    payload: parseFinishTemplatePayload(row.payload_json, row.id),
+  }
+}
+
+function finishTemplateVersionConflict(
+  message: string,
+  currentVersion: number,
+): SceneVersionConflictError {
+  const error = new SceneVersionConflictError(message) as SceneVersionConflictError & {
+    currentVersion?: number
+  }
+  error.currentVersion = currentVersion
+  return error
 }
 
 function serializeGraph(graph: SceneGraph): string {
@@ -627,6 +734,217 @@ export class SqliteSceneStore implements SceneStore {
     return rows.map((row) => rowToMeta(row as SceneRow))
   }
 
+  /**
+   * Lists the private templates owned by a principal and the company templates
+   * visible through its verified company id. The local principal is only
+   * available to loopback callers and sees the local shared library.
+   */
+  async listFinishTemplates(
+    scope: FinishTemplateScope,
+    options: FinishTemplateKind | FinishTemplateListOptions = {},
+  ): Promise<FinishTemplateRecord[]> {
+    if (!scope.ownerId || typeof scope.ownerId !== 'string') {
+      throw new SceneInvalidError('Finish template owner is required')
+    }
+
+    const kind = typeof options === 'string' ? options : options.kind
+    const requestedLimit = typeof options === 'string' ? undefined : options.limit
+    const requestedScope = typeof options === 'string' ? undefined : options.scope
+    const limit = Number.isInteger(requestedLimit)
+      ? Math.min(Math.max(1, requestedLimit as number), 500)
+      : 200
+
+    const visibleClauses: string[] = []
+    const bindings: Array<string | number> = []
+    if (scope.local) {
+      visibleClauses.push("(owner_id = 'local' AND visibility = 'local')")
+    } else {
+      if (requestedScope !== 'company') {
+        visibleClauses.push("(owner_id = ? AND visibility = 'private')")
+        bindings.push(scope.ownerId)
+      }
+      if (scope.companyId && requestedScope === 'mine') {
+        visibleClauses.push("(owner_id = ? AND visibility = 'company' AND company_id = ?)")
+        bindings.push(scope.ownerId, scope.companyId)
+      }
+      if (scope.companyId && requestedScope !== 'mine') {
+        visibleClauses.push("(visibility = 'company' AND company_id = ?)")
+        bindings.push(scope.companyId)
+      }
+    }
+    if (visibleClauses.length === 0) return []
+    const clauses = [`(${visibleClauses.join(' OR ')})`]
+    if (kind) {
+      clauses.push('AND kind = ?')
+      bindings.push(kind)
+    }
+
+    const db = await this.database()
+    const rows = db
+      .query(
+        `SELECT id, kind, name, visibility, owner_id, company_id, version,
+                created_at, updated_at, payload_json
+          FROM finish_templates
+          WHERE ${clauses.join(' ')}
+          ORDER BY updated_at DESC, id ASC
+          LIMIT ?`,
+      )
+      .all(...bindings, limit) as FinishTemplateRow[]
+    return rows.map((row) => rowToFinishTemplate(row))
+  }
+
+  async getFinishTemplate(
+    id: string,
+    scope: FinishTemplateScope,
+  ): Promise<FinishTemplateRecord | null> {
+    assertValidFinishTemplateId(id)
+    const db = await this.database()
+    const row = this.getFinishTemplateRow(db, id)
+    if (!row || !this.canReadFinishTemplate(row, scope)) return null
+    return rowToFinishTemplate(row)
+  }
+
+  /**
+   * Creates an immutable snapshot. Retrying the same id and identical content
+   * returns the existing row without changing its version or timestamps.
+   */
+  async createFinishTemplate(opts: FinishTemplateCreateOptions): Promise<FinishTemplateRecord> {
+    const record = await this.withWriteTransaction((db) => {
+      assertValidFinishTemplateId(opts.id)
+      assertValidFinishTemplateName(opts.name)
+      if (!['zone', 'home'].includes(opts.kind)) {
+        throw new SceneInvalidError('Finish template kind is invalid')
+      }
+      if (!['private', 'company', 'local'].includes(opts.visibility)) {
+        throw new SceneInvalidError('Finish template visibility is invalid')
+      }
+      if (!opts.ownerId || typeof opts.ownerId !== 'string') {
+        throw new SceneInvalidError('Finish template owner is required')
+      }
+      if (opts.visibility === 'company' && !opts.companyId) {
+        throw new SceneInvalidError('Company templates require a verified company')
+      }
+      if (opts.ownerId === 'local' && opts.visibility !== 'local') {
+        throw new SceneInvalidError('The local principal can only create local templates')
+      }
+      if (opts.visibility === 'private' && opts.companyId !== null) {
+        throw new SceneInvalidError('Private templates cannot carry a company scope')
+      }
+      if (opts.visibility === 'local' && (opts.ownerId !== 'local' || opts.companyId !== null)) {
+        throw new SceneInvalidError('Local templates require the local principal')
+      }
+
+      const payloadJson = serializeFinishTemplatePayload(opts.payload)
+      const existing = this.getFinishTemplateRow(db, opts.id)
+      if (existing) {
+        const same =
+          existing.kind === opts.kind &&
+          existing.name === opts.name &&
+          existing.visibility === opts.visibility &&
+          existing.owner_id === opts.ownerId &&
+          existing.company_id === opts.companyId &&
+          stableJson(parseFinishTemplatePayload(existing.payload_json, existing.id)) ===
+            stableJson(opts.payload)
+        if (same) return rowToFinishTemplate(existing)
+        throw new FinishTemplateConflictError(`Finish template with id "${opts.id}" already exists`)
+      }
+
+      const now = new Date().toISOString()
+      db.query(
+        `INSERT INTO finish_templates (
+           id, kind, name, visibility, owner_id, company_id, version,
+           created_at, updated_at, payload_json
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        opts.id,
+        opts.kind,
+        opts.name,
+        opts.visibility,
+        opts.ownerId,
+        opts.companyId,
+        1,
+        now,
+        now,
+        payloadJson,
+      )
+
+      return {
+        id: opts.id,
+        kind: opts.kind,
+        name: opts.name,
+        visibility: opts.visibility,
+        ownerId: opts.ownerId,
+        companyId: opts.companyId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        payload: parseFinishTemplatePayload(payloadJson, opts.id),
+      }
+    })
+    await this.maybeBackupDatabase()
+    return record
+  }
+
+  async renameFinishTemplate(
+    id: string,
+    newName: string,
+    opts: FinishTemplateMutateOptions,
+  ): Promise<FinishTemplateRecord> {
+    const record = await this.withWriteTransaction((db) => {
+      assertValidFinishTemplateId(id)
+      assertValidFinishTemplateName(newName)
+      const existing = this.getFinishTemplateRow(db, id)
+      if (!existing) throw new SceneNotFoundError(`Finish template "${id}" not found`)
+      this.assertFinishTemplateOwner(existing, opts.scope)
+      this.assertFinishTemplateVersion(existing, opts.expectedVersion)
+
+      const now = new Date().toISOString()
+      const nextVersion = existing.version + 1
+      const payload = parseFinishTemplatePayload(existing.payload_json, existing.id)
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        throw new SceneInvalidError(`Finish template "${id}" payload must be an object`)
+      }
+      const renamedPayload = { ...(payload as Record<string, unknown>), name: newName }
+      const payloadJson = serializeFinishTemplatePayload(renamedPayload)
+      db.query(
+        `UPDATE finish_templates
+            SET name = ?, payload_json = ?, version = ?, updated_at = ?
+          WHERE id = ? AND owner_id = ? AND version = ?`,
+      ).run(newName, payloadJson, nextVersion, now, id, opts.scope.ownerId, existing.version)
+      return rowToFinishTemplate({
+        ...existing,
+        name: newName,
+        payload_json: payloadJson,
+        version: nextVersion,
+        updated_at: now,
+      })
+    })
+    await this.maybeBackupDatabase()
+    return record
+  }
+
+  async deleteFinishTemplate(id: string, opts: FinishTemplateMutateOptions): Promise<boolean> {
+    const removed = await this.withWriteTransaction((db) => {
+      assertValidFinishTemplateId(id)
+      const existing = this.getFinishTemplateRow(db, id)
+      if (!existing) return false
+      this.assertFinishTemplateOwner(existing, opts.scope)
+      this.assertFinishTemplateVersion(existing, opts.expectedVersion)
+      const result = db
+        .query('DELETE FROM finish_templates WHERE id = ? AND owner_id = ? AND version = ?')
+        .run(id, opts.scope.ownerId, existing.version)
+      if (result.changes !== 1) {
+        throw finishTemplateVersionConflict(
+          `Finish template "${id}" changed during delete`,
+          existing.version,
+        )
+      }
+      return true
+    })
+    if (removed) await this.maybeBackupDatabase()
+    return removed
+  }
+
   async delete(id: string, opts: SceneMutateOptions = {}): Promise<boolean> {
     return this.withWriteTransaction((db) => {
       const safeId = sanitizeSlug(id)
@@ -797,6 +1115,25 @@ export class SqliteSceneStore implements SceneStore {
 
       CREATE INDEX IF NOT EXISTS scene_events_scene_event_idx
         ON scene_events(scene_id, event_id);
+
+      CREATE TABLE IF NOT EXISTS finish_templates (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL CHECK (kind IN ('zone', 'home')),
+        name TEXT NOT NULL CHECK (length(name) >= 1 AND length(name) <= 200),
+        visibility TEXT NOT NULL CHECK (visibility IN ('private', 'company', 'local')),
+        owner_id TEXT NOT NULL,
+        company_id TEXT,
+        version INTEGER NOT NULL CHECK (version >= 1),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        payload_json TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS finish_templates_owner_updated_idx
+        ON finish_templates(owner_id, updated_at DESC);
+
+      CREATE INDEX IF NOT EXISTS finish_templates_company_updated_idx
+        ON finish_templates(company_id, visibility, updated_at DESC);
     `)
   }
 
@@ -828,6 +1165,51 @@ export class SqliteSceneStore implements SceneStore {
         )
         .get(id),
     )
+  }
+
+  private getFinishTemplateRow(db: SqliteDatabase, id: string): FinishTemplateRow | null {
+    return (db
+      .query(
+        `SELECT id, kind, name, visibility, owner_id, company_id, version,
+                created_at, updated_at, payload_json
+           FROM finish_templates
+          WHERE id = ?`,
+      )
+      .get(id) ?? null) as FinishTemplateRow | null
+  }
+
+  private assertFinishTemplateOwner(row: FinishTemplateRow, scope: FinishTemplateScope): void {
+    if (!this.canReadFinishTemplate(row, scope)) {
+      throw new SceneNotFoundError(`Finish template "${row.id}" not found`)
+    }
+    if (row.owner_id !== scope.ownerId) {
+      throw new FinishTemplateForbiddenError('Finish template is read-only for this principal')
+    }
+  }
+
+  private canReadFinishTemplate(row: FinishTemplateRow, scope: FinishTemplateScope): boolean {
+    const ownerCanRead =
+      row.owner_id === scope.ownerId &&
+      (row.visibility === 'private' ||
+        (row.visibility === 'company' &&
+          row.company_id !== null &&
+          row.company_id === scope.companyId) ||
+        (row.visibility === 'local' && scope.local && scope.ownerId === 'local'))
+    const companyPeerCanRead =
+      row.visibility === 'company' && row.company_id !== null && row.company_id === scope.companyId
+    return ownerCanRead || companyPeerCanRead
+  }
+
+  private assertFinishTemplateVersion(row: FinishTemplateRow, expectedVersion: number): void {
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 1) {
+      throw new SceneInvalidError('Finish template expectedVersion must be a positive integer')
+    }
+    if (row.version !== expectedVersion) {
+      throw finishTemplateVersionConflict(
+        `Finish template "${row.id}" version mismatch: expected ${expectedVersion}, got ${row.version}`,
+        row.version,
+      )
+    }
   }
 
   private generateUniqueId(db: SqliteDatabase): string {

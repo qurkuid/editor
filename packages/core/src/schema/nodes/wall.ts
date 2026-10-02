@@ -1,5 +1,6 @@
 import dedent from 'dedent'
 import { z } from 'zod'
+import { parseMaterialRef } from '../../material-library'
 import { BaseNode, nodeType, objectId } from '../base'
 import { MaterialSchema } from '../material'
 import { DoorNode } from './door'
@@ -165,6 +166,233 @@ export const WALL_SURFACE_SLOT_DEFAULTS = {
 
 export type WallSurfaceSlotId = keyof typeof WALL_SURFACE_SLOT_DEFAULTS
 
+export const WallSurfaceSideSchema = z.enum(['interior', 'exterior'])
+export type WallSurfaceSide = z.infer<typeof WallSurfaceSideSchema>
+export type WallFinishRegion = {
+  id: string
+  side: WallSurfaceSide
+  start: number
+  end: number
+  slots: Record<string, string>
+}
+export type WallFaceBand = 'lower' | 'middle' | 'upper' | 'top'
+export type WallBandSurfaceSlotId =
+  | 'lowerInterior'
+  | 'middleInterior'
+  | 'upperInterior'
+  | 'topInterior'
+  | 'lowerExterior'
+  | 'middleExterior'
+  | 'upperExterior'
+  | 'topExterior'
+
+const WALL_FINISH_REGION_EPSILON = 1e-6
+
+export const WallFinishRegionSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    side: WallSurfaceSideSchema,
+    start: z.number().finite().min(0).max(1),
+    end: z.number().finite().min(0).max(1),
+    slots: z
+      .record(z.string().trim().min(1), z.string().trim().min(1))
+      .refine((slots) => Object.keys(slots).length > 0, 'finish region needs at least one slot'),
+  })
+  .superRefine((region, ctx) => {
+    if (region.end - region.start <= WALL_FINISH_REGION_EPSILON) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['end'],
+        message: 'finish region is empty',
+      })
+    }
+    for (const [role, ref] of Object.entries(region.slots)) {
+      if (getWallSurfaceSideFromBandSlot(role) !== region.side) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['slots', role],
+          message: `finish role ${role} does not belong to ${region.side}`,
+        })
+      }
+      if (!parseMaterialRef(ref)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['slots', role],
+          message: 'finish material must be a library: or scene: reference',
+        })
+      }
+    }
+  })
+  .transform((region) => normalizeWallFinishRegion(region))
+
+export function normalizeWallFinishRegion(
+  region: Omit<WallFinishRegion, 'start' | 'end'> & { start: number; end: number },
+): WallFinishRegion {
+  const snap = (value: number) => {
+    if (Math.abs(value) <= WALL_FINISH_REGION_EPSILON) return 0
+    if (Math.abs(value - 1) <= WALL_FINISH_REGION_EPSILON) return 1
+    return Math.max(0, Math.min(1, value))
+  }
+  return {
+    ...region,
+    id: region.id.trim(),
+    side: region.side,
+    start: snap(region.start),
+    end: snap(region.end),
+    slots: Object.fromEntries(
+      Object.entries(region.slots).sort(([left], [right]) => left.localeCompare(right)),
+    ),
+  }
+}
+
+export function normalizeWallFinishRegions(
+  regions: readonly (Omit<WallFinishRegion, 'start' | 'end'> & {
+    start: number
+    end: number
+  })[],
+): WallFinishRegion[] {
+  return regions
+    .map(normalizeWallFinishRegion)
+    .sort(
+      (left, right) =>
+        left.side.localeCompare(right.side) ||
+        left.start - right.start ||
+        left.end - right.end ||
+        left.id.localeCompare(right.id),
+    )
+}
+
+export function validateWallFinishRegions(
+  regions: readonly WallFinishRegion[],
+): { ok: true } | { ok: false; regionIds: string[] } {
+  for (const region of regions) {
+    if (
+      !Number.isFinite(region.start) ||
+      !Number.isFinite(region.end) ||
+      region.start < 0 ||
+      region.end > 1 ||
+      region.end - region.start <= WALL_FINISH_REGION_EPSILON ||
+      Object.keys(region.slots).length === 0 ||
+      Object.entries(region.slots).some(
+        ([role, ref]) =>
+          getWallSurfaceSideFromBandSlot(role) !== region.side || !parseMaterialRef(ref),
+      )
+    ) {
+      return { ok: false, regionIds: [region.id] }
+    }
+  }
+  const normalized = normalizeWallFinishRegions(regions)
+  const duplicateIds = new Set<string>()
+  for (const region of normalized) {
+    if (duplicateIds.has(region.id)) return { ok: false, regionIds: [region.id] }
+    duplicateIds.add(region.id)
+  }
+  for (let leftIndex = 0; leftIndex < normalized.length; leftIndex += 1) {
+    const left = normalized[leftIndex]!
+    for (let rightIndex = leftIndex + 1; rightIndex < normalized.length; rightIndex += 1) {
+      const right = normalized[rightIndex]!
+      if (right.side !== left.side) continue
+      if (right.start >= left.end - WALL_FINISH_REGION_EPSILON) break
+      const overlappingRoles = Object.keys(left.slots).filter(
+        (role) =>
+          right.slots[role] !== undefined &&
+          Math.min(left.end, right.end) - Math.max(left.start, right.start) >
+            WALL_FINISH_REGION_EPSILON,
+      )
+      if (overlappingRoles.length > 0) {
+        return { ok: false, regionIds: [left.id, right.id] }
+      }
+    }
+  }
+  return { ok: true }
+}
+
+export function splitWallFinishRegions(
+  regions: readonly WallFinishRegion[],
+  splitAt: number,
+): { first: WallFinishRegion[]; second: WallFinishRegion[] } {
+  const split = Math.max(0, Math.min(1, splitAt))
+  if (split <= WALL_FINISH_REGION_EPSILON) {
+    return { first: [], second: normalizeWallFinishRegions(regions) }
+  }
+  if (split >= 1 - WALL_FINISH_REGION_EPSILON) {
+    return { first: normalizeWallFinishRegions(regions), second: [] }
+  }
+  const first: WallFinishRegion[] = []
+  const second: WallFinishRegion[] = []
+  for (const region of normalizeWallFinishRegions(regions)) {
+    if (region.start < split - WALL_FINISH_REGION_EPSILON) {
+      const end = Math.min(region.end, split)
+      if (end - region.start > WALL_FINISH_REGION_EPSILON) {
+        first.push(
+          normalizeWallFinishRegion({
+            ...region,
+            start: region.start / split,
+            end: end / split,
+          }),
+        )
+      }
+    }
+    if (region.end > split + WALL_FINISH_REGION_EPSILON) {
+      const start = Math.max(region.start, split)
+      if (region.end - start > WALL_FINISH_REGION_EPSILON) {
+        second.push(
+          normalizeWallFinishRegion({
+            ...region,
+            id: region.start < split - WALL_FINISH_REGION_EPSILON ? `${region.id}:2` : region.id,
+            start: (start - split) / (1 - split),
+            end: (region.end - split) / (1 - split),
+          }),
+        )
+      }
+    }
+  }
+  return { first, second }
+}
+
+export function remapWallFinishRegionsForMerge(
+  regions: readonly WallFinishRegion[],
+  segmentStart: number,
+  segmentLength: number,
+  totalLength: number,
+  reversed = false,
+): WallFinishRegion[] {
+  if (segmentLength <= WALL_FINISH_REGION_EPSILON || totalLength <= WALL_FINISH_REGION_EPSILON) {
+    return []
+  }
+  const offset = segmentStart / totalLength
+  const scale = segmentLength / totalLength
+  return normalizeWallFinishRegions(
+    regions.map((region) => {
+      const start = reversed ? 1 - region.end : region.start
+      const end = reversed ? 1 - region.start : region.end
+      return {
+        ...region,
+        start: offset + start * scale,
+        end: offset + end * scale,
+      }
+    }),
+  )
+}
+
+export function mergeWallFinishRegions(regions: readonly WallFinishRegion[]): WallFinishRegion[] {
+  const merged: WallFinishRegion[] = []
+  for (const region of normalizeWallFinishRegions(regions)) {
+    const previous = merged.at(-1)
+    if (
+      previous &&
+      previous.side === region.side &&
+      JSON.stringify(previous.slots) === JSON.stringify(region.slots) &&
+      Math.abs(previous.end - region.start) <= WALL_FINISH_REGION_EPSILON
+    ) {
+      previous.end = region.end
+      continue
+    }
+    merged.push({ ...region })
+  }
+  return normalizeWallFinishRegions(merged)
+}
+
 export const WallNode = BaseNode.extend({
   id: objectId('wall'),
   type: nodeType('wall'),
@@ -186,6 +414,22 @@ export const WallNode = BaseNode.extend({
   // read only by the load migration that moves them into `slots`; delete them
   // in a follow-up once migrated scenes are the norm.
   slots: z.record(z.string(), z.string()).optional(),
+  finishRegions: z
+    .array(WallFinishRegionSchema)
+    .optional()
+    .superRefine((regions, ctx) => {
+      if (!regions) return
+      const validation = validateWallFinishRegions(regions)
+      if (!validation.ok) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['finishRegions'],
+          message: `overlapping finish regions: ${validation.regionIds.join(', ')}`,
+        })
+      }
+    })
+    .transform((regions) => (regions ? normalizeWallFinishRegions(regions) : regions))
+    .optional(),
   thickness: z.number().optional(),
   height: z.number().optional(),
   curveOffset: z.number().optional(),
@@ -222,18 +466,6 @@ export const WallNode = BaseNode.extend({
   `,
 )
 export type WallNode = z.infer<typeof WallNode>
-
-export type WallSurfaceSide = 'interior' | 'exterior'
-export type WallFaceBand = 'lower' | 'middle' | 'upper' | 'top'
-export type WallBandSurfaceSlotId =
-  | 'lowerInterior'
-  | 'middleInterior'
-  | 'upperInterior'
-  | 'topInterior'
-  | 'lowerExterior'
-  | 'middleExterior'
-  | 'upperExterior'
-  | 'topExterior'
 
 // Declared default appearance for an unpainted wall face in colored mode —
 // visual parity with the retired DEFAULT_WALL_MATERIAL. Lives in core so the

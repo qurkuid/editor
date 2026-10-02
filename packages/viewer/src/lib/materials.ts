@@ -120,13 +120,6 @@ function isStoredAssetUrl(url: string): boolean {
   return url.startsWith('asset://')
 }
 
-// `.ktx2` finish maps transcode through the shared KTX2 loader (support is
-// detected once at viewer init); everything else loads as a normal image.
-function pickTextureLoader(url: string): THREE.TextureLoader {
-  // KTX2Loader's load/loadAsync are call-compatible with TextureLoader (url →
-  // Texture / Promise<Texture>); cast for typing.
-  return isKtx2Url(url) ? (ktx2Loader as unknown as THREE.TextureLoader) : textureLoader
-}
 const wrapMap = {
   Repeat: THREE.RepeatWrapping,
   ClampToEdge: THREE.ClampToEdgeWrapping,
@@ -216,29 +209,16 @@ export function getTextureKey(material?: MaterialSchema): string {
   return `${texture.url}-${repeatX}x${repeatY}-${offsetX},${offsetY}r${rotation}${bump}`
 }
 
-function loadSceneTexture(
-  url: string,
+function resolveSceneTextureUrl(url: string): string {
+  return /^(?:asset|blob|data):/.test(url) ? url : (resolveCdnUrl(url) ?? url)
+}
+
+function applySceneTextureProperties(
+  texture: THREE.Texture,
   textureConfig: NonNullable<MaterialSchema['texture']>,
   slot: 'map' | 'bumpMap',
-  cacheKey: string,
+  resolvedUrl: string,
 ): THREE.Texture {
-  const cached = textureCache.get(cacheKey)
-  if (cached) return cached
-
-  const resolvedUrl = /^(?:asset|blob|data):/.test(url) ? url : (resolveCdnUrl(url) ?? url)
-  let texture: THREE.Texture
-  if (isStoredAssetUrl(resolvedUrl)) {
-    texture = new THREE.Texture()
-    void resolveAssetUrl(resolvedUrl).then((blobUrl) => {
-      if (!blobUrl) return
-      imageLoader.load(blobUrl, (image) => {
-        texture.image = image
-        texture.needsUpdate = true
-      })
-    })
-  } else {
-    texture = pickTextureLoader(resolvedUrl).load(resolvedUrl)
-  }
   texture.wrapS = THREE.RepeatWrapping
   texture.wrapT = THREE.RepeatWrapping
 
@@ -257,7 +237,35 @@ function loadSceneTexture(
     src: resolvedUrl,
     slot,
   })
+  return texture
+}
 
+function loadSceneTexture(
+  url: string,
+  textureConfig: NonNullable<MaterialSchema['texture']>,
+  slot: 'map' | 'bumpMap',
+  cacheKey: string,
+): THREE.Texture | undefined {
+  const cached = textureCache.get(cacheKey)
+  if (cached) return cached
+
+  const resolvedUrl = resolveSceneTextureUrl(url)
+  let texture: THREE.Texture
+  if (isStoredAssetUrl(resolvedUrl)) {
+    texture = new THREE.Texture()
+    void resolveAssetUrl(resolvedUrl).then((blobUrl) => {
+      if (!blobUrl) return
+      imageLoader.load(blobUrl, (image) => {
+        texture.image = image
+        texture.needsUpdate = true
+      })
+    })
+  } else if (isKtx2Url(resolvedUrl)) {
+    return undefined
+  } else {
+    texture = textureLoader.load(resolvedUrl)
+  }
+  applySceneTextureProperties(texture, textureConfig, slot, resolvedUrl)
   textureCache.set(cacheKey, texture)
   return texture
 }
@@ -279,6 +287,73 @@ function getBumpTexture(material?: MaterialSchema): THREE.Texture | undefined {
     'bumpMap',
     `${getTextureKey(material)}-bumpmap`,
   )
+}
+
+function queueSceneKtx2Texture(
+  material: CommonMaterial,
+  slot: 'map' | 'bumpMap',
+  path: string,
+  textureConfig: NonNullable<MaterialSchema['texture']>,
+  cacheKey: string,
+) {
+  const textureMaterial = material as TextureMaterial
+  const resolvedPath = resolveSceneTextureUrl(path)
+  const cached = textureCache.get(cacheKey)
+  if (cached) {
+    if (textureMaterial[slot] !== cached) {
+      textureMaterial[slot] = cached
+      material.needsUpdate = true
+    }
+    return
+  }
+
+  const existingPromise = textureLoadPromises.get(cacheKey)
+  const load =
+    existingPromise ??
+    whenKtx2Ready()
+      .then(() => ktx2Loader.loadAsync(resolvedPath))
+      .then((texture) => {
+        applySceneTextureProperties(texture, textureConfig, slot, resolvedPath)
+        textureCache.set(cacheKey, texture)
+        textureLoadPromises.delete(cacheKey)
+        return texture
+      })
+      .catch((error) => {
+        console.warn('[viewer] Failed to load material texture', resolvedPath, error)
+        textureLoadPromises.delete(cacheKey)
+        return null
+      })
+
+  if (!existingPromise) {
+    textureLoadPromises.set(cacheKey, load)
+  }
+
+  load.then((texture) => {
+    if (!texture || textureMaterial[slot] === texture) return
+    textureMaterial[slot] = texture
+    material.needsUpdate = true
+  })
+}
+
+function queueSceneKtx2Textures(material: CommonMaterial, source?: MaterialSchema) {
+  const textureConfig = source?.texture
+  if (textureConfig?.url && isKtx2Url(resolveSceneTextureUrl(textureConfig.url))) {
+    queueSceneKtx2Texture(material, 'map', textureConfig.url, textureConfig, getTextureKey(source))
+  }
+  if (
+    isStandardMaterial(material) &&
+    textureConfig?.bumpUrl &&
+    (textureConfig.bumpScale ?? 0) !== 0 &&
+    isKtx2Url(resolveSceneTextureUrl(textureConfig.bumpUrl))
+  ) {
+    queueSceneKtx2Texture(
+      material,
+      'bumpMap',
+      textureConfig.bumpUrl,
+      textureConfig,
+      `${getTextureKey(source)}-bumpmap`,
+    )
+  }
 }
 
 function isStandardMaterial(material: THREE.Material): material is StandardMaterial {
@@ -323,28 +398,6 @@ function getPresetTextureCacheKey(
   slot?: TextureSlot,
 ): string {
   return `${path}-${props.repeatX}-${props.repeatY}-${props.rotation}-${props.wrapS}-${props.wrapT}-${props.flipY}-${slot ?? 'map'}`
-}
-
-function getPresetTexture(
-  path: string,
-  props: MaterialMapProperties,
-  slot?: TextureSlot,
-): THREE.Texture {
-  const resolvedPath = resolveCdnUrl(path) ?? path
-  const cacheKey = getPresetTextureCacheKey(resolvedPath, props, slot)
-  const cached = textureCache.get(cacheKey)
-  if (cached) return cached
-
-  const texture = pickTextureLoader(resolvedPath).load(resolvedPath)
-  applyTextureProperties(texture, props, slot)
-  stampPascalTextureRef(texture, {
-    kind: 'material',
-    src: resolvedPath,
-    slot: slot ?? 'map',
-  })
-  setTextureCacheKey(texture, cacheKey)
-  textureCache.set(cacheKey, texture)
-  return texture
 }
 
 function createAssignedTexture(
@@ -394,9 +447,7 @@ async function loadPresetTexture(
         return textureLoader.loadAsync(blobUrl)
       })
     : isKtx2Url(resolvedPath)
-      ? whenKtx2Ready().then(() =>
-          (ktx2Loader as unknown as THREE.TextureLoader).loadAsync(resolvedPath),
-        )
+      ? whenKtx2Ready().then(() => ktx2Loader.loadAsync(resolvedPath))
       : textureLoader.loadAsync(resolvedPath)
 
   const promise = load
@@ -604,12 +655,23 @@ export function createMaterial(
 ): THREE.Material {
   const props = resolveMaterial(material)
   const cacheKey = `${getCacheKey(props, shading)}-${getTextureKey(material)}`
+  const textureConfig = material?.texture
 
   if (materialCache.has(cacheKey)) {
-    return materialCache.get(cacheKey)!
+    const cachedMaterial = materialCache.get(cacheKey)!
+    if (isCommonMaterial(cachedMaterial)) {
+      queueSceneKtx2Textures(cachedMaterial, material)
+    }
+    return cachedMaterial
   }
 
   const map = getTexture(material)
+  const pendingBumpTexture = Boolean(
+    shading !== 'solid' &&
+      textureConfig?.bumpUrl &&
+      (textureConfig.bumpScale ?? 0) !== 0 &&
+      isKtx2Url(resolveSceneTextureUrl(textureConfig.bumpUrl)),
+  )
   const materialParams: {
     color: string
     map?: THREE.Texture
@@ -633,12 +695,18 @@ export function createMaterial(
           ...materialParams,
           roughness: props.roughness,
           metalness: props.metalness,
-          ...(bumpMap ? { bumpMap, bumpScale: material?.texture?.bumpScale ?? 1 } : {}),
+          ...(bumpMap || pendingBumpTexture
+            ? {
+                ...(bumpMap ? { bumpMap } : {}),
+                bumpScale: textureConfig?.bumpScale ?? 1,
+              }
+            : {}),
         })
 
   maybeApplyGlassFresnel(threeMaterial)
   threeMaterial.userData.__pascalCachedMaterial = true
   materialCache.set(cacheKey, threeMaterial)
+  queueSceneKtx2Textures(threeMaterial, material)
   return threeMaterial
 }
 

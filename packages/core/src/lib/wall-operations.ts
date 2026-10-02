@@ -1,7 +1,15 @@
 import { generateId } from '../schema/base'
 import type { Collection, CollectionId } from '../schema/collections'
 import { getScaledDimensions, type ItemNode } from '../schema/nodes/item'
-import { WallNode, type WallNode as WallNodeData } from '../schema/nodes/wall'
+import {
+  normalizeWallFinishRegions,
+  remapWallFinishRegionsForMerge,
+  splitWallFinishRegions,
+  validateWallFinishRegions,
+  type WallFinishRegion,
+  WallNode,
+  type WallNode as WallNodeData,
+} from '../schema/nodes/wall'
 import type { AnyNode, AnyNodeId } from '../schema/types'
 import { getLinkedWallUpdates } from '../systems/wall/wall-move'
 
@@ -554,6 +562,92 @@ function uniqueWallId(nodes: Record<AnyNodeId, AnyNode>, requested?: AnyNodeId) 
   return id
 }
 
+function hasFinishRegions(wall: WallNodeData) {
+  return (wall.finishRegions?.length ?? 0) > 0
+}
+
+function uniqueFinishRegionId(baseId: string, usedIds: Set<string>, suffix: string) {
+  let candidate = `${baseId}:merge:${suffix}`
+  let serial = 2
+  while (usedIds.has(candidate)) {
+    candidate = `${baseId}:merge:${suffix}:${serial}`
+    serial += 1
+  }
+  return candidate
+}
+
+function splitFinishRegions(
+  regions: readonly WallFinishRegion[],
+  splitAt: number,
+): { first: WallFinishRegion[]; second: WallFinishRegion[] } {
+  const split = splitWallFinishRegions(regions, splitAt)
+  const usedIds = new Set<string>()
+  const remapIds = (items: WallFinishRegion[], suffix: string) =>
+    items.map((region) => {
+      if (!usedIds.has(region.id)) {
+        usedIds.add(region.id)
+        return region
+      }
+      const id = uniqueFinishRegionId(region.id, usedIds, suffix)
+      usedIds.add(id)
+      return { ...region, id }
+    })
+  return {
+    first: remapIds(split.first, 'first'),
+    second: remapIds(split.second, 'second'),
+  }
+}
+
+function buildMergedFinishRegions(
+  chain: { wall: WallNodeData; from: WallEndpoint; to: WallEndpoint }[],
+  totalLength: number,
+) {
+  if (!chain.some(({ wall }) => hasFinishRegions(wall))) return undefined
+
+  const mapped: WallFinishRegion[] = []
+  const usedIds = new Set<string>()
+  let segmentStart = 0
+  for (const segment of chain) {
+    const segmentLength = distance(segment.wall.start, segment.wall.end)
+    const reversed =
+      dot(
+        direction(segment.wall.start, segment.wall.end),
+        direction(segment.from.point, segment.to.point),
+      ) <
+      1 - EPSILON
+    if (reversed && hasFinishRegions(segment.wall)) {
+      throw new WallOperationError(
+        'reversed-finish-regions',
+        `Wall ${segment.wall.id} has finish regions but would be reversed by this merge`,
+      )
+    }
+    for (const region of remapWallFinishRegionsForMerge(
+      segment.wall.finishRegions ?? [],
+      segmentStart,
+      segmentLength,
+      totalLength,
+      reversed,
+    )) {
+      const id = usedIds.has(region.id)
+        ? uniqueFinishRegionId(region.id, usedIds, segment.wall.id)
+        : region.id
+      usedIds.add(id)
+      mapped.push(id === region.id ? region : { ...region, id })
+    }
+    segmentStart += segmentLength
+  }
+
+  const normalized = normalizeWallFinishRegions(mapped)
+  const validation = validateWallFinishRegions(normalized)
+  if (!validation.ok) {
+    throw new WallOperationError(
+      'finish-region-conflict',
+      `Finish regions overlap on the same side and role: ${validation.regionIds.join(', ')}`,
+    )
+  }
+  return normalized
+}
+
 function makeMutation(
   scene: WallSceneState,
   primaryWallId: AnyNodeId,
@@ -693,6 +787,12 @@ function buildMergeChain(nodes: Record<AnyNodeId, AnyNode>, wallIds: AnyNodeId[]
     const authoredDirection = direction(segment.wall.start, segment.wall.end)
     const chainDirection = direction(segment.from.point, segment.to.point)
     if (dot(authoredDirection, chainDirection) < 1 - EPSILON) {
+      if (hasFinishRegions(segment.wall)) {
+        throw new WallOperationError(
+          'reversed-finish-regions',
+          `Wall ${segment.wall.id} has finish regions but would be reversed by this merge`,
+        )
+      }
       if (listWallAttachments(nodes, segment.wall).length > 0) {
         throw new WallOperationError(
           'reversed-hosted-wall',
@@ -714,6 +814,8 @@ function buildMergeChain(nodes: Record<AnyNodeId, AnyNode>, wallIds: AnyNodeId[]
 export function buildWallMerge(scene: WallSceneState, wallIds: AnyNodeId[]): WallMutation {
   const { nodes: sourceNodes, collections: sourceCollections, rootNodeIds } = scene
   const { primary, chain, start, end } = buildMergeChain(sourceNodes, wallIds)
+  const mergedLength = distance(start, end)
+  const mergedFinishRegions = buildMergedFinishRegions(chain, mergedLength)
   const nodes = { ...sourceNodes }
   const deletedIds = new Set<AnyNodeId>(wallIds.filter((id) => id !== primary.id))
   const changedIds = new Set<AnyNodeId>(wallIds)
@@ -727,7 +829,6 @@ export function buildWallMerge(scene: WallSceneState, wallIds: AnyNodeId[]): Wal
     }
   }
 
-  const mergedLength = distance(start, end)
   const mergedDirection = direction(start, end)
   const allWallIds = new Set(wallIds)
   for (const segment of chain) {
@@ -763,6 +864,7 @@ export function buildWallMerge(scene: WallSceneState, wallIds: AnyNodeId[]): Wal
     start,
     end,
     children: mergedChildren,
+    ...(mergedFinishRegions ? { finishRegions: mergedFinishRegions } : {}),
   })
   nodes[primary.id] = mergedWall
   const parentId = primary.parentId as AnyNodeId | null
@@ -807,6 +909,9 @@ export function buildWallSplit(
   }
   const secondId = uniqueWallId(scene.nodes, requestedSecondWallId)
   const splitPoint = pointAt(wall, distanceFromStart)
+  const splitRegions = wall.finishRegions
+    ? splitFinishRegions(wall.finishRegions, distanceFromStart / length)
+    : undefined
   const attachments = listWallAttachments(scene.nodes, wall)
   const firstChildren: AnyNodeId[] = []
   const secondChildren: AnyNodeId[] = []
@@ -834,6 +939,7 @@ export function buildWallSplit(
     start: wall.start,
     end: splitPoint,
     children: firstChildren,
+    ...(splitRegions ? { finishRegions: splitRegions.first } : {}),
   })
   const secondWall = WallNode.parse({
     ...wall,
@@ -841,6 +947,7 @@ export function buildWallSplit(
     start: splitPoint,
     end: wall.end,
     children: secondChildren,
+    ...(splitRegions ? { finishRegions: splitRegions.second } : {}),
   })
   nodes[wall.id] = firstWall
   nodes[secondWall.id] = secondWall

@@ -13,6 +13,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH || undefined
 const componentApiOrigin = process.env.COMPONENT_API_ORIGIN
 
 const nextConfig: NextConfig = {
+  distDir: process.env.PASCAL_NEXT_DIST_DIR || '.next',
   ...(basePath ? { basePath } : {}),
   // The product flow starts with the apartment search, then modeling: the
   // root is the map for everyone. The blank-canvas editor lives at /editor.

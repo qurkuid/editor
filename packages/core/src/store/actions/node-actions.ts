@@ -540,7 +540,10 @@ function expandLinkedBodyUpdates(
   const expanded = new Map<string, Record<string, unknown>>()
   for (const update of updates) {
     const existing = expanded.get(update.id)
-    expanded.set(update.id, existing ? { ...existing, ...update.data } : (update.data as Record<string, unknown>))
+    expanded.set(
+      update.id,
+      existing ? { ...existing, ...update.data } : (update.data as Record<string, unknown>),
+    )
     const node = nodes[update.id]
     if (node?.type !== 'body') continue
     for (const peer of linkedBodyUpdates(nodes, update.id, update.data as Partial<typeof node>)) {
@@ -552,7 +555,10 @@ function expandLinkedBodyUpdates(
       )
     }
   }
-  return [...expanded].map(([id, data]) => ({ id: id as AnyNodeId, data: data as Partial<AnyNode> }))
+  return [...expanded].map(([id, data]) => ({
+    id: id as AnyNodeId,
+    data: data as Partial<AnyNode>,
+  }))
 }
 
 function refreshDefaultRidgeVentsForSegment(
@@ -770,6 +776,9 @@ function buildWallMergePlans(
           areWallsCollinearAcrossPoint(primary, secondary, junction)
         )
       ) {
+        continue
+      }
+      if ((primary.finishRegions?.length ?? 0) > 0 || (secondary.finishRegions?.length ?? 0) > 0) {
         continue
       }
 

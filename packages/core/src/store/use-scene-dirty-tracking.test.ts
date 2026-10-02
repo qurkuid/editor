@@ -119,6 +119,126 @@ describe('dirty tracking', () => {
     expect(useScene.getState().dirtyNodes.has(left.id)).toBe(true)
   })
 
+  test('deleting a wall skips optional neighbor merge when either neighbor has finish regions', () => {
+    const level = LevelNode.parse({
+      id: 'level_finish_region_delete',
+      children: ['wall_finish_left', 'wall_finish_intermediary', 'wall_finish_right'],
+    })
+    const left = WallNode.parse({
+      id: 'wall_finish_left',
+      parentId: level.id,
+      start: [0, 0],
+      end: [1, 0],
+      finishRegions: [
+        {
+          id: 'left-region',
+          side: 'interior',
+          start: 0,
+          end: 0.5,
+          slots: { upperInterior: 'library:left-region' },
+        },
+      ],
+    })
+    const intermediary = WallNode.parse({
+      id: 'wall_finish_intermediary',
+      parentId: level.id,
+      start: [1, 0],
+      end: [1, 1],
+    })
+    const right = WallNode.parse({
+      id: 'wall_finish_right',
+      parentId: level.id,
+      start: [1, 0],
+      end: [2, 0],
+      finishRegions: [
+        {
+          id: 'right-region',
+          side: 'interior',
+          start: 0.5,
+          end: 1,
+          slots: { upperInterior: 'library:right-region' },
+        },
+      ],
+    })
+    useScene.setState({
+      nodes: {
+        [level.id]: level,
+        [left.id]: left,
+        [intermediary.id]: intermediary,
+        [right.id]: right,
+      },
+      rootNodeIds: [level.id],
+      dirtyNodes: new Set<AnyNodeId>(),
+      collections: {},
+      readOnly: false,
+    })
+    useScene.temporal.getState().clear()
+
+    useScene.getState().deleteNodes([intermediary.id])
+
+    expect(useScene.getState().nodes[intermediary.id]).toBeUndefined()
+    expect(useScene.getState().nodes[left.id]).toEqual(left)
+    expect(useScene.getState().nodes[right.id]).toEqual(right)
+    expect(useScene.getState().nodes[level.id]).toMatchObject({
+      children: [left.id, right.id],
+    })
+  })
+
+  test('rejecting conflicting finish regions leaves nodes and history untouched', () => {
+    const level = LevelNode.parse({ id: 'level_finish_region_conflict', children: [] })
+    const left = WallNode.parse({
+      id: 'wall_finish_conflict_left',
+      parentId: level.id,
+      start: [0, 0],
+      end: [1, 0],
+    })
+    const right = WallNode.parse({
+      id: 'wall_finish_conflict_right',
+      parentId: level.id,
+      start: [1, 0],
+      end: [2, 0],
+    })
+    const invalidLeft = {
+      ...left,
+      finishRegions: [
+        {
+          id: 'conflict-first',
+          side: 'interior' as const,
+          start: 0,
+          end: 0.8,
+          slots: { upperInterior: 'library:conflict-first' },
+        },
+        {
+          id: 'conflict-second',
+          side: 'interior' as const,
+          start: 0.5,
+          end: 1,
+          slots: { upperInterior: 'library:conflict-second' },
+        },
+      ],
+    } as AnyNode
+    const nextLevel = LevelNode.parse({
+      ...level,
+      children: [left.id, right.id],
+    })
+    useScene.setState({
+      nodes: { [nextLevel.id]: nextLevel, [left.id]: invalidLeft, [right.id]: right },
+      rootNodeIds: [nextLevel.id],
+      dirtyNodes: new Set<AnyNodeId>(),
+      collections: {},
+      readOnly: false,
+    })
+    useScene.temporal.getState().clear()
+    const beforeNodes = JSON.stringify(useScene.getState().nodes)
+    const beforeHistory = useScene.temporal.getState().pastStates.length
+
+    expect(() => useScene.getState().mergeWalls([left.id, right.id])).toThrow(
+      expect.objectContaining({ code: 'finish-region-conflict' }),
+    )
+    expect(JSON.stringify(useScene.getState().nodes)).toBe(beforeNodes)
+    expect(useScene.temporal.getState().pastStates).toHaveLength(beforeHistory)
+  })
+
   test('wall topology actions create a direct undo and redo step', async () => {
     const level = LevelNode.parse({
       id: 'level_wall_history',

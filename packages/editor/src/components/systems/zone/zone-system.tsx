@@ -13,17 +13,20 @@ import useInteractionScope from '../../../store/use-interaction-scope'
 const noopRaycast = () => {}
 
 export const ZoneSystem = () => {
-  // Outside the zones layer (or during snapshot capture) zones unmount
-  // entirely — meshes AND drei <Html> labels, which cost per-frame matrix work
-  // + live DOM even at opacity 0. The renderer reads this viewer flag; the
-  // unmount cleanup restores the default so preview / first-person surfaces
-  // (which swap this system for ViewerZoneSystem) keep their labels.
+  // Keep labels mounted while painting so the room labels remain the 2D/3D
+  // zone-selection affordance. Snapshot capture still hides the whole layer.
   const structureLayerState = useEditor((s) => s.structureLayer)
+  const editorModeState = useEditor((s) => s.mode)
   const isCaptureModeState = useEditor((s) => s.isCaptureMode)
   useEffect(() => {
-    useViewer.getState().setShowZones(structureLayerState === 'zones' && !isCaptureModeState)
+    useViewer
+      .getState()
+      .setShowZones(
+        (structureLayerState === 'zones' || editorModeState === 'material-paint') &&
+          !isCaptureModeState,
+      )
     return () => useViewer.getState().setShowZones(true)
-  }, [structureLayerState, isCaptureModeState])
+  }, [editorModeState, structureLayerState, isCaptureModeState])
 
   useFrame((_, delta) => {
     if (!useViewer.getState().showZones) return
@@ -42,7 +45,8 @@ export const ZoneSystem = () => {
     const zoneLabelsHidden =
       resolveOverlayPolicy(useInteractionScope.getState().scope).zoneLabels === 'hidden'
 
-    const zoneGeometryVisible = structureLayer === 'zones'
+    const paintMode = editorMode === 'material-paint'
+    const zoneGeometryVisible = structureLayer === 'zones' && !paintMode
     const zones = sceneRegistry.byType.zone || new Set()
     const nodes = useScene.getState().nodes
     const lerpSpeed = 10 * delta
@@ -60,14 +64,17 @@ export const ZoneSystem = () => {
       // Keep group visible (so <Html> labels stay active), hide/show meshes only.
       // Show meshes when: in zone mode, selected, or delete-hovered.
       if (!obj.visible) obj.visible = true
-      const meshVisible = !isCaptureMode && (zoneGeometryVisible || isSelected || isDeleteHovered)
+      const meshVisible =
+        !isCaptureMode && !paintMode && (zoneGeometryVisible || isSelected || isDeleteHovered)
       const targetOpacity = isCaptureMode
         ? 0
-        : isSelected || isDeleteHovered
-          ? 1
-          : zoneGeometryVisible
+        : paintMode
+          ? 0
+          : isSelected || isDeleteHovered
             ? 1
-            : 0
+            : zoneGeometryVisible
+              ? 1
+              : 0
 
       // Raycast is re-disabled per frame (not once per group): the meshes
       // remount whenever the zones layer toggles, so a one-shot flag on the

@@ -96,6 +96,66 @@ export interface SceneEventListOptions {
   limit?: number
 }
 
+export type FinishTemplateKind = 'zone' | 'home'
+export type FinishTemplateVisibility = 'private' | 'company' | 'local'
+
+/** A verified principal or the loopback-only local library identity. */
+export interface FinishTemplateScope {
+  ownerId: string
+  companyId: string | null
+  local: boolean
+}
+
+export interface FinishTemplateRecord {
+  id: string
+  kind: FinishTemplateKind
+  name: string
+  visibility: FinishTemplateVisibility
+  ownerId: string
+  companyId: string | null
+  version: number
+  createdAt: string
+  updatedAt: string
+  payload: unknown
+}
+
+export interface FinishTemplateCreateOptions {
+  id: string
+  kind: FinishTemplateKind
+  name: string
+  visibility: FinishTemplateVisibility
+  ownerId: string
+  companyId: string | null
+  payload: unknown
+}
+
+export class FinishTemplateConflictError extends Error {
+  readonly code = 'conflict' as const
+  constructor(message = 'Finish template conflict') {
+    super(message)
+    this.name = 'FinishTemplateConflictError'
+  }
+}
+
+export class FinishTemplateForbiddenError extends Error {
+  readonly code = 'forbidden' as const
+  constructor(message = 'Finish template is read-only') {
+    super(message)
+    this.name = 'FinishTemplateForbiddenError'
+  }
+}
+
+export interface FinishTemplateMutateOptions {
+  scope: FinishTemplateScope
+  expectedVersion: number
+}
+
+export interface FinishTemplateListOptions {
+  kind?: FinishTemplateKind
+  limit?: number
+  scope?: 'mine' | 'company'
+}
+
 export interface ProjectCreateOptions {
   id?: SceneId
   name: string

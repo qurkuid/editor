@@ -230,7 +230,11 @@ export {
 export { getWallHideState, WallCutout } from './systems/wall/wall-cutout'
 export {
   getVisibleWallMaterials,
+  getWallRegionMaterialIndex,
+  getWallRegionMaterialPlan,
   markWallMaterialOverride,
+  WALL_SURFACE_MATERIAL_INDEX,
+  type WallRegionMaterialPlanEntry,
 } from './systems/wall/wall-materials'
 // Wall internals re-exported so `@pascal-app/nodes`' registry-driven wall
 // definition can compose them into `def.system` without duplicating the

@@ -9,6 +9,7 @@ import {
   type WallConstructionLayer,
   type WallFaceBand,
   type WallNode,
+  type WallSurfaceSide,
 } from '@pascal-app/core'
 import { Brush, csgEvaluator, INTERSECTION, prepareBrushForCSG } from '@pascal-app/viewer'
 import {
@@ -26,6 +27,8 @@ export type WallConstructionPart = {
   layerIndex: number
   kind: WallConstructionLayer['kind']
   geometry: BufferGeometry
+  /** Semantic side for finish layers; structural layers deliberately omit it. */
+  surfaceSide?: WallSurfaceSide
 }
 
 const CUT_MATERIAL = new MeshBasicMaterial()
@@ -122,6 +125,7 @@ export function buildWallConstructionGeometry(
     band: WallFaceBand,
     layerIndex: number,
     kind: WallConstructionPart['kind'],
+    surfaceSide?: WallSurfaceSide,
   ) => {
     geometry.clearGroups()
     const mask = new Brush(geometry, CUT_MATERIAL)
@@ -129,9 +133,11 @@ export function buildWallConstructionGeometry(
     try {
       const result = csgEvaluator.evaluate(host, mask, INTERSECTION).geometry
       result.clearGroups()
-      if (result.getAttribute('position')?.count > 0)
-        parts.push({ band, layerIndex, kind, geometry: result })
-      else result.dispose()
+      if (result.getAttribute('position')?.count > 0) {
+        const part: WallConstructionPart = { band, layerIndex, kind, geometry: result }
+        if (surfaceSide !== undefined) part.surfaceSide = surfaceSide
+        parts.push(part)
+      } else result.dispose()
     } finally {
       geometry.dispose()
     }
@@ -150,6 +156,10 @@ export function buildWallConstructionGeometry(
         )
         continue
       }
+      const frontSide: WallSurfaceSide =
+        node.frontSide === 'interior' || node.frontSide === 'exterior' ? node.frontSide : 'interior'
+      const backSide: WallSurfaceSide =
+        node.backSide === 'interior' || node.backSide === 'exterior' ? node.backSide : 'exterior'
       const spans = buildWallConstructionLayerSpans(construction)
       const coreThickness = construction.mode === 'overlay' ? (node.thickness ?? 0.1) : 0
       if (coreThickness > 0) {
@@ -163,7 +173,14 @@ export function buildWallConstructionGeometry(
         const end = span.end + coreThickness / 2
         const layer = construction.layers[span.layerIndex]!
         if (span.kind !== 'timber-stud') {
-          add(strip(start, end, bottom, top), band, span.layerIndex, span.kind)
+          const actualCenter = span.center + coreThickness / 2
+          add(
+            strip(start, end, bottom, top),
+            band,
+            span.layerIndex,
+            span.kind,
+            span.kind === 'finish' ? (actualCenter >= 0 ? frontSide : backSide) : undefined,
+          )
           continue
         }
         const width = Math.min(layer.memberWidth ?? 0.033, layer.studSpacing ?? 0.3, length)

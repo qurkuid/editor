@@ -8,6 +8,7 @@ import {
   type WallNode,
 } from '@pascal-app/core'
 import {
+  activeWallFaceSlotRoles,
   availablePaintScopes,
   cyclePaintScope,
   type PaintHoverInfo,
@@ -15,6 +16,8 @@ import {
   paintScopeLabel,
   resolvePaintScopeTargets,
   type WallPaintHit,
+  wallFaceSideIsAmbiguous,
+  wallRoleForRoomFace,
 } from './paint-scope'
 
 describe('availablePaintScopes', () => {
@@ -73,6 +76,36 @@ describe('paintScopeLabel', () => {
   it('matching / room are kind-agnostic', () => {
     expect(paintScopeLabel('matching', info({}))).toBe('All matching')
     expect(paintScopeLabel('room', info({}))).toBe('Room')
+  })
+})
+
+describe('Zone wall face slot helpers', () => {
+  it('maps a shared wall face to only its effective semantic side and active bands', () => {
+    const shared = {
+      ...wall('shared-face', [0, 0], [4, 0]),
+      frontSide: 'interior' as const,
+      backSide: 'exterior' as const,
+      height: 2.7,
+      faceBands: { enabled: true, count: 2 },
+    } as unknown as WallNode
+    expect(wallRoleForRoomFace('interior', shared, 'front')).toBe('interior')
+    expect(wallRoleForRoomFace('interior', shared, 'back')).toBe('exterior')
+    expect(activeWallFaceSlotRoles(shared, 'front')).toEqual([
+      'interior',
+      'lowerInterior',
+      'upperInterior',
+    ])
+    expect(activeWallFaceSlotRoles(shared, 'back')).toEqual([
+      'exterior',
+      'lowerExterior',
+      'upperExterior',
+    ])
+  })
+
+  it('rejects explicit and fallback side metadata that resolve both faces to one slot', () => {
+    expect(wallFaceSideIsAmbiguous({ frontSide: 'exterior', backSide: 'unknown' })).toBe(true)
+    expect(wallFaceSideIsAmbiguous({ frontSide: 'unknown', backSide: 'interior' })).toBe(true)
+    expect(wallFaceSideIsAmbiguous({ frontSide: 'interior', backSide: 'exterior' })).toBe(false)
   })
 })
 

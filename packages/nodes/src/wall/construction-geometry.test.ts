@@ -79,3 +79,34 @@ test('bands occupy their configured heights and overlay retains the existing wal
   for (const part of parts) part.geometry.dispose()
   envelope.dispose()
 })
+
+test('finish parts use the signed physical center and structural parts omit a surface side', () => {
+  const wall = WallNode.parse({
+    start: [0, 0],
+    end: [2, 0],
+    height: 2.5,
+    thickness: 0.3,
+    frontSide: 'interior',
+    backSide: 'exterior',
+    faceBands: {
+      construction: {
+        upper: {
+          mode: 'overlay',
+          layers: [
+            { kind: 'finish', thickness: 0.01 },
+            { kind: 'concrete', thickness: 0.1 },
+          ],
+        },
+      },
+    },
+  })
+  const envelope = generateExtrudedWall(wall, [], calculateLevelMiters([wall]))
+  const parts = buildWallConstructionGeometry(wall, envelope)
+  const finish = parts.find((part) => part.kind === 'finish')
+  expect(finish?.surfaceSide).toBe('interior')
+  expect(parts.filter((part) => part.kind !== 'finish').every((part) => !part.surfaceSide)).toBe(
+    true,
+  )
+  for (const part of parts) part.geometry.dispose()
+  envelope.dispose()
+})

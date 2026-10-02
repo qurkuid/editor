@@ -3,6 +3,7 @@
 import {
   emitter,
   getWallBandSlotId,
+  getWallFaceBandConfig,
   useLiveNodeOverrides,
   useScene,
   type WallNode,
@@ -38,6 +39,43 @@ function displayParts(group: Group, mode: WallConstructionDisplayMode, transluce
   }
 }
 
+export type WallCaptureMode = 'thumbnail' | 'export' | null
+
+export type WallPresentationState = {
+  baseVisible: boolean
+  constructionVisible: boolean
+  constructionMode: WallConstructionDisplayMode
+}
+
+/**
+ * Keep the wall envelope and its construction assembly mutually exclusive.
+ * The thumbnail path is deliberately the clean finish view; exports are the
+ * only capture that asks for every construction layer.
+ */
+export function resolveWallPresentation(args: {
+  hasConstruction: boolean
+  mode: WallConstructionDisplayMode
+  isExporting: boolean
+  capture: WallCaptureMode
+}): WallPresentationState {
+  const { hasConstruction, mode, isExporting, capture } = args
+  if (!hasConstruction) {
+    return { baseVisible: true, constructionVisible: false, constructionMode: 'finish' }
+  }
+  if (capture === 'thumbnail') {
+    return { baseVisible: true, constructionVisible: false, constructionMode: 'finish' }
+  }
+  if (capture === 'export' || isExporting) {
+    return { baseVisible: false, constructionVisible: true, constructionMode: 'layers' }
+  }
+  const showConstruction = mode !== 'finish'
+  return {
+    baseVisible: !showConstruction,
+    constructionVisible: showConstruction,
+    constructionMode: mode,
+  }
+}
+
 export function WallConstructionModel({
   node,
   mode,
@@ -48,7 +86,7 @@ export function WallConstructionModel({
   const group = useMemo(() => new Group(), [])
   const source = useRef<BufferGeometry | null>(null)
   const appearance = useRef<unknown>(null)
-  const capture = useRef(false)
+  const capture = useRef<WallCaptureMode>(null)
   const cameraDirection = useMemo(() => new Vector3(), [])
   const shading = useViewer((state) => state.shading)
   const sceneMaterials = useScene((state) => state.materials)
@@ -61,22 +99,36 @@ export function WallConstructionModel({
     const host = group.parent
     if (!(host instanceof Mesh)) return
     const wallMode = useViewer.getState().wallMode
+    const isExporting = useViewer.getState().isExporting
+    const presentation = resolveWallPresentation({
+      hasConstruction: true,
+      mode,
+      isExporting,
+      capture: capture.current,
+    })
     group.visible =
-      capture.current ||
-      wallMode === 'translucent' ||
-      !getWallHideState(node, host, wallMode, camera.getWorldDirection(cameraDirection))
-    displayParts(
-      group,
-      capture.current ? 'finish' : mode,
-      !capture.current && wallMode === 'translucent',
-    )
+      presentation.constructionVisible &&
+      (presentation.constructionMode === 'layers' ||
+        presentation.constructionMode === 'frame' ||
+        capture.current === 'export' ||
+        wallMode === 'translucent' ||
+        !getWallHideState(node, host, wallMode, camera.getWorldDirection(cameraDirection)))
+    displayParts(group, presentation.constructionMode, !isExporting && wallMode === 'translucent')
     if (host.geometry === source.current && appearance.current === appearanceKey) return
     if (!host.geometry.getAttribute('position')?.count) return
     const override = useLiveNodeOverrides.getState().get(node.id)
     const effective = override ? ({ ...node, ...override } as WallNode) : node
     const parts = buildWallConstructionGeometry(effective, host.geometry)
+    const hasBandSlots = getWallFaceBandConfig(node, node.height ?? 2.5).enabled
     const meshes = parts.map((part, index) => {
-      const slot = node.faceBands?.enabled ? getWallBandSlotId('interior', part.band) : 'interior'
+      const slot =
+        part.kind === 'finish' && part.surfaceSide
+          ? hasBandSlots
+            ? getWallBandSlotId(part.surfaceSide, part.band)
+            : part.surfaceSide
+          : hasBandSlots
+            ? getWallBandSlotId('interior', part.band)
+            : 'interior'
       const reference =
         part.kind === 'finish' || part.layerIndex === -1 ? node.slots?.[slot] : undefined
       const resolved = reference ? resolveMaterialRef(reference, sceneMaterials, shading) : null
@@ -104,23 +156,39 @@ export function WallConstructionModel({
     if (meshes.length) group.add(...meshes)
     source.current = host.geometry
     appearance.current = appearanceKey
-    displayParts(
-      group,
-      capture.current ? 'finish' : mode,
-      !capture.current && wallMode === 'translucent',
-    )
+    displayParts(group, presentation.constructionMode, !isExporting && wallMode === 'translucent')
   }, 5)
 
-  useEffect(() => displayParts(group, mode), [group, mode])
+  useEffect(() => {
+    const presentation = resolveWallPresentation({
+      hasConstruction: true,
+      mode,
+      isExporting: useViewer.getState().isExporting,
+      capture: capture.current,
+    })
+    displayParts(group, presentation.constructionMode)
+  }, [group, mode])
   useEffect(() => {
     const before = () => {
-      capture.current = true
-      group.visible = true
-      displayParts(group, 'finish')
+      capture.current = useViewer.getState().isExporting ? 'export' : 'thumbnail'
+      const presentation = resolveWallPresentation({
+        hasConstruction: true,
+        mode,
+        isExporting: useViewer.getState().isExporting,
+        capture: capture.current,
+      })
+      group.visible = presentation.constructionVisible
+      displayParts(group, presentation.constructionMode)
     }
     const after = () => {
-      capture.current = false
-      displayParts(group, mode)
+      capture.current = null
+      const presentation = resolveWallPresentation({
+        hasConstruction: true,
+        mode,
+        isExporting: useViewer.getState().isExporting,
+        capture: null,
+      })
+      displayParts(group, presentation.constructionMode)
     }
     emitter.on('thumbnail:before-capture', before)
     emitter.on('thumbnail:after-capture', after)

@@ -20,6 +20,23 @@ import { useT } from '../../../i18n/use-t'
 
 type SlotRecord = Record<string, string | undefined>
 
+/**
+ * Optional host handoff used by the painting catalog. When supplied, a
+ * material row reports the picked material to the host instead of changing
+ * the editor brush. Keeping the source target in the payload lets callers
+ * reject an async pick after the active paint target has changed.
+ */
+export type SceneMaterialSelection = {
+  material: MaterialSchema
+  materialLabel?: string
+  materialPreset: string
+  sourceTarget: ReturnType<typeof useEditor.getState>['activePaintTarget']
+}
+
+export type SceneMaterialSelectionSink = (
+  selection: SceneMaterialSelection,
+) => void | Promise<void>
+
 function getSlotRecord(node: unknown): SlotRecord | null {
   if (!node || typeof node !== 'object' || !('slots' in node)) return null
   const slots = (node as { slots?: unknown }).slots
@@ -31,12 +48,15 @@ export function SceneMaterialList({
   autoEditId,
   filter,
   rowActions,
+  onSelectMaterial,
 }: {
   autoEditId?: SceneMaterialId | null
   /** When provided, only materials passing the predicate render. */
   filter?: (id: SceneMaterialId, sceneMaterial: SceneMaterial) => boolean
   /** Host-injected extra controls, rendered at the start of each row's action group. */
   rowActions?: (id: SceneMaterialId, sceneMaterial: SceneMaterial) => ReactNode
+  /** Host handoff for picking a material without changing the brush. */
+  onSelectMaterial?: SceneMaterialSelectionSink
 }) {
   const materials = useScene((state) => state.materials)
   const nodes = useScene((state) => state.nodes)
@@ -93,6 +113,7 @@ export function SceneMaterialList({
           removeSceneMaterial={removeSceneMaterial}
           rowActions={rowActions?.(id, sceneMaterial)}
           sceneMaterial={sceneMaterial}
+          onSelectMaterial={onSelectMaterial}
           setActivePaintMaterial={setActivePaintMaterial}
           updateSceneMaterial={updateSceneMaterial}
           usageCount={usageCounts.get(id) ?? 0}
@@ -113,6 +134,7 @@ function SceneMaterialRow({
   updateSceneMaterial,
   removeSceneMaterial,
   rowActions,
+  onSelectMaterial,
   setActivePaintMaterial,
 }: {
   id: SceneMaterialId
@@ -125,6 +147,7 @@ function SceneMaterialRow({
   updateSceneMaterial: ReturnType<typeof useScene.getState>['updateSceneMaterial']
   removeSceneMaterial: ReturnType<typeof useScene.getState>['removeSceneMaterial']
   rowActions?: ReactNode
+  onSelectMaterial?: SceneMaterialSelectionSink
   setActivePaintMaterial: ReturnType<typeof useEditor.getState>['setActivePaintMaterial']
 }) {
   const t = useT()
@@ -167,21 +190,25 @@ function SceneMaterialRow({
           className="h-8 w-8 shrink-0 rounded-md border border-border/70"
           style={{ backgroundColor: swatchColor }}
         />
-        <Input
-          className="h-8 px-2 text-sm"
-          onBlur={commitName}
-          onChange={(e) => setDraftName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.currentTarget.blur()
-            }
-            if (e.key === 'Escape') {
-              setDraftName(sceneMaterial.name)
-              e.currentTarget.blur()
-            }
-          }}
-          value={draftName}
-        />
+        {onSelectMaterial ? (
+          <span className="truncate text-sm font-medium">{sceneMaterial.name}</span>
+        ) : (
+          <Input
+            className="h-8 px-2 text-sm"
+            onBlur={commitName}
+            onChange={(e) => setDraftName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.currentTarget.blur()
+              }
+              if (e.key === 'Escape') {
+                setDraftName(sceneMaterial.name)
+                e.currentTarget.blur()
+              }
+            }}
+            value={draftName}
+          />
+        )}
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-2">
@@ -189,17 +216,26 @@ function SceneMaterialRow({
           Used by {usageCount} {usageCount === 1 ? 'part' : 'parts'}
         </span>
         <div className="flex items-center gap-1">
-          {rowActions}
+          {onSelectMaterial ? null : rowActions}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 aria-label={t('materials.paintWith')}
-                onClick={() =>
+                onClick={() => {
+                  if (onSelectMaterial) {
+                    void onSelectMaterial({
+                      material: sceneMaterial.material,
+                      materialLabel: sceneMaterial.name,
+                      materialPreset: toSceneMaterialRef(id),
+                      sourceTarget: activePaintTarget,
+                    })
+                    return
+                  }
                   setActivePaintMaterial({
                     materialPreset: toSceneMaterialRef(id),
                     sourceTarget: activePaintTarget,
                   })
-                }
+                }}
                 size="sm"
                 type="button"
                 variant={isActive ? 'default' : 'outline'}
@@ -210,59 +246,65 @@ function SceneMaterialRow({
             </TooltipTrigger>
             <TooltipContent>{t('materials.paintWith')}</TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                aria-label={t('common.edit')}
-                aria-pressed={isEditingMaterial}
-                onClick={() => setIsEditingMaterial((value) => !value)}
-                size="icon-sm"
-                type="button"
-                variant={isEditingMaterial ? 'default' : 'outline'}
-              >
-                <Pencil />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{t('common.edit')}</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                aria-label={t('common.duplicate')}
-                onClick={duplicateMaterial}
-                size="icon-sm"
-                type="button"
-                variant="outline"
-              >
-                <Copy />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{t('common.duplicate')}</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                aria-label={t('common.delete')}
-                onClick={() => removeSceneMaterial(id)}
-                size="icon-sm"
-                type="button"
-                variant="outline"
-              >
-                <Trash2 />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{t('common.delete')}</TooltipContent>
-          </Tooltip>
+          {onSelectMaterial ? null : (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label={t('common.edit')}
+                    aria-pressed={isEditingMaterial}
+                    onClick={() => setIsEditingMaterial((value) => !value)}
+                    size="icon-sm"
+                    type="button"
+                    variant={isEditingMaterial ? 'default' : 'outline'}
+                  >
+                    <Pencil />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.edit')}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label={t('common.duplicate')}
+                    onClick={duplicateMaterial}
+                    size="icon-sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Copy />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.duplicate')}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label={t('common.delete')}
+                    onClick={() => removeSceneMaterial(id)}
+                    size="icon-sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Trash2 />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('common.delete')}</TooltipContent>
+              </Tooltip>
+            </>
+          )}
         </div>
       </div>
 
-      <SceneMaterialSeamlessAction
-        id={id}
-        material={sceneMaterial.material}
-        onChange={(material) => updateSceneMaterial(id, { material })}
-      />
+      {onSelectMaterial ? null : (
+        <SceneMaterialSeamlessAction
+          id={id}
+          material={sceneMaterial.material}
+          onChange={(material) => updateSceneMaterial(id, { material })}
+        />
+      )}
 
-      {isEditingMaterial ? (
+      {!onSelectMaterial && isEditingMaterial ? (
         <div className="mt-3 border-border/60 border-t pt-3">
           <MaterialPropertiesEditor
             onChange={(material) => updateSceneMaterial(id, { material })}
