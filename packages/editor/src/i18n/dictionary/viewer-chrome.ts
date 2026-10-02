@@ -52,6 +52,8 @@ export const viewerChromeDictionary = {
   'chrome.dimFaceOfStud': { ko: '스터드 면', en: 'Face of stud' },
   'chrome.dimStructuralCoreFace': { ko: '구조체 면', en: 'Structural core face' },
   'chrome.levels': { ko: '층', en: 'Levels' },
+  'chrome.zones': { ko: '존', en: 'Zones' },
+  'chrome.zoneView': { ko: '존 보기', en: 'Zone view' },
   'chrome.walls': { ko: '벽', en: 'Walls' },
   'chrome.levelModeManual': { ko: '수동', en: 'Manual' },
   'chrome.levelModeStacked': { ko: '적층', en: 'Stacked' },

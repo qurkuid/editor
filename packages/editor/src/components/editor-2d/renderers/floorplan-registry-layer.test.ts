@@ -24,6 +24,7 @@ import {
   floorplanHandleDoubleClickAffordance,
   InteractiveGeometry,
   isFloorplanOpeningPlacementState,
+  isFloorplanZoneSelectionMode,
   orderFloorplanOverlayEntries,
   resolveFloorplanHandleUnitsPerPixel,
   splitFloorplanOverlay,
@@ -292,6 +293,53 @@ describe('floorplan opening placement interaction routing', () => {
         mode: 'select',
         tool: null,
         movingNodeHasWallOpeningPlacement: false,
+      }),
+    ).toBe(false)
+  })
+})
+
+describe('floorplan zone selection routing', () => {
+  test('routes only zone selection and material-paint clicks to zoneId', () => {
+    expect(
+      isFloorplanZoneSelectionMode({
+        nodeType: 'zone',
+        mode: 'select',
+        structureLayer: 'zones',
+      }),
+    ).toBe(true)
+    expect(
+      isFloorplanZoneSelectionMode({
+        nodeType: 'zone',
+        mode: 'material-paint',
+        structureLayer: 'elements',
+      }),
+    ).toBe(true)
+    expect(
+      isFloorplanZoneSelectionMode({
+        nodeType: 'zone',
+        mode: 'select',
+        structureLayer: 'elements',
+      }),
+    ).toBe(false)
+    expect(
+      isFloorplanZoneSelectionMode({
+        nodeType: 'zone',
+        mode: 'build',
+        structureLayer: 'zones',
+      }),
+    ).toBe(false)
+    expect(
+      isFloorplanZoneSelectionMode({
+        nodeType: 'zone',
+        mode: 'delete',
+        structureLayer: 'zones',
+      }),
+    ).toBe(false)
+    expect(
+      isFloorplanZoneSelectionMode({
+        nodeType: 'wall',
+        mode: 'select',
+        structureLayer: 'zones',
       }),
     ).toBe(false)
   })

@@ -512,6 +512,21 @@ export function isFloorplanOpeningPlacementState({
   )
 }
 
+export function isFloorplanZoneSelectionMode({
+  nodeType,
+  mode,
+  structureLayer,
+}: {
+  nodeType: string
+  mode: string
+  structureLayer: string
+}): boolean {
+  return (
+    nodeType === 'zone' &&
+    (mode === 'material-paint' || (mode === 'select' && structureLayer === 'zones'))
+  )
+}
+
 function isFloorplanOpeningPlacementActiveNow(): boolean {
   const { phase, mode, tool } = useEditor.getState()
   const movingNode = getMovingNode()
@@ -742,10 +757,19 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
       const sceneNodes = useScene.getState().nodes
       const sourceNode = sceneNodes[id]
       if (!sourceNode) return
+      const editorState = useEditor.getState()
       // Zone labels and footprints remain the explicit room-selection route
-      // while material paint is active. Preserve the paint mode and avoid
-      // converting a room click into an element selection.
-      if (useEditor.getState().mode === 'material-paint' && sourceNode.type === 'zone') {
+      // while material paint or selection in the zones structure layer is
+      // active. Preserve those modes and avoid converting a room click into
+      // an element selection.
+      if (
+        sourceNode.type === 'zone' &&
+        isFloorplanZoneSelectionMode({
+          nodeType: sourceNode.type,
+          mode: editorState.mode,
+          structureLayer: editorState.structureLayer,
+        })
+      ) {
         setSelection({ selectedIds: [], zoneId: sourceNode.id })
         swallowNextClick(200)
         return

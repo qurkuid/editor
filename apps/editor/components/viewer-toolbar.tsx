@@ -1,6 +1,7 @@
 'use client'
 
 import { Icon as IconifyIcon } from '@iconify/react'
+import { emitter } from '@pascal-app/core'
 import type { MessageId } from '@pascal-app/editor'
 import {
   DropdownMenu,
@@ -243,6 +244,39 @@ function CollapseSidebarButton() {
         </button>
       </ToolbarTooltip>
     </div>
+  )
+}
+
+export function toggleZoneView() {
+  const editor = useEditor.getState()
+  const nextLayer = editor.structureLayer === 'zones' ? 'elements' : 'zones'
+  emitter.emit('tool:cancel')
+  editor.setMovingNode(null)
+  editor.setMode('select')
+  if (nextLayer === 'zones') editor.setPhase('structure')
+  editor.setStructureLayer(nextLayer)
+}
+
+function ZoneViewToggle() {
+  const t = useT()
+  const active = useEditor((state) => state.structureLayer === 'zones')
+
+  return (
+    <ToolbarTooltip label={t('chrome.zoneView')}>
+      <button
+        aria-label={t('chrome.zoneView')}
+        aria-pressed={active}
+        className={cn(
+          TOOLBAR_BTN,
+          'w-auto px-2.5 font-medium text-xs',
+          active && 'bg-white/10 text-foreground/90',
+        )}
+        onClick={toggleZoneView}
+        type="button"
+      >
+        {t('chrome.zones')}
+      </button>
+    </ToolbarTooltip>
   )
 }
 
@@ -730,6 +764,7 @@ export function CommunityViewerToolbarLeft() {
 export function CommunityViewerToolbarRight() {
   return (
     <div className={TOOLBAR_CONTAINER}>
+      <ZoneViewToggle />
       <LevelModeToggle />
       <WallModeToggle />
       <div className="my-1.5 w-px bg-border/50" />
