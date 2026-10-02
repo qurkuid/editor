@@ -6,7 +6,7 @@ import {
   WallNode,
 } from '@pascal-app/core'
 import { createFloorplanContextExtensions, readFloorplanGeometryMetadata } from '@pascal-app/editor'
-import { buildWallFloorplan } from './floorplan'
+import { buildWallFloorplan, computeWallFloorplanLevelData } from './floorplan'
 
 const palette: FloorplanPalette = {
   selectedStroke: '#334155',
@@ -162,6 +162,35 @@ describe('buildWallFloorplan render purpose', () => {
       : []
 
     expect(texts).toContain('4000')
+  })
+
+  test('uses blue for interior dimensions while preserving the selected stroke', () => {
+    const partition = WallNode.parse({
+      id: 'wall_partition',
+      parentId: 'level_main',
+      start: [0, 0],
+      end: [4, 0],
+      thickness: 0.1,
+      frontSide: 'interior',
+      backSide: 'interior',
+    })
+    const levelData = computeWallFloorplanLevelData({
+      siblings: [partition],
+      nodes: { [partition.id]: partition },
+    })
+    const entries = (selected: boolean) => {
+      const geometry = buildWallFloorplan(partition, {
+        ...context('edit', selected),
+        siblings: [partition],
+        levelData,
+      })
+      return geometry ? flatten(geometry).filter((entry) => entry.kind === 'dimension-string') : []
+    }
+
+    expect(entries(false)).toHaveLength(1)
+    expect(entries(false).every((entry) => entry.stroke === '#2563eb')).toBe(true)
+    expect(entries(true)).toHaveLength(1)
+    expect(entries(true).every((entry) => entry.stroke === palette.selectedStroke)).toBe(true)
   })
 
   test('does not construct automatic wall dimensions when presentation disables them', () => {

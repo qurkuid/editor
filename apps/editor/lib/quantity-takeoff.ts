@@ -141,12 +141,21 @@ function moduleBoardArea(module: CabinetModuleNode): { carcass: number; front: n
 
 type WallFinishSpan = {
   slotId: string
-  height: number
+  bottom: number
+  top: number
+}
+
+type WallOpeningRect = {
+  left: number
+  right: number
+  bottom: number
+  top: number
 }
 
 function wallFinishSpans(wall: WallNode, height: number, side: WallSurfaceSide): WallFinishSpan[] {
-  const bands = getWallFaceBandConfig(wall, height)
-  if (!bands.enabled) return [{ slotId: side, height }]
+  const effectiveHeight = Math.max(0, height)
+  const bands = getWallFaceBandConfig(wall, effectiveHeight)
+  if (!bands.enabled) return [{ slotId: side, bottom: 0, top: effectiveHeight }]
 
   const activeBands =
     bands.count === 2
@@ -160,10 +169,11 @@ function wallFinishSpans(wall: WallNode, height: number, side: WallSurfaceSide):
   return activeBands.map((band, index) => {
     const spanHeight =
       index === activeBands.length - 1
-        ? Math.max(0, height - consumed)
+        ? Math.max(0, effectiveHeight - consumed)
         : Math.max(0, configuredHeights[index] ?? 0)
+    const bottom = consumed
     consumed += spanHeight
-    return { slotId: getWallBandSlotId(side, band), height: spanHeight }
+    return { slotId: getWallBandSlotId(side, band), bottom, top: consumed }
   })
 }
 
@@ -183,19 +193,146 @@ function addWallFinishArea(
   areas.set(materialRef, (areas.get(materialRef) ?? 0) + area)
 }
 
-function wallFinishAreas(wall: WallNode, length: number, height: number): Map<string, number> {
+function indexWallOpeningRects(nodes: readonly AnyNode[]): Map<string, WallOpeningRect[]> {
+  const openingsByWall = new Map<string, WallOpeningRect[]>()
+
+  for (const node of nodes) {
+    if (node.type !== 'door' && node.type !== 'window') continue
+    const wallId = node.wallId ?? node.parentId
+    if (!wallId) continue
+
+    const [centerS, centerY] = node.position ?? []
+    const rect: WallOpeningRect = {
+      left: centerS - node.width / 2,
+      right: centerS + node.width / 2,
+      bottom: centerY - node.height / 2,
+      top: centerY + node.height / 2,
+    }
+    if (
+      !Object.values(rect).every(Number.isFinite) ||
+      rect.right <= rect.left ||
+      rect.top <= rect.bottom
+    ) {
+      continue
+    }
+
+    const openings = openingsByWall.get(wallId)
+    if (openings) openings.push(rect)
+    else openingsByWall.set(wallId, [rect])
+  }
+
+  return openingsByWall
+}
+
+function clipWallOpeningRects(
+  openings: readonly WallOpeningRect[],
+  length: number,
+  height: number,
+): WallOpeningRect[] {
+  const maxLength = Math.max(0, length)
+  const maxHeight = Math.max(0, height)
+  return openings.flatMap((opening) => {
+    const rect: WallOpeningRect = {
+      left: Math.max(0, Math.min(maxLength, opening.left)),
+      right: Math.max(0, Math.min(maxLength, opening.right)),
+      bottom: Math.max(0, Math.min(maxHeight, opening.bottom)),
+      top: Math.max(0, Math.min(maxHeight, opening.top)),
+    }
+    return rect.right > rect.left && rect.top > rect.bottom ? [rect] : []
+  })
+}
+
+function unionRectangleArea(rectangles: readonly WallOpeningRect[]): number {
+  if (rectangles.length === 0) return 0
+
+  const xEdges = [
+    ...new Set(rectangles.flatMap((rectangle) => [rectangle.left, rectangle.right])),
+  ].sort((a, b) => a - b)
+  let area = 0
+
+  for (let index = 0; index < xEdges.length - 1; index += 1) {
+    const xStart = xEdges[index]!
+    const xEnd = xEdges[index + 1]!
+    if (xEnd <= xStart) continue
+
+    const intervals: Array<[number, number]> = []
+    for (const rectangle of rectangles) {
+      if (rectangle.left < xEnd && rectangle.right > xStart) {
+        intervals.push([rectangle.bottom, rectangle.top])
+      }
+    }
+    intervals.sort((a, b) => a[0] - b[0] || a[1] - b[1])
+
+    let coveredHeight = 0
+    let currentStart: number | undefined
+    let currentEnd = 0
+    for (const [start, end] of intervals) {
+      if (currentStart === undefined) {
+        currentStart = start
+        currentEnd = end
+      } else if (start > currentEnd) {
+        coveredHeight += currentEnd - currentStart
+        currentStart = start
+        currentEnd = end
+      } else {
+        currentEnd = Math.max(currentEnd, end)
+      }
+    }
+    if (currentStart !== undefined) coveredHeight += currentEnd - currentStart
+    area += (xEnd - xStart) * coveredHeight
+  }
+
+  return area
+}
+
+function netWallFinishCellArea(
+  cell: WallOpeningRect,
+  openings: readonly WallOpeningRect[],
+): number {
+  const grossArea = (cell.right - cell.left) * (cell.top - cell.bottom)
+  if (grossArea <= 0 || openings.length === 0) return Math.max(0, grossArea)
+
+  const intersections = openings.flatMap((opening) => {
+    const rectangle: WallOpeningRect = {
+      left: Math.max(cell.left, opening.left),
+      right: Math.min(cell.right, opening.right),
+      bottom: Math.max(cell.bottom, opening.bottom),
+      top: Math.min(cell.top, opening.top),
+    }
+    return rectangle.right > rectangle.left && rectangle.top > rectangle.bottom ? [rectangle] : []
+  })
+
+  return Math.max(0, grossArea - unionRectangleArea(intersections))
+}
+
+function wallFinishAreas(
+  wall: WallNode,
+  length: number,
+  height: number,
+  openingRects: readonly WallOpeningRect[] = [],
+): Map<string, number> {
   const areas = new Map<string, number>()
   const curved = isCurvedWall(wall)
   const regions = curved ? [] : normalizeWallFinishRegions(wall.finishRegions ?? [])
-  const spanArea = (span: WallFinishSpan) => length * span.height
+  const effectiveLength = Math.max(0, length)
+  const clippedOpenings = clipWallOpeningRects(openingRects, effectiveLength, height)
 
   for (const side of ['interior', 'exterior'] as const) {
     for (const span of wallFinishSpans(wall, height, side)) {
-      const area = spanArea(span)
-      if (area <= 0) continue
       const baseRef = wallFinishBaseRef(wall, span.slotId)
+      const addCell = (left: number, right: number, materialRef: string | undefined) => {
+        addWallFinishArea(
+          areas,
+          materialRef,
+          netWallFinishCellArea(
+            { left, right, bottom: span.bottom, top: span.top },
+            clippedOpenings,
+          ),
+        )
+      }
+      if (span.top <= span.bottom || effectiveLength <= 0) continue
       if (curved) {
-        addWallFinishArea(areas, baseRef, area)
+        addCell(0, effectiveLength, baseRef)
         continue
       }
 
@@ -206,11 +343,11 @@ function wallFinishAreas(wall: WallNode, length: number, height: number): Map<st
       for (const region of matchingRegions) {
         const start = Math.max(cursor, Math.max(0, Math.min(1, region.start)))
         const end = Math.max(start, Math.min(1, region.end))
-        addWallFinishArea(areas, baseRef, area * (start - cursor))
-        addWallFinishArea(areas, region.slots[span.slotId], area * (end - start))
+        addCell(cursor * effectiveLength, start * effectiveLength, baseRef)
+        addCell(start * effectiveLength, end * effectiveLength, region.slots[span.slotId])
         cursor = Math.max(cursor, end)
       }
-      addWallFinishArea(areas, baseRef, area * (1 - cursor))
+      addCell(cursor * effectiveLength, effectiveLength, baseRef)
     }
   }
 
@@ -240,6 +377,7 @@ export function deriveTakeoff(
   const inScope = (node: AnyNode) =>
     !options.levelId || node.parentId === options.levelId || node.type === 'cabinet-module'
   const lines = new Map<string, TakeoffLine>()
+  const wallOpeningsByWall = indexWallOpeningRects(all)
 
   for (const node of all) {
     if (!inScope(node)) continue
@@ -524,7 +662,12 @@ export function deriveTakeoff(
 
       // Painted faces additionally group by material, so the estimate can
       // order by finish rather than by wall.
-      const finishAreas = wallFinishAreas(wall, length, wall.height ?? DEFAULT_WALL_HEIGHT)
+      const finishAreas = wallFinishAreas(
+        wall,
+        length,
+        wall.height ?? DEFAULT_WALL_HEIGHT,
+        wallOpeningsByWall.get(wall.id),
+      )
       for (const [ref, quantity] of finishAreas) {
         push(lines, {
           category: 'finish',

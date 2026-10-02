@@ -6,6 +6,7 @@ import {
   DEFAULT_WALL_HEIGHT,
   getWallCurveLength,
 } from '@pascal-app/core'
+import { buildEstimateDraft } from './estimate-lines'
 import { deriveTakeoff, type TakeoffCategory } from './quantity-takeoff'
 
 function scene(...nodes: Array<Record<string, unknown>>): Record<string, AnyNode> {
@@ -432,7 +433,43 @@ describe('areas and finishes', () => {
     expect(line(report, 'finish', 'library:zone')).toBeUndefined()
   })
 
-  test('wall-hosted openings do not reduce gross finish area', () => {
+  test('wall-hosted openings reduce net finish area on each painted side', () => {
+    const report = deriveTakeoff(
+      scene(
+        {
+          id: 'wall_a',
+          type: 'wall',
+          start: [0, 0],
+          end: [4, 0],
+          height: 2.5,
+          slots: { interior: 'library:base', exterior: 'library:outside' },
+          children: ['door_a', 'window_a'],
+        },
+        {
+          id: 'door_a',
+          type: 'door',
+          parentId: 'wall_a',
+          position: [2, 1.05, 0],
+          width: 0.9,
+          height: 2.1,
+        },
+        {
+          id: 'window_a',
+          type: 'window',
+          parentId: 'wall_a',
+          position: [3.5, 1.25, 0],
+          width: 0,
+          height: 0,
+        },
+      ),
+    )
+
+    expect(line(report, 'finish', 'library:base')?.quantity).toBeCloseTo(8.11)
+    expect(line(report, 'finish', 'library:outside')?.quantity).toBeCloseTo(8.11)
+    expect(line(report, 'wall', 'face')?.quantity).toBeCloseTo(20)
+  })
+
+  test('overlapping wall openings are deducted once from the painted face', () => {
     const report = deriveTakeoff(
       scene(
         {
@@ -442,14 +479,167 @@ describe('areas and finishes', () => {
           end: [4, 0],
           height: 2.5,
           slots: { interior: 'library:base' },
-          children: ['door_a', 'window_a'],
         },
-        { id: 'door_a', type: 'door', parentId: 'wall_a' },
-        { id: 'window_a', type: 'window', parentId: 'wall_a' },
+        {
+          id: 'door_a',
+          type: 'door',
+          parentId: 'wall_a',
+          position: [1.5, 1.25, 0],
+          width: 2,
+          height: 2,
+        },
+        {
+          id: 'window_a',
+          type: 'window',
+          parentId: 'wall_a',
+          position: [2.5, 1.25, 0],
+          width: 2,
+          height: 2,
+        },
       ),
     )
 
-    expect(line(report, 'finish', 'library:base')?.quantity).toBeCloseTo(10)
+    // The two 2×2 openings overlap over 1×2; their union is 3×2=6 m².
+    expect(line(report, 'finish', 'library:base')?.quantity).toBeCloseTo(4)
+  })
+
+  test('wall opening rectangles clip to the wall length and finished height', () => {
+    const report = deriveTakeoff(
+      scene(
+        {
+          id: 'wall_a',
+          type: 'wall',
+          start: [0, 0],
+          end: [4, 0],
+          height: 2.5,
+          slots: { interior: 'library:base' },
+        },
+        {
+          id: 'window_a',
+          type: 'window',
+          parentId: 'wall_a',
+          // Raw rectangle is [-1, 1] × [-1.25, 0.75]; the clipped cut is
+          // [0, 1] × [0, 0.75] = 0.75 m².
+          position: [0, -0.25, 0],
+          width: 2,
+          height: 2,
+        },
+      ),
+    )
+
+    expect(line(report, 'finish', 'library:base')?.quantity).toBeCloseTo(9.25)
+  })
+
+  test('opening deductions follow active wall bands and finish regions', () => {
+    const report = deriveTakeoff(
+      scene(
+        {
+          id: 'wall_a',
+          type: 'wall',
+          start: [0, 0],
+          end: [4, 0],
+          height: 2.5,
+          faceBands: { enabled: true, count: 2, lowerHeight: 1 },
+          slots: {
+            lowerInterior: 'library:lower',
+            upperInterior: 'library:upper',
+          },
+          finishRegions: [
+            {
+              id: 'zone_a',
+              side: 'interior',
+              start: 0,
+              end: 0.5,
+              slots: { lowerInterior: 'library:zone' },
+            },
+          ],
+        },
+        {
+          id: 'window_a',
+          type: 'window',
+          parentId: 'wall_a',
+          // The opening spans x=[0.5, 2.5] and the full wall height.
+          position: [1.5, 1.25, 0],
+          width: 2,
+          height: 2.5,
+        },
+      ),
+    )
+
+    expect(line(report, 'finish', 'library:zone')?.quantity).toBeCloseTo(0.5)
+    expect(line(report, 'finish', 'library:lower')?.quantity).toBeCloseTo(1.5)
+    expect(line(report, 'finish', 'library:upper')?.quantity).toBeCloseTo(3)
+  })
+
+  test('curved wall openings use arc length for their horizontal clip', () => {
+    const wall = {
+      id: 'wall_curve',
+      type: 'wall',
+      start: [0, 0],
+      end: [4, 0],
+      curveOffset: 1,
+      height: 2.5,
+      slots: { interior: 'library:base' },
+    }
+    const report = deriveTakeoff(
+      scene(wall, {
+        id: 'door_a',
+        type: 'door',
+        parentId: 'wall_curve',
+        position: [getWallCurveLength(wall) / 2, 1.25, 0],
+        width: 1,
+        height: 1,
+      }),
+    )
+
+    expect(line(report, 'finish', 'library:base')?.quantity).toBeCloseTo(
+      getWallCurveLength(wall) * 2.5 - 1,
+    )
+  })
+
+  test('estimate coverage and waste are applied once to the net finish line', () => {
+    const report = deriveTakeoff(
+      scene(
+        {
+          id: 'wall_a',
+          type: 'wall',
+          start: [0, 0],
+          end: [4, 0],
+          height: 2.5,
+          slots: { interior: 'library:mat_wall' },
+        },
+        {
+          id: 'door_a',
+          type: 'door',
+          parentId: 'wall_a',
+          position: [2, 1.05, 0],
+          width: 0.9,
+          height: 2.1,
+        },
+      ),
+    )
+    const draft = buildEstimateDraft(
+      report,
+      [
+        {
+          id: 'mat_wall',
+          name: '실크 벽지',
+          unit: 'm2',
+          unitPrice: 100,
+          productCategoryId: 'cat_wall',
+          coverageValue: 1,
+          coverageUnit: 'm2',
+          isDiscrete: false,
+          wasteRate: 0.1,
+        },
+      ],
+      [],
+    )
+    const finish = draft.lines.find((entry) => entry.takeoff.category === 'finish')
+
+    expect(finish?.takeoff.quantity).toBeCloseTo(8.11)
+    expect(finish?.withWaste).toBeCloseTo(8.921)
+    expect(finish?.quantity).toBeCloseTo(8.921)
   })
 
   test('wall finish takeoff does not mutate frozen scene input', () => {

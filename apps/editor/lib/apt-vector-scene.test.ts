@@ -354,6 +354,7 @@ describe('buildVectorNodes', () => {
     expect(bottomSegments).toHaveLength(2)
     for (const wall of bottomSegments) expect(expectedSpace.wallIds).toContain(wall.id)
     expect(zone.autoFromWalls).toBe(true)
+    expect(zone.clearDimensionPolicy).toBe('finish-faces')
     expect(zone.polygon).toEqual(expectedSpace.polygon)
     expect(new Set(zone.boundaryWallIds)).toEqual(new Set(expectedSpace.wallIds))
     expect(zone.metadata).toMatchObject({ source: 'apt-vector', sourceRoomId: 'r1', cls: 'living' })
@@ -361,6 +362,9 @@ describe('buildVectorNodes', () => {
     expect(zone.color).toBe('#8f8878')
     expect(branch).toBeDefined()
     expect(zone.boundaryWallIds).not.toContain(branch?.id)
+    expect(
+      bottomSegments.every((wall) => wall.frontSide !== 'unknown' && wall.backSide !== 'unknown'),
+    ).toBe(true)
   })
 
   test('uses solid concrete for apartment walls while preserving detected thickness', () => {
@@ -639,6 +643,7 @@ describe('buildVectorNodes', () => {
     expect(zones).toHaveLength(2)
     const living = zones.find((zone) => zone.name === '거실')!
     expect(living.spaceRole).toBe('room')
+    expect(living.clearDimensionPolicy).toBe('finish-faces')
     expect(living.metadata).toMatchObject({ sourceRoomId: 'r0' })
     expect(living.polygon[0]![0]).toBeCloseTo(-2)
     expect(living.polygon[0]![1]).toBeCloseTo(-2.8)

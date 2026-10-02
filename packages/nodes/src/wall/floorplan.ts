@@ -14,7 +14,10 @@ import {
   type WallNode,
 } from '@pascal-app/core'
 import { floorplanGeometryMetadata, readFloorplanContext } from '@pascal-app/editor'
-import { constructionDimensionStandard } from '../shared/construction-dimension-standards'
+import {
+  constructionDimensionStandard,
+  INTERIOR_CONSTRUCTION_DIMENSION_STROKE,
+} from '../shared/construction-dimension-standards'
 import {
   buildCurvedWallConstructionDimensions,
   buildLevelWallConstructionDimensionPlan,
@@ -84,9 +87,6 @@ export function computeWallFloorplanLevelData({
           nodes,
           constructionDimensionStandard({
             datumPolicy,
-            ...(reference === 'finished-faces'
-              ? { intersectionReferencePolicy: 'both-faces' as const }
-              : {}),
           }),
         )
         return cached
@@ -205,15 +205,36 @@ export function buildWallFloorplan(node: WallNode, ctx: GeometryContext): Floorp
         node.id,
       )
       if (planned) {
-        children.push(
-          ...renderPlannedConstructionDimensions(
-            planned,
-            view?.unit ?? 'metric',
-            dimensionStroke,
-            documentMode ? 'document' : 'editor',
-            dimensionStandard,
-          ),
+        const interior = planned.filter(
+          ({ tier }) => tier === 'interior' || tier === 'interior-overall',
         )
+        const exterior = planned.filter(
+          ({ tier }) => tier !== 'interior' && tier !== 'interior-overall',
+        )
+        if (exterior.length > 0) {
+          children.push(
+            ...renderPlannedConstructionDimensions(
+              exterior,
+              view?.unit ?? 'metric',
+              dimensionStroke,
+              documentMode ? 'document' : 'editor',
+              dimensionStandard,
+            ),
+          )
+        }
+        if (interior.length > 0) {
+          children.push(
+            ...renderPlannedConstructionDimensions(
+              interior,
+              view?.unit ?? 'metric',
+              isSelected && palette
+                ? palette.selectedStroke
+                : INTERIOR_CONSTRUCTION_DIMENSION_STROKE,
+              documentMode ? 'document' : 'editor',
+              dimensionStandard,
+            ),
+          )
+        }
       } else if (!levelData) {
         children.push(
           ...buildWallConstructionDimensions(self, ctx, {

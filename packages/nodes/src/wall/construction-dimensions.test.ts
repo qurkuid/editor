@@ -7,6 +7,7 @@ import {
   type GeometryContext,
   WallNode,
   WindowNode,
+  ZoneNode,
 } from '@pascal-app/core'
 import { constructionDimensionStandard } from '../shared/construction-dimension-standards'
 import {
@@ -260,11 +261,20 @@ describe('buildLevelWallConstructionDimensionPlan', () => {
     )
     const leftFacade = plan.get(lower.id) ?? []
 
-    expect(leftFacade.map((entry) => entry.tier)).toEqual(['jogs', 'jogs', 'jogs', 'overall'])
+    expect(leftFacade.map((entry) => entry.tier)).toEqual([
+      'jogs',
+      'jogs',
+      'jogs',
+      'jogs',
+      'jogs',
+      'overall',
+    ])
     expect(dimensionTexts(renderPlannedConstructionDimensions(leftFacade, 'metric'))).toEqual([
+      '0.1m',
       '6m',
       '12m',
       '6m',
+      '0.1m',
       '24.2m',
     ])
     const jogs = leftFacade.filter((entry) => entry.tier === 'jogs')
@@ -564,6 +574,85 @@ describe('buildLevelWallConstructionDimensionPlan', () => {
     expect(exteriorPlanned.map((entry) => Number(entry.offsetDistance.toFixed(2)))).toEqual([
       0.55, 0.55, 1.17,
     ])
+  })
+
+  test('omits an opening-free partition overall when room clear coverage is valid', () => {
+    const walls = [
+      wall({ id: 'wall_room_a_bottom', start: [0, 0], end: [4, 0] }),
+      wall({
+        id: 'wall_room_shared',
+        start: [4, 0],
+        end: [4, 3],
+        frontSide: 'interior',
+        backSide: 'interior',
+      }),
+      wall({ id: 'wall_room_a_top', start: [4, 3], end: [0, 3] }),
+      wall({ id: 'wall_room_a_left', start: [0, 3], end: [0, 0] }),
+      wall({ id: 'wall_room_b_bottom', start: [4, 0], end: [8, 0] }),
+      wall({ id: 'wall_room_b_right', start: [8, 0], end: [8, 3] }),
+      wall({ id: 'wall_room_b_top', start: [8, 3], end: [4, 3] }),
+    ]
+    const room = ZoneNode.parse({
+      id: 'zone_room_a',
+      parentId: 'level_main',
+      name: 'Room A',
+      polygon: [
+        [0, 0],
+        [4, 0],
+        [4, 3],
+        [0, 3],
+      ],
+      autoFromWalls: true,
+      boundaryWallIds: [
+        'wall_room_a_bottom',
+        'wall_room_shared',
+        'wall_room_a_top',
+        'wall_room_a_left',
+      ],
+      spaceRole: 'room',
+      clearDimensionPolicy: 'finish-faces',
+    })
+    const nodes = Object.fromEntries([...walls, room].map((node) => [node.id, node])) as Record<
+      string,
+      AnyNode
+    >
+
+    const plan = buildLevelWallConstructionDimensionPlan(walls, nodes)
+
+    expect(plan.get('wall_room_shared')).toBeUndefined()
+  })
+
+  test('keeps an opening-free partition overall when room clear coverage is invalid', () => {
+    const exterior = wall({ id: 'wall_unenclosed_exterior' })
+    const partition = wall({
+      id: 'wall_unenclosed_partition',
+      start: [4, 0],
+      end: [4, -4],
+      frontSide: 'interior',
+      backSide: 'interior',
+    })
+    const invalidRoom = ZoneNode.parse({
+      id: 'zone_invalid_room',
+      parentId: 'level_main',
+      name: 'Invalid room',
+      polygon: [
+        [0, 0],
+        [4, 0],
+        [4, 3],
+        [0, 3],
+      ],
+      autoFromWalls: true,
+      boundaryWallIds: [exterior.id, partition.id, 'wall_missing_boundary'],
+      spaceRole: 'room',
+      clearDimensionPolicy: 'finish-faces',
+    })
+    const nodes = Object.fromEntries(
+      [exterior, partition, invalidRoom].map((node) => [node.id, node]),
+    ) as Record<string, AnyNode>
+
+    const plan = buildLevelWallConstructionDimensionPlan([exterior, partition], nodes)
+
+    expect(plan.get(partition.id)?.some((entry) => entry.tier === 'interior-overall')).toBe(true)
   })
 
   test('dimensions interior wall segments and hosted door and window widths in the larger room', () => {
@@ -1230,6 +1319,146 @@ describe('buildLevelWallConstructionDimensionPlan', () => {
       start: [8, 0.1],
       end: [12, 0.1],
     })
+  })
+
+  test('does not join coincident facades from different levels', () => {
+    const lower = wall({ id: 'wall_lower_level', parentId: 'level_lower', end: [4, 0] })
+    const upper = wall({ id: 'wall_upper_level', parentId: 'level_upper', end: [4, 0] })
+
+    const plan = buildLevelWallConstructionDimensionPlan([lower, upper], {})
+
+    expect([...plan.keys()]).toEqual([lower.id, upper.id])
+    expect(plan.get(lower.id)?.find((entry) => entry.tier === 'overall')).toMatchObject({
+      start: [0, 0.1],
+      end: [4, 0.1],
+    })
+    expect(plan.get(upper.id)?.find((entry) => entry.tier === 'overall')).toMatchObject({
+      start: [0, 0.1],
+      end: [4, 0.1],
+    })
+  })
+
+  test('uses the full connected network extent for axis-aligned facade dimensions', () => {
+    const facade = wall({ id: 'wall_axis_facade', end: [4, 0] })
+    const connectedInterior = wall({
+      id: 'wall_axis_extension',
+      start: [4, 0],
+      end: [8, 0],
+      frontSide: 'interior',
+      backSide: 'interior',
+    })
+
+    const plan = buildLevelWallConstructionDimensionPlan([facade, connectedInterior], {})
+    const overall = plan.get(facade.id)?.find((entry) => entry.tier === 'overall')
+
+    expect(overall).toMatchObject({
+      start: [0, 0.1],
+      end: [8, 0.1],
+    })
+  })
+
+  test('keeps oblique facade extents local when a connected network continues', () => {
+    const facade = wall({ id: 'wall_oblique_facade', end: [3, 4] })
+    const connectedInterior = wall({
+      id: 'wall_oblique_extension',
+      start: [3, 4],
+      end: [6, 8],
+      frontSide: 'interior',
+      backSide: 'interior',
+    })
+
+    const overall = buildLevelWallConstructionDimensionPlan([facade, connectedInterior], {})
+      .get(facade.id)
+      ?.find((entry) => entry.tier === 'overall')
+
+    expect(overall).toBeDefined()
+    expect(
+      Math.hypot(
+        (overall?.dimensionEnd?.[0] ?? 0) - (overall?.dimensionStart?.[0] ?? 0),
+        (overall?.dimensionEnd?.[1] ?? 0) - (overall?.dimensionStart?.[1] ?? 0),
+      ),
+    ).toBeCloseTo(5)
+  })
+
+  test('keeps exterior tiers continuous across an interior bridge in one wall network', () => {
+    const first = wall({ id: 'wall_facade_a', end: [4, 0] })
+    const second = wall({ id: 'wall_facade_b', start: [8, 0], end: [12, 0] })
+    const bridge = wall({
+      id: 'wall_facade_bridge',
+      start: [4, 0],
+      end: [8, 0],
+      frontSide: 'interior',
+      backSide: 'interior',
+    })
+    const firstPartition = wall({
+      id: 'wall_facade_partition_a',
+      start: [2, 0],
+      end: [2, -2],
+      frontSide: 'interior',
+      backSide: 'interior',
+    })
+    const secondPartition = wall({
+      id: 'wall_facade_partition_b',
+      start: [10, 0],
+      end: [10, -2],
+      frontSide: 'interior',
+      backSide: 'interior',
+    })
+    const firstDoor = DoorNode.parse({
+      id: 'door_facade_a',
+      parentId: first.id,
+      position: [2, 1.05, 0],
+      width: 1,
+    })
+    const secondDoor = DoorNode.parse({
+      id: 'door_facade_b',
+      parentId: second.id,
+      position: [2, 1.05, 0],
+      width: 1,
+    })
+
+    const plan = buildLevelWallConstructionDimensionPlan(
+      [first, second, bridge, firstPartition, secondPartition],
+      { [firstDoor.id]: firstDoor, [secondDoor.id]: secondDoor },
+    )
+    const planned = plan.get(first.id) ?? []
+    const overall = planned.find((entry) => entry.tier === 'overall')
+
+    expect(overall).toMatchObject({
+      start: [0, 0.1],
+      end: [12, 0.1],
+    })
+    for (const tier of ['openings', 'partitions'] as const) {
+      const entries = planned
+        .filter((entry) => entry.tier === tier)
+        .sort((left, right) => (left.dimensionStart?.[0] ?? 0) - (right.dimensionStart?.[0] ?? 0))
+      expect(entries.length).toBeGreaterThan(0)
+      expect(entries[0]?.dimensionStart?.[0]).toBeCloseTo(0)
+      expect(entries.at(-1)?.dimensionEnd?.[0]).toBeCloseTo(12)
+      for (let index = 1; index < entries.length; index += 1) {
+        expect(entries[index]?.dimensionStart?.[0]).toBeCloseTo(
+          entries[index - 1]?.dimensionEnd?.[0],
+        )
+      }
+      expect(renderPlannedConstructionDimensions(entries, 'metric')).toHaveLength(1)
+      expect(entries.every((entry) => entry.editDescriptor?.opening === undefined)).toBe(true)
+      for (const entry of entries) {
+        const measuredStart = entry.editDescriptor?.measuredStart ?? entry.start
+        const measuredEnd = entry.editDescriptor?.measuredEnd ?? entry.end
+        const measuredLength = Math.hypot(
+          measuredEnd[0] - measuredStart[0],
+          measuredEnd[1] - measuredStart[1],
+        )
+        const dimensionStart = entry.dimensionStart ?? entry.start
+        const dimensionEnd = entry.dimensionEnd ?? entry.end
+        const dimensionLength = Math.hypot(
+          dimensionEnd[0] - dimensionStart[0],
+          dimensionEnd[1] - dimensionStart[1],
+        )
+        expect(measuredLength).toBeCloseTo(dimensionLength)
+        expect(entry.editDescriptor?.leaves.every((leaf) => leaf.opening === undefined)).toBe(true)
+      }
+    }
   })
 
   test('places a back-side exterior facade beyond the back face', () => {

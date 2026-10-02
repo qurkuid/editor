@@ -519,6 +519,7 @@ export function buildVectorNodes(
         name: room.name ?? fallback,
         polygon: room.polygon.map(toLevel),
         spaceRole: 'room',
+        clearDimensionPolicy: 'finish-faces',
         ...(ROOM_COLOR[room.cls] ? { color: ROOM_COLOR[room.cls] } : {}),
         metadata: {
           source: 'apt-vector',
@@ -531,7 +532,14 @@ export function buildVectorNodes(
   }
 
   const connected = connectWallJunctions(walls, openings)
-  const detectedSpaces = detectSpacesForLevel('apt-vector-import', connected.walls).spaces
+  const detection = detectSpacesForLevel('apt-vector-import', connected.walls)
+  const wallUpdates = new Map(detection.wallUpdates.map((update) => [update.wallId, update]))
+  const classifiedWalls = connected.walls.map((wall) => {
+    const update = wallUpdates.get(wall.id)
+    if (!update) return wall
+    return WallNode.parse({ ...wall, frontSide: update.frontSide, backSide: update.backSide })
+  })
+  const detectedSpaces = detection.spaces
   const zonePlan = planAutoZonesForLevel(detectedSpaces, zones, {
     adoptContainedApartmentZones: true,
   })
@@ -542,6 +550,7 @@ export function buildVectorNodes(
   })
   const scene = {
     ...connected,
+    walls: classifiedWalls,
     zones: reconciledZones,
     guideScale: (imageW * doc.mmPerPx) / 10000,
     diagnostics: { unhostedOpeningIds, dedupedOpeningIds, droppedWallIds },

@@ -112,6 +112,13 @@ describe('AI modeling operation contract', () => {
     expect(prompt).toContain('opening guards are applied before clustering')
     expect(prompt).toContain('Axis-guide stretch is a direct 2D authoring workflow')
     expect(prompt).toContain('Expert 2D dimensions are generated from exact model-space provenance')
+    expect(prompt).toContain('default Expert dimension set omits room-to-room wall-thickness (R-R)')
+    expect(prompt).toContain(
+      'Exterior horizontal and vertical placement chains share one baseline per tier and span their connected wall network, with an outer overall dimension; standalone opening-width and structural-datum rows preserve their own references.',
+    )
+    expect(prompt).toContain(
+      'Finish lines are net of clipped hosted door/window unions per side, active band, and finish region',
+    )
     expect(prompt).toContain('A total requires an explicit leaf choice')
     expect(prompt).toContain('classify an opening by its world center')
     expect(prompt).toContain('no AI/MCP mutation operation')

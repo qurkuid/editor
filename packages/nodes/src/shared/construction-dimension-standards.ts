@@ -20,6 +20,9 @@ export type ConstructionDimensionDrawingStandard = {
   extensionOvershoot: number
 }
 
+/** Distinguishes usable interior measurements from exterior construction chains. */
+export const INTERIOR_CONSTRUCTION_DIMENSION_STROKE = '#2563eb'
+
 export const DEFAULT_CONSTRUCTION_DIMENSION_STANDARD = {
   datumPolicy: 'wall-face',
   intersectionReferencePolicy: 'single',

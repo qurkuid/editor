@@ -51,8 +51,21 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('A total requires an explicit leaf choice')
     expect(MODELING_AGENT_MANUAL).toContain('near an axis')
     expect(MODELING_AGENT_MANUAL).toContain('room-to-room wall-thickness (R-R)')
+    expect(MODELING_AGENT_MANUAL).toContain('default Expert dimension set omits')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Exterior horizontal and vertical placement chains share one baseline per tier and span their connected wall network, with an outer overall dimension; standalone opening-width and structural-datum rows preserve their own references.',
+    )
     expect(MODELING_AGENT_MANUAL).toContain('one undo step')
     expect(MODELING_AGENT_MANUAL).toContain('no AI/MCP mutation operation')
+  })
+  test('documents net finish quantities separately from gross measures', () => {
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Expert dimensions and quantity takeoff remain separate',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Finish lines are net of clipped hosted door/window unions per side, active band, and finish region',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('downstream coverage and waste are applied once')
   })
   test('documents ontology discovery and evidence requirements', () => {
     expect(MODELING_AGENT_MANUAL).toContain('pascal://ontology/manifest')

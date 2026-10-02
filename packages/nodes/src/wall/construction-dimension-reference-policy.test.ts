@@ -134,14 +134,37 @@ describe('automatic wall dimension reference policy', () => {
 
     expect(renderedSegments('finished-faces').map((segment) => segment.text)).toEqual([
       '4.04m',
-      '0.12m',
-      '6.04m',
+      '6.16m',
     ])
     expect(renderedSegments('centerline').map((segment) => segment.text)).toEqual(['4.1m', '6.1m'])
     expect(renderedSegments('stud-faces').map((segment) => segment.text)).toEqual([
       '4.04m',
       '6.16m',
     ])
+  })
+
+  test('classifies unknown wall sides in a temporary floorplan copy', () => {
+    const { nodes, top, walls } = topFacadeFixture(true)
+    const unknownWalls = walls.map((candidate) =>
+      WallNode.parse({ ...candidate, frontSide: 'unknown', backSide: 'unknown' }),
+    )
+    const originalWalls = structuredClone(unknownWalls)
+    const unknownNodes = Object.fromEntries(
+      unknownWalls.map((candidate) => [candidate.id, candidate]),
+    ) as Record<string, AnyNode>
+    const levelData = computeWallFloorplanLevelData({ siblings: unknownWalls, nodes: unknownNodes })
+    const rendered = renderPlannedConstructionDimensions(
+      levelData.constructionDimensionsByReference['finished-faces'].get(top.id) ?? [],
+      'metric',
+    )
+
+    expect(rendered.some((entry) => entry.kind === 'dimension-string')).toBe(true)
+    expect(
+      levelData.constructionDimensionsByReference['finished-faces']
+        .get(top.id)
+        ?.some((entry) => entry.tier === 'overall'),
+    ).toBe(true)
+    expect(unknownWalls).toEqual(originalWalls)
   })
 
   test('renders a face-of-stud partition chain with one shared witness', () => {

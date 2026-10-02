@@ -79,11 +79,36 @@ describe('buildRoomClearDimensions', () => {
 
     expect(result).toHaveLength(2)
     expect(result.map((entry) => entry.text).sort()).toEqual(['2.8m', '3.8m'])
-    expect(result.every((entry) => entry.stroke === '#123456')).toBe(true)
+    expect(result.every((entry) => entry.stroke === '#2563eb')).toBe(true)
     expect(result[0]?.start[0]).toBeCloseTo(1.316)
     expect(result[0]?.start[1]).toBeCloseTo(0.1)
     expect(result[0]?.end[0]).toBeCloseTo(1.316)
     expect(result[0]?.end[1]).toBeCloseTo(2.9)
+  })
+
+  test('preserves the selected stroke for selected room clear dimensions', () => {
+    const { context, zone } = enclosure([
+      [0, 0],
+      [4, 0],
+      [4, 3],
+      [0, 3],
+    ])
+    const selectedContext = {
+      ...context,
+      viewState: {
+        ...context.viewState,
+        selected: true,
+        palette: {
+          ...context.viewState.palette,
+          selectedStroke: '#123abc',
+        },
+      },
+    }
+
+    const result = dimensions(buildRoomClearDimensions(zone, selectedContext))
+
+    expect(result).toHaveLength(2)
+    expect(result.every((entry) => entry.stroke === '#123abc')).toBe(true)
   })
 
   test('preserves clear spans when the room is rotated', () => {
@@ -149,7 +174,37 @@ describe('buildRoomClearDimensions', () => {
     expect(result.map((entry) => entry.text).sort()).toEqual(['2.76m', '3.76m'])
   })
 
-  test('adds a room-to-room finish-face dimension for adjacent rectangular rooms', () => {
+  test('restores finished-face clear dimensions for legacy APT auto rooms only', () => {
+    const { context, nodes, zone } = enclosure([
+      [0, 0],
+      [4, 0],
+      [4, 3],
+      [0, 3],
+    ])
+    const legacyAptZone = ZoneNode.parse({
+      ...zone,
+      clearDimensionPolicy: 'none',
+      metadata: { source: 'apt-vector' },
+    })
+    const legacyNodes = { ...nodes, [legacyAptZone.id]: legacyAptZone }
+    const legacyContext = {
+      ...context,
+      resolve: (id: string) => legacyNodes[id],
+    }
+
+    const result = dimensions(buildRoomClearDimensions(legacyAptZone, legacyContext))
+
+    expect(result.map((entry) => entry.text).sort()).toEqual(['2.8m', '3.8m'])
+    expect(result[0]?.editDescriptor?.generatorKey).toBe('room-clear:finish-faces')
+    expect(
+      buildRoomClearDimensions({ ...legacyAptZone, autoFromWalls: false }, legacyContext),
+    ).toEqual([])
+    expect(
+      buildRoomClearDimensions({ ...legacyAptZone, metadata: { source: 'manual' } }, legacyContext),
+    ).toEqual([])
+  })
+
+  test('keeps adjacent room clear dimensions free of shared-wall R-R output', () => {
     const walls = [
       WallNode.parse({ id: 'wall_a_bottom', parentId: 'level_main', start: [0, 0], end: [4, 0] }),
       WallNode.parse({ id: 'wall_shared', parentId: 'level_main', start: [4, 0], end: [4, 3] }),
@@ -212,8 +267,8 @@ describe('buildRoomClearDimensions', () => {
 
     const result = dimensions(buildRoomClearDimensions(zoneA, context))
 
-    expect(result.map((entry) => entry.text).sort()).toEqual(['2.76m', '3.76m', 'R-R 0.24m'])
-    expect(result.find((entry) => entry.text.startsWith('R-R'))?.text).toBe('R-R 0.24m')
+    expect(result.map((entry) => entry.text).sort()).toEqual(['2.76m', '3.76m'])
+    expect(result.some((entry) => entry.text.startsWith('R-R'))).toBe(false)
   })
 
   test('dimensions proven rectilinear room bays beyond simple rectangles', () => {

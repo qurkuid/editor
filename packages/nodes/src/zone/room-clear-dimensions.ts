@@ -12,6 +12,7 @@ import {
   type ZoneNode,
 } from '@pascal-app/core'
 import { readFloorplanContext } from '@pascal-app/editor'
+import { INTERIOR_CONSTRUCTION_DIMENSION_STROKE } from '../shared/construction-dimension-standards'
 import {
   type ConstructionLengthProfile,
   type ConstructionMetricNotation,
@@ -21,7 +22,6 @@ import {
 const LINE_TOLERANCE = 1e-4
 const ANGLE_TOLERANCE = 1e-3
 const MIN_CLEAR_SPAN = 0.3
-const MIN_ROOM_TO_ROOM_SPAN = 0.03
 const FIRST_DIMENSION_POSITION = 0.32
 const SECOND_DIMENSION_POSITION = 0.68
 const EXTENSION_OVERSHOOT = 0.08
@@ -39,10 +39,10 @@ export function buildRoomClearDimensions(
   node: ZoneNode,
   ctx: GeometryContext,
 ): FloorplanGeometry[] {
+  const clearDimensionPolicy = effectiveRoomClearDimensionPolicy(node)
   if (
     node.spaceRole !== 'room' ||
-    (node.clearDimensionPolicy !== 'inside-faces' &&
-      node.clearDimensionPolicy !== 'finish-faces') ||
+    (clearDimensionPolicy !== 'inside-faces' && clearDimensionPolicy !== 'finish-faces') ||
     node.enclosureStatus === 'open' ||
     !node.autoFromWalls ||
     !node.parentId ||
@@ -79,7 +79,11 @@ export function buildRoomClearDimensions(
   const profile: ConstructionLengthProfile =
     floorplanContext.purpose === 'document' ? 'document' : 'editor'
   const metricNotation = floorplanContext.metricNotation
-  const stroke = ctx.viewState?.palette.measurementStroke ?? '#475569'
+  const showSelectedChrome = ctx.viewState?.selected || ctx.viewState?.highlighted
+  const stroke =
+    showSelectedChrome && ctx.viewState?.palette
+      ? ctx.viewState.palette.selectedStroke
+      : INTERIOR_CONSTRUCTION_DIMENSION_STROKE
   const rectangle = resolveClearFaceRectangle(faceLines)
   const dimensions = rectangle
     ? buildRectangleClearDimensions(
@@ -87,7 +91,7 @@ export function buildRoomClearDimensions(
         rectangle,
         node.parentId as AnyNodeId,
         node.id,
-        `room-clear:${node.clearDimensionPolicy}`,
+        `room-clear:${clearDimensionPolicy}`,
         unit,
         profile,
         metricNotation,
@@ -97,28 +101,28 @@ export function buildRoomClearDimensions(
         faceLines,
         node.parentId as AnyNodeId,
         node.id,
-        `room-clear:${node.clearDimensionPolicy}`,
+        `room-clear:${clearDimensionPolicy}`,
         unit,
         profile,
         metricNotation,
         stroke,
       )
   if (dimensions.length === 0) return []
-  return [
-    ...dimensions,
-    ...buildRoomToRoomClearDimensions(
-      node,
-      ctx,
-      space.boundaryFaces,
-      wallsById,
-      node.parentId as AnyNodeId,
-      `room-clear:finish-faces`,
-      unit,
-      profile,
-      metricNotation,
-      stroke,
-    ),
-  ]
+  return dimensions
+}
+
+function effectiveRoomClearDimensionPolicy(
+  node: ZoneNode,
+): 'inside-faces' | 'finish-faces' | 'none' {
+  if (node.clearDimensionPolicy !== 'none') return node.clearDimensionPolicy
+  if (node.spaceRole !== 'room' || !node.autoFromWalls || node.enclosureStatus === 'open') {
+    return 'none'
+  }
+  const metadata =
+    node.metadata !== null && typeof node.metadata === 'object' && !Array.isArray(node.metadata)
+      ? node.metadata
+      : null
+  return metadata?.source === 'apt-vector' ? 'finish-faces' : 'none'
 }
 
 function resolveClearFaceLines(
@@ -418,178 +422,6 @@ function faceSemanticKey(...lines: readonly FaceLine[]): string {
   ]
     .sort()
     .join('|')
-}
-
-function buildRoomToRoomClearDimensions(
-  node: ZoneNode,
-  ctx: GeometryContext,
-  boundaryFaces: readonly SpaceBoundaryFace[],
-  wallsById: ReadonlyMap<string, WallNode>,
-  levelId: AnyNodeId,
-  generatorKey: string,
-  unit: 'metric' | 'imperial',
-  profile: ConstructionLengthProfile,
-  metricNotation: ConstructionMetricNotation,
-  stroke: string,
-): FloorplanGeometry[] {
-  if (node.clearDimensionPolicy !== 'finish-faces') return []
-
-  const neighboringRooms = ctx.siblings.filter(
-    (sibling): sibling is ZoneNode =>
-      sibling.type === 'zone' &&
-      sibling.id !== node.id &&
-      String(node.id) < String(sibling.id) &&
-      sibling.spaceRole === 'room' &&
-      sibling.clearDimensionPolicy === 'finish-faces' &&
-      sibling.enclosureStatus !== 'open' &&
-      sibling.autoFromWalls &&
-      sibling.parentId === node.parentId,
-  )
-  if (neighboringRooms.length === 0) return []
-
-  const dimensions: FloorplanGeometry[] = []
-  const currentBoundaryByWallId = new Map(
-    boundaryFaces.map((boundary) => [boundary.wallId, boundary]),
-  )
-
-  for (const neighbor of neighboringRooms) {
-    const sharedWallIds = neighbor.boundaryWallIds.filter((wallId) =>
-      currentBoundaryByWallId.has(wallId),
-    )
-    if (sharedWallIds.length === 0) continue
-
-    const neighborWalls = neighbor.boundaryWallIds.flatMap((id) => {
-      const resolved = ctx.resolve(id)
-      return resolved &&
-        typeof resolved === 'object' &&
-        'type' in resolved &&
-        resolved.type === 'wall'
-        ? [resolved as WallNode]
-        : []
-    })
-    if (neighborWalls.length !== neighbor.boundaryWallIds.length) continue
-    const neighborWallIds = new Set(neighbor.boundaryWallIds)
-    const neighborSpace = detectSpacesForLevel(neighbor.parentId ?? '', neighborWalls).spaces.find(
-      (candidate) =>
-        candidate.wallIds.length === neighborWallIds.size &&
-        candidate.wallIds.every((id) => neighborWallIds.has(id)),
-    )
-    if (!neighborSpace) continue
-    const neighborBoundaryByWallId = new Map(
-      neighborSpace.boundaryFaces.map((boundary) => [boundary.wallId, boundary]),
-    )
-
-    for (const wallId of sharedWallIds) {
-      const wall = wallsById.get(wallId)
-      const currentBoundary = currentBoundaryByWallId.get(wallId)
-      const neighborBoundary = neighborBoundaryByWallId.get(wallId)
-      if (!(wall && currentBoundary && neighborBoundary)) continue
-      const currentLine = offsetBoundaryFace(currentBoundary, wall)
-      const neighborLine = offsetBoundaryFace(neighborBoundary, wall)
-      if (!(currentLine && neighborLine)) continue
-      const dimension = dimensionAcrossSharedRoomWall(
-        currentLine,
-        neighborLine,
-        levelId,
-        node.id,
-        generatorKey,
-        unit,
-        profile,
-        metricNotation,
-        stroke,
-      )
-      if (dimension) dimensions.push(dimension)
-    }
-  }
-
-  return dimensions
-}
-
-function dimensionAcrossSharedRoomWall(
-  currentLine: FaceLine,
-  neighborLine: FaceLine,
-  levelId: AnyNodeId,
-  nodeId: AnyNodeId,
-  generatorKey: string,
-  unit: 'metric' | 'imperial',
-  profile: ConstructionLengthProfile,
-  metricNotation: ConstructionMetricNotation,
-  stroke: string,
-): DimensionGeometry | null {
-  const direction = normalizedDirection(currentLine.start, currentLine.end)
-  if (!direction) return null
-  const neighborDirection = normalizedDirection(neighborLine.start, neighborLine.end)
-  if (!neighborDirection || Math.abs(dot(direction, neighborDirection)) < 1 - ANGLE_TOLERANCE) {
-    return null
-  }
-
-  const currentStart = dot(currentLine.start, direction)
-  const currentEnd = dot(currentLine.end, direction)
-  const neighborStart = dot(neighborLine.start, direction)
-  const neighborEnd = dot(neighborLine.end, direction)
-  const overlapStart = Math.max(
-    Math.min(currentStart, currentEnd),
-    Math.min(neighborStart, neighborEnd),
-  )
-  const overlapEnd = Math.min(
-    Math.max(currentStart, currentEnd),
-    Math.max(neighborStart, neighborEnd),
-  )
-  if (overlapEnd - overlapStart < MIN_CLEAR_SPAN) return null
-
-  const projection = (overlapStart + overlapEnd) / 2
-  const start = projectPointToLineProjection(currentLine, direction, projection)
-  const end = projectPointToLineProjection(neighborLine, direction, projection)
-  const clear = distance(start, end)
-  if (clear < MIN_ROOM_TO_ROOM_SPAN) return null
-  const axis = normalizedDirection(start, end)
-  if (!axis) return null
-
-  const wallIds = [...new Set([...currentLine.wallIds, ...neighborLine.wallIds])].sort(
-    (left, right) => String(left).localeCompare(String(right)),
-  )
-  const chainId = `${levelId}:room-clear:${nodeId}:room-to-room`
-  const semanticKey = `${chainId}:span:${faceSemanticKey(currentLine, neighborLine)}`
-  const leaf: FloorplanDimensionEditLeaf = {
-    id: `${levelId}:room-clear:rr:${wallIds.join(',')}:${roundKey(start[0])}:${roundKey(end[0])}`,
-    measuredStart: start,
-    measuredEnd: end,
-    currentLength: clear,
-    wallIds,
-    semanticKey,
-    faces: [
-      ...currentLine.wallIds.map((wallId) => ({ wallId, side: currentLine.face })),
-      ...neighborLine.wallIds.map((wallId) => ({ wallId, side: neighborLine.face })),
-    ],
-  }
-
-  return {
-    kind: 'dimension',
-    start,
-    end,
-    offsetNormal: [-axis[1], axis[0]],
-    offsetDistance: 0,
-    extensionOvershoot: EXTENSION_OVERSHOOT,
-    text: `R-R ${formatConstructionLength(clear, unit, profile, { metricNotation })}`,
-    stroke,
-    editDescriptor: {
-      id: leaf.id,
-      sourceNodeId: nodeId,
-      chainId,
-      generatorKey,
-      semanticKey,
-      status: 'read-only',
-      readOnlyReason: 'R-R 벽 두께 치수는 직접 수정할 수 없습니다.',
-      readOnlyReasonCode: 'room-to-room-thickness',
-      levelId,
-      kind: 'room-clear',
-      measuredStart: start,
-      measuredEnd: end,
-      fixedEndOptions: ['start', 'end'],
-      leaves: [leaf],
-      defaultLeafId: leaf.id,
-    },
-  }
 }
 
 function projectPointToLineProjection(
