@@ -3,7 +3,10 @@
 import {
   type AnyNodeId,
   buildManualRoomBoundaryRepair,
+  getWallThickness,
+  type ManualRoomBoundaryBendOrder,
   type ManualRoomBoundaryInput,
+  type ManualRoomBoundaryMode,
   type ManualRoomBoundaryPlan,
   roomBoundarySnapshot,
   runAsSingleSceneHistoryStep,
@@ -22,6 +25,9 @@ import { useFloorplanRender } from './floorplan-render-context'
 import {
   beginRoomBoundaryInteraction,
   closestRoomBoundaryTargets,
+  createRoomBoundaryWallIds,
+  type RoomBoundaryBendOrder,
+  type RoomBoundaryConnectMode,
   type RoomBoundaryTargetHit,
 } from './room-boundary-interaction'
 
@@ -43,6 +49,14 @@ export function RoomBoundaryConnect() {
   const [error, setError] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const [choices, setChoices] = useState<RoomBoundaryTargetHit[]>([])
+  const [connectionMode, setConnectionMode] = useState<RoomBoundaryConnectMode>('direct')
+  const [bendOrder, setBendOrder] = useState<RoomBoundaryBendOrder>('horizontal-vertical')
+  const [selectedTarget, setSelectedTarget] = useState<{
+    wallId: WallNode['id']
+    endpoint?: 'start' | 'end'
+    targetPoint: [number, number]
+  } | null>(null)
+  const lWallIds = useRef<[WallNode['id'], WallNode['id']] | null>(null)
   const owned = useRef<AnyNodeId[]>([])
   const active =
     scope.kind === 'reshaping' &&
@@ -71,6 +85,8 @@ export function RoomBoundaryConnect() {
     setDraft(null)
     setChoices([])
     setError(null)
+    setSelectedTarget(null)
+    lWallIds.current = null
     useInteractionScope
       .getState()
       .endIf(
@@ -80,12 +96,59 @@ export function RoomBoundaryConnect() {
       )
   }, [clearPreview])
 
+  const replan = useCallback(
+    (
+      target = selectedTarget,
+      nextMode: RoomBoundaryConnectMode = connectionMode,
+      nextBendOrder: RoomBoundaryBendOrder = bendOrder,
+    ) => {
+      if (!target || !levelId || !sourceId || !endpoint) return
+      const scene = useScene.getState()
+      if (scene.readOnly) return cancel()
+      let createdWallIds: [WallNode['id'], WallNode['id']] | undefined
+      if (nextMode === 'l-corner') {
+        if (!lWallIds.current) lWallIds.current = createRoomBoundaryWallIds()
+        createdWallIds = lWallIds.current
+      }
+      const input: ManualRoomBoundaryInput = {
+        levelId,
+        wallId: sourceId as WallNode['id'],
+        endpoint,
+        targetWallId: target.wallId,
+        ...(target.endpoint ? { targetEndpoint: target.endpoint } : {}),
+        ...(nextMode === 'l-corner' ? { targetPoint: target.targetPoint } : {}),
+        mode: nextMode as ManualRoomBoundaryMode,
+        bendOrder: nextBendOrder as ManualRoomBoundaryBendOrder,
+        ...(createdWallIds ? { createdWallIds } : {}),
+      }
+      clearPreview()
+      const plan = buildManualRoomBoundaryRepair(scene.nodes, input)
+      if (!plan.ok) {
+        setError(plan.message ?? '연결할 수 없습니다.')
+        setDraft(null)
+        return
+      }
+      for (const update of plan.updates) {
+        useLiveNodeOverrides.getState().set(update.id, update.data)
+        scene.markDirty(update.id)
+      }
+      owned.current = plan.updates.map((update) => update.id)
+      setError(null)
+      setDraft({ input: { ...input, expectedSnapshot: plan.snapshot }, plan })
+    },
+    [bendOrder, cancel, clearPreview, connectionMode, endpoint, levelId, selectedTarget, sourceId],
+  )
+
   useEffect(() => {
     if (!active || context.current?.identity !== identity) {
       clearPreview()
       setDraft(null)
       setChoices([])
       setError(null)
+      setSelectedTarget(null)
+      lWallIds.current = active ? createRoomBoundaryWallIds() : null
+      setConnectionMode('direct')
+      setBendOrder('horizontal-vertical')
       context.current = active ? { identity, levelId, viewMode, tool } : null
     }
     if (!active) return
@@ -155,31 +218,25 @@ export function RoomBoundaryConnect() {
     (node): node is WallNode =>
       node.type === 'wall' && node.parentId === levelId && node.id !== sourceId,
   )
-  const selectTarget = (targetWallId: WallNode['id'], targetEndpoint?: 'start' | 'end') => {
-    clearPreview()
+  const selectTarget = (
+    targetWallId: WallNode['id'],
+    targetEndpoint?: 'start' | 'end',
+    projectedTargetPoint?: [number, number],
+  ) => {
     setChoices([])
     const scene = useScene.getState()
     if (scene.readOnly) return cancel()
-    const input: ManualRoomBoundaryInput = {
-      levelId,
-      wallId: sourceId as WallNode['id'],
-      endpoint,
-      targetWallId,
-      targetEndpoint,
+    const target = scene.nodes[targetWallId]
+    if (target?.type !== 'wall') return
+    const nextTarget = {
+      wallId: targetWallId,
+      ...(targetEndpoint ? { endpoint: targetEndpoint } : {}),
+      targetPoint: targetEndpoint
+        ? ([...target[targetEndpoint]] as [number, number])
+        : (projectedTargetPoint ?? ([...target.start] as [number, number])),
     }
-    const plan = buildManualRoomBoundaryRepair(scene.nodes, input)
-    if (!plan.ok) {
-      setError(plan.message ?? '연결할 수 없습니다.')
-      setDraft(null)
-      return
-    }
-    for (const update of plan.updates) {
-      useLiveNodeOverrides.getState().set(update.id, update.data)
-      scene.markDirty(update.id)
-    }
-    owned.current = plan.updates.map((update) => update.id)
-    setError(null)
-    setDraft({ input: { ...input, expectedSnapshot: plan.snapshot }, plan })
+    setSelectedTarget(nextTarget)
+    replan(nextTarget)
   }
   const apply = () => {
     if (!draft) return
@@ -187,20 +244,36 @@ export function RoomBoundaryConnect() {
     if (scene.readOnly) return cancel()
     const plan = buildManualRoomBoundaryRepair(scene.nodes, draft.input)
     clearPreview()
-    if (!plan.ok || JSON.stringify(plan.updates) !== JSON.stringify(draft.plan.updates)) {
+    if (
+      !plan.ok ||
+      JSON.stringify(plan.updates) !== JSON.stringify(draft.plan.updates) ||
+      JSON.stringify(plan.creates) !== JSON.stringify(draft.plan.creates)
+    ) {
       setDraft(null)
       setError(plan.message ?? '미리보기가 변경되었습니다. 대상을 다시 선택하세요.')
       return
     }
     runAsSingleSceneHistoryStep(useScene, () =>
-      useScene.getState().applyNodeChanges({ update: plan.updates }),
+      useScene.getState().applyNodeChanges({
+        create: plan.creates.map((node) => ({ node, parentId: levelId })),
+        update: plan.updates,
+      }),
     )
     cancel()
+  }
+  const replanSelected = () => replan()
+  const chooseMode = (nextMode: RoomBoundaryConnectMode) => {
+    setConnectionMode(nextMode)
+    replan(selectedTarget, nextMode, bendOrder)
+  }
+  const chooseBendOrder = (nextOrder: RoomBoundaryBendOrder) => {
+    setBendOrder(nextOrder)
+    replan(selectedTarget, connectionMode, nextOrder)
   }
   const scale = render?.unitsPerPixel ?? 0.01
   const wallLabel = (id: string, fallback: string) => nodes[id as AnyNodeId]?.name || fallback
   const sourceLabel = wallLabel(sourceId, '출발 벽')
-  const targetLabel = draft ? wallLabel(draft.input.targetWallId, '대상 벽') : ''
+  const targetLabel = selectedTarget ? wallLabel(selectedTarget.wallId, '대상 벽') : ''
   const wallCoordinates = (id: WallNode['id']) => {
     const wall = nodes[id]
     if (wall?.type !== 'wall') return ''
@@ -218,7 +291,8 @@ export function RoomBoundaryConnect() {
             const point = clientToPlan(event.clientX, event.clientY)
             if (!point) return
             const hits = closestRoomBoundaryTargets(walls, point, scale)
-            if (hits.length === 1) selectTarget(hits[0]!.wallId, hits[0]!.endpoint)
+            if (hits.length === 1)
+              selectTarget(hits[0]!.wallId, hits[0]!.endpoint, hits[0]!.targetPoint)
             else if (hits.length > 1) {
               clearPreview()
               setDraft(null)
@@ -282,6 +356,22 @@ export function RoomBoundaryConnect() {
               pointerEvents="none"
             />
           ))}
+          {draft?.plan.creates.map((wall) => (
+            <line
+              key={wall.id}
+              data-testid="room-boundary-l-preview"
+              data-wall-id={wall.id}
+              x1={wall.start[0]}
+              y1={wall.start[1]}
+              x2={wall.end[0]}
+              y2={wall.end[1]}
+              stroke="#f59e0b"
+              strokeWidth={Math.max(getWallThickness(wall), 4 * scale)}
+              strokeDasharray={`${6 * scale} ${4 * scale}`}
+              strokeLinecap="round"
+              pointerEvents="none"
+            />
+          ))}
         </g>
       ) : null}
       {typeof document !== 'undefined'
@@ -299,11 +389,70 @@ export function RoomBoundaryConnect() {
               </div>
               <div className="mt-2">
                 {connecting
-                  ? draft
+                  ? selectedTarget
                     ? `대상: ${targetLabel}`
                     : '대상 벽 또는 끝점을 선택하세요'
                   : '노란 끝점을 드래그하세요. Esc로 취소합니다.'}
               </div>
+              {connecting ? (
+                <div className="mt-3 space-y-2" data-testid="room-boundary-connect-controls">
+                  <div className="font-medium">연결 방식</div>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      data-testid="room-boundary-connect-mode-direct"
+                      aria-pressed={connectionMode === 'direct'}
+                      className="rounded border px-2 py-1 aria-pressed:bg-muted"
+                      onClick={() => chooseMode('direct')}
+                    >
+                      직선 연결
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="room-boundary-connect-mode-l"
+                      aria-pressed={connectionMode === 'l-corner'}
+                      className="rounded border px-2 py-1 aria-pressed:bg-muted"
+                      onClick={() => chooseMode('l-corner')}
+                    >
+                      ㄱ자 연결
+                    </button>
+                  </div>
+                  {connectionMode === 'l-corner' ? (
+                    <div className="space-y-1" data-testid="room-boundary-connect-bends">
+                      <div className="font-medium">꺾임 순서</div>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          data-testid="room-boundary-connect-bend-horizontal-vertical"
+                          aria-pressed={bendOrder === 'horizontal-vertical'}
+                          className="rounded border px-2 py-1 aria-pressed:bg-muted"
+                          onClick={() => chooseBendOrder('horizontal-vertical')}
+                        >
+                          가로 → 세로
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="room-boundary-connect-bend-vertical-horizontal"
+                          aria-pressed={bendOrder === 'vertical-horizontal'}
+                          className="rounded border px-2 py-1 aria-pressed:bg-muted"
+                          onClick={() => chooseBendOrder('vertical-horizontal')}
+                        >
+                          세로 → 가로
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    data-testid="room-boundary-connect-replan"
+                    className="rounded border px-2 py-1 disabled:opacity-40"
+                    disabled={!selectedTarget}
+                    onClick={replanSelected}
+                  >
+                    대상 다시 계산
+                  </button>
+                </div>
+              ) : null}
               {choices.length > 1 ? (
                 <div
                   className="mt-2 flex flex-col gap-1"
@@ -316,7 +465,9 @@ export function RoomBoundaryConnect() {
                       type="button"
                       data-target-wall-id={choice.wallId}
                       className="rounded border px-2 py-1 text-left"
-                      onClick={() => selectTarget(choice.wallId, choice.endpoint)}
+                      onClick={() =>
+                        selectTarget(choice.wallId, choice.endpoint, choice.targetPoint)
+                      }
                     >
                       {wallLabel(choice.wallId, `대상 벽 ${index + 1}`)}
                       <span className="block text-muted-foreground">
@@ -333,6 +484,12 @@ export function RoomBoundaryConnect() {
                 <div key={`${move.wallId}:${move.endpoint}`}>
                   {wallLabel(move.wallId, move.wallId === sourceId ? '출발 벽' : '대상 벽')} ·{' '}
                   {formatLinearMeasurement(move.distance, unit, metricNotation)} 연장/조정
+                </div>
+              ))}
+              {draft?.plan.measurements.map((measurement) => (
+                <div key={measurement.wallId} data-testid="room-boundary-l-measurement">
+                  {measurement.leg}번째 변 ·{' '}
+                  {formatLinearMeasurement(measurement.distance, unit, metricNotation)}
                 </div>
               ))}
               {error ? (

@@ -41,6 +41,11 @@ describe('Phase 2 ontology manual contract', () => {
     )
     expect(MODELING_AGENT_MANUAL).toContain('Keep open stores a geometry-specific endpoint review')
     expect(MODELING_AGENT_MANUAL).toContain('Endpoint dragging in both 2D and 3D validates')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Manual wall boundary connection has two explicit routes',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('horizontal→vertical or vertical→horizontal bends')
+    expect(MODELING_AGENT_MANUAL).toContain('Preview creates no scene nodes')
   })
 
   test('documents the shared wall parallel alignment capability', () => {

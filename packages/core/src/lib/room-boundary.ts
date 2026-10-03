@@ -5,7 +5,13 @@ import {
   type WallNode as WallNodeType,
   type ZoneNode,
 } from '../schema'
-import { isCurvedWall } from '../systems/wall/wall-curve'
+import {
+  getClampedWallCurveOffset,
+  isCurvedWall,
+  sampleWallCenterline,
+} from '../systems/wall/wall-curve'
+import { getWallPlanFootprint, getWallThickness } from '../systems/wall/wall-footprint'
+import { calculateLevelMiters } from '../systems/wall/wall-mitering'
 import { detectSpacesForLevel, type Space } from './space-detection'
 import {
   buildWallEndpointUpdates,
@@ -682,16 +688,39 @@ export type ManualRoomBoundaryInput = {
   endpoint: 'start' | 'end'
   targetWallId: WallNodeType['id']
   targetEndpoint?: 'start' | 'end'
+  /** Existing direct connection is the default; L creates two new walls. */
+  mode?: ManualRoomBoundaryMode
+  /** The first leg is horizontal for the horizontal-vertical route. */
+  bendOrder?: ManualRoomBoundaryBendOrder
+  /** Projected centerline point from a body click; L-corner mode may end at an interior point. */
+  targetPoint?: Point
+  /** Stable ids allocated by the UI once for an L preview and replayed on apply. */
+  createdWallIds?: readonly [WallNodeType['id'], WallNodeType['id']]
   expectedSnapshot?: string
+}
+
+export type ManualRoomBoundaryMode = 'direct' | 'l-corner'
+
+export type ManualRoomBoundaryBendOrder = 'horizontal-vertical' | 'vertical-horizontal'
+
+export type ManualRoomBoundaryMeasurement = {
+  leg: 1 | 2
+  wallId: WallNodeType['id']
+  from: Point
+  to: Point
+  distance: number
 }
 
 export type ManualRoomBoundaryPlan = {
   ok: boolean
   updates: WallEndpointUpdate[]
+  creates: WallNodeType[]
   point?: Point
   reason?: string
   message?: string
   snapshot: string
+  measurements: ManualRoomBoundaryMeasurement[]
+  bendOrder?: ManualRoomBoundaryBendOrder
   movements: {
     wallId: WallNodeType['id']
     endpoint: 'start' | 'end'
@@ -753,6 +782,338 @@ export function buildRoomBoundaryOpenReviewUpdate(
   return { id: wall.id, data: { metadata: metadata as WallNodeType['metadata'] } }
 }
 
+const ROOM_BOUNDARY_L_MIN_SEGMENT = 0.01
+const ROOM_BOUNDARY_GEOMETRY_EPSILON = 1e-6
+
+type LCornerSegment = {
+  start: Point
+  end: Point
+  distance: number
+}
+
+type SegmentContact = {
+  distance: number
+  alongA: number
+  alongB: number
+  collinearOverlap: number
+}
+
+function finitePoint(point: Point) {
+  return Number.isFinite(point[0]) && Number.isFinite(point[1])
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
+}
+
+function pointAtSegment(segment: LCornerSegment, along: number): Point {
+  if (segment.distance <= ROOM_BOUNDARY_GEOMETRY_EPSILON) return [...segment.start]
+  const t = clamp(along / segment.distance, 0, 1)
+  return [
+    segment.start[0] + (segment.end[0] - segment.start[0]) * t,
+    segment.start[1] + (segment.end[1] - segment.start[1]) * t,
+  ]
+}
+
+function segmentContact(a: Point, b: Point, c: Point, d: Point): SegmentContact {
+  const ab = subtract(b, a)
+  const cd = subtract(d, c)
+  const lengthA = Math.hypot(ab[0], ab[1])
+  const lengthB = Math.hypot(cd[0], cd[1])
+  if (lengthA <= ROOM_BOUNDARY_GEOMETRY_EPSILON || lengthB <= ROOM_BOUNDARY_GEOMETRY_EPSILON) {
+    return {
+      distance: Math.min(distance(a, c), distance(a, d), distance(b, c), distance(b, d)),
+      alongA: 0,
+      alongB: 0,
+      collinearOverlap: 0,
+    }
+  }
+
+  const denominator = cross(ab, cd)
+  if (Math.abs(denominator) > ROOM_BOUNDARY_GEOMETRY_EPSILON) {
+    const intersection = lineIntersection(a, ab, c, cd)
+    if (
+      intersection &&
+      intersection.along >= -ROOM_BOUNDARY_GEOMETRY_EPSILON &&
+      intersection.along <= 1 + ROOM_BOUNDARY_GEOMETRY_EPSILON &&
+      intersection.otherAlong >= -ROOM_BOUNDARY_GEOMETRY_EPSILON &&
+      intersection.otherAlong <= 1 + ROOM_BOUNDARY_GEOMETRY_EPSILON
+    ) {
+      return {
+        distance: 0,
+        alongA: clamp(intersection.along, 0, 1) * lengthA,
+        alongB: clamp(intersection.otherAlong, 0, 1) * lengthB,
+        collinearOverlap: 0,
+      }
+    }
+  } else if (Math.abs(cross(subtract(c, a), ab)) <= ROOM_BOUNDARY_GEOMETRY_EPSILON) {
+    const cAlong = dot(subtract(c, a), ab) / lengthA
+    const dAlong = dot(subtract(d, a), ab) / lengthA
+    const overlapStart = Math.max(0, Math.min(cAlong, dAlong))
+    const overlapEnd = Math.min(lengthA, Math.max(cAlong, dAlong))
+    if (overlapEnd >= overlapStart - ROOM_BOUNDARY_GEOMETRY_EPSILON) {
+      return {
+        distance: 0,
+        alongA: clamp(overlapStart, 0, lengthA),
+        alongB: 0,
+        collinearOverlap: Math.max(0, overlapEnd - overlapStart),
+      }
+    }
+  }
+
+  const candidates = [
+    (() => {
+      const projected = projectPoint(a, c, d)
+      return { distance: projected.distance, alongA: 0, alongB: projected.t * lengthB }
+    })(),
+    (() => {
+      const projected = projectPoint(b, c, d)
+      return { distance: projected.distance, alongA: lengthA, alongB: projected.t * lengthB }
+    })(),
+    (() => {
+      const projected = projectPoint(c, a, b)
+      return { distance: projected.distance, alongA: projected.t * lengthA, alongB: 0 }
+    })(),
+    (() => {
+      const projected = projectPoint(d, a, b)
+      return { distance: projected.distance, alongA: projected.t * lengthA, alongB: lengthB }
+    })(),
+  ]
+  candidates.sort((left, right) => left.distance - right.distance)
+  const closest = candidates[0]!
+  return { ...closest, collinearOverlap: 0 }
+}
+
+function buildLCornerSegments(
+  sourcePoint: Point,
+  targetPoint: Point,
+  bendOrder: ManualRoomBoundaryBendOrder,
+): { elbow: Point; segments: [LCornerSegment, LCornerSegment] } | null {
+  const elbow: Point =
+    bendOrder === 'horizontal-vertical'
+      ? [targetPoint[0], sourcePoint[1]]
+      : [sourcePoint[0], targetPoint[1]]
+  const first: LCornerSegment = {
+    start: [...sourcePoint],
+    end: [...elbow],
+    distance: distance(sourcePoint, elbow),
+  }
+  const second: LCornerSegment = {
+    start: [...elbow],
+    end: [...targetPoint],
+    distance: distance(elbow, targetPoint),
+  }
+  if (
+    first.distance < ROOM_BOUNDARY_L_MIN_SEGMENT - ROOM_BOUNDARY_GEOMETRY_EPSILON ||
+    second.distance < ROOM_BOUNDARY_L_MIN_SEGMENT - ROOM_BOUNDARY_GEOMETRY_EPSILON
+  )
+    return null
+  return { elbow, segments: [first, second] }
+}
+
+function sameSupportPlane(source: WallNodeType, target: WallNodeType) {
+  const sourceOffset = source.supportOffset ?? 0
+  const targetOffset = target.supportOffset ?? 0
+  return (
+    source.supportSlabId === target.supportSlabId &&
+    Math.abs(sourceOffset - targetOffset) <= ROOM_BOUNDARY_GEOMETRY_EPSILON &&
+    (source.fillToTerrain ?? false) === (target.fillToTerrain ?? false)
+  )
+}
+
+function allowedLCornerContact(
+  segment: LCornerSegment,
+  contact: SegmentContact,
+  wall: WallNodeType,
+  source: WallNodeType,
+  target: WallNodeType,
+  sourcePoint: Point,
+  targetPoint: Point,
+  clearance: number,
+) {
+  const startsAtSource = distance(segment.start, sourcePoint) <= ROOM_BOUNDARY_GEOMETRY_EPSILON
+  const endsAtTarget = distance(segment.end, targetPoint) <= ROOM_BOUNDARY_GEOMETRY_EPSILON
+  const contactPoint = pointAtSegment(segment, contact.alongA)
+  if (
+    wall.id === source.id &&
+    startsAtSource &&
+    contact.alongA <= clearance + ROOM_BOUNDARY_GEOMETRY_EPSILON &&
+    distance(contactPoint, sourcePoint) <= clearance + ROOM_BOUNDARY_GEOMETRY_EPSILON
+  )
+    return !segmentRetracesWall(segment, wall)
+  if (
+    wall.id === target.id &&
+    endsAtTarget &&
+    segment.distance - contact.alongA <= clearance + ROOM_BOUNDARY_GEOMETRY_EPSILON &&
+    distance(contactPoint, targetPoint) <= clearance + ROOM_BOUNDARY_GEOMETRY_EPSILON
+  )
+    return !segmentRetracesWall(segment, wall)
+  return false
+}
+
+function segmentRetracesWall(segment: LCornerSegment, wall: WallNodeType) {
+  const wallVector = subtract(wall.end, wall.start)
+  const wallLength = Math.hypot(wallVector[0], wallVector[1])
+  if (wallLength <= ROOM_BOUNDARY_GEOMETRY_EPSILON) return true
+  const wallUnit: Point = [wallVector[0] / wallLength, wallVector[1] / wallLength]
+  const projectAlongWall = (point: Point) => dot(subtract(point, wall.start), wallUnit)
+  const segmentStartAlongWall = projectAlongWall(segment.start)
+  const segmentEndAlongWall = projectAlongWall(segment.end)
+  const overlapStart = Math.max(0, Math.min(segmentStartAlongWall, segmentEndAlongWall))
+  const overlapEnd = Math.min(wallLength, Math.max(segmentStartAlongWall, segmentEndAlongWall))
+  return overlapEnd - overlapStart > ROOM_BOUNDARY_GEOMETRY_EPSILON
+}
+
+function polygonsHavePositiveOverlap(
+  first: readonly { x: number; y: number }[],
+  second: readonly { x: number; y: number }[],
+) {
+  const polygons = [first, second]
+  for (const polygon of polygons) {
+    for (let index = 0; index < polygon.length; index += 1) {
+      const start = polygon[index]!
+      const end = polygon[(index + 1) % polygon.length]!
+      const edgeX = end.x - start.x
+      const edgeY = end.y - start.y
+      const length = Math.hypot(edgeX, edgeY)
+      if (length <= ROOM_BOUNDARY_GEOMETRY_EPSILON) continue
+      const axisX = -edgeY / length
+      const axisY = edgeX / length
+      const project = (points: readonly { x: number; y: number }[]) => {
+        let min = Number.POSITIVE_INFINITY
+        let max = Number.NEGATIVE_INFINITY
+        for (const point of points) {
+          const value = point.x * axisX + point.y * axisY
+          min = Math.min(min, value)
+          max = Math.max(max, value)
+        }
+        return { min, max }
+      }
+      const firstProjection = project(first)
+      const secondProjection = project(second)
+      if (
+        Math.min(firstProjection.max, secondProjection.max) -
+          Math.max(firstProjection.min, secondProjection.min) <=
+        ROOM_BOUNDARY_GEOMETRY_EPSILON
+      )
+        return false
+    }
+  }
+  return true
+}
+
+function validateLCornerSegments(
+  walls: readonly WallNodeType[],
+  source: WallNodeType,
+  target: WallNodeType,
+  sourcePoint: Point,
+  targetPoint: Point,
+  segments: readonly LCornerSegment[],
+  createdWalls: readonly [WallNodeType, WallNodeType],
+) {
+  const newThickness = getWallThickness(source)
+  const selectedHostPairs = new Set<string>()
+  for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex += 1) {
+    const segment = segments[segmentIndex]!
+    for (const wall of walls) {
+      if (isCurvedWall(wall)) {
+        const curvePoints = sampleWallCenterline(wall)
+        const curveOffset = Math.abs(getClampedWallCurveOffset(wall))
+        const clearance = (newThickness + getWallThickness(wall)) / 2 + curveOffset
+        const segmentMinX = Math.min(segment.start[0], segment.end[0]) - clearance
+        const segmentMaxX = Math.max(segment.start[0], segment.end[0]) + clearance
+        const segmentMinY = Math.min(segment.start[1], segment.end[1]) - clearance
+        const segmentMaxY = Math.max(segment.start[1], segment.end[1]) + clearance
+        const curveMinX = Math.min(...curvePoints.map((point) => point.x))
+        const curveMaxX = Math.max(...curvePoints.map((point) => point.x))
+        const curveMinY = Math.min(...curvePoints.map((point) => point.y))
+        const curveMaxY = Math.max(...curvePoints.map((point) => point.y))
+        if (
+          curveMaxX < segmentMinX ||
+          curveMinX > segmentMaxX ||
+          curveMaxY < segmentMinY ||
+          curveMinY > segmentMaxY
+        )
+          continue
+        return 'curved-obstacle'
+      }
+      const contact = segmentContact(segment.start, segment.end, wall.start, wall.end)
+      if (contact.collinearOverlap > ROOM_BOUNDARY_GEOMETRY_EPSILON) return 'overlap'
+      const clearance = (newThickness + getWallThickness(wall)) / 2
+      if (contact.distance > clearance + ROOM_BOUNDARY_GEOMETRY_EPSILON) continue
+      if (
+        allowedLCornerContact(
+          segment,
+          contact,
+          wall,
+          source,
+          target,
+          sourcePoint,
+          targetPoint,
+          clearance,
+        )
+      )
+        continue
+      if (wall.id === source.id || wall.id === target.id) {
+        selectedHostPairs.add(`${segmentIndex}:${wall.id}`)
+        continue
+      }
+      return 'crossing'
+    }
+  }
+
+  if (selectedHostPairs.size > 0) {
+    const miterData = calculateLevelMiters([...walls, ...createdWalls])
+    const footprints = createdWalls.map((wall) => getWallPlanFootprint(wall, miterData))
+    for (const pair of selectedHostPairs) {
+      const separator = pair.indexOf(':')
+      const segmentIndex = Number(pair.slice(0, separator))
+      const hostId = pair.slice(separator + 1)
+      const host = hostId === source.id ? source : target
+      const createdFootprint = footprints[segmentIndex]
+      const hostFootprint = getWallPlanFootprint(host, miterData)
+      if (
+        createdFootprint &&
+        createdFootprint.length > 2 &&
+        hostFootprint.length > 2 &&
+        polygonsHavePositiveOverlap(createdFootprint, hostFootprint)
+      )
+        return 'overlap'
+    }
+  }
+  return null
+}
+
+function buildLCornerWall(source: WallNodeType, id: WallNodeType['id'], start: Point, end: Point) {
+  return WallNode.parse({
+    id,
+    parentId: source.parentId,
+    visible: source.visible,
+    start,
+    end,
+    material: source.material,
+    materialPreset: source.materialPreset,
+    interiorMaterial: source.interiorMaterial,
+    interiorMaterialPreset: source.interiorMaterialPreset,
+    exteriorMaterial: source.exteriorMaterial,
+    exteriorMaterialPreset: source.exteriorMaterialPreset,
+    slots: source.slots ? { ...source.slots } : undefined,
+    thickness: source.thickness,
+    height: source.height,
+    supportOffset: source.supportOffset,
+    fillToTerrain: source.fillToTerrain,
+    supportSlabId: source.supportSlabId,
+    faceBands: source.faceBands ? { ...source.faceBands } : undefined,
+    skirting: source.skirting ? { ...source.skirting } : undefined,
+    crown: source.crown ? { ...source.crown } : undefined,
+    chairRail: source.chairRail ? { ...source.chairRail } : undefined,
+    frontSide: 'unknown',
+    backSide: 'unknown',
+    children: [],
+    metadata: {},
+  })
+}
+
 export function buildManualRoomBoundaryRepair(
   nodes: Readonly<Record<AnyNodeId, AnyNode>>,
   input: ManualRoomBoundaryInput,
@@ -761,13 +1122,18 @@ export function buildManualRoomBoundaryRepair(
   const reject = (reason: string, message: string): ManualRoomBoundaryPlan => ({
     ok: false,
     updates: [],
+    creates: [],
     movements: [],
+    measurements: [],
     snapshot,
     reason,
     message,
   })
   if (input.expectedSnapshot !== undefined && input.expectedSnapshot !== snapshot)
     return reject('stale', '벽 또는 부착물이 변경되었습니다. 대상을 다시 선택하세요.')
+  const mode = input.mode ?? 'direct'
+  if (mode !== 'direct' && mode !== 'l-corner')
+    return reject('invalid-mode', '지원하지 않는 연결 방식입니다.')
   const source = nodes[input.wallId]
   const target = nodes[input.targetWallId]
   if (
@@ -788,6 +1154,86 @@ export function buildManualRoomBoundaryRepair(
     ![...source.start, ...source.end, ...target.start, ...target.end].every(Number.isFinite)
   )
     return reject('invalid', '유효한 직선 벽이 필요합니다.')
+
+  if (mode === 'l-corner') {
+    if (!sameSupportPlane(source, target))
+      return reject('elevation-mismatch', '출발 벽과 대상 벽의 지지 높이가 다릅니다.')
+
+    const sourcePoint = [...source[input.endpoint]] as Point
+    if (!finitePoint(sourcePoint)) return reject('invalid', '유효한 직선 벽이 필요합니다.')
+    if (!input.targetPoint && !input.targetEndpoint)
+      return reject('l-target-required', 'ㄱ자 연결은 대상 벽 또는 끝점을 선택해야 합니다.')
+    const targetPoint = input.targetPoint
+      ? ([...input.targetPoint] as Point)
+      : ([...target[input.targetEndpoint!]] as Point)
+    if (!finitePoint(targetPoint)) return reject('invalid', '유효한 직선 벽이 필요합니다.')
+    const projectedTarget = projectPoint(targetPoint, target.start, target.end)
+    if (projectedTarget.distance > ROOM_BOUNDARY_GEOMETRY_EPSILON)
+      return reject('invalid-target', 'ㄱ자 연결의 대상 위치가 벽 중심선 위에 있어야 합니다.')
+    if (
+      input.targetEndpoint &&
+      distance(targetPoint, target[input.targetEndpoint]) > ROOM_BOUNDARY_GEOMETRY_EPSILON
+    )
+      return reject('invalid-target', 'ㄱ자 연결은 선택한 대상 끝점에서 시작해야 합니다.')
+
+    const bendOrder = input.bendOrder ?? 'horizontal-vertical'
+    if (bendOrder !== 'horizontal-vertical' && bendOrder !== 'vertical-horizontal')
+      return reject('invalid-route', '지원하지 않는 ㄱ자 꺾임 순서입니다.')
+    const route = buildLCornerSegments(sourcePoint, targetPoint, bendOrder)
+    if (!route) return reject('l-zero-length', 'ㄱ자 연결의 두 변은 각각 1cm 이상이어야 합니다.')
+
+    const createdWallIds = input.createdWallIds
+    if (createdWallIds?.length !== 2)
+      return reject('l-id-required', 'ㄱ자 미리보기의 벽 식별자가 필요합니다.')
+    const [firstId, secondId] = createdWallIds
+    if (!firstId || !secondId || firstId === secondId || nodes[firstId] || nodes[secondId])
+      return reject('l-id-conflict', 'ㄱ자 연결 벽 식별자가 이미 사용 중입니다.')
+
+    const levelWalls = Object.values(nodes).filter(
+      (node): node is WallNodeType => node.type === 'wall' && node.parentId === input.levelId,
+    )
+    let creates: WallNodeType[]
+    try {
+      creates = [
+        buildLCornerWall(source, firstId, route.segments[0]!.start, route.segments[0]!.end),
+        buildLCornerWall(source, secondId, route.segments[1]!.start, route.segments[1]!.end),
+      ]
+    } catch {
+      return reject('invalid', 'ㄱ자 연결 벽을 만들 수 없습니다.')
+    }
+    const collision = validateLCornerSegments(
+      levelWalls,
+      source,
+      target,
+      sourcePoint,
+      targetPoint,
+      route.segments,
+      [creates[0]!, creates[1]!],
+    )
+    if (collision === 'curved-obstacle')
+      return reject('curved-obstacle', '곡선 벽과의 접촉은 안전하게 검증할 수 없습니다.')
+    if (collision === 'overlap') return reject('overlap', 'ㄱ자 연결 경로가 기존 벽과 겹칩니다.')
+    if (collision === 'crossing')
+      return reject('crossing', 'ㄱ자 연결 경로가 다른 벽을 가로지릅니다.')
+
+    return {
+      ok: true,
+      point: targetPoint,
+      updates: [],
+      creates,
+      bendOrder,
+      measurements: route.segments.map((segment, index) => ({
+        leg: (index + 1) as 1 | 2,
+        wallId: creates[index]!.id,
+        from: [...segment.start],
+        to: [...segment.end],
+        distance: segment.distance,
+      })),
+      movements: [],
+      snapshot,
+    }
+  }
+
   const intersection = lineIntersection(
     source.start,
     sourceDirection,
@@ -873,6 +1319,8 @@ export function buildManualRoomBoundaryRepair(
     ok: true,
     point,
     updates: [...updates.values()],
+    creates: [],
+    measurements: [],
     movements: proposals.filter((p) => p.distance > 1e-9),
     snapshot,
   }

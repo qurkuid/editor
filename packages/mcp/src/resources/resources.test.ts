@@ -246,6 +246,9 @@ describe('pascal://agent-guide', () => {
       expect(text).toContain('Explicit target connection can extend both straight walls')
       expect(text).toContain('Keep open stores a geometry-specific endpoint review')
       expect(text).toContain('Endpoint dragging in both 2D and 3D validates')
+      expect(text).toContain('Manual wall boundary connection has two explicit routes')
+      expect(text).toContain('horizontal→vertical or vertical→horizontal bends')
+      expect(text).toContain('Preview creates no scene nodes')
       expect(text).toContain(
         'align one uniquely resolved same-parent straight continuation within 2 degrees',
       )

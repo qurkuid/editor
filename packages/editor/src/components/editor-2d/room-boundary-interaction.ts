@@ -1,5 +1,17 @@
-import type { WallNode } from '@pascal-app/core'
+import {
+  generateId,
+  type ManualRoomBoundaryBendOrder,
+  type ManualRoomBoundaryMode,
+  type WallNode,
+} from '@pascal-app/core'
 import useInteractionScope from '../../store/use-interaction-scope'
+
+export type RoomBoundaryConnectMode = ManualRoomBoundaryMode
+export type RoomBoundaryBendOrder = ManualRoomBoundaryBendOrder
+
+export function createRoomBoundaryWallIds(): [WallNode['id'], WallNode['id']] {
+  return [generateId('wall'), generateId('wall')]
+}
 
 export function beginRoomBoundaryInteraction(
   wallId: WallNode['id'],
@@ -19,6 +31,7 @@ export function beginRoomBoundaryInteraction(
 export type RoomBoundaryTargetHit = {
   wallId: WallNode['id']
   endpoint?: 'start' | 'end'
+  targetPoint: [number, number]
   distance: number
 }
 
@@ -53,7 +66,12 @@ export function closestRoomBoundaryTargets(
           ? 'start'
           : 'end'
         : undefined
-    hits.push({ wallId: wall.id, endpoint, distance })
+    hits.push({
+      wallId: wall.id,
+      endpoint,
+      targetPoint: [wall.start[0] + t * dx, wall.start[1] + t * dy],
+      distance,
+    })
   }
   hits.sort((a, b) => a.distance - b.distance || a.wallId.localeCompare(b.wallId))
   const closest = hits[0]
