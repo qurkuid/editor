@@ -178,7 +178,7 @@ function getLinkedJunctionReference(
         : null
     if (opposite) oppositeEndpoints.push([...opposite] as WallPlanPoint)
   }
-  if (oppositeEndpoints.length < 2) return undefined
+  if (oppositeEndpoints.length < 1) return undefined
   return {
     sharedPoint: [...movingOriginal] as WallPlanPoint,
     oppositeEndpoints,

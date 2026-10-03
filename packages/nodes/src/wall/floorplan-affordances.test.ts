@@ -166,6 +166,95 @@ describe('wall center curve handle release', () => {
     expect(useLiveNodeOverrides.getState().get(upper.id)).toBeUndefined()
   })
 
+  const lCornerOrientationCases = [
+    { selectedAxis: 'horizontal', primaryEndpoint: 'start', linkedEndpoint: 'start' },
+    { selectedAxis: 'horizontal', primaryEndpoint: 'start', linkedEndpoint: 'end' },
+    { selectedAxis: 'horizontal', primaryEndpoint: 'end', linkedEndpoint: 'start' },
+    { selectedAxis: 'horizontal', primaryEndpoint: 'end', linkedEndpoint: 'end' },
+    { selectedAxis: 'vertical', primaryEndpoint: 'start', linkedEndpoint: 'start' },
+    { selectedAxis: 'vertical', primaryEndpoint: 'start', linkedEndpoint: 'end' },
+    { selectedAxis: 'vertical', primaryEndpoint: 'end', linkedEndpoint: 'start' },
+    { selectedAxis: 'vertical', primaryEndpoint: 'end', linkedEndpoint: 'end' },
+  ] as const
+
+  for (const [index, scenario] of lCornerOrientationCases.entries()) {
+    test(`squares an L corner for ${scenario.selectedAxis} primary ${scenario.primaryEndpoint} and linked ${scenario.linkedEndpoint}`, () => {
+      const levelId = `level_l_corner_${index}`
+      const sharedPoint: [number, number] = [4.04, 0.03]
+      const selectedFixedPoint: [number, number] =
+        scenario.selectedAxis === 'horizontal' ? [0, 0] : [4, 3]
+      const linkedFixedPoint: [number, number] =
+        scenario.selectedAxis === 'horizontal' ? [4, 3] : [0, 0]
+      const primaryEndpoints =
+        scenario.primaryEndpoint === 'start'
+          ? { start: sharedPoint, end: selectedFixedPoint }
+          : { start: selectedFixedPoint, end: sharedPoint }
+      const linkedEndpoints =
+        scenario.linkedEndpoint === 'start'
+          ? { start: sharedPoint, end: linkedFixedPoint }
+          : { start: linkedFixedPoint, end: sharedPoint }
+      const wall = WallNode.parse({
+        id: `wall_l_primary_${index}`,
+        parentId: levelId,
+        ...primaryEndpoints,
+      })
+      const linked = WallNode.parse({
+        id: `wall_l_outer_${index}`,
+        parentId: levelId,
+        ...linkedEndpoints,
+      })
+      useScene.setState({ nodes: { [wall.id]: wall, [linked.id]: linked } })
+      useScene.temporal.getState().clear()
+      useScene.temporal.getState().resume()
+      useEditor.setState({ gridSnapStep: 0.001 })
+      useEditor.getState().setSnappingMode('wall', 'grid')
+      useInteractionScope.getState().begin({
+        kind: 'reshaping',
+        nodeId: wall.id,
+        reshape: 'endpoint',
+        driver: 'floorplan',
+      })
+      const session = wallMoveEndpointAffordance.start({
+        node: wall,
+        nodes: useScene.getState().nodes,
+        payload: { wallId: wall.id, endpoint: scenario.primaryEndpoint },
+        initialPlanPoint: wall[scenario.primaryEndpoint],
+        gridSnapStep: 0.001,
+      })
+      const baseline = structuredClone(useScene.getState().nodes)
+      const fixedPrimaryEndpoint = scenario.primaryEndpoint === 'start' ? 'end' : 'start'
+      const fixedLinkedEndpoint = scenario.linkedEndpoint === 'start' ? 'end' : 'start'
+
+      session.apply({ planPoint: sharedPoint, modifiers })
+
+      const primaryPreview = useLiveNodeOverrides.getState().get(wall.id)
+      const linkedPreview = useLiveNodeOverrides.getState().get(linked.id)
+      expect(primaryPreview?.[scenario.primaryEndpoint]).toEqual([4, 0])
+      expect(linkedPreview?.[scenario.linkedEndpoint]).toEqual([4, 0])
+      expect(primaryPreview?.[fixedPrimaryEndpoint] ?? wall[fixedPrimaryEndpoint]).toEqual(
+        wall[fixedPrimaryEndpoint],
+      )
+      expect(linkedPreview?.[fixedLinkedEndpoint] ?? linked[fixedLinkedEndpoint]).toEqual(
+        linked[fixedLinkedEndpoint],
+      )
+      expect(useScene.getState().nodes).toEqual(baseline)
+      expect(session.canCommit()).toBe(true)
+
+      session.commit?.()
+
+      const committedPrimary = useScene.getState().nodes[wall.id] as WallNode
+      const committedLinked = useScene.getState().nodes[linked.id] as WallNode
+      expect(committedPrimary[scenario.primaryEndpoint]).toEqual([4, 0])
+      expect(committedLinked[scenario.linkedEndpoint]).toEqual([4, 0])
+      expect(committedPrimary[fixedPrimaryEndpoint]).toEqual(wall[fixedPrimaryEndpoint])
+      expect(committedLinked[fixedLinkedEndpoint]).toEqual(linked[fixedLinkedEndpoint])
+      expect(useScene.temporal.getState().pastStates).toHaveLength(1)
+
+      useScene.temporal.getState().undo()
+      expect(useScene.getState().nodes).toEqual(baseline)
+    })
+  }
+
   test('Shift preserves endpoint direction through preview, commit and undo', () => {
     const wall = WallNode.parse({ id: 'wall_shift', start: [2, 3], end: [2, 5] })
     useScene.setState({ nodes: { [wall.id]: wall } })

@@ -398,6 +398,9 @@ describe('AI provider boundary', () => {
     expect(prompt).toContain('Explicit target connection can extend both straight walls')
     expect(prompt).toContain('Keep open stores a geometry-specific endpoint review')
     expect(prompt).toContain('Endpoint dragging in both 2D and 3D validates')
+    expect(prompt).toContain('horizontal or vertical model-axis intent')
+    expect(prompt).toContain('exact L-corner intersection')
+    expect(prompt).toContain('distinct competing intersections fail closed')
     expect(prompt).toContain(
       'align one uniquely resolved same-parent straight continuation within 2 degrees',
     )

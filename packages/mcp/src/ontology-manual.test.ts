@@ -9,6 +9,9 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('survive Shift release')
     expect(MODELING_AGENT_MANUAL).toContain('wall drawing and endpoint dragging')
     expect(MODELING_AGENT_MANUAL).toContain('within 2 degrees')
+    expect(MODELING_AGENT_MANUAL).toContain('horizontal or vertical model-axis intent')
+    expect(MODELING_AGENT_MANUAL).toContain('exact L-corner intersection')
+    expect(MODELING_AGENT_MANUAL).toContain('distinct competing intersections fail closed')
     expect(MODELING_AGENT_MANUAL).toContain(
       'Existing endpoint/edge snaps take priority for exact cursor endpoint hits',
     )

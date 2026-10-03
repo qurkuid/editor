@@ -591,6 +591,146 @@ test('shared wall inference keeps guides and corners ahead of weak angles and re
 })
 
 describe('resolveWallEndpointPoint', () => {
+  test('endpoint cardinal axes outrank a slightly tilted linked reference', () => {
+    const tiltedReference = makeWall([0, 0], [1, 0.012], 'wall_tilted_reference')
+    const result = resolveWallEndpointPoint({
+      point: [4, 0.05],
+      walls: [tiltedReference],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0.001,
+      guides: [],
+    })
+
+    expect(result.point).toEqual([4, 0])
+    expect(result.directionInferred).toBe(true)
+    expect(result.constraintOwned).toBe(true)
+  })
+
+  test('a cardinal L corner resolves to the exact stationary-axis intersection', () => {
+    const result = resolveWallEndpointPoint({
+      point: [4.04, 0.03],
+      walls: [],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference: {
+        sharedPoint: [4.04, 0.03],
+        oppositeEndpoints: [[4, 3]],
+      },
+    })
+
+    expect(result.point).toEqual([4, 0])
+    expect(result.directionInferred).toBe(true)
+    expect(result.constraintOwned).toBe(true)
+  })
+
+  test('the L corner works when the primary ray travels in reverse', () => {
+    const result = resolveWallEndpointPoint({
+      point: [4.04, 0.03],
+      walls: [],
+      start: [8, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference: {
+        sharedPoint: [4.04, 0.03],
+        oppositeEndpoints: [[4, 3]],
+      },
+    })
+
+    expect(result.point).toEqual([4, 0])
+    expect(result.directionInferred).toBe(true)
+    expect(result.constraintOwned).toBe(true)
+  })
+
+  test('ambiguous nearby L intersections fail closed to the primary cardinal ray', () => {
+    const result = resolveWallEndpointPoint({
+      point: [4.04, 0.03],
+      walls: [],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference: {
+        sharedPoint: [4.04, 0.03],
+        oppositeEndpoints: [
+          [4, 3],
+          [4.1, 3],
+        ],
+      },
+    })
+
+    expect(result.point).toEqual([4.04, 0])
+    expect(result.directionInferred).toBe(true)
+    expect(result.constraintOwned).toBe(true)
+  })
+
+  test('uses the current cursor to confirm a stationary outer cardinal leg', () => {
+    const result = resolveWallEndpointPoint({
+      point: [4.02, 0.02],
+      walls: [],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference: {
+        sharedPoint: [4.3, 0.2],
+        oppositeEndpoints: [[4, 3]],
+      },
+    })
+
+    expect(result.point).toEqual([4, 0])
+    expect(result.directionInferred).toBe(true)
+    expect(result.constraintOwned).toBe(true)
+  })
+
+  test('does not form an L corner when the current outer approach is outside 2 degrees', () => {
+    const result = resolveWallEndpointPoint({
+      point: [4.14, 0.03],
+      walls: [],
+      start: [0, 0],
+      inferDirection: true,
+      magnetic: true,
+      step: 0,
+      guides: [],
+      junctionReference: {
+        sharedPoint: [4.04, 0.03],
+        oppositeEndpoints: [[4, 3]],
+      },
+    })
+
+    expect(result.point).toEqual([4.14, 0])
+    expect(result.directionInferred).toBe(true)
+    expect(result.constraintOwned).toBe(true)
+  })
+
+  test('squares vertical L corners in either outer direction', () => {
+    const resolve = (start: WallPlanPoint, opposite: WallPlanPoint) =>
+      resolveWallEndpointPoint({
+        point: [0.03, 4.04],
+        walls: [],
+        start,
+        inferDirection: true,
+        magnetic: true,
+        step: 0,
+        guides: [],
+        junctionReference: {
+          sharedPoint: [0.03, 4.04],
+          oppositeEndpoints: [opposite],
+        },
+      })
+
+    expect(resolve([0, 0], [3, 4]).point).toEqual([0, 4])
+    expect(resolve([0, 8], [-3, 4]).point).toEqual([0, 4])
+  })
+
   test('fixed-corner right-angle inference wins over an off-ray endpoint', () => {
     const target = { ...makeWall([2, 0.03], [2, 4], 'wall_corner'), thickness: 0.4 }
     const result = resolveWallEndpointPoint({

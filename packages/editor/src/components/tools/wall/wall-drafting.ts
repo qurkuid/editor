@@ -807,6 +807,111 @@ type LinkedJunctionDatumSnap = {
   ray: { origin: WallPlanPoint; through: WallPlanPoint }
 }
 
+type CardinalEndpointRay = {
+  axis: 'horizontal' | 'vertical'
+  origin: WallPlanPoint
+  direction: WallPlanPoint
+  point: WallPlanPoint
+}
+
+/**
+ * Endpoint-only cardinal inference. The general direction helper intentionally
+ * considers nearby wall directions, which is useful while drafting but lets a
+ * slightly tilted neighbour steal an endpoint correction. Endpoint edits use
+ * the model axes first, while retaining the same 2° capture window and scalar
+ * grid-length quantisation as the general helper.
+ */
+function inferCardinalEndpointRay(
+  origin: WallPlanPoint,
+  through: WallPlanPoint,
+  step: number,
+): CardinalEndpointRay | null {
+  const dx = through[0] - origin[0]
+  const dz = through[1] - origin[1]
+  if (!Number.isFinite(dx) || !Number.isFinite(dz)) return null
+  const length = Math.hypot(dx, dz)
+  if (length <= 1e-9) return null
+
+  const cardinalSlope = Math.tan(INFERENCE_TOLERANCE)
+  if (Math.abs(dx) >= Math.abs(dz) && Math.abs(dz) <= Math.abs(dx) * cardinalSlope) {
+    const signedDistance = snapScalarToGrid(dx, step)
+    return {
+      axis: 'horizontal',
+      origin: [...origin] as WallPlanPoint,
+      direction: [Math.sign(dx) || 1, 0],
+      point: [origin[0] + signedDistance, origin[1]],
+    }
+  }
+
+  if (Math.abs(dx) <= Math.abs(dz) && Math.abs(dx) <= Math.abs(dz) * cardinalSlope) {
+    const signedDistance = snapScalarToGrid(dz, step)
+    return {
+      axis: 'vertical',
+      origin: [...origin] as WallPlanPoint,
+      direction: [0, Math.sign(dz) || 1],
+      point: [origin[0], origin[1] + signedDistance],
+    }
+  }
+
+  return null
+}
+
+function intersectCardinalEndpointRays(
+  primary: CardinalEndpointRay,
+  outer: CardinalEndpointRay,
+): WallPlanPoint | null {
+  if (primary.axis === outer.axis) return null
+
+  const candidate: WallPlanPoint =
+    primary.axis === 'horizontal'
+      ? [outer.origin[0], primary.origin[1]]
+      : [primary.origin[0], outer.origin[1]]
+  const primaryTravel =
+    (candidate[0] - primary.origin[0]) * primary.direction[0] +
+    (candidate[1] - primary.origin[1]) * primary.direction[1]
+  const outerTravel =
+    (candidate[0] - outer.origin[0]) * outer.direction[0] +
+    (candidate[1] - outer.origin[1]) * outer.direction[1]
+  if (!Number.isFinite(primaryTravel) || !Number.isFinite(outerTravel)) return null
+  if (primaryTravel <= 1e-9 || outerTravel <= 1e-9) return null
+  return candidate
+}
+
+function snapCardinalLCorner(args: {
+  point: WallPlanPoint
+  start: WallPlanPoint
+  step: number
+  junctionReference?: WallJunctionReference
+}): { point: WallPlanPoint; primary: CardinalEndpointRay } | null {
+  const primary = inferCardinalEndpointRay(args.start, args.point, args.step)
+  const reference = args.junctionReference
+  if (!primary || !reference) return null
+
+  const candidates: WallPlanPoint[] = []
+  for (const opposite of reference.oppositeEndpoints) {
+    // The saved shared point is the pre-drag junction. The current cursor is
+    // the second anchor for this endpoint gesture, so use it to confirm that
+    // the stationary outer leg is still within the same cardinal window.
+    const outer = inferCardinalEndpointRay(opposite, args.point, 0)
+    if (!outer) continue
+    const candidate = intersectCardinalEndpointRays(primary, outer)
+    if (!candidate) continue
+    if (
+      Math.hypot(candidate[0] - args.point[0], candidate[1] - args.point[1]) >
+      GUIDE_LINE_SNAP_RADIUS
+    )
+      continue
+    if (!candidates.some((existing) => pointsEqual(existing, candidate))) {
+      candidates.push(candidate)
+    }
+  }
+
+  // Multiple distinct nearby corners do not provide enough intent to choose a
+  // branch. Returning null lets the primary cardinal ray own the correction.
+  if (candidates.length !== 1) return null
+  return { point: candidates[0]!, primary }
+}
+
 function snapLinkedJunctionDatum(args: {
   point: WallPlanPoint
   primaryRay?: { origin: WallPlanPoint; through: WallPlanPoint }
@@ -949,9 +1054,24 @@ export function resolveWallEndpointPoint(args: SnapWallDraftArgs): WallEndpointS
   }
 
   const references = walls.filter((wall) => !ignoreWallIds?.includes(wall.id))
+  const endpointCardinalInferenceEnabled =
+    !args.angleSnap && !args.constraintRay && (step > 0 || magnetic)
+  const cardinalLCorner = endpointCardinalInferenceEnabled
+    ? snapCardinalLCorner({
+        point,
+        start,
+        step,
+        junctionReference: args.junctionReference,
+      })
+    : null
+  const cardinalRay =
+    cardinalLCorner?.primary ??
+    (endpointCardinalInferenceEnabled ? inferCardinalEndpointRay(start, point, step) : null)
   const inferredPoint =
     args.constraintRay?.through ??
     anglePoint ??
+    cardinalLCorner?.point ??
+    cardinalRay?.point ??
     (step > 0 || magnetic ? inferWallDirection(start, point, step, references) : null)
   const captureOrigin = args.constraintRay?.origin ?? start
   const captureThrough = inferredPoint ?? point
@@ -973,8 +1093,9 @@ export function resolveWallEndpointPoint(args: SnapWallDraftArgs): WallEndpointS
     walls,
     ignoreWallIds,
     allowReverseRay: Boolean(args.constraintRay) || Boolean(junction && !primaryRay),
-    acceptPoint:
-      junction && primaryRay
+    acceptPoint: cardinalLCorner
+      ? (candidate) => pointsEqual(candidate, cardinalLCorner.point, 1e-7)
+      : junction && primaryRay
         ? (candidate) =>
             Math.hypot(candidate[0] - junction.point[0], candidate[1] - junction.point[1]) <= 1e-7
         : undefined,
@@ -988,6 +1109,16 @@ export function resolveWallEndpointPoint(args: SnapWallDraftArgs): WallEndpointS
       targetWallIds,
       ...(inferredPoint || junction ? { directionInferred: true, constraintOwned: true } : {}),
       targetCaptured: true,
+    }
+  }
+
+  if (cardinalLCorner) {
+    return {
+      point: cardinalLCorner.point,
+      snap: null,
+      targetWallIds: [],
+      constraintOwned: true,
+      directionInferred: true,
     }
   }
 
