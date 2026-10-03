@@ -4588,7 +4588,7 @@ function FloorplanDraftCursorLayer({
   }, [activePolygonDraftPoints, cursorPoint, isPolygonDraftBuildActive])
 
   return (
-    <>
+    <g pointerEvents="none">
       {polygon && <polygon fill={draftFill} fillOpacity={0.2} points={polygon} stroke="none" />}
 
       {polyline && (
@@ -4636,7 +4636,7 @@ function FloorplanDraftCursorLayer({
           />
         </g>
       )}
-    </>
+    </g>
   )
 }
 
@@ -11758,6 +11758,7 @@ export function FloorplanPanel({
 
               {activeDraftAnchorPoint && (
                 <circle
+                  pointerEvents="none"
                   cx={toSvgX(activeDraftAnchorPoint[0])}
                   cy={toSvgY(activeDraftAnchorPoint[1])}
                   fill={palette.anchor}

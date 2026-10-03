@@ -19,6 +19,7 @@ import { cn } from './../../../../../lib/utils'
 import useEditor from './../../../../../store/use-editor'
 import { ActionButton } from '../../../controls/action-button'
 import { PanelSection } from '../../../controls/panel-section'
+import { ZoneClosurePanel } from './zone-closure-panel'
 import { useT } from '../../../../../i18n/use-t'
 
 function ZoneItem({ zone }: { zone: ZoneNode }) {
@@ -179,6 +180,7 @@ export function ZonePanel() {
 
   return (
     <div className="py-1">
+      <ZoneClosurePanel />
       {levelZones.length === 0 ? (
         <div className="px-3 py-4 text-muted-foreground text-sm">
           No zones on this level.{' '}

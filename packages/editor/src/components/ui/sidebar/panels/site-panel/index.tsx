@@ -53,6 +53,7 @@ import { cn } from './../../../../../lib/utils'
 import useEditor from './../../../../../store/use-editor'
 import { useUploadStore } from '../../../../../store/use-upload'
 import { LevelDuplicateDialog } from '../../../level-duplicate-dialog'
+import { ZoneClosurePanel } from '../zone-panel/zone-closure-panel'
 import { InlineRenameInput } from './inline-rename-input'
 import { focusTreeNode, TreeNode } from './tree-node'
 import { TreeNodeDragProvider } from './tree-node-drag'
@@ -1355,17 +1356,21 @@ const ContentSection = memo(function ContentSection() {
 
     if (levelZones.length === 0) {
       return (
-        <div className="px-3 py-4 text-muted-foreground text-sm">
-          No zones on this level.{' '}
-          <button className="cursor-pointer text-primary hover:underline" onClick={handleAddZone}>
-            Add one
-          </button>
+        <div className="flex flex-col">
+          <ZoneClosurePanel />
+          <div className="px-3 py-4 text-muted-foreground text-sm">
+            No zones on this level.{' '}
+            <button className="cursor-pointer text-primary hover:underline" onClick={handleAddZone}>
+              Add one
+            </button>
+          </div>
         </div>
       )
     }
 
     return (
       <div className="flex flex-col">
+        <ZoneClosurePanel />
         {levelZones.map((zone, index) => (
           <ZoneItem isLast={index === levelZones.length - 1} key={zone.id} zone={zone} />
         ))}

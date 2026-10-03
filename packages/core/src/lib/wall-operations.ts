@@ -269,7 +269,7 @@ function getAttachmentSpan(node: AnyNode, wall: WallNodeData) {
   return { center, half: 0 }
 }
 
-type WallEndpointUpdate = { id: AnyNodeId; data: Partial<AnyNode> }
+export type WallEndpointUpdate = { id: AnyNodeId; data: Partial<AnyNode> }
 
 function finitePoint(point: Vec2) {
   return Number.isFinite(point[0]) && Number.isFinite(point[1])
@@ -299,12 +299,14 @@ function oppositeContinuation(a: Vec2, b: Vec2) {
   return deviation <= (2 * Math.PI) / 180 + 1e-9
 }
 
-function buildWallEndpointUpdates(
+function buildWallEndpointPatches(
   nodes: Record<AnyNodeId, AnyNode>,
   wall: WallNodeData,
   nextStart: Vec2,
   nextEnd: Vec2,
   preserveNearEqualUnchangedEndpoints = false,
+  rebaseHostedChildren = false,
+  detachLinkedWalls = false,
 ): WallEndpointUpdate[] {
   if (!finitePoint(nextStart) || !finitePoint(nextEnd)) {
     throw new WallOperationError('invalid-wall-geometry', '벽 끝점은 유한한 좌표여야 합니다.')
@@ -323,7 +325,7 @@ function buildWallEndpointUpdates(
     )
     .sort((a, b) => a.id.localeCompare(b.id))
   const linked = getLinkedWallUpdates(
-    siblings.map((other) => ({ wall: other })),
+    (detachLinkedWalls ? [] : siblings).map((other) => ({ wall: other })),
     wall.start,
     wall.end,
     nextStart,
@@ -401,7 +403,35 @@ function buildWallEndpointUpdates(
       )
     }
     for (const child of listWallAttachments(nodes, before)) {
-      const span = getAttachmentSpan(child, after)
+      const attachmentSpan = getAttachmentSpan(child, rebaseHostedChildren ? before : after)
+      const afterLength = nextLength
+      const beforeDirection = direction(before.start, before.end)
+      const afterDirection = direction(after.start, after.end)
+      const beforeLocalX = rebaseHostedChildren ? attachmentSpan?.center : undefined
+      const beforeWorldPoint =
+        beforeLocalX === undefined
+          ? null
+          : ([
+              before.start[0] + beforeDirection[0] * beforeLocalX,
+              before.start[1] + beforeDirection[1] * beforeLocalX,
+            ] as Vec2)
+      const nextLocalX =
+        beforeWorldPoint === null
+          ? undefined
+          : dot(
+              [beforeWorldPoint[0] - after.start[0], beforeWorldPoint[1] - after.start[1]],
+              afterDirection,
+            )
+      const validationCenter =
+        rebaseHostedChildren && nextLocalX !== undefined ? nextLocalX : attachmentSpan?.center
+      const span =
+        attachmentSpan && validationCenter !== undefined
+          ? {
+              ...attachmentSpan,
+              center: validationCenter,
+              half: getAttachmentSpan(child, after)?.half ?? attachmentSpan.half,
+            }
+          : attachmentSpan
       if (
         span &&
         (span.center - span.half < -EPSILON || span.center + span.half > nextLength + EPSILON)
@@ -411,15 +441,41 @@ function buildWallEndpointUpdates(
           '문·창 또는 부착물이 벽 밖으로 나가는 벽 변경은 적용할 수 없습니다.',
         )
       }
-      if (span && child.type === 'item') {
-        const nextWallT = span.center / nextLength
-        childUpdates.set(child.id, { id: child.id, data: { wallT: nextWallT } })
+      if (span) {
+        const data: Record<string, unknown> = {}
+        const attachment = asAttachment(child)
+        if (
+          rebaseHostedChildren &&
+          attachment.position &&
+          nextLocalX !== undefined &&
+          Math.abs(attachment.position[0] - nextLocalX) > EPSILON
+        ) {
+          const [_, y, z] = attachment.position
+          data.position = [nextLocalX, y, z]
+        }
+        if (child.type === 'item' && validationCenter !== undefined) {
+          data.wallT = validationCenter / afterLength
+        }
+        if (Object.keys(data).length > 0) {
+          childUpdates.set(child.id, { id: child.id, data: data as Partial<AnyNode> })
+        }
       }
     }
     for (const other of allWalls) {
       if (other.id === before.id) continue
       const nextOther = nextWalls.get(other.id)!
       for (const endpoint of ['start', 'end'] as const) {
+        const detachedCorner =
+          detachLinkedWalls &&
+          before.id === wall.id &&
+          (['start', 'end'] as const).some(
+            (end) =>
+              !pointsExactlyEqual(before[end], after[end]) &&
+              (pointsEqual(before[end], other[endpoint]) ||
+                (pointsEqual(before[endpoint], before[end]) &&
+                  (pointsEqual(other.start, before[end]) || pointsEqual(other.end, before[end])))),
+          )
+        if (detachedCorner) continue
         if (
           (onSegment(before[endpoint], other) && !onSegment(after[endpoint], nextOther)) ||
           (onSegment(other[endpoint], before) && !onSegment(nextOther[endpoint], after))
@@ -530,7 +586,7 @@ export function buildWallParallelAlignmentUpdates(
   }
   const nextStart = selectedEnd === 'start' ? joint : nextFree
   const nextEnd = selectedEnd === 'start' ? nextFree : joint
-  return buildWallEndpointUpdates(nodes, wall, nextStart, nextEnd, true)
+  return buildWallEndpointPatches(nodes, wall, nextStart, nextEnd, true)
 }
 
 export function buildWallLengthUpdates(
@@ -547,7 +603,70 @@ export function buildWallLengthUpdates(
     throw new WallOperationError('curved-wall', '곡선 벽은 곡률을 해제한 후 길이를 변경하세요.')
   }
   const end = pointAt(wall, newLength)
-  return buildWallEndpointUpdates(nodes, wall, wall.start, end)
+  return buildWallEndpointPatches(nodes, wall, wall.start, end)
+}
+
+/**
+ * Build one validated endpoint mutation from a scene snapshot.
+ *
+ * The operation validates linked wall junctions and hosted children before it
+ * returns. Hosted children are rebased onto the new wall frame so moving a
+ * start endpoint preserves their world position; callers can apply the full
+ * update list in one history step.
+ */
+export function buildWallEndpointUpdates(
+  nodes: Record<AnyNodeId, AnyNode>,
+  wallId: AnyNodeId,
+  nextStart: Vec2,
+  nextEnd: Vec2,
+  options: { detachLinkedWalls?: boolean } = {},
+): WallEndpointUpdate[] {
+  const wall = requireWall(nodes, wallId)
+  const updates = buildWallEndpointPatches(
+    nodes,
+    wall,
+    nextStart,
+    nextEnd,
+    false,
+    true,
+    options.detachLinkedWalls,
+  )
+  validateWallEndpointOverlaps(nodes, updates)
+  return updates
+}
+
+export function validateWallEndpointOverlaps(
+  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
+  updates: readonly WallEndpointUpdate[],
+) {
+  const changed = new Map(updates.map((update) => [update.id, update.data]))
+  const walls = Object.values(nodes).filter(isWall)
+  const after = new Map(
+    walls.map((wall) => [wall.id, { ...wall, ...changed.get(wall.id) } as WallNodeData]),
+  )
+  const overlap = (a: WallNodeData, b: WallNodeData) => {
+    if (Math.abs(a.curveOffset ?? 0) > EPSILON || Math.abs(b.curveOffset ?? 0) > EPSILON) return 0
+    const length = distance(a.start, a.end)
+    if (length <= EPSILON) return 0
+    const axis = direction(a.start, a.end)
+    const start: Vec2 = [b.start[0] - a.start[0], b.start[1] - a.start[1]]
+    const end: Vec2 = [b.end[0] - a.start[0], b.end[1] - a.start[1]]
+    if (Math.abs(cross(start, axis)) > EPSILON || Math.abs(cross(end, axis)) > EPSILON) return 0
+    const first = dot(start, axis)
+    const second = dot(end, axis)
+    return Math.max(
+      0,
+      Math.min(length, Math.max(first, second)) - Math.max(0, Math.min(first, second)),
+    )
+  }
+  for (const wall of walls) {
+    if (!changed.has(wall.id)) continue
+    for (const other of walls) {
+      if (wall.id === other.id || wall.parentId !== other.parentId) continue
+      if (overlap(after.get(wall.id)!, after.get(other.id)!) > overlap(wall, other) + EPSILON)
+        throw new WallOperationError('overlap', '다른 벽과 겹치는 연결은 적용할 수 없습니다.')
+    }
+  }
 }
 
 function uniqueWallId(nodes: Record<AnyNodeId, AnyNode>, requested?: AnyNodeId) {

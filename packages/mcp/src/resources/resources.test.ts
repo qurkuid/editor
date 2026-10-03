@@ -234,6 +234,16 @@ describe('pascal://agent-guide', () => {
       expect(text).toContain('adoptContainedApartmentZones')
       expect(text).toContain('covers at least 90% of exactly one current enclosed space')
       expect(text).toContain(
+        'Zone boundary panel reconciliation and live apt-vector wall edits create one `Zone`',
+      )
+      expect(text).toContain('generatedFrom: detected-space')
+      expect(text).toContain('smallest multi-gap bundle')
+      expect(text).toContain('direct UI capability with no AI/MCP mutation operation')
+      expect(text).toContain('reject stale or read-only scenes before mutation')
+      expect(text).toContain('Explicit target connection can extend both straight walls')
+      expect(text).toContain('Keep open stores a geometry-specific endpoint review')
+      expect(text).toContain('Endpoint dragging in both 2D and 3D validates')
+      expect(text).toContain(
         'align one uniquely resolved same-parent straight continuation within 2 degrees',
       )
       expect(text).toContain('direct UI capability with no AI/MCP mutation operation')

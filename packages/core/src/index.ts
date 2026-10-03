@@ -311,6 +311,27 @@ export {
   polygonsOverlap,
   segmentsIntersect,
 } from './lib/polygon-relations'
+export {
+  buildManualRoomBoundaryRepair,
+  buildRoomBoundaryOpenReviewUpdate,
+  buildRoomBoundaryRepairUpdates,
+  diagnoseRoomBoundaries,
+  isRoomBoundaryReviewedOpen,
+  type ManualRoomBoundaryInput,
+  type ManualRoomBoundaryPlan,
+  planRoomBoundaryRepair,
+  ROOM_BOUNDARY_CONNECT_TOLERANCE,
+  ROOM_BOUNDARY_MAX_DISPLAY_GAP,
+  ROOM_BOUNDARY_MAX_REPAIR_GAP,
+  type RoomBoundaryCandidate,
+  type RoomBoundaryCandidateReason,
+  type RoomBoundaryDiagnostics,
+  type RoomBoundaryEndpoint,
+  type RoomBoundaryIssue,
+  type RoomBoundaryRepairPlan,
+  type RoomBoundaryRepairUpdates,
+  roomBoundarySnapshot,
+} from './lib/room-boundary'
 export { resolveSelectionProxyId, selectionProxyIdFromMetadata } from './lib/selection-proxy'
 export {
   getRenderableSlabPolygon,
@@ -415,11 +436,13 @@ export {
   type WallSegmentClosest,
 } from './lib/wall-distance'
 export {
+  buildWallEndpointUpdates,
   buildWallLengthUpdates,
   buildWallMerge,
   buildWallParallelAlignmentUpdates,
   buildWallSplit,
   buildWallSplitAtContacts,
+  type WallEndpointUpdate,
   type WallMutation,
   WallOperationError,
   type WallSceneState,

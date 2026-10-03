@@ -374,15 +374,58 @@ export function resolveEndpointWallSplit(args: {
    */
   radius?: number
 }): WallPlanPoint | null {
-  const { point, levelId, ignoreWallIds, radius = WALL_CONNECT_SNAP_RADIUS } = args
-  const { nodes, createNodes, updateNodes, deleteNode } = useScene.getState()
+  const plan = planEndpointWallSplit({ ...args, nodes: useScene.getState().nodes })
+  if (!plan) return null
+  useScene.getState().applyNodeChanges(plan.changes)
+  return plan.point
+}
+
+export function planEndpointWallSplit(args: {
+  point: WallPlanPoint
+  levelId: string | null
+  ignoreWallIds: string[]
+  radius?: number
+  nodes: ReturnType<typeof useScene.getState>['nodes']
+}) {
+  const { point, levelId, ignoreWallIds, radius = WALL_CONNECT_SNAP_RADIUS, nodes } = args
   const walls = Object.values(nodes).filter(
     (node): node is WallNode => node?.type === 'wall' && (node.parentId ?? null) === levelId,
   )
-
+  const changes: Parameters<ReturnType<typeof useScene.getState>['applyNodeChanges']>[0] = {
+    create: [],
+    update: [],
+    delete: [],
+  }
   const intersection = findWallIntersection(point, walls, radius, ignoreWallIds)
-  const split = splitWallIfNeeded(intersection, walls, nodes, createNodes, updateNodes, deleteNode)
-  return split ? split.point : null
+  const split = splitWallIfNeeded(
+    intersection,
+    walls,
+    nodes,
+    (entries) => {
+      changes.create!.push(...entries)
+    },
+    (entries) => {
+      changes.update!.push(...entries)
+    },
+    (id) => {
+      changes.delete!.push(id)
+    },
+  )
+  for (const entry of changes.create ?? []) {
+    if (entry.node.type !== 'wall') continue
+    entry.node.children = (changes.update ?? [])
+      .filter((update) => update.data.parentId === entry.node.id)
+      .map((update) => update.id) as WallNode['children']
+  }
+  return split
+    ? {
+        point: split.point,
+        changes,
+        blocked: Boolean(
+          intersection?.wallId && !changes.delete?.includes(intersection.wallId as AnyNodeId),
+        ),
+      }
+    : null
 }
 
 export type GuideSnapLine = {

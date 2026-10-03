@@ -111,6 +111,7 @@ import {
   useFloorplanStaticRender,
   useFloorplanStaticUnitsPerPixel,
 } from '../floorplan-render-context'
+import { FloorplanZoneClosureLayer } from '../floorplan-zone-closure-layer'
 import {
   floorplanAnnotationObstacleMode,
   isFloorplanAnnotationObstacleGeometry,
@@ -340,7 +341,7 @@ export function cancelFloorplanAffordanceDrag(
     drag.captureTarget.releasePointerCapture?.(drag.pointerId)
   }
 
-  effects.restoreSnapshots(drag.snapshots)
+  if (!drag.session.commit) effects.restoreSnapshots(drag.snapshots)
   if (drag.historyPaused) {
     effects.resumeHistory()
     drag.historyPaused = false
@@ -1286,7 +1287,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
       rotationPivot?: FloorplanPoint,
     ) => {
       if (event.button !== 0) return
-      if (movingNode) return
+      if (movingNode || useScene.getState().readOnly || dragRef.current) return
 
       const sceneNodes = useScene.getState().nodes
       const node = sceneNodes[nodeId]
@@ -1317,7 +1318,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
         if (n) snapshots.push(snapshotNode(n))
       }
 
-      pauseSceneHistory(useScene)
+      if (!session.commit) pauseSceneHistory(useScene)
 
       // Rotation readout setup. The wedge radius tracks the grab distance
       // from the pivot (≈ the handle's orbit), nudged inward so the swept
@@ -1350,7 +1351,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
         handleId,
         session,
         snapshots,
-        historyPaused: true,
+        historyPaused: !session.commit,
         lastPlanPoint: initialPlanPoint,
         rotation,
         reshapeScopeNodeId: reshapeScope ? nodeId : undefined,
@@ -1449,16 +1450,13 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
       const drag = dragRef.current
       if (!drag || event.pointerId !== drag.pointerId) return
 
-      const commitValid = drag.session.canCommit()
+      const commitValid = !useScene.getState().readOnly && drag.session.canCommit()
 
       // Sessions with a `commit` hook own their atomic write (e.g.
       // affordances that publish to `useLiveNodeOverrides` during
       // `apply()` and never touch scene mid-drag). Mirrors the move
-      // overlay's `session.commit` path — revert untracked (no-op when
-      // the session never wrote to scene), resume history, then let
-      // the session do the tracked write.
+      // overlay's `session.commit` path — the session owns its tracked write.
       if (commitValid && drag.session.commit) {
-        useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
         if (drag.historyPaused) {
           resumeSceneHistory(useScene)
           drag.historyPaused = false
@@ -1499,7 +1497,8 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
         //   1. Revert to baseline while history is still paused (untracked).
         //   2. Resume history.
         //   3. Re-apply the final state — recorded as one tracked change.
-        useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
+        if (!drag.session.commit)
+          useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
         if (drag.historyPaused) {
           resumeSceneHistory(useScene)
           drag.historyPaused = false
@@ -1511,7 +1510,8 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
         // resume without committing. Also clear any live overrides
         // the session published (no-op when the session writes to
         // scene directly).
-        useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
+        if (!drag.session.commit)
+          useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
         if (drag.historyPaused) {
           resumeSceneHistory(useScene)
           drag.historyPaused = false
@@ -1710,6 +1710,19 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
         ))}
       </g>
       <FloorplanAnnotationLayoutResolver active={floorplanVisible} />
+      {!isAmbient && floorplanVisible ? (
+        <FloorplanZoneClosureLayer
+          onEndpointDrag={(endpoint, event) =>
+            startAffordanceDrag(
+              endpoint.wallId,
+              `${endpoint.wallId}:${endpoint.endpoint}`,
+              'move-endpoint',
+              { wallId: endpoint.wallId, endpoint: endpoint.endpoint },
+              event,
+            )
+          }
+        />
+      ) : null}
       {/* Dashed group bbox — shows what a group drag carries along while a
           multi-selection exists, rides the live delta mid-drag, and doubles
           as the group's whole-area drag handle. */}

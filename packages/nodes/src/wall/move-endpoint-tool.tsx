@@ -2,20 +2,21 @@
 
 import {
   type AnyNodeId,
+  buildWallEndpointUpdates,
   collectAlignmentAnchors,
   emitter,
   type GridEvent,
   getWallBaseElevationForNodes,
   getWallCurveLength,
   getWallThickness,
-  pauseSceneHistory,
   resolveAlignment,
   resolveMovedWallSupportSlabPatch,
-  resumeSceneHistory,
+  roomBoundarySnapshot,
   runAsSingleSceneHistoryStep,
   useLiveNodeOverrides,
   useScene,
   type WallNode,
+  WallOperationError,
 } from '@pascal-app/core'
 import {
   CursorSphere,
@@ -30,7 +31,6 @@ import {
   isSegmentLongEnough,
   MeasurementPill,
   markToolCancelConsumed,
-  resolveEndpointWallSplit,
   resolveWallEndpointPoint,
   triggerSFX,
   useAlignmentGuides,
@@ -45,6 +45,7 @@ import { Html } from '@react-three/drei'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LevelOffsetGroup } from '../shared/level-offset-group'
 import { resolveWallOpeningCeiling } from '../shared/wall-opening-ceiling'
+import { buildWallEndpointEditPlan } from './endpoint-edit-plan'
 
 /**
  * Wall endpoint move tool (kind-owned).
@@ -294,7 +295,8 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
       (anchor) => !movingLinkedIdSet.has(anchor.nodeId),
     )
 
-    pauseSceneHistory(useScene)
+    const baseline = roomBoundarySnapshot(useScene.getState().nodes, target.wall.parentId)
+    let validPreview = false
     let wasCommitted = false
     // Last RAW cursor point from `grid:move` — lets the Alt keydown/keyup
     // handlers re-run the FULL snap pipeline immediately on a modifier change
@@ -317,23 +319,6 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
     // contextual HUD, tooltips, floor plan) and rebuilds them all each frame.
     // The store is written ONCE, atomically, on commit.
     const touchedWallIds = new Set<AnyNodeId>()
-
-    const applyNodePreview = (
-      updates: Array<{ id: WallNode['id']; start: WallPlanPoint; end: WallPlanPoint }>,
-    ) => {
-      const overrides = useLiveNodeOverrides.getState()
-      const sceneState = useScene.getState()
-      overrides.setMany(
-        updates.map(
-          (entry) =>
-            [entry.id, { start: entry.start, end: entry.end }] as [string, Record<string, unknown>],
-        ),
-      )
-      for (const entry of updates) {
-        touchedWallIds.add(entry.id as AnyNodeId)
-        sceneState.markDirty(entry.id as AnyNodeId)
-      }
-    }
 
     // Drop every live override (mesh + miters revert to the scene store, which
     // was never mutated during the drag) and re-dirty so geometry rebuilds.
@@ -390,7 +375,24 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
           nodeId,
         }),
       )
-      applyNodePreview([{ id: nodeId, start: nextStart, end: nextEnd }, ...linkedUpdates])
+      clearPreviewOverrides()
+      validPreview = false
+      const scene = useScene.getState()
+      if (scene.readOnly || roomBoundarySnapshot(scene.nodes, target.wall.parentId) !== baseline)
+        return
+      try {
+        const updates = buildWallEndpointUpdates(scene.nodes, nodeId, nextStart, nextEnd, {
+          detachLinkedWalls,
+        })
+        for (const update of updates) {
+          useLiveNodeOverrides.getState().set(update.id, update.data)
+          touchedWallIds.add(update.id)
+          scene.markDirty(update.id)
+        }
+        validPreview = true
+      } catch (error) {
+        if (!(error instanceof WallOperationError)) throw error
+      }
     }
 
     const restoreOriginal = (clearAngleLabel = true) => {
@@ -569,75 +571,41 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
         return
       }
 
-      if (isSegmentLongEnough(preview.start, preview.end)) {
-        wasCommitted = true
-
-        const linkedUpdates = altPressedRef.current
-          ? []
-          : getLinkedWallUpdates(
-              linkedOriginalsRef.current,
-              originalStart,
-              originalEnd,
-              preview.start,
-              preview.end,
-            )
-
-        // Drop the live overrides; the store write below is the source of truth.
-        // The store sat at the pre-drag (original) values the whole drag — only
-        // overrides moved — so one resume+write records original→final as a
-        // single tracked change (one Ctrl-Z reverts to original). The split
-        // ops (create halves, migrate attachments, delete host) would each
-        // push their own entry, so the whole commit runs as one history step.
-        clearPreviewOverrides()
-        resumeSceneHistory(useScene)
-        runAsSingleSceneHistoryStep(useScene, () => {
-          // Dropping the endpoint on another wall's interior splits that host
-          // like the draw path does. Linked walls updated in this commit share
-          // the drop point as an endpoint (a corner join, not a split), so
-          // they're excluded along with the moved wall — in Alt-detach mode
-          // `linkedUpdates` is empty and a stationary former sibling can be
-          // split like any other host.
-          const movingPoint = target.endpoint === 'start' ? preview.start : preview.end
-          const resolved = resolveEndpointWallSplit({
-            point: movingPoint,
-            levelId: target.wall.parentId ?? null,
-            ignoreWallIds: [nodeId, ...linkedUpdates.map((u) => String(u.id))],
+      const scene = useScene.getState()
+      if (
+        validPreview &&
+        !scene.readOnly &&
+        roomBoundarySnapshot(scene.nodes, target.wall.parentId) === baseline &&
+        isSegmentLongEnough(preview.start, preview.end)
+      ) {
+        try {
+          const plan = buildWallEndpointEditPlan(scene.nodes, {
+            wall: target.wall,
+            endpoint: target.endpoint,
+            start: preview.start,
+            end: preview.end,
+            detach: altPressedRef.current,
             radius: directionLock.active || directionInferred ? 1e-7 : undefined,
           })
-          const finalPoint = resolved ?? movingPoint
-          useScene.getState().updateNodes([
-            {
-              id: nodeId as AnyNodeId,
-              data: {
-                start: target.endpoint === 'start' ? finalPoint : preview.start,
-                end: target.endpoint === 'end' ? finalPoint : preview.end,
-              },
-            },
-            ...linkedUpdates.map((u) => ({
-              id: u.id as AnyNodeId,
-              data: {
-                start: samePoint(u.start, movingPoint) ? finalPoint : u.start,
-                end: samePoint(u.end, movingPoint) ? finalPoint : u.end,
-              },
-            })),
-          ])
-          const affectedIds = [nodeId as AnyNodeId, ...linkedUpdates.map((u) => u.id as AnyNodeId)]
-          const committedNodes = useScene.getState().nodes
-          useScene.getState().updateNodes(
-            affectedIds.flatMap((id) => {
-              const wall = committedNodes[id]
-              return wall?.type === 'wall'
-                ? [{ id, data: resolveMovedWallSupportSlabPatch(wall, committedNodes) }]
-                : []
-            }),
-          )
-          useScene.getState().markDirty(nodeId as AnyNodeId)
-          for (const u of linkedUpdates) {
-            useScene.getState().markDirty(u.id as AnyNodeId)
-          }
-        })
-        pauseSceneHistory(useScene)
-        triggerSFX('sfx:item-place')
+          clearPreviewOverrides()
+          runAsSingleSceneHistoryStep(useScene, () => {
+            scene.applyNodeChanges(plan.changes)
+            const committedNodes = useScene.getState().nodes
+            scene.updateNodes(
+              plan.updates.flatMap((update) => {
+                const wall = committedNodes[update.id]
+                return wall?.type === 'wall'
+                  ? [{ id: wall.id, data: resolveMovedWallSupportSlabPatch(wall, committedNodes) }]
+                  : []
+              }),
+            )
+          })
+          wasCommitted = true
+          triggerSFX('sfx:item-place')
+        } catch (error) {
+          if (!(error instanceof WallOperationError)) throw error
+          restoreOriginal()
+        }
       }
 
       useViewer.getState().setSelection({ selectedIds: [nodeId] })
@@ -650,7 +618,6 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
       useWallSnapIndicator.getState().clear()
       restoreOriginal()
       useViewer.getState().setSelection({ selectedIds: [nodeId] })
-      resumeSceneHistory(useScene)
       setAngleLabel(null)
       markToolCancelConsumed()
       exitMoveMode()
@@ -731,7 +698,6 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
       if (!wasCommitted) {
         restoreOriginal(false)
       }
-      resumeSceneHistory(useScene)
       emitter.off('grid:move', onGridMove)
       emitter.off('tool:cancel', onCancel)
       window.removeEventListener('pointerup', onPointerUp)

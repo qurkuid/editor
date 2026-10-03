@@ -24,6 +24,25 @@ function roomPolygon() {
   return square.map(([x, y]) => ({ x, y }))
 }
 
+function samePrefixRoomWalls() {
+  const rectangle = (y: number) => {
+    const x = -1000
+    const width = 4
+    const height = 0.2
+    return [
+      WallNode.parse({ start: [x, y], end: [x + width, y] }),
+      WallNode.parse({ start: [x + width, y], end: [x + width, y + height] }),
+      WallNode.parse({
+        start: [x + width, y + height],
+        end: [x, y + height],
+      }),
+      WallNode.parse({ start: [x, y + height], end: [x, y] }),
+    ]
+  }
+
+  return [...rectangle(0.1), ...rectangle(0.9)]
+}
+
 function squareWalls(height = 2.5) {
   return [
     WallNode.parse({ start: [0, 0], end: [4, 0], height }),
@@ -783,7 +802,20 @@ describe('procedural zones', () => {
       adoptContainedApartmentZones: true,
     })
 
-    expect(plan.update).toHaveLength(0)
+    expect(plan.update).toHaveLength(2)
+    for (const zone of zones) {
+      const update = plan.update.find((entry) => entry.id === zone.id)
+      expect(update?.data).toMatchObject({
+        enclosureStatus: 'open',
+        metadata: {
+          source: 'apt-vector',
+          sourceRoomId: zone.metadata?.sourceRoomId,
+          boundaryNeedsReview: true,
+        },
+      })
+      expect(update?.data.name).toBeUndefined()
+      expect(update?.data.polygon).toBeUndefined()
+    }
   })
 
   test('requires the import flag and apt-vector provenance before contained adoption', () => {
@@ -813,6 +845,232 @@ describe('procedural zones', () => {
     expect(
       planAutoZonesForLevel(spaces, [manualZone], { adoptContainedApartmentZones: true }).update,
     ).toHaveLength(0)
+  })
+
+  test('creates a provenance-tagged zone for every detected apartment room when labels are empty', () => {
+    const level = LevelNode.parse({ id: 'level_zone_import_empty' })
+    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
+    const spaces = detectSpacesForLevel(level.id, walls).spaces
+    const plan = planAutoZonesForLevel(spaces, [], {
+      createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
+    })
+
+    expect(plan.update).toHaveLength(0)
+    expect(plan.create).toHaveLength(1)
+    expect(plan.create[0]).toMatchObject({
+      parentId: level.id,
+      autoFromWalls: true,
+      spaceRole: 'room',
+      enclosureStatus: 'enclosed',
+      boundaryWallIds: spaces[0]?.wallIds,
+      metadata: { source: 'apt-vector', generatedFrom: 'detected-space' },
+    })
+  })
+
+  test('does not let an auto room demoted to open cover replacement spaces', () => {
+    const level = LevelNode.parse({ id: 'level_zone_replacement_spaces' })
+    const walls = samePrefixRoomWalls().map((wall) => ({ ...wall, parentId: level.id }))
+    const spaces = detectSpacesForLevel(level.id, walls).spaces
+    const obsoleteZone = ZoneNode.parse({
+      id: 'zone_obsolete_generated_room',
+      parentId: level.id,
+      name: 'Room 2',
+      autoFromWalls: true,
+      spaceRole: 'room',
+      boundaryWallIds: ['wall_obsolete_generated'],
+      polygon: [
+        [-1000, 0.1],
+        [-996, 0.1],
+        [-996, 1.1],
+        [-1000, 1.1],
+      ],
+      metadata: { source: 'apt-vector', generatedFrom: 'detected-space' },
+    })
+
+    const plan = planAutoZonesForLevel(spaces, [obsoleteZone], {
+      createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
+    })
+
+    expect(plan.update).toHaveLength(1)
+    expect(plan.update[0]).toMatchObject({
+      id: obsoleteZone.id,
+      data: {
+        enclosureStatus: 'open',
+        metadata: {
+          source: 'apt-vector',
+          generatedFrom: 'detected-space',
+          boundaryNeedsReview: true,
+        },
+      },
+    })
+    expect(plan.update[0]?.data.name).toBeUndefined()
+    expect(plan.update[0]?.data.polygon).toBeUndefined()
+    expect(plan.create).toHaveLength(2)
+    expect(plan.create.every((zone) => zone.enclosureStatus === 'enclosed')).toBe(true)
+    expect(plan.create.every((zone) => zone.metadata?.generatedFrom === 'detected-space')).toBe(
+      true,
+    )
+  })
+
+  test('keeps an enclosed generated room as coverage when it still matches', () => {
+    const level = LevelNode.parse({ id: 'level_zone_matched_generated' })
+    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
+    const spaces = detectSpacesForLevel(level.id, walls).spaces
+    const generatedZone = ZoneNode.parse({
+      id: 'zone_matched_generated_room',
+      parentId: level.id,
+      name: 'Room 1',
+      autoFromWalls: true,
+      spaceRole: 'room',
+      enclosureStatus: 'enclosed',
+      boundaryWallIds: spaces[0]!.wallIds,
+      polygon: spaces[0]!.polygon,
+      metadata: { source: 'apt-vector', generatedFrom: 'detected-space' },
+    })
+
+    const plan = planAutoZonesForLevel(spaces, [generatedZone], {
+      createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
+    })
+
+    expect(plan.create).toHaveLength(0)
+    expect(plan.update).toHaveLength(0)
+  })
+
+  test('keeps a manual open room as coverage without changing its provenance', () => {
+    const level = LevelNode.parse({ id: 'level_zone_manual_coverage' })
+    const walls = samePrefixRoomWalls().map((wall) => ({ ...wall, parentId: level.id }))
+    const spaces = detectSpacesForLevel(level.id, walls).spaces
+    const manualZone = ZoneNode.parse({
+      id: 'zone_manual_open_room',
+      parentId: level.id,
+      name: 'Manual room',
+      enclosureStatus: 'open',
+      polygon: [
+        [-1000.01, 0.09],
+        [-995.99, 0.09],
+        [-995.99, 0.31],
+        [-1000.01, 0.31],
+      ],
+      metadata: { source: 'user', boundaryNeedsReview: true },
+    })
+
+    const plan = planAutoZonesForLevel(spaces, [manualZone], {
+      createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
+    })
+
+    expect(plan.create).toHaveLength(1)
+    expect(plan.create[0]?.polygon).toEqual(spaces[1]!.polygon)
+    expect(plan.update).toHaveLength(0)
+  })
+
+  test('does not create a duplicate room over a union of semantic subdivisions', () => {
+    const level = LevelNode.parse({ id: 'level_zone_semantic_union' })
+    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
+    const [left, right] = [
+      ZoneNode.parse({
+        id: 'zone_semantic_left',
+        parentId: level.id,
+        name: 'Living',
+        polygon: [
+          [0, 0],
+          [2, 0],
+          [2, 3],
+          [0, 3],
+        ],
+        metadata: { source: 'user' },
+      }),
+      ZoneNode.parse({
+        id: 'zone_semantic_right',
+        parentId: level.id,
+        name: 'Dining',
+        polygon: [
+          [2, 0],
+          [4, 0],
+          [4, 3],
+          [2, 3],
+        ],
+        metadata: { source: 'user' },
+      }),
+    ]
+    const plan = planAutoZonesForLevel(
+      detectSpacesForLevel(level.id, walls).spaces,
+      [left!, right!],
+      {
+        createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
+      },
+    )
+    expect(plan.create).toHaveLength(0)
+    expect(plan.update).toHaveLength(0)
+  })
+
+  test('keeps an unmatched apartment zone open for review and restores it to enclosed', () => {
+    const level = LevelNode.parse({ id: 'level_zone_status' })
+    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
+    const zone = ZoneNode.parse({
+      id: 'zone_status_room',
+      parentId: level.id,
+      name: 'Bedroom',
+      spaceRole: 'room',
+      autoFromWalls: true,
+      boundaryWallIds: walls.map((wall) => wall.id),
+      polygon: square,
+      metadata: { source: 'apt-vector' },
+    })
+    const broken = planAutoZonesForLevel([], [zone], {
+      previousSpaces: detectSpacesForLevel(level.id, walls).spaces,
+      changedWalls: [walls[0]!],
+    })
+    expect(broken.update[0]?.data.enclosureStatus).toBe('open')
+    expect(broken.update[0]?.data.metadata).toEqual({
+      source: 'apt-vector',
+      boundaryNeedsReview: true,
+    })
+
+    const restored = ZoneNode.parse({ ...zone, ...broken.update[0]?.data })
+    const enclosed = planAutoZonesForLevel(detectSpacesForLevel(level.id, walls).spaces, [restored])
+    expect(enclosed.update[0]?.data.enclosureStatus).toBe('enclosed')
+    expect(enclosed.update[0]?.data.metadata).toEqual({ source: 'apt-vector' })
+  })
+
+  test('creates a missing zone after an apt-vector wall edit closes a live room', () => {
+    const level = LevelNode.parse({ id: 'level_zone_live_create' })
+    const apartmentSource = {
+      source: 'apt-vector',
+      apartmentId: 'apt-live',
+      planId: 'plan-live',
+    }
+    const openWalls = squareWalls()
+      .slice(0, 3)
+      .map((wall) => ({ ...wall, parentId: level.id, metadata: apartmentSource }))
+    const initial = Object.fromEntries(
+      [level, ...openWalls].map((node) => [node.id, node]),
+    ) as Record<string, AnyNode>
+    const scene = createSceneStoreStub(initial)
+    const stop = initSpaceDetectionSync(scene, createEditorStoreStub())
+    try {
+      const closing = WallNode.parse({
+        id: 'wall_live_closing',
+        parentId: level.id,
+        start: [0, 3],
+        end: [0, 0],
+        metadata: apartmentSource,
+      })
+      scene.setNodes({ ...scene.getState().nodes, [closing.id]: closing })
+      const zones = Object.values(scene.getState().nodes).filter((node) => node.type === 'zone')
+      expect(zones).toHaveLength(1)
+      expect(zones[0]).toMatchObject({
+        autoFromWalls: true,
+        enclosureStatus: 'enclosed',
+        metadata: {
+          source: 'apt-vector',
+          generatedFrom: 'detected-space',
+          apartmentId: 'apt-live',
+          planId: 'plan-live',
+        },
+      })
+    } finally {
+      stop()
+    }
   })
 })
 

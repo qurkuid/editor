@@ -252,7 +252,7 @@ describe('floorplan affordance cancellation', () => {
 
     expect(dragRef.current).toBeNull()
     expect(releasePointerCapture).toHaveBeenCalledWith(7)
-    expect(restoreSnapshots).toHaveBeenCalledWith(snapshots)
+    expect(restoreSnapshots).not.toHaveBeenCalled()
     expect(resumeHistory).toHaveBeenCalledTimes(1)
     expect(clearPreview).toHaveBeenCalledTimes(2)
     expect(clearPreview).toHaveBeenNthCalledWith(1, 'wall_a')

@@ -199,6 +199,7 @@ export {
   createWallOnCurrentLevel,
   getSegmentGridStep,
   isSegmentLongEnough,
+  planEndpointWallSplit,
   resolveEndpointWallSplit,
   resolveWallEndpointPoint,
   snapPointToGrid,

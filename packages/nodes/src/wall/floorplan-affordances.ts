@@ -1,15 +1,18 @@
 import {
   type AnyNode,
   type AnyNodeId,
+  buildWallEndpointUpdates,
   type FloorplanAffordance,
   type FloorplanAffordanceSession,
   getMaxWallCurveOffset,
   getWallChordFrame,
   normalizeWallCurveOffset,
+  roomBoundarySnapshot,
   runAsSingleSceneHistoryStep,
   useLiveNodeOverrides,
   useScene,
   type WallNode,
+  WallOperationError,
 } from '@pascal-app/core'
 import {
   alignFloorplanDraftPoint,
@@ -19,7 +22,6 @@ import {
   isAngleSnapActive,
   isMagneticSnapActive,
   isSegmentLongEnough,
-  resolveEndpointWallSplit,
   resolveWallEndpointPoint,
   snapBuildingLocalToWorldGrid,
   snapScalarToGrid,
@@ -27,6 +29,8 @@ import {
   type WallJunctionReference,
   type WallPlanPoint,
 } from '@pascal-app/editor'
+
+import { buildWallEndpointEditPlan } from './endpoint-edit-plan'
 
 /**
  * Floor-plan 2D drag affordances for wall.
@@ -206,6 +210,10 @@ export const wallCurveAffordance: FloorplanAffordance<WallNode> = {
 export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
   start({ node, payload, nodes }): FloorplanAffordanceSession {
     const { endpoint } = payload as WallEndpointPayload
+    const baseline = roomBoundarySnapshot(nodes, node.parentId)
+    let detached = false
+    let validPreview = false
+    let previewIds: AnyNodeId[] = []
     const fixedPoint: WallPlanPoint =
       endpoint === 'start' ? ([...node.end] as WallPlanPoint) : ([...node.start] as WallPlanPoint)
     const originalStart: WallPlanPoint = [...node.start] as WallPlanPoint
@@ -234,7 +242,6 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
     // Remember the latest preview so `commit()` can write it tracked.
     let lastPrimaryStart: WallPlanPoint = originalStart
     let lastPrimaryEnd: WallPlanPoint = originalEnd
-    let lastLinkedUpdates: Array<{ id: AnyNodeId; start: WallPlanPoint; end: WallPlanPoint }> = []
     const directionLock = createWallDirectionLock()
     let directionInferred = false
 
@@ -251,6 +258,7 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
         )
       },
       apply({ planPoint, modifiers }) {
+        detached = modifiers.altKey
         directionLock.set(
           modifiers.shiftKey,
           fixedPoint,
@@ -321,49 +329,31 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
         const primaryStart: WallPlanPoint = endpoint === 'start' ? aligned : fixedPoint
         const primaryEnd: WallPlanPoint = endpoint === 'end' ? aligned : fixedPoint
 
-        // ALT detaches: the linked walls keep their original endpoints,
-        // and only the dragged wall moves.
-        const linkedUpdates = modifiers.altKey
-          ? []
-          : linkedWalls.map((w) => ({
-              id: w.id,
-              start: pointsEqual(w.start, originalStart)
-                ? primaryStart
-                : pointsEqual(w.start, originalEnd)
-                  ? primaryEnd
-                  : w.start,
-              end: pointsEqual(w.end, originalStart)
-                ? primaryStart
-                : pointsEqual(w.end, originalEnd)
-                  ? primaryEnd
-                  : w.end,
-            }))
-
         lastPrimaryStart = primaryStart
         lastPrimaryEnd = primaryEnd
-        lastLinkedUpdates = linkedUpdates
 
-        // Publish overrides instead of writing to scene. WallSystem +
-        // 2D layer + sidebar panel merge these in. Marking dirty
-        // wakes the system's `useFrame` rebuild pass.
         const overrides = useLiveNodeOverrides.getState()
-        const sceneState = useScene.getState()
-        overrides.set(node.id as AnyNodeId, { start: primaryStart, end: primaryEnd })
-        sceneState.markDirty(node.id as AnyNodeId)
-        if (modifiers.altKey) {
-          // Attach→detach transition: linked walls dragged on earlier attached
-          // ticks still carry overrides — drop them so their corners snap back
-          // to the scene originals (untouched during the drag).
-          for (const linked of linkedWalls) {
-            if (overrides.get(linked.id)) {
-              overrides.clear(linked.id)
-              sceneState.markDirty(linked.id)
-            }
-          }
+        const scene = useScene.getState()
+        for (const id of previewIds) {
+          overrides.clear(id)
+          scene.markDirty(id)
         }
-        for (const upd of linkedUpdates) {
-          overrides.set(upd.id, { start: upd.start, end: upd.end })
-          sceneState.markDirty(upd.id)
+        previewIds = []
+        validPreview = false
+        if (scene.readOnly || roomBoundarySnapshot(scene.nodes, node.parentId) !== baseline) return
+        try {
+          const updates = buildWallEndpointUpdates(scene.nodes, node.id, primaryStart, primaryEnd, {
+            detachLinkedWalls: detached,
+          })
+          validPreview = true
+          for (const update of updates) {
+            overrides.set(update.id, update.data)
+            scene.markDirty(update.id)
+            if (!affectedIds.includes(update.id)) affectedIds.push(update.id)
+          }
+          previewIds = updates.map((update) => update.id)
+        } catch (error) {
+          if (!(error instanceof WallOperationError)) throw error
         }
       },
       canCommit() {
@@ -373,50 +363,60 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
         // The dragged wall must still be long enough at the preview
         // length — checked against `lastPrimary*`, not scene, because
         // scene holds baseline values until commit().
-        return isSegmentLongEnough(lastPrimaryStart, lastPrimaryEnd)
+        const scene = useScene.getState()
+        if (
+          !validPreview ||
+          scene.readOnly ||
+          roomBoundarySnapshot(scene.nodes, node.parentId) !== baseline ||
+          !isSegmentLongEnough(lastPrimaryStart, lastPrimaryEnd)
+        )
+          return false
+        try {
+          buildWallEndpointEditPlan(scene.nodes, {
+            wall: node,
+            endpoint,
+            start: lastPrimaryStart,
+            end: lastPrimaryEnd,
+            detach: detached,
+            radius: directionLock.active || directionInferred ? 1e-7 : undefined,
+          })
+          return true
+        } catch (error) {
+          if (error instanceof WallOperationError) return false
+          throw error
+        }
       },
       commit() {
-        // Atomic tracked write of the final endpoints, then drop the
-        // overrides so the scene state is the single source of truth
-        // again. Parity with the 3D move-endpoint tool: a drop on another
-        // wall's interior splits that host (create halves, migrate
-        // attachments, delete host) inside the same single history step as
-        // the endpoint write. Linked walls updated here share the drop point
-        // as an endpoint (a corner join, not a split) so they're excluded
-        // with the dragged wall; a zero-move drop skips the resolution
-        // entirely.
-        const movingPoint = endpoint === 'start' ? lastPrimaryStart : lastPrimaryEnd
-        const originalMovingPoint = endpoint === 'start' ? originalStart : originalEnd
-        runAsSingleSceneHistoryStep(useScene, () => {
-          const resolved = pointsEqual(movingPoint, originalMovingPoint)
-            ? null
-            : resolveEndpointWallSplit({
-                point: movingPoint,
-                levelId: (node.parentId ?? null) as string | null,
-                ignoreWallIds: [node.id, ...lastLinkedUpdates.map((u) => String(u.id))],
-                radius: directionLock.active || directionInferred ? 1e-7 : undefined,
-              })
-          const finalPoint = resolved ?? movingPoint
-          useScene.getState().updateNodes([
-            {
-              id: node.id,
-              data: {
-                start: endpoint === 'start' ? finalPoint : lastPrimaryStart,
-                end: endpoint === 'end' ? finalPoint : lastPrimaryEnd,
-              },
-            },
-            ...lastLinkedUpdates.map((u) => ({
-              id: u.id,
-              data: {
-                start: pointsEqual(u.start, movingPoint) ? finalPoint : u.start,
-                end: pointsEqual(u.end, movingPoint) ? finalPoint : u.end,
-              },
-            })),
-          ])
-        })
-        const overrides = useLiveNodeOverrides.getState()
-        overrides.clear(node.id as AnyNodeId)
-        for (const upd of lastLinkedUpdates) overrides.clear(upd.id)
+        const scene = useScene.getState()
+        try {
+          if (
+            scene.readOnly ||
+            roomBoundarySnapshot(scene.nodes, node.parentId) !== baseline ||
+            !validPreview
+          )
+            return
+          if (
+            pointsEqual(lastPrimaryStart, originalStart) &&
+            pointsEqual(lastPrimaryEnd, originalEnd)
+          )
+            return
+          const plan = buildWallEndpointEditPlan(scene.nodes, {
+            wall: node,
+            endpoint,
+            start: lastPrimaryStart,
+            end: lastPrimaryEnd,
+            detach: detached,
+            radius: directionLock.active || directionInferred ? 1e-7 : undefined,
+          })
+          runAsSingleSceneHistoryStep(useScene, () => scene.applyNodeChanges(plan.changes))
+        } catch (error) {
+          if (!(error instanceof WallOperationError)) throw error
+        } finally {
+          for (const id of previewIds) {
+            useLiveNodeOverrides.getState().clear(id)
+            scene.markDirty(id)
+          }
+        }
       },
     }
   },

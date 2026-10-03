@@ -21,6 +21,23 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('buildWallLengthUpdates')
     expect(MODELING_AGENT_MANUAL).toContain('all affected host spans')
     expect(MODELING_AGENT_MANUAL).toContain('metadata.boundaryNeedsReview')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Zone boundary panel reconciliation and live apt-vector wall edits create one `Zone`',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('generatedFrom: detected-space')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Split closed faces get replacement enclosed zones, while existing open review zones retain their stored polygon, content, and review marker',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('smallest multi-gap bundle')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'direct UI capability with no AI/MCP mutation operation',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('reject stale or read-only scenes before mutation')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Explicit target connection can extend both straight walls',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('Keep open stores a geometry-specific endpoint review')
+    expect(MODELING_AGENT_MANUAL).toContain('Endpoint dragging in both 2D and 3D validates')
   })
 
   test('documents the shared wall parallel alignment capability', () => {

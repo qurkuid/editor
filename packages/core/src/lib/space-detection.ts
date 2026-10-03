@@ -86,7 +86,15 @@ export type AutoCeilingSyncPlan = {
 }
 
 export type AutoZoneSyncPlan = {
+  create: ZoneNodeType[]
   update: Array<{ id: ZoneNodeType['id']; data: Partial<ZoneNodeType> }>
+}
+
+type AutoZoneCreationContext = {
+  source?: string
+  generatedFrom?: string
+  apartmentId?: string
+  planId?: string
 }
 
 const DEFAULT_AUTO_SLAB_ELEVATION = 0.05
@@ -830,6 +838,17 @@ function nextAutoRoomName(
   return `Room ${maxIndex + 1} ${suffix}`
 }
 
+function nextAutoZoneName(nodes: Array<{ name?: string }>) {
+  let maxIndex = 0
+  for (const node of nodes) {
+    const match = /^Room\s+(\d+)$/i.exec((node.name ?? '').trim())
+    if (!match) continue
+    const index = Number(match[1])
+    if (Number.isFinite(index)) maxIndex = Math.max(maxIndex, index)
+  }
+  return `Room ${maxIndex + 1}`
+}
+
 function sameTuplePolygon(current: Array<[number, number]>, next: Array<[number, number]>) {
   return (
     current.length === next.length &&
@@ -973,9 +992,13 @@ export function planAutoZonesForLevel(
     changedWalls?: readonly WallNode[]
     /** Adopt source apartment zones only during explicit import reconciliation. */
     adoptContainedApartmentZones?: boolean
+    /** Create missing room zones only for an explicit import or apt-vector live level. */
+    createMissingZones?: boolean | AutoZoneCreationContext
   } = {},
 ): AutoZoneSyncPlan {
+  const create: AutoZoneSyncPlan['create'] = []
   const update: AutoZoneSyncPlan['update'] = []
+  const claimedSpaces = new Set<Space>()
   // ponytail: reuse the existing sampled overlap; ambiguous semantic subdivisions stay manual.
   const coversSameRoom = (zone: ZoneNodeType, space: Space) => {
     const zonePolygon = zone.polygon.map(pointFromTuple)
@@ -1032,6 +1055,15 @@ export function planAutoZonesForLevel(
       metadata.source === 'apt-vector' &&
       ambiguousApartmentZoneIds.has(zone.id)
     ) {
+      update.push({
+        id: zone.id,
+        data: {
+          ...(zone.enclosureStatus !== 'open' ? { enclosureStatus: 'open' as const } : {}),
+          ...(!zoneNeedsBoundaryReview(zone)
+            ? { metadata: { ...metadata, boundaryNeedsReview: true } }
+            : {}),
+        },
+      })
       continue
     }
     const storedSignature = polygonSignature(
@@ -1059,6 +1091,7 @@ export function planAutoZonesForLevel(
       const affected =
         zone.autoFromWalls ||
         previousSpace ||
+        (context.adoptContainedApartmentZones && metadata.source === 'apt-vector') ||
         (zone.spaceRole === 'room' &&
           metadata.source === 'apt-vector' &&
           context.changedWalls?.some(
@@ -1076,11 +1109,21 @@ export function planAutoZonesForLevel(
                 zone.polygon.map(pointFromTuple),
               ),
           ))
-      if (affected && !zoneNeedsBoundaryReview(zone)) {
-        update.push({ id: zone.id, data: { metadata: { ...metadata, boundaryNeedsReview: true } } })
+      if (affected && (!zoneNeedsBoundaryReview(zone) || zone.enclosureStatus !== 'open')) {
+        update.push({
+          id: zone.id,
+          data: {
+            ...(zone.enclosureStatus !== 'open' ? { enclosureStatus: 'open' as const } : {}),
+            ...(!zoneNeedsBoundaryReview(zone)
+              ? { metadata: { ...metadata, boundaryNeedsReview: true } }
+              : {}),
+          },
+        })
       }
       continue
     }
+
+    claimedSpaces.add(matchingSpace)
 
     const data: Partial<ZoneNodeType> = {}
     if (!zone.autoFromWalls) data.autoFromWalls = true
@@ -1090,6 +1133,7 @@ export function planAutoZonesForLevel(
     if (!sameTuplePolygon(zone.polygon, matchingSpace.polygon)) {
       data.polygon = matchingSpace.polygon
     }
+    if (zone.enclosureStatus !== 'enclosed') data.enclosureStatus = 'enclosed'
     if (zoneNeedsBoundaryReview(zone)) {
       const { boundaryNeedsReview: _, ...remainingMetadata } = metadata
       data.metadata = remainingMetadata
@@ -1097,7 +1141,62 @@ export function planAutoZonesForLevel(
     if (Object.keys(data).length > 0) update.push({ id: zone.id, data })
   }
 
-  return { update }
+  const createContext =
+    context.createMissingZones === true
+      ? { source: undefined, generatedFrom: 'detected-space' }
+      : context.createMissingZones && typeof context.createMissingZones === 'object'
+        ? {
+            source: context.createMissingZones.source,
+            generatedFrom: context.createMissingZones.generatedFrom ?? 'detected-space',
+            apartmentId: context.createMissingZones.apartmentId,
+            planId: context.createMissingZones.planId,
+          }
+        : null
+  if (createContext) {
+    const updatedById = new Map(update.map((entry) => [entry.id, entry.data]))
+    const coveredPolygons = existingZones.flatMap((zone) => {
+      const data = updatedById.get(zone.id)
+      const effectiveEnclosureStatus = data?.enclosureStatus ?? zone.enclosureStatus
+      const effectiveMetadata = data?.metadata ?? zone.metadata
+      if (
+        effectiveEnclosureStatus === 'open' &&
+        effectiveMetadata !== null &&
+        typeof effectiveMetadata === 'object' &&
+        !Array.isArray(effectiveMetadata) &&
+        effectiveMetadata.generatedFrom === 'detected-space'
+      ) {
+        return []
+      }
+      return [(data?.polygon ?? zone.polygon).map(pointFromTuple)]
+    })
+    const names = existingZones.map((zone) => ({ name: zone.name }))
+    for (const space of spaces) {
+      if (claimedSpaces.has(space)) continue
+      const roomPolygon = space.polygon.map(pointFromTuple)
+      if (polygonCoverageRatio(roomPolygon, coveredPolygons) >= 0.9) continue
+      const zone = ZoneNode.parse({
+        parentId: space.levelId,
+        name: nextAutoZoneName(names),
+        polygon: space.polygon,
+        autoFromWalls: true,
+        boundaryWallIds: space.wallIds,
+        spaceRole: 'room',
+        enclosureStatus: 'enclosed',
+        clearDimensionPolicy: 'finish-faces',
+        metadata: {
+          ...(createContext.source ? { source: createContext.source } : {}),
+          generatedFrom: createContext.generatedFrom,
+          ...(createContext.apartmentId ? { apartmentId: createContext.apartmentId } : {}),
+          ...(createContext.planId ? { planId: createContext.planId } : {}),
+        },
+      })
+      create.push(zone)
+      names.push(zone)
+      coveredPolygons.push(roomPolygon)
+    }
+  }
+
+  return { create, update }
 }
 
 export function resolveAutoZonePolygon(
@@ -1642,6 +1741,34 @@ function runSpaceDetection(
         heightForRoom: (polygon) => placementFor(polygon)?.ceilingHeight,
       },
     )
+    const aptVectorMetadata = [...walls, ...zones].flatMap((node: any) => {
+      const metadata =
+        node?.metadata !== null &&
+        typeof node?.metadata === 'object' &&
+        !Array.isArray(node.metadata)
+          ? (node.metadata as Record<string, unknown>)
+          : null
+      return metadata?.source === 'apt-vector' ? [metadata] : []
+    })
+    const uniqueAptMetadataValue = (key: 'apartmentId' | 'planId') => {
+      const values = new Set(
+        aptVectorMetadata
+          .map((metadata) => metadata[key])
+          .filter((value): value is string => typeof value === 'string' && value.length > 0),
+      )
+      return values.size === 1 ? values.values().next().value : undefined
+    }
+    const apartmentId = uniqueAptMetadataValue('apartmentId')
+    const planId = uniqueAptMetadataValue('planId')
+    const aptVectorZoneContext: AutoZoneCreationContext | undefined =
+      aptVectorMetadata.length > 0
+        ? {
+            source: 'apt-vector',
+            generatedFrom: 'detected-space',
+            ...(apartmentId ? { apartmentId } : {}),
+            ...(planId ? { planId } : {}),
+          }
+        : undefined
     const zonePlan = planAutoZonesForLevel(
       spaces,
       zones.map((zone: any) => ZoneNode.parse(zone)),
@@ -1662,9 +1789,15 @@ function runSpaceDetection(
             )
           },
         ),
+        createMissingZones: aptVectorZoneContext,
       },
     )
     if (zonePlan.update.length > 0) updateNodes(zonePlan.update)
+    if (zonePlan.create.length > 0) {
+      sceneStore
+        .getState()
+        .createNodes(zonePlan.create.map((zone) => ({ node: zone, parentId: levelId })))
+    }
 
     for (const space of spaces) {
       nextSpaces[space.id] = space

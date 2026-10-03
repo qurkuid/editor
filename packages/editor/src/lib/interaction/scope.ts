@@ -62,6 +62,7 @@ export type InteractionScope =
       // Set only for `reshape: 'drop'` — the ceiling drop zone being reshaped.
       dropId?: string
       endpoint?: 'start' | 'end'
+      intent?: 'boundary-connect' | 'boundary-move'
       index?: number
       side?: 'in' | 'out'
     }

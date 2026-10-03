@@ -395,6 +395,9 @@ describe('AI provider boundary', () => {
     const prompt = buildAiModelingPrompt(request)
 
     expect(prompt).toContain(MODELING_AGENT_MANUAL)
+    expect(prompt).toContain('Explicit target connection can extend both straight walls')
+    expect(prompt).toContain('Keep open stores a geometry-specific endpoint review')
+    expect(prompt).toContain('Endpoint dragging in both 2D and 3D validates')
     expect(prompt).toContain(
       'align one uniquely resolved same-parent straight continuation within 2 degrees',
     )
