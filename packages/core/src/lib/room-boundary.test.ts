@@ -84,6 +84,59 @@ describe('room boundary diagnostics', () => {
     expect(result.danglingEndpoints).toHaveLength(0)
   })
 
+  test('clears recovered endpoint markers from a derived three-wall corner', () => {
+    const walls = [
+      WallNode.parse({
+        id: 'wall_p07_top',
+        parentId: level.id,
+        start: [-0.6216924548734495, 2.904138363417701],
+        end: [0.7031075451265515, 2.904138363417701],
+        thickness: 0.2347,
+      }),
+      WallNode.parse({
+        id: 'wall_p07_left',
+        parentId: level.id,
+        start: [-0.6216924548734496, 2.904138363417701],
+        end: [-0.6216924548734496, 0.5557383634177002],
+        thickness: 0.2347,
+      }),
+      WallNode.parse({
+        id: 'wall_p07_bottom',
+        parentId: level.id,
+        start: [-0.60729245487345, 0.5557383634177003],
+        end: [0.7031075451265515, 0.5557383634177003],
+        thickness: 0.2347,
+        children: ['door_p07'],
+      }),
+      WallNode.parse({
+        id: 'wall_p07_right',
+        parentId: level.id,
+        start: [0.7031075451265515, 0.5557383634177002],
+        end: [0.7031075451265515, 2.904138363417701],
+        thickness: 0.2347,
+      }),
+      WallNode.parse({
+        id: 'wall_p07_diagonal',
+        parentId: level.id,
+        start: [-0.6216924548734496, 0.545578679623234],
+        end: [-0.7280976681316088, 0.4705062267908951],
+        thickness: 0.1588,
+      }),
+    ]
+    const result = diagnoseRoomBoundaries(level.id, walls, [])
+
+    expect(result.spaces).toHaveLength(1)
+    expect(result.danglingEndpoints).not.toContainEqual(
+      expect.objectContaining({ wallId: 'wall_p07_left', endpoint: 'end' }),
+    )
+    expect(result.danglingEndpoints).not.toContainEqual(
+      expect.objectContaining({ wallId: 'wall_p07_bottom', endpoint: 'start' }),
+    )
+    expect(result.danglingEndpoints).toContainEqual(
+      expect.objectContaining({ wallId: 'wall_p07_diagonal', endpoint: 'start' }),
+    )
+  })
+
   test('rejects a T contact that is already within the room graph tolerance', () => {
     const walls = rectangleWalls(0)
     walls.push(

@@ -29,11 +29,25 @@ import {
   getWallCurveFrameAt,
   isCurvedWall,
 } from '../systems/wall/wall-curve'
+import { getWallPlanFootprint } from '../systems/wall/wall-footprint'
 import { resolveWallTop } from '../systems/wall/wall-top'
 import { simplifyClosedPolygon } from './polygon-geometry'
+import { polygonsOverlap } from './polygon-relations'
 import { terrainSupportLift } from './terrain-support'
+import { getWallConstructionEnvelopeThickness } from './wall-construction'
 
 type Point2D = { x: number; y: number }
+
+type CachedStraightWall = {
+  wall: WallNode
+  start: Point2D
+  end: Point2D
+  dx: number
+  dy: number
+  lengthSquared: number
+  length: number
+  unitDirection: Point2D
+}
 
 export type SpaceBoundaryFace = {
   wallId: WallNode['id']
@@ -101,10 +115,10 @@ const DEFAULT_AUTO_SLAB_ELEVATION = 0.05
 const CEILING_HEIGHT_EPSILON = 1e-6
 const ROOM_CURVE_TOLERANCE = 0.04
 const MAX_CURVE_SUBDIVISION_DEPTH = 6
-const AUTO_SLAB_POLYGON_SIMPLIFY_TOLERANCE = 0.08
+const AUTO_SLAB_POLYGON_SIMPLIFY_TOLERANCE = 1e-6
 const WALL_ROOM_BOUNDARY_TOLERANCE = 0.08
-// A wall endpoint within this distance of another wall's interior is treated as a
-// T-junction and splits that wall (see `splitStraightWallAtVertices`).
+// A wall endpoint within this distance of another straight wall's interior is
+// eligible for a validated projected T-junction.
 const WALL_JUNCTION_TOLERANCE = 0.08
 // An unmatched auto slab/ceiling whose polygon is still substantially covered
 // by a detected room was absorbed by a room merge — the surviving auto surface
@@ -492,21 +506,66 @@ function segmentProjection(point: Point2D, start: Point2D, end: Point2D) {
   return { t, distance: Math.hypot(point.x - projX, point.y - projY) }
 }
 
-// Break a straight wall at any junction vertex (another wall's endpoint) that
-// lands on its interior, returning the ordered polyline [start, …splits, end].
-// Splitting at the *vertex* position (not the projection) keeps the split node's
-// key identical to the touching wall's endpoint so the two share a graph node.
-function splitStraightWallAtVertices(start: Point2D, end: Point2D, vertices: Point2D[]) {
+// Break a straight wall at prevalidated graph points, returning the ordered
+// polyline [start, …splits, end]. Raw nearby endpoints stay out of this helper:
+// only exact crossings or safe host projections may create a junction.
+function cross2D(a: Point2D, b: Point2D) {
+  return a.x * b.y - a.y * b.x
+}
+
+type StraightLineIntersection = {
+  point: Point2D
+  firstT: number
+  secondT: number
+}
+
+function straightLineIntersection(
+  first: CachedStraightWall,
+  second: CachedStraightWall,
+): StraightLineIntersection | null {
+  const firstDirection = { x: first.dx, y: first.dy }
+  const secondDirection = { x: second.dx, y: second.dy }
+  const denominator = cross2D(firstDirection, secondDirection)
+  if (Math.abs(denominator) < 1e-9) return null
+
+  const betweenStarts = {
+    x: second.start.x - first.start.x,
+    y: second.start.y - first.start.y,
+  }
+  const firstT = cross2D(betweenStarts, secondDirection) / denominator
+  const secondT = cross2D(betweenStarts, firstDirection) / denominator
+  return {
+    point: {
+      x: first.start.x + firstT * firstDirection.x,
+      y: first.start.y + firstT * firstDirection.y,
+    },
+    firstT,
+    secondT,
+  }
+}
+
+function segmentProjectionOnCachedWall(point: Point2D, segment: CachedStraightWall) {
+  const { dx, dy, lengthSquared } = segment
+  if (lengthSquared < 1e-12) {
+    return { t: 0, distance: Math.hypot(point.x - segment.start.x, point.y - segment.start.y) }
+  }
+  const t = ((point.x - segment.start.x) * dx + (point.y - segment.start.y) * dy) / lengthSquared
+  const clampedT = Math.max(0, Math.min(1, t))
+  const projX = segment.start.x + clampedT * dx
+  const projY = segment.start.y + clampedT * dy
+  return { t, distance: Math.hypot(point.x - projX, point.y - projY) }
+}
+
+function splitStraightWallAtPoints(start: Point2D, end: Point2D, points: Point2D[] = []) {
   const length = Math.hypot(end.x - start.x, end.y - start.y)
   if (length < 1e-9) return [start, end]
 
   const interior: Array<{ point: Point2D; t: number }> = []
-  for (const vertex of vertices) {
-    const { t, distance } = segmentProjection(vertex, start, end)
-    if (distance > WALL_JUNCTION_TOLERANCE) continue
+  for (const point of points) {
+    const { t, distance } = segmentProjection(point, start, end)
     const along = t * length
-    if (along <= WALL_JUNCTION_TOLERANCE || along >= length - WALL_JUNCTION_TOLERANCE) continue
-    interior.push({ point: vertex, t })
+    if (distance > 1e-6 || along <= 1e-6 || along >= length - 1e-6) continue
+    interior.push({ point, t })
   }
   interior.sort((a, b) => a.t - b.t)
 
@@ -548,32 +607,507 @@ function extractRooms(walls: WallNode[]): ExtractedRoom[] {
     return key
   }
 
-  // Planarize first: collect every wall endpoint as a candidate graph vertex so
-  // straight walls can be split at T-junctions where another wall ends mid-span.
-  // Without this the touching wall's endpoint is a dangling degree-1 node and the
-  // enclosed area (e.g. a room added against the middle of an existing wall)
-  // never forms a cycle.
-  const vertexByKey = new Map<string, Point2D>()
+  // Interior crossings are graph vertices too. Scan the straight-wall set once
+  // per detection so both incident walls receive the same canonical point.
+  const straightWalls = walls.flatMap((wall): CachedStraightWall[] => {
+    if (isCurvedWall(wall)) return []
+    const start = pointFromTuple(wall.start)
+    const end = pointFromTuple(wall.end)
+    if (samePointWithinTolerance(start, end)) return []
+    const dx = end.x - start.x
+    const dy = end.y - start.y
+    const lengthSquared = dx * dx + dy * dy
+    const length = Math.hypot(dx, dy)
+    return [
+      {
+        wall,
+        start,
+        end,
+        dx,
+        dy,
+        lengthSquared,
+        length,
+        unitDirection: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 },
+      },
+    ]
+  })
+  const unmitredWallFootprints = new Map<WallNode['id'], Array<[number, number]>>()
+  const emptyWallMiterData = { junctionData: new Map(), junctions: new Map() }
+  const getUnmitredWallFootprint = (segment: (typeof straightWalls)[number]) => {
+    const cached = unmitredWallFootprints.get(segment.wall.id)
+    if (cached) return cached
+    const footprint: Array<[number, number]> = getWallPlanFootprint(
+      segment.wall,
+      emptyWallMiterData,
+    ).map((point): [number, number] => [point.x, point.y])
+    unmitredWallFootprints.set(segment.wall.id, footprint)
+    return footprint
+  }
+  const splitPointsByWall = new Map<WallNode['id'], Point2D[]>()
+  const projectedEndpointByKey = new Map<string, Point2D>()
+  const straightWallById = new Map(straightWalls.map((segment) => [segment.wall.id, segment]))
+  const endpointClusters = new Map<
+    string,
+    Array<{
+      wall: WallNode
+      name: 'start' | 'end'
+      point: Point2D
+      segment: (typeof straightWalls)[number] | undefined
+    }>
+  >()
+  for (const wall of walls) {
+    const segment = straightWallById.get(wall.id)
+    for (const [name, tuple] of [
+      ['start', wall.start],
+      ['end', wall.end],
+    ] as const) {
+      const point = pointFromTuple(tuple)
+      const key = pointKey(point)
+      const cluster = endpointClusters.get(key) ?? []
+      cluster.push({ wall, name, point, segment })
+      endpointClusters.set(key, cluster)
+    }
+  }
+  const addSplitPoint = (wallId: WallNode['id'], point: Point2D) => {
+    const points = splitPointsByWall.get(wallId) ?? []
+    if (!points.some((candidate) => samePointWithinTolerance(candidate, point, 1e-7))) {
+      points.push(point)
+      splitPointsByWall.set(wallId, points)
+    }
+  }
+  const hasDoorPassage = (wall: WallNode) =>
+    wall.children.some((childId) => childId.startsWith('door_'))
+
+  type EndpointRef = {
+    segment: (typeof straightWalls)[number]
+    name: 'start' | 'end'
+    point: Point2D
+    key: string
+  }
+  type EndpointCornerCandidate = {
+    first: EndpointRef
+    second: EndpointRef
+    point: Point2D
+    firstDisplacement: number
+    secondDisplacement: number
+  }
+  const endpointCornerCandidates: EndpointCornerCandidate[] = []
+
+  const endpointCornerForPair = (
+    first: (typeof straightWalls)[number],
+    second: (typeof straightWalls)[number],
+    intersection: StraightLineIntersection,
+  ): EndpointCornerCandidate | null => {
+    const firstLength = first.length
+    const secondLength = second.length
+    if (firstLength < 1e-9 || secondLength < 1e-9) return null
+
+    const { point, firstT, secondT } = intersection
+    const firstAtStart = firstT <= 1e-7
+    const firstAtEnd = firstT >= 1 - 1e-7
+    const secondAtStart = secondT <= 1e-7
+    const secondAtEnd = secondT >= 1 - 1e-7
+    if ((!firstAtStart && !firstAtEnd) || (!secondAtStart && !secondAtEnd)) return null
+
+    const firstName = firstAtStart ? 'start' : 'end'
+    const secondName = secondAtStart ? 'start' : 'end'
+    const firstEndpoint = firstAtStart ? first.start : first.end
+    const secondEndpoint = secondAtStart ? second.start : second.end
+    const firstDirection = first.unitDirection
+    const secondDirection = second.unitDirection
+    const firstOutward = firstAtStart
+      ? { x: -firstDirection.x, y: -firstDirection.y }
+      : firstDirection
+    const secondOutward = secondAtStart
+      ? { x: -secondDirection.x, y: -secondDirection.y }
+      : secondDirection
+    const firstToIntersection = {
+      x: point.x - firstEndpoint.x,
+      y: point.y - firstEndpoint.y,
+    }
+    const secondToIntersection = {
+      x: point.x - secondEndpoint.x,
+      y: point.y - secondEndpoint.y,
+    }
+    if (
+      firstToIntersection.x * firstOutward.x + firstToIntersection.y * firstOutward.y < -1e-7 ||
+      secondToIntersection.x * secondOutward.x + secondToIntersection.y * secondOutward.y < -1e-7
+    ) {
+      return null
+    }
+
+    const firstDisplacement = Math.hypot(firstToIntersection.x, firstToIntersection.y)
+    const secondDisplacement = Math.hypot(secondToIntersection.x, secondToIntersection.y)
+    if (
+      firstDisplacement > Math.min(WALL_JUNCTION_TOLERANCE, firstLength) + 1e-7 ||
+      secondDisplacement > Math.min(WALL_JUNCTION_TOLERANCE, secondLength) + 1e-7
+    ) {
+      return null
+    }
+
+    const firstFootprint = getUnmitredWallFootprint(first)
+    const secondFootprint = getUnmitredWallFootprint(second)
+    if (!polygonsOverlap(firstFootprint, secondFootprint)) return null
+
+    return {
+      first: {
+        segment: first,
+        name: firstName,
+        point: firstEndpoint,
+        key: `${first.wall.id}:${firstName}`,
+      },
+      second: {
+        segment: second,
+        name: secondName,
+        point: secondEndpoint,
+        key: `${second.wall.id}:${secondName}`,
+      },
+      point,
+      firstDisplacement,
+      secondDisplacement,
+    }
+  }
+
+  const addExactIntersections = (segments: typeof straightWalls, collectCorners = false) => {
+    for (let firstIndex = 0; firstIndex < segments.length; firstIndex += 1) {
+      const first = segments[firstIndex]!
+      for (let secondIndex = firstIndex + 1; secondIndex < segments.length; secondIndex += 1) {
+        const second = segments[secondIndex]!
+        const intersection = straightLineIntersection(first, second)
+        if (!intersection) continue
+
+        const endpointEpsilon = 1e-7
+        if (
+          intersection.firstT > endpointEpsilon &&
+          intersection.firstT < 1 - endpointEpsilon &&
+          intersection.secondT > endpointEpsilon &&
+          intersection.secondT < 1 - endpointEpsilon
+        ) {
+          addSplitPoint(first.wall.id, intersection.point)
+          addSplitPoint(second.wall.id, intersection.point)
+        }
+
+        if (collectCorners) {
+          const candidate = endpointCornerForPair(first, second, intersection)
+          if (candidate) endpointCornerCandidates.push(candidate)
+        }
+      }
+    }
+  }
+
+  // Exact interior intersections are authoritative. They are staged before
+  // any tolerance-based endpoint projection, including when either wall hosts
+  // a door or window.
+  addExactIntersections(straightWalls, true)
+
+  // Every authored endpoint can make an exact T against a straight host,
+  // including endpoints of curved walls. Keep the authored point as the graph
+  // coordinate so an exact contact never moves an incident wall.
   for (const wall of walls) {
     for (const tuple of [wall.start, wall.end]) {
       const point = pointFromTuple(tuple)
-      const key = pointKey(point)
-      if (!vertexByKey.has(key)) vertexByKey.set(key, point)
+      for (const host of straightWalls) {
+        if (host.wall.id === wall.id) continue
+        const projection = segmentProjectionOnCachedWall(point, host)
+        if (projection.distance > 1e-6) continue
+        if (projection.t <= 1e-7 || projection.t >= 1 - 1e-7) continue
+        addSplitPoint(host.wall.id, point)
+      }
     }
   }
-  const vertices = [...vertexByKey.values()]
+
+  const endpointCandidates = new Map<
+    string,
+    Array<{
+      host: (typeof straightWalls)[number]
+      point: Point2D
+      distance: number
+    }>
+  >()
+  for (const cluster of endpointClusters.values()) {
+    for (const endpoint of cluster) {
+      const segment = endpoint.segment
+      if (!segment) continue
+      const sourceLength = segment.length
+      if (sourceLength < 1e-9) continue
+
+      const sourceDirection = segment.unitDirection
+      const candidates: Array<{
+        host: (typeof straightWalls)[number]
+        point: Point2D
+        distance: number
+      }> = []
+      for (const host of straightWalls) {
+        if (host.wall.id === segment.wall.id) continue
+        const hostLength = host.length
+        if (hostLength < 1e-9) continue
+        const hostDirection = host.unitDirection
+        if (Math.abs(cross2D(sourceDirection, hostDirection)) < 1e-6) continue
+
+        const projection = segmentProjectionOnCachedWall(endpoint.point, host)
+        if (projection.distance > WALL_JUNCTION_TOLERANCE) continue
+        if (projection.t <= 1e-7 || projection.t >= 1 - 1e-7) continue
+        const projectedPoint = {
+          x: host.start.x + projection.t * host.dx,
+          y: host.start.y + projection.t * host.dy,
+        }
+        if (
+          pointKey(projectedPoint) === pointKey(host.start) ||
+          pointKey(projectedPoint) === pointKey(host.end)
+        ) {
+          continue
+        }
+        candidates.push({ host, point: projectedPoint, distance: projection.distance })
+      }
+      endpointCandidates.set(`${endpoint.wall.id}:${endpoint.name}`, candidates)
+    }
+  }
+
+  // Exact endpoint-to-interior contacts are also authoritative and stay valid
+  // on walls hosting passages. Approximate contacts are considered below as a
+  // whole authored endpoint cluster so a shared graph vertex cannot split.
+  for (const candidates of endpointCandidates.values()) {
+    for (const candidate of candidates) {
+      if (candidate.distance <= 1e-6) addSplitPoint(candidate.host.wall.id, candidate.point)
+    }
+  }
+
+  // A short, unique endpoint-to-interior contact is safe only when every
+  // straight wall incident to the authored endpoint cluster agrees on one host
+  // and one projected point. Any curved incident or door passage makes the
+  // approximate projection fail closed; the host's geometry is never bent.
+  for (const cluster of endpointClusters.values()) {
+    const straightEndpoints = cluster.filter((endpoint) => endpoint.segment)
+    if (straightEndpoints.length === 0 || straightEndpoints.length !== cluster.length) continue
+
+    const clusterCandidates = straightEndpoints.map((endpoint) => {
+      const candidates = endpointCandidates.get(`${endpoint.wall.id}:${endpoint.name}`) ?? []
+      if (candidates.some((candidate) => candidate.distance <= 1e-6)) return null
+      const approximate = candidates.filter(
+        (candidate) =>
+          candidate.distance > 1e-6 &&
+          !hasDoorPassage(endpoint.wall) &&
+          !hasDoorPassage(candidate.host.wall),
+      )
+      return approximate.length === 1 ? approximate[0]! : null
+    })
+    if (clusterCandidates.some((candidate) => candidate === null)) continue
+
+    const firstCandidate = clusterCandidates[0]
+    if (!firstCandidate) continue
+    if (
+      clusterCandidates.some(
+        (candidate) =>
+          candidate === null ||
+          candidate.host.wall.id !== firstCandidate.host.wall.id ||
+          !samePointWithinTolerance(candidate.point, firstCandidate.point, 1e-6),
+      )
+    ) {
+      continue
+    }
+
+    for (const endpoint of straightEndpoints) {
+      projectedEndpointByKey.set(`${endpoint.wall.id}:${endpoint.name}`, firstCandidate.point)
+    }
+    addSplitPoint(firstCandidate.host.wall.id, firstCandidate.point)
+  }
+
+  // Resolve compact physical endpoint components in the derived graph. Every
+  // pair in a component must have a bounded non-parallel outward intersection;
+  // the component's authored endpoint diameter is also bounded by the common
+  // construction envelope. Each endpoint follows its own source line to the
+  // farthest proven intersection, while nearer intersections remain split
+  // points on that same line.
+  if (endpointCornerCandidates.length > 0) {
+    const parent = new Map<string, string>()
+    const endpointByKey = new Map<string, EndpointRef>()
+    const find = (key: string): string => {
+      const current = parent.get(key)
+      if (!current || current === key) {
+        parent.set(key, key)
+        return key
+      }
+      const root = find(current)
+      parent.set(key, root)
+      return root
+    }
+    const union = (first: string, second: string) => {
+      const firstRoot = find(first)
+      const secondRoot = find(second)
+      if (firstRoot !== secondRoot) parent.set(secondRoot, firstRoot)
+    }
+
+    for (const candidate of endpointCornerCandidates) {
+      endpointByKey.set(candidate.first.key, candidate.first)
+      endpointByKey.set(candidate.second.key, candidate.second)
+      union(candidate.first.key, candidate.second.key)
+    }
+
+    const candidatesByRoot = new Map<string, EndpointCornerCandidate[]>()
+    for (const candidate of endpointCornerCandidates) {
+      const root = find(candidate.first.key)
+      const group = candidatesByRoot.get(root) ?? []
+      group.push(candidate)
+      candidatesByRoot.set(root, group)
+    }
+
+    for (const group of candidatesByRoot.values()) {
+      const endpointKeys = new Set(
+        group.flatMap((candidate) => [candidate.first.key, candidate.second.key]),
+      )
+      const endpointRefs = [...endpointKeys]
+        .map((key) => endpointByKey.get(key))
+        .filter((endpoint): endpoint is EndpointRef => endpoint !== undefined)
+      if (endpointRefs.length !== endpointKeys.size) continue
+
+      const wallIds = new Set(endpointRefs.map((endpoint) => endpoint.segment.wall.id))
+      if (wallIds.size !== endpointRefs.length) continue
+
+      const componentDiameter = endpointRefs.reduce(
+        (maximum, first) =>
+          Math.max(
+            maximum,
+            ...endpointRefs.map((second) =>
+              Math.hypot(first.point.x - second.point.x, first.point.y - second.point.y),
+            ),
+          ),
+        0,
+      )
+      const componentLimit = Math.min(
+        WALL_JUNCTION_TOLERANCE,
+        ...endpointRefs.map(
+          (endpoint) => getWallConstructionEnvelopeThickness(endpoint.segment.wall) / 2,
+        ),
+      )
+      if (componentDiameter > componentLimit + 1e-7) continue
+
+      const candidateKey = (first: string, second: string) => [first, second].sort().join('|')
+      const candidateByKey = new Map(
+        group.map((candidate) => [
+          candidateKey(candidate.first.key, candidate.second.key),
+          candidate,
+        ]),
+      )
+      let complete = true
+      for (let firstIndex = 0; firstIndex < endpointRefs.length; firstIndex += 1) {
+        for (
+          let secondIndex = firstIndex + 1;
+          secondIndex < endpointRefs.length;
+          secondIndex += 1
+        ) {
+          if (
+            !candidateByKey.has(
+              candidateKey(endpointRefs[firstIndex]!.key, endpointRefs[secondIndex]!.key),
+            )
+          ) {
+            complete = false
+            break
+          }
+        }
+        if (!complete) break
+      }
+      if (!complete) continue
+
+      const endpointClusterIncidentKeys = new Set<string>()
+      let valid = true
+      for (const endpoint of endpointRefs) {
+        const cluster = endpointClusters.get(pointKey(endpoint.point)) ?? []
+        if (cluster.some((incident) => !incident.segment)) {
+          valid = false
+          break
+        }
+        for (const incident of cluster) {
+          const key = `${incident.wall.id}:${incident.name}`
+          endpointClusterIncidentKeys.add(key)
+          if (!endpointKeys.has(key)) {
+            valid = false
+            break
+          }
+        }
+        if (!valid) break
+      }
+      if (!valid || endpointClusterIncidentKeys.size !== endpointKeys.size) continue
+
+      const targetByEndpoint = new Map<string, Point2D>()
+      for (const endpoint of endpointRefs) {
+        const incidentCandidates = group.flatMap((candidate) => {
+          if (candidate.first.key === endpoint.key) {
+            return [{ candidate, displacement: candidate.firstDisplacement }]
+          }
+          if (candidate.second.key === endpoint.key) {
+            return [{ candidate, displacement: candidate.secondDisplacement }]
+          }
+          return []
+        })
+        if (incidentCandidates.length === 0) {
+          valid = false
+          break
+        }
+        incidentCandidates.sort((first, second) => second.displacement - first.displacement)
+        const target = incidentCandidates[0]!.candidate.point
+        const displacement = Math.hypot(target.x - endpoint.point.x, target.y - endpoint.point.y)
+        const length = endpoint.segment.length
+        if (displacement > Math.min(WALL_JUNCTION_TOLERANCE, length) + 1e-7) {
+          valid = false
+          break
+        }
+        const existing = projectedEndpointByKey.get(endpoint.key)
+        if (existing && !samePointWithinTolerance(existing, target, 1e-6)) {
+          valid = false
+          break
+        }
+        if (!samePointWithinTolerance(target, endpoint.point, 1e-7)) {
+          targetByEndpoint.set(endpoint.key, target)
+        }
+      }
+      if (!valid) continue
+
+      for (const candidate of group) {
+        addSplitPoint(candidate.first.segment.wall.id, candidate.point)
+        addSplitPoint(candidate.second.segment.wall.id, candidate.point)
+      }
+      for (const [key, target] of targetByEndpoint) projectedEndpointByKey.set(key, target)
+    }
+  }
+
+  // Endpoint projection changes only the derived graph coordinates. Run the
+  // exact-intersection pass against those effective segments so a crossing that
+  // disappeared at a projected endpoint is not left as a stale split point.
+  if (projectedEndpointByKey.size > 0) {
+    const effectiveStraightWalls = straightWalls.map((segment): CachedStraightWall => {
+      const start = projectedEndpointByKey.get(`${segment.wall.id}:start`) ?? segment.start
+      const end = projectedEndpointByKey.get(`${segment.wall.id}:end`) ?? segment.end
+      const dx = end.x - start.x
+      const dy = end.y - start.y
+      const lengthSquared = dx * dx + dy * dy
+      const length = Math.hypot(dx, dy)
+      return {
+        ...segment,
+        start,
+        end,
+        dx,
+        dy,
+        lengthSquared,
+        length,
+        unitDirection: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 },
+      }
+    })
+    addExactIntersections(effectiveStraightWalls)
+  }
 
   for (const wall of walls) {
-    const start = pointFromTuple(wall.start)
-    const end = pointFromTuple(wall.end)
+    const originalStart = pointFromTuple(wall.start)
+    const originalEnd = pointFromTuple(wall.end)
+    const start = projectedEndpointByKey.get(`${wall.id}:start`) ?? originalStart
+    const end = projectedEndpointByKey.get(`${wall.id}:end`) ?? originalEnd
     if (samePointWithinTolerance(start, end)) continue
 
     // Curved walls keep their sampled polyline as one edge; straight walls split
-    // into consecutive sub-edges at their interior junction vertices.
+    // into consecutive sub-edges at their validated planarization points.
     const subPolylines: Point2D[][] = isCurvedWall(wall)
       ? [sampleWallPointsForRoomDetection(wall)]
       : (() => {
-          const ordered = splitStraightWallAtVertices(start, end, vertices)
+          const ordered = splitStraightWallAtPoints(start, end, splitPointsByWall.get(wall.id))
           const parts: Point2D[][] = []
           for (let index = 0; index < ordered.length - 1; index += 1) {
             parts.push([ordered[index]!, ordered[index + 1]!])
@@ -890,16 +1424,11 @@ function zoneGeometrySignature(zone: ZoneNodeType) {
 // Slab/ceiling POLYGONS stay out of the trigger signature: including
 // generated footprints caused delete/recreate feedback. Zones are included
 // only so a newly traced room footprint can adopt its enclosing walls
-// without waiting for the next remodel. Slab ELEVATIONS and the level's
-// stored storey height ARE included — both feed the explicit-ceiling
-// re-clamp bound (the storey plane), and neither is rewritten by
-// the sync, so regeneration triggers when they change without feedback.
-// Stage 3-B adds the LEVEL-ABOVE's covering-slab undersides (elevation −
-// thickness, recessed pools excluded): a deck created, lowered, or
-// thickened above must re-run the sync below so ceilings re-clamp under
-// it. Same polygon exclusion applies — the level-above's own auto sync
-// rewrites its slab footprints, and hashing them here would re-trigger
-// this level on every remodel above.
+// without waiting for the next remodel. A level owns the ID/elevation of
+// manual slabs, while the level-above signal uses every non-recessed slab's
+// underside so an auto deck can re-clamp ceilings below without making its
+// own footprint an ownership trigger. The stored storey height remains in
+// the signature because it feeds the explicit-ceiling re-clamp bound.
 function levelStructureSnapshots(nodes: Record<string, any>) {
   const wallsByLevel = new Map<string, WallNode[]>()
   const zonesByLevel = new Map<string, ZoneNodeType[]>()
@@ -918,11 +1447,13 @@ function levelStructureSnapshots(nodes: Record<string, any>) {
       zones.push(ZoneNode.parse(node))
       zonesByLevel.set(levelId, zones)
     } else if ((node as any).type === 'slab') {
-      const elevations = slabElevationsByLevel.get(levelId) ?? []
-      elevations.push(
-        `${(node as any).id}:${(((node as any).elevation as number | undefined) ?? DEFAULT_AUTO_SLAB_ELEVATION).toFixed(4)}`,
-      )
-      slabElevationsByLevel.set(levelId, elevations)
+      if ((node as any).autoFromWalls !== true) {
+        const elevations = slabElevationsByLevel.get(levelId) ?? []
+        elevations.push(
+          `${(node as any).id}:${(((node as any).elevation as number | undefined) ?? DEFAULT_AUTO_SLAB_ELEVATION).toFixed(4)}`,
+        )
+        slabElevationsByLevel.set(levelId, elevations)
+      }
       if ((node as any).recessed !== true) {
         const undersides = coveringUndersidesByLevel.get(levelId) ?? []
         const elevation = ((node as any).elevation as number | undefined) ?? 0.05
@@ -959,7 +1490,11 @@ function levelStructureSnapshots(nodes: Record<string, any>) {
 function buildSpace(levelId: string, room: ExtractedRoom): Space {
   const signature = polygonSignature(room.polygon)
   return {
-    id: `space-${levelId}-${signature.slice(0, 12)}`,
+    // Space ids live only in the editor store, so keep the complete canonical
+    // polygon signature. A short prefix can collide for distinct loops that
+    // share their first coordinates, causing the later loop to overwrite the
+    // earlier one in the level's space map.
+    id: `space-${levelId}-${signature}`,
     levelId,
     polygon: room.polygon.map(pointToTuple),
     wallIds: [...new Set(room.boundaryFaces.map((boundary) => boundary.wallId))],
@@ -1012,9 +1547,8 @@ export function planAutoZonesForLevel(
   const adoptedApartmentSpaces = new Map<ZoneNodeType['id'], Space>()
   const ambiguousApartmentZoneIds = new Set<ZoneNodeType['id']>()
   if (context.adoptContainedApartmentZones) {
-    // Space ids are intentionally compact signatures and can collide for
-    // distinct loops with the same leading points. Keep the object identity
-    // from this `spaces` array so claimant counts remain per detected loop.
+    // Keep object identity from this `spaces` array so claimant counts remain
+    // per detected loop.
     const claimsBySpace = new Map<Space, number>()
     const candidatesByZone = new Map<ZoneNodeType['id'], Space>()
 
@@ -1055,15 +1589,13 @@ export function planAutoZonesForLevel(
       metadata.source === 'apt-vector' &&
       ambiguousApartmentZoneIds.has(zone.id)
     ) {
-      update.push({
-        id: zone.id,
-        data: {
-          ...(zone.enclosureStatus !== 'open' ? { enclosureStatus: 'open' as const } : {}),
-          ...(!zoneNeedsBoundaryReview(zone)
-            ? { metadata: { ...metadata, boundaryNeedsReview: true } }
-            : {}),
-        },
-      })
+      const data: Partial<ZoneNodeType> = {
+        ...(zone.enclosureStatus !== 'open' ? { enclosureStatus: 'open' as const } : {}),
+        ...(!zoneNeedsBoundaryReview(zone)
+          ? { metadata: { ...metadata, boundaryNeedsReview: true } }
+          : {}),
+      }
+      if (Object.keys(data).length > 0) update.push({ id: zone.id, data })
       continue
     }
     const storedSignature = polygonSignature(
@@ -1163,7 +1695,9 @@ export function planAutoZonesForLevel(
         effectiveMetadata !== null &&
         typeof effectiveMetadata === 'object' &&
         !Array.isArray(effectiveMetadata) &&
-        effectiveMetadata.generatedFrom === 'detected-space'
+        (effectiveMetadata.generatedFrom === 'detected-space' ||
+          (effectiveMetadata.source === 'apt-vector' &&
+            effectiveMetadata.boundaryNeedsReview === true))
       ) {
         return []
       }

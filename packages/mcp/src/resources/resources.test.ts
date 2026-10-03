@@ -237,7 +237,39 @@ describe('pascal://agent-guide', () => {
       expect(text).toContain('adoptContainedApartmentZones')
       expect(text).toContain('covers at least 90% of exactly one current enclosed space')
       expect(text).toContain(
-        'Zone boundary panel reconciliation and live apt-vector wall edits create one `Zone`',
+        'A guide with `scale === 1` and `scaleReference === null` is the default placeholder',
+      )
+      expect(text).toContain(
+        'automatic modeling promotes it to the physical source `guideScale` while preserving position and yaw',
+      )
+      expect(text).toContain(
+        'Preserve every explicit `scaleReference`, including scale 1, and every manually numeric non-1 guide scale',
+      )
+      expect(text).toContain('guide promotion and generated nodes remain one undoable history step')
+      expect(text).toContain('a failed import mutates neither guide nor graph')
+      expect(text).toContain(
+        'An explicit synchronized same-guide Set Scale can supply physical calibration for a pixel document',
+      )
+      expect(text).toContain('this does not relax the automatic calibration gate')
+      expect(text).toContain(
+        'Same-run normalization and opening hosting use separate reason-aware unions',
+      )
+      expect(text).toContain('nonabsorbable by the existing same-run predicate on both sides')
+      expect(text).toContain('reject only that relation’s opposite-root normal union')
+      expect(text).toContain('A failed opening-host union fails the import before placement')
+      expect(text).toContain(
+        'all inferred crossing extensions preserve retained source contacts; otherwise leave the opening unhosted for review',
+      )
+      expect(text).toContain('relation-owned snap/weld moves through the bridge')
+      expect(text).toContain('distance ≤ 1e-6 m) never extends to that segment’s distant endpoint')
+      expect(text).toContain('Measure contained duplicate spans only')
+      expect(text).toContain('source-backed dual-jamb ray cluster')
+      expect(text).toContain('host the raw span without clamping')
+      expect(text).toContain(
+        'Every confirmed closed apartment Space receives exactly one enclosed physical `Zone`',
+      )
+      expect(text).toContain(
+        'Open apt-vector semantic review subdivisions with `enclosureStatus: open` and `metadata.boundaryNeedsReview` remain preserved overlays and cannot suppress the generated physical owner',
       )
       expect(text).toContain('generatedFrom: detected-space')
       expect(text).toContain('smallest multi-gap bundle')
@@ -249,6 +281,25 @@ describe('pascal://agent-guide', () => {
       expect(text).toContain('Manual wall boundary connection has two explicit routes')
       expect(text).toContain('horizontal→vertical or vertical→horizontal bends')
       expect(text).toContain('Preview creates no scene nodes')
+      expect(text).toContain('planarizes only the derived graph')
+      expect(text).toContain(
+        'strict interior intersections of straight walls use one canonical point in both incident split lists',
+      )
+      expect(text).toContain(
+        'complete straight endpoint cluster agrees on one unique non-parallel host and projected point',
+      )
+      expect(text).toContain(
+        'A compact complete component of non-parallel straight endpoint corners may follow each authored outward ray only when every pair has an exact intersection',
+      )
+      expect(text).toContain('authored construction footprints overlap')
+      expect(text).toContain(
+        'each source line extends only to its farthest proven intersection and nearer intersections remain split points',
+      )
+      expect(text).toContain('Stored wall endpoints are never mutated or bent')
+      expect(text).toContain('parallel or collinear gaps and unmatched passages stay open')
+      expect(text).toContain(
+        'separated passages, curved incidents, incomplete or ambiguous components, and door-hosted approximate contacts fail closed',
+      )
       expect(text).toContain(
         'align one uniquely resolved same-parent straight continuation within 2 degrees',
       )

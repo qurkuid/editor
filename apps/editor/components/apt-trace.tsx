@@ -124,6 +124,14 @@ export function AptTrace({
           metadata: { ...(zone.metadata as Record<string, unknown>), ...tag },
         }
       }
+      for (const slab of vectorNodes.slabs) {
+        levelChildIds.push(slab.id)
+        extraNodes[slab.id] = { ...slab, parentId: levelId }
+      }
+      for (const ceiling of vectorNodes.ceilings) {
+        levelChildIds.push(ceiling.id)
+        extraNodes[ceiling.id] = { ...ceiling, parentId: levelId }
+      }
     }
 
     const graph = {

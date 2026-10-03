@@ -25,7 +25,7 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain('all affected host spans')
     expect(MODELING_AGENT_MANUAL).toContain('metadata.boundaryNeedsReview')
     expect(MODELING_AGENT_MANUAL).toContain(
-      'Zone boundary panel reconciliation and live apt-vector wall edits create one `Zone`',
+      'Every confirmed closed apartment Space receives exactly one enclosed physical `Zone`',
     )
     expect(MODELING_AGENT_MANUAL).toContain('generatedFrom: detected-space')
     expect(MODELING_AGENT_MANUAL).toContain(
@@ -127,12 +127,116 @@ describe('Phase 2 ontology manual contract', () => {
     expect(MODELING_AGENT_MANUAL).toContain(
       'Never synthesize a missing boundary by closing a room polygon',
     )
+    expect(MODELING_AGENT_MANUAL).toContain('vector document version 15')
+    expect(MODELING_AGENT_MANUAL).toContain('within 10% of a merged dimension-line midpoint')
+    expect(MODELING_AGENT_MANUAL).toContain('each merged interval contributes at most one vote')
+    expect(MODELING_AGENT_MANUAL).toContain('centered evidence conflicts or fails to cluster')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'never infer scale from a silhouette bounding box or a single axis',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'An explicit synchronized same-guide Set Scale can supply physical calibration for a pixel document',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('this does not relax the automatic calibration gate')
+  })
+
+  test('documents the bounded apartment weld budget', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('`min(1 m, original segment length)`')
+    expect(MODELING_AGENT_MANUAL).toContain('preserve hosted openings')
+    expect(MODELING_AGENT_MANUAL).toContain('unsupported or ambiguous closure')
+  })
+
+  test('documents source-chain merge and snap guards', () => {
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Same-run normalization and opening hosting use separate reason-aware unions',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'nonabsorbable by the existing same-run predicate on both sides',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'reject only that relation’s opposite-root normal union',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'A failed opening-host union fails the import before placement',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'all inferred crossing extensions preserve retained source contacts; otherwise leave the opening unhosted for review',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('relation-owned snap/weld moves through the bridge')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'distance ≤ 1e-6 m) never extends to that segment’s distant endpoint',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('Measure contained duplicate spans only')
+    expect(MODELING_AGENT_MANUAL).toContain('source-backed dual-jamb ray cluster')
+    expect(MODELING_AGENT_MANUAL).toContain('host the raw span without clamping')
   })
 
   test('documents shared apartment import orientation', () => {
     expect(MODELING_AGENT_MANUAL).toContain('horizontal/vertical source-image flips')
     expect(MODELING_AGENT_MANUAL).toContain('same undoable import')
     expect(MODELING_AGENT_MANUAL).toContain('image center')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'A guide with `scale === 1` and `scaleReference === null` is the default placeholder',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'automatic modeling promotes it to the physical source `guideScale` while preserving position and yaw',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Preserve every explicit `scaleReference`, including scale 1, and every manually numeric non-1 guide scale',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'guide promotion and generated nodes remain one undoable history step',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('a failed import mutates neither guide nor graph')
+  })
+
+  test('documents initial apartment floor persistence', () => {
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'persist derived auto Slabs and Ceilings only for confirmed closed wall spaces after the final-frame detection',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'source or semantic open-space Zones do not prove a floor footprint',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Hydration and deletion cleanup remain level-scoped and preserve the existing derived-node lifecycle',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Direct deletion or elevation edits to an auto Slab persist without an own-level replan',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'own-level `slabKey` reconciliation applies only to manual or non-auto Slab ids and elevations',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'Above-level covering undersides remain unchanged for every non-recessed Slab, including auto Slabs',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'above-level auto deletion, elevation, or thickness changes still clamp the lower Ceiling',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('initial hydration baselines remain unchanged')
+  })
+
+  test('documents detection-only straight graph planarization', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('planarizes only the derived graph')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'strict interior intersections of straight walls use one canonical point in both incident split lists',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'complete straight endpoint cluster agrees on one unique non-parallel host and projected point',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'A compact complete component of non-parallel straight endpoint corners may follow each authored outward ray only when every pair has an exact intersection',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('authored construction footprints overlap')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'each source line extends only to its farthest proven intersection and nearer intersections remain split points',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain('Stored wall endpoints are never mutated or bent')
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'parallel or collinear gaps and unmatched passages stay open',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'separated passages, curved incidents, incomplete or ambiguous components, and door-hosted approximate contacts fail closed',
+    )
   })
 
   test('documents preserved Zone boundaries and structural membership UI', () => {

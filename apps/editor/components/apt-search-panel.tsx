@@ -1,12 +1,19 @@
 'use client'
 
-import { GuideNode, runAsSingleSceneHistoryStep } from '@pascal-app/core'
+import {
+  type CeilingNode as CeilingNodeType,
+  GuideNode,
+  type GuideNode as GuideNodeType,
+  runAsSingleSceneHistoryStep,
+  type SlabNode as SlabNodeType,
+} from '@pascal-app/core'
 import { useEditor, useScene, useViewer } from '@pascal-app/editor'
 import { ArrowLeft, Building2, Check, ExternalLink, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useState } from 'react'
 import { typeWithPyeong } from '@/lib/apt-format'
 import {
+  type AptGuideImportFrame,
   type AptPlanOrientation,
   aptImageTransform,
   findAptDerivedSurfaceIdsForLevel,
@@ -15,7 +22,14 @@ import {
   getAptGuideTransformError,
   isAptVectorNodeForLevel,
 } from '@/lib/apt-import-frame'
-import { type AptVectorDoc, buildVectorNodes } from '@/lib/apt-vector-scene'
+import {
+  APT_GUIDE_SCALE_RECOVERY_MESSAGE,
+  type AptVectorDoc,
+  buildVectorNodes,
+  normalizeAptVectorDocForGuide,
+  selectAptGuideForCalibration,
+  selectAptGuideForImport,
+} from '@/lib/apt-vector-scene'
 import { withBasePath } from '@/lib/base-path'
 import {
   type AptComplex,
@@ -36,6 +50,7 @@ export function AptSearchPanel() {
   const levelId = useViewer((s) => s.selection.levelId)
   const setShowGuides = useViewer((s) => s.setShowGuides)
   const createNode = useScene((s) => s.createNode)
+  const selectedReferenceId = useEditor((s) => s.selectedReferenceId)
   const setSelectedReferenceId = useEditor((s) => s.setSelectedReferenceId)
   const [addedPlanId, setAddedPlanId] = useState<string | null>(null)
   const [autoPlan, setAutoPlan] = useState<{
@@ -98,11 +113,40 @@ export function AptSearchPanel() {
           ? ((await response.json()) as { code: string; data?: AptVectorDoc })
           : null
         const existingNodes = useScene.getState().nodes
-        const existingGuide = findAptGuideForLevel(
+        const candidateGuide = findAptGuideForLevel(
           existingNodes,
           levelId,
           complex.apartmentId,
           plan.planId,
+        )
+        const strictGuides = Object.values(existingNodes).filter((node): node is GuideNodeType => {
+          if (node.type !== 'guide' || node.parentId !== levelId) return false
+          const metadata =
+            node.metadata && typeof node.metadata === 'object' && !Array.isArray(node.metadata)
+              ? (node.metadata as Record<string, unknown>)
+              : {}
+          return metadata.apartmentId === complex.apartmentId && metadata.planId === plan.planId
+        })
+        const strictGuide = selectAptGuideForCalibration(strictGuides, selectedReferenceId)
+        const isPixelVector = body?.code === 'OK' && body.data?.unit === 'px'
+        // Pixel recovery must never attach to the legacy plan-only candidate:
+        // it has no proof that its guide belongs to this apartment/level.
+        const existingGuide = selectAptGuideForImport(candidateGuide, strictGuide, isPixelVector)
+        const staleSurfaceIds = new Set(
+          findAptDerivedSurfaceIdsForLevel(
+            existingNodes,
+            levelId,
+            complex.apartmentId,
+            plan.planId,
+          ),
+        )
+        const retainedSlabs = Object.values(existingNodes).filter(
+          (node): node is SlabNodeType =>
+            node.type === 'slab' && node.parentId === levelId && !staleSurfaceIds.has(node.id),
+        )
+        const retainedCeilings = Object.values(existingNodes).filter(
+          (node): node is CeilingNodeType =>
+            node.type === 'ceiling' && node.parentId === levelId && !staleSurfaceIds.has(node.id),
         )
         if (existingGuide) {
           const transformError = getAptGuideTransformError(existingGuide)
@@ -111,13 +155,49 @@ export function AptSearchPanel() {
             return
           }
         }
-        const built =
+        const existingGuideFrame: Partial<AptGuideImportFrame> = existingGuide
+          ? getAptGuideImportFrame(existingGuide)
+          : {}
+        const guideForCalibration = isPixelVector ? strictGuide : existingGuide
+        const normalized =
           body?.code === 'OK' && body.data
-            ? buildVectorNodes(body.data, {
-                ...orientation,
-                ...(existingGuide ? getAptGuideImportFrame(existingGuide) : {}),
-              })
+            ? normalizeAptVectorDocForGuide(
+                body.data,
+                guideForCalibration
+                  ? {
+                      guide: guideForCalibration,
+                      levelId,
+                      apartmentId: complex.apartmentId,
+                      planId: plan.planId,
+                    }
+                  : null,
+              )
             : null
+        if (normalized && !normalized.ok) {
+          if (existingGuide) {
+            setShowGuides(true)
+            setSelectedReferenceId(existingGuide.id)
+          }
+          setAutoPlan({
+            planId: plan.planId,
+            status: 'error',
+            message: normalized.message || APT_GUIDE_SCALE_RECOVERY_MESSAGE,
+          })
+          return
+        }
+        const built = normalized?.ok
+          ? buildVectorNodes(
+              normalized.doc,
+              {
+                ...orientation,
+                ...existingGuideFrame,
+              },
+              {
+                existingSlabs: retainedSlabs,
+                existingCeilings: retainedCeilings,
+              },
+            )
+          : null
         if (!built) {
           setAutoPlan({
             planId: plan.planId,
@@ -127,9 +207,28 @@ export function AptSearchPanel() {
           return
         }
         const guide = existingGuide ?? buildGuide(complex, plan, built.guideScale, orientation)
-        const tag = { source: 'apt-vector', apartmentId: complex.apartmentId, planId: plan.planId }
+        const tag = {
+          source: 'apt-vector',
+          apartmentId: complex.apartmentId,
+          planId: plan.planId,
+          ...(normalized?.calibration
+            ? {
+                scaleSource: normalized.calibration.source,
+                scaleCalibration: normalized.calibration,
+              }
+            : {}),
+        }
         for (const node of [...built.walls, ...built.openings, ...built.zones]) {
           node.metadata = { ...(node.metadata as Record<string, unknown>), ...tag }
+        }
+        if (normalized?.calibration) {
+          const calibrationTag = {
+            scaleSource: normalized.calibration.source,
+            scaleCalibration: normalized.calibration,
+          }
+          for (const node of [...built.slabs, ...built.ceilings]) {
+            node.metadata = { ...(node.metadata as Record<string, unknown>), ...calibrationTag }
+          }
         }
         runAsSingleSceneHistoryStep(useScene, () => {
           const { applyNodeChanges, nodes } = useScene.getState()
@@ -140,12 +239,7 @@ export function AptSearchPanel() {
               isAptVectorNodeForLevel(node, levelId, complex.apartmentId, plan.planId),
             )
             .map((node) => node.id)
-          const staleSurfaces = findAptDerivedSurfaceIdsForLevel(
-            nodes,
-            levelId,
-            complex.apartmentId,
-            plan.planId,
-          )
+          const staleSurfaces = [...staleSurfaceIds]
           applyNodeChanges({
             delete: [...stale, ...staleSurfaces] as never[],
             update: existingGuide
@@ -155,6 +249,9 @@ export function AptSearchPanel() {
                     data: {
                       flipX: orientation.flipX,
                       flipY: orientation.flipY,
+                      ...(existingGuideFrame.scale === undefined
+                        ? { scale: built.guideScale }
+                        : {}),
                     },
                   },
                 ]
@@ -166,6 +263,8 @@ export function AptSearchPanel() {
                 opening.wallId ? [{ node: opening, parentId: opening.wallId as never }] : [],
               ),
               ...built.zones.map((zone) => ({ node: zone, parentId: levelId as never })),
+              ...built.slabs.map((slab) => ({ node: slab, parentId: levelId as never })),
+              ...built.ceilings.map((ceiling) => ({ node: ceiling, parentId: levelId as never })),
             ],
           })
         })
@@ -181,7 +280,7 @@ export function AptSearchPanel() {
         })
       }
     },
-    [levelId, setShowGuides, setSelectedReferenceId, buildGuide, markAdded],
+    [levelId, setShowGuides, setSelectedReferenceId, buildGuide, markAdded, selectedReferenceId],
   )
 
   if (search.loadFailed) {

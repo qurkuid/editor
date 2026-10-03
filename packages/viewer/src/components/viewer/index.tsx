@@ -23,6 +23,11 @@ import { PERF_OVERLAY_ENABLED, pushGpuSample } from '../../lib/gpu-perf'
 import { applyIsolation, clearIsolation } from '../../lib/isolation'
 import { ensureKtx2Support } from '../../lib/ktx2-loader'
 import type { ColorPreset, RenderShading } from '../../lib/materials'
+import {
+  getOrCreateRenderer,
+  initializeRenderer,
+  RendererInitTimeoutError,
+} from '../../lib/renderer-init'
 import { getSceneTheme } from '../../lib/scene-themes'
 import { installTextureNodeNullGuard } from '../../lib/texture-node-guard'
 import useViewer, { type RenderContext } from '../../store/use-viewer'
@@ -57,6 +62,8 @@ declare module '@react-three/fiber' {
 
 extend(THREE as any)
 
+const WEBGPU_RENDERER_CACHE = new WeakMap<HTMLCanvasElement, Promise<THREE.WebGPURenderer>>()
+
 // R3F's <Canvas> useLayoutEffect has no deps, so any re-render (theme switch,
 // parent re-render, StrictMode double-mount) re-invokes `configure()`. With a
 // sync `gl` factory that's harmless — the renderer is created once and reused.
@@ -71,7 +78,6 @@ extend(THREE as any)
 // We cache the in-flight Promise (not just the resolved renderer) so two
 // concurrent configure() calls await the same init instead of creating two
 // renderers in parallel and only caching the second.
-const WEBGPU_RENDERER_CACHE = new WeakMap<HTMLCanvasElement, Promise<THREE.WebGPURenderer>>()
 const SCENE_READY_SETTLED_FRAMES = 2
 const SCENE_READY_MAX_WAIT_FRAMES = 180
 const DIRTY_BUILD_KINDS = new Set([
@@ -114,6 +120,29 @@ function UnsupportedGpuViewerFallback() {
         <p className="mt-2 text-neutral-600 text-sm">
           This browser or environment does not expose WebGPU or WebGL, so Pascal cannot render the
           3D scene here. Try opening the editor in a browser with hardware acceleration enabled.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+type RendererInitFailure = 'init-timeout' | 'init-error'
+
+function RendererInitFailureFallback({ failure }: { failure: RendererInitFailure }) {
+  const timedOut = failure === 'init-timeout'
+
+  return (
+    <div className="flex h-full min-h-64 w-full items-center justify-center bg-[#fafafa] p-6 text-center text-neutral-900">
+      <div className="max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <h2 className="font-semibold text-lg">3D renderer did not start</h2>
+        <p className="mt-2 text-neutral-600 text-sm">
+          {timedOut
+            ? 'Pascal could not start the 3D renderer within the allotted time.'
+            : 'Pascal encountered an error while starting the 3D renderer.'}{' '}
+          The scene is still available in the editor; reload the page and try again.
+        </p>
+        <p className="mt-3 text-neutral-500 text-xs">
+          {timedOut ? 'Renderer initialization timed out.' : 'Renderer initialization failed.'}
         </p>
       </div>
     </div>
@@ -454,7 +483,7 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
     }
   }, [isolate])
 
-  const [rendererInitFailed, setRendererInitFailed] = useState(false)
+  const [rendererInitFailure, setRendererInitFailure] = useState<RendererInitFailure | null>(null)
   // Capability detection runs after mount. We start optimistic (true) so the
   // server-rendered markup and the first client render agree (no hydration
   // mismatch); the effect flips it to false only on environments that expose
@@ -524,7 +553,7 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
   // Desktops (fine pointer) keep the original 1.5 cap.
   const maxDpr =
     typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches ? 1.25 : 1.5
-  const showGpuFallback = !canMountViewer || rendererInitFailed
+  const showGpuFallback = !canMountViewer || rendererInitFailure !== null
   // When we can't mount the GPU canvas, the SceneReadyTracker never mounts and
   // the host editor would otherwise wait on its scene-readiness timeout. Signal
   // readiness explicitly so the host can drop its loader immediately.
@@ -532,8 +561,11 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
     if (showGpuFallback) onSceneReadyChange?.(true)
   }, [showGpuFallback, onSceneReadyChange])
 
-  if (showGpuFallback) {
+  if (!canMountViewer) {
     return <UnsupportedGpuViewerFallback />
+  }
+  if (rendererInitFailure) {
+    return <RendererInitFailureFallback failure={rendererInitFailure} />
   }
   return (
     <Canvas
@@ -546,37 +578,46 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
       gl={
         ((props: { canvas?: HTMLCanvasElement }) => {
           const canvas = props.canvas
-          const cached = canvas ? WEBGPU_RENDERER_CACHE.get(canvas) : undefined
-          if (cached) return cached
-          const promise = (async () => {
-            try {
-              const renderer = new THREE.WebGPURenderer({ ...(props as any), alpha: true })
-              renderer.toneMapping = THREE.ACESFilmicToneMapping
-              renderer.toneMappingExposure = getSceneTheme(
-                useViewer.getState().sceneTheme,
-              ).toneMappingExposure
-              await renderer.init()
-              // RectAreaLight (area + linear fixtures) reads LTC lookup
-              // textures at shader-graph build time. `init()` only fills the
-              // lib's own statics — `setLTC` is what hands them to the node,
-              // and without it they stay null and every frame carrying such a
-              // light throws out of RectAreaLightNode, blacking out the
-              // viewport.
-              THREE.RectAreaLightNode.setLTC(RectAreaLightTexturesLib.init())
-              installEmptyDrawGuard(renderer)
-              return renderer
-            } catch (err) {
-              // Drop the failed promise from the cache so a future Canvas
-              // mount on the same DOM can retry instead of inheriting the
-              // rejection forever.
-              if (canvas) WEBGPU_RENDERER_CACHE.delete(canvas)
-              console.error('[viewer] WebGPURenderer init failed', err)
-              setRendererInitFailed(true)
-              throw err
-            }
-          })()
-          if (canvas) WEBGPU_RENDERER_CACHE.set(canvas, promise)
-          return promise
+          const createRenderer = () => {
+            const renderer = new THREE.WebGPURenderer({ ...(props as any), alpha: true })
+            renderer.toneMapping = THREE.ACESFilmicToneMapping
+            renderer.toneMappingExposure = getSceneTheme(
+              useViewer.getState().sceneTheme,
+            ).toneMappingExposure
+            return renderer
+          }
+          const onReady = (renderer: THREE.WebGPURenderer) => {
+            // RectAreaLight (area + linear fixtures) reads LTC lookup
+            // textures at shader-graph build time. `init()` only fills the
+            // lib's own statics — `setLTC` is what hands them to the node,
+            // and without it they stay null and every frame carrying such a
+            // light throws out of RectAreaLightNode, blacking out the
+            // viewport.
+            THREE.RectAreaLightNode.setLTC(RectAreaLightTexturesLib.init())
+            installEmptyDrawGuard(renderer)
+          }
+          const onFailure = (error: unknown) => {
+            const timedOut = error instanceof RendererInitTimeoutError
+            setRendererInitFailure(timedOut ? 'init-timeout' : 'init-error')
+            console.error('[viewer] renderer initialization failed', {
+              backend: 'webgpu',
+              timedOut,
+              error,
+            })
+          }
+
+          if (canvas) {
+            return getOrCreateRenderer(WEBGPU_RENDERER_CACHE, canvas, createRenderer, {
+              onReady,
+              onFailure,
+            })
+          }
+
+          const attempt = Promise.resolve()
+            .then(createRenderer)
+            .then((renderer) => initializeRenderer(renderer, { onReady }))
+          void attempt.catch(onFailure)
+          return attempt
         }) as any
       }
       resize={{

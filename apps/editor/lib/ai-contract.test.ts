@@ -105,6 +105,12 @@ describe('AI modeling operation contract', () => {
     expect(prompt).toContain('"material"')
     expect(prompt).toContain('adoptContainedApartmentZones')
     expect(prompt).toContain('covers at least 90% of exactly one current enclosed space')
+    expect(prompt).toContain(
+      'Every confirmed closed apartment Space receives exactly one enclosed physical `Zone`',
+    )
+    expect(prompt).toContain(
+      'Open apt-vector semantic review subdivisions with `enclosureStatus: open` and `metadata.boundaryNeedsReview` remain preserved overlays and cannot suppress the generated physical owner',
+    )
     expect(prompt).toContain('overlapping projected thickness bands')
     expect(prompt).toContain(
       'endpoint-touching clusters trim to their nearest actual contact when safe',

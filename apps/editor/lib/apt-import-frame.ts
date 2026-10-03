@@ -9,7 +9,7 @@ export type AptPlanOrientation = {
 export type AptGuideImportFrame = {
   position: [number, number, number]
   rotationY: number
-  scale: number
+  scale?: number
 }
 
 const PLANAR_EPSILON = 1e-6
@@ -136,7 +136,7 @@ export function getAptGuideImportFrame(guide: GuideNode) {
   return {
     position: [...guide.position] as [number, number, number],
     rotationY: guide.rotation[1],
-    scale: guide.scale,
+    ...(guide.scale === 1 && guide.scaleReference === null ? {} : { scale: guide.scale }),
   } satisfies AptGuideImportFrame
 }
 
