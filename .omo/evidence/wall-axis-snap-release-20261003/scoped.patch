@@ -1,0 +1,502 @@
+diff --git a/apps/editor/lib/ai-provider.test.ts b/apps/editor/lib/ai-provider.test.ts
+index 2c9b4ecf..e1728183 100644
+--- a/apps/editor/lib/ai-provider.test.ts
++++ b/apps/editor/lib/ai-provider.test.ts
+@@ -398,6 +398,9 @@ describe('AI provider boundary', () => {
+     expect(prompt).toContain('Explicit target connection can extend both straight walls')
+     expect(prompt).toContain('Keep open stores a geometry-specific endpoint review')
+     expect(prompt).toContain('Endpoint dragging in both 2D and 3D validates')
++    expect(prompt).toContain('horizontal or vertical model-axis intent')
++    expect(prompt).toContain('exact L-corner intersection')
++    expect(prompt).toContain('distinct competing intersections fail closed')
+     expect(prompt).toContain(
+       'align one uniquely resolved same-parent straight continuation within 2 degrees',
+     )
+diff --git a/packages/editor/src/components/tools/wall/wall-drafting.test.ts b/packages/editor/src/components/tools/wall/wall-drafting.test.ts
+index 42df45c5..17dd3c86 100644
+--- a/packages/editor/src/components/tools/wall/wall-drafting.test.ts
++++ b/packages/editor/src/components/tools/wall/wall-drafting.test.ts
+@@ -591,6 +591,146 @@ test('shared wall inference keeps guides and corners ahead of weak angles and re
+ })
+ 
+ describe('resolveWallEndpointPoint', () => {
++  test('endpoint cardinal axes outrank a slightly tilted linked reference', () => {
++    const tiltedReference = makeWall([0, 0], [1, 0.012], 'wall_tilted_reference')
++    const result = resolveWallEndpointPoint({
++      point: [4, 0.05],
++      walls: [tiltedReference],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0.001,
++      guides: [],
++    })
++
++    expect(result.point).toEqual([4, 0])
++    expect(result.directionInferred).toBe(true)
++    expect(result.constraintOwned).toBe(true)
++  })
++
++  test('a cardinal L corner resolves to the exact stationary-axis intersection', () => {
++    const result = resolveWallEndpointPoint({
++      point: [4.04, 0.03],
++      walls: [],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference: {
++        sharedPoint: [4.04, 0.03],
++        oppositeEndpoints: [[4, 3]],
++      },
++    })
++
++    expect(result.point).toEqual([4, 0])
++    expect(result.directionInferred).toBe(true)
++    expect(result.constraintOwned).toBe(true)
++  })
++
++  test('the L corner works when the primary ray travels in reverse', () => {
++    const result = resolveWallEndpointPoint({
++      point: [4.04, 0.03],
++      walls: [],
++      start: [8, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference: {
++        sharedPoint: [4.04, 0.03],
++        oppositeEndpoints: [[4, 3]],
++      },
++    })
++
++    expect(result.point).toEqual([4, 0])
++    expect(result.directionInferred).toBe(true)
++    expect(result.constraintOwned).toBe(true)
++  })
++
++  test('ambiguous nearby L intersections fail closed to the primary cardinal ray', () => {
++    const result = resolveWallEndpointPoint({
++      point: [4.04, 0.03],
++      walls: [],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference: {
++        sharedPoint: [4.04, 0.03],
++        oppositeEndpoints: [
++          [4, 3],
++          [4.1, 3],
++        ],
++      },
++    })
++
++    expect(result.point).toEqual([4.04, 0])
++    expect(result.directionInferred).toBe(true)
++    expect(result.constraintOwned).toBe(true)
++  })
++
++  test('uses the current cursor to confirm a stationary outer cardinal leg', () => {
++    const result = resolveWallEndpointPoint({
++      point: [4.02, 0.02],
++      walls: [],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference: {
++        sharedPoint: [4.3, 0.2],
++        oppositeEndpoints: [[4, 3]],
++      },
++    })
++
++    expect(result.point).toEqual([4, 0])
++    expect(result.directionInferred).toBe(true)
++    expect(result.constraintOwned).toBe(true)
++  })
++
++  test('does not form an L corner when the current outer approach is outside 2 degrees', () => {
++    const result = resolveWallEndpointPoint({
++      point: [4.14, 0.03],
++      walls: [],
++      start: [0, 0],
++      inferDirection: true,
++      magnetic: true,
++      step: 0,
++      guides: [],
++      junctionReference: {
++        sharedPoint: [4.04, 0.03],
++        oppositeEndpoints: [[4, 3]],
++      },
++    })
++
++    expect(result.point).toEqual([4.14, 0])
++    expect(result.directionInferred).toBe(true)
++    expect(result.constraintOwned).toBe(true)
++  })
++
++  test('squares vertical L corners in either outer direction', () => {
++    const resolve = (start: WallPlanPoint, opposite: WallPlanPoint) =>
++      resolveWallEndpointPoint({
++        point: [0.03, 4.04],
++        walls: [],
++        start,
++        inferDirection: true,
++        magnetic: true,
++        step: 0,
++        guides: [],
++        junctionReference: {
++          sharedPoint: [0.03, 4.04],
++          oppositeEndpoints: [opposite],
++        },
++      })
++
++    expect(resolve([0, 0], [3, 4]).point).toEqual([0, 4])
++    expect(resolve([0, 8], [-3, 4]).point).toEqual([0, 4])
++  })
++
+   test('fixed-corner right-angle inference wins over an off-ray endpoint', () => {
+     const target = { ...makeWall([2, 0.03], [2, 4], 'wall_corner'), thickness: 0.4 }
+     const result = resolveWallEndpointPoint({
+diff --git a/packages/editor/src/components/tools/wall/wall-drafting.ts b/packages/editor/src/components/tools/wall/wall-drafting.ts
+index d8dbf934..697120d5 100644
+--- a/packages/editor/src/components/tools/wall/wall-drafting.ts
++++ b/packages/editor/src/components/tools/wall/wall-drafting.ts
+@@ -807,6 +807,111 @@ type LinkedJunctionDatumSnap = {
+   ray: { origin: WallPlanPoint; through: WallPlanPoint }
+ }
+ 
++type CardinalEndpointRay = {
++  axis: 'horizontal' | 'vertical'
++  origin: WallPlanPoint
++  direction: WallPlanPoint
++  point: WallPlanPoint
++}
++
++/**
++ * Endpoint-only cardinal inference. The general direction helper intentionally
++ * considers nearby wall directions, which is useful while drafting but lets a
++ * slightly tilted neighbour steal an endpoint correction. Endpoint edits use
++ * the model axes first, while retaining the same 2° capture window and scalar
++ * grid-length quantisation as the general helper.
++ */
++function inferCardinalEndpointRay(
++  origin: WallPlanPoint,
++  through: WallPlanPoint,
++  step: number,
++): CardinalEndpointRay | null {
++  const dx = through[0] - origin[0]
++  const dz = through[1] - origin[1]
++  if (!Number.isFinite(dx) || !Number.isFinite(dz)) return null
++  const length = Math.hypot(dx, dz)
++  if (length <= 1e-9) return null
++
++  const cardinalSlope = Math.tan(INFERENCE_TOLERANCE)
++  if (Math.abs(dx) >= Math.abs(dz) && Math.abs(dz) <= Math.abs(dx) * cardinalSlope) {
++    const signedDistance = snapScalarToGrid(dx, step)
++    return {
++      axis: 'horizontal',
++      origin: [...origin] as WallPlanPoint,
++      direction: [Math.sign(dx) || 1, 0],
++      point: [origin[0] + signedDistance, origin[1]],
++    }
++  }
++
++  if (Math.abs(dx) <= Math.abs(dz) && Math.abs(dx) <= Math.abs(dz) * cardinalSlope) {
++    const signedDistance = snapScalarToGrid(dz, step)
++    return {
++      axis: 'vertical',
++      origin: [...origin] as WallPlanPoint,
++      direction: [0, Math.sign(dz) || 1],
++      point: [origin[0], origin[1] + signedDistance],
++    }
++  }
++
++  return null
++}
++
++function intersectCardinalEndpointRays(
++  primary: CardinalEndpointRay,
++  outer: CardinalEndpointRay,
++): WallPlanPoint | null {
++  if (primary.axis === outer.axis) return null
++
++  const candidate: WallPlanPoint =
++    primary.axis === 'horizontal'
++      ? [outer.origin[0], primary.origin[1]]
++      : [primary.origin[0], outer.origin[1]]
++  const primaryTravel =
++    (candidate[0] - primary.origin[0]) * primary.direction[0] +
++    (candidate[1] - primary.origin[1]) * primary.direction[1]
++  const outerTravel =
++    (candidate[0] - outer.origin[0]) * outer.direction[0] +
++    (candidate[1] - outer.origin[1]) * outer.direction[1]
++  if (!Number.isFinite(primaryTravel) || !Number.isFinite(outerTravel)) return null
++  if (primaryTravel <= 1e-9 || outerTravel <= 1e-9) return null
++  return candidate
++}
++
++function snapCardinalLCorner(args: {
++  point: WallPlanPoint
++  start: WallPlanPoint
++  step: number
++  junctionReference?: WallJunctionReference
++}): { point: WallPlanPoint; primary: CardinalEndpointRay } | null {
++  const primary = inferCardinalEndpointRay(args.start, args.point, args.step)
++  const reference = args.junctionReference
++  if (!primary || !reference) return null
++
++  const candidates: WallPlanPoint[] = []
++  for (const opposite of reference.oppositeEndpoints) {
++    // The saved shared point is the pre-drag junction. The current cursor is
++    // the second anchor for this endpoint gesture, so use it to confirm that
++    // the stationary outer leg is still within the same cardinal window.
++    const outer = inferCardinalEndpointRay(opposite, args.point, 0)
++    if (!outer) continue
++    const candidate = intersectCardinalEndpointRays(primary, outer)
++    if (!candidate) continue
++    if (
++      Math.hypot(candidate[0] - args.point[0], candidate[1] - args.point[1]) >
++      GUIDE_LINE_SNAP_RADIUS
++    )
++      continue
++    if (!candidates.some((existing) => pointsEqual(existing, candidate))) {
++      candidates.push(candidate)
++    }
++  }
++
++  // Multiple distinct nearby corners do not provide enough intent to choose a
++  // branch. Returning null lets the primary cardinal ray own the correction.
++  if (candidates.length !== 1) return null
++  return { point: candidates[0]!, primary }
++}
++
+ function snapLinkedJunctionDatum(args: {
+   point: WallPlanPoint
+   primaryRay?: { origin: WallPlanPoint; through: WallPlanPoint }
+@@ -949,9 +1054,24 @@ export function resolveWallEndpointPoint(args: SnapWallDraftArgs): WallEndpointS
+   }
+ 
+   const references = walls.filter((wall) => !ignoreWallIds?.includes(wall.id))
++  const endpointCardinalInferenceEnabled =
++    !args.angleSnap && !args.constraintRay && (step > 0 || magnetic)
++  const cardinalLCorner = endpointCardinalInferenceEnabled
++    ? snapCardinalLCorner({
++        point,
++        start,
++        step,
++        junctionReference: args.junctionReference,
++      })
++    : null
++  const cardinalRay =
++    cardinalLCorner?.primary ??
++    (endpointCardinalInferenceEnabled ? inferCardinalEndpointRay(start, point, step) : null)
+   const inferredPoint =
+     args.constraintRay?.through ??
+     anglePoint ??
++    cardinalLCorner?.point ??
++    cardinalRay?.point ??
+     (step > 0 || magnetic ? inferWallDirection(start, point, step, references) : null)
+   const captureOrigin = args.constraintRay?.origin ?? start
+   const captureThrough = inferredPoint ?? point
+@@ -973,8 +1093,9 @@ export function resolveWallEndpointPoint(args: SnapWallDraftArgs): WallEndpointS
+     walls,
+     ignoreWallIds,
+     allowReverseRay: Boolean(args.constraintRay) || Boolean(junction && !primaryRay),
+-    acceptPoint:
+-      junction && primaryRay
++    acceptPoint: cardinalLCorner
++      ? (candidate) => pointsEqual(candidate, cardinalLCorner.point, 1e-7)
++      : junction && primaryRay
+         ? (candidate) =>
+             Math.hypot(candidate[0] - junction.point[0], candidate[1] - junction.point[1]) <= 1e-7
+         : undefined,
+@@ -991,6 +1112,16 @@ export function resolveWallEndpointPoint(args: SnapWallDraftArgs): WallEndpointS
+     }
+   }
+ 
++  if (cardinalLCorner) {
++    return {
++      point: cardinalLCorner.point,
++      snap: null,
++      targetWallIds: [],
++      constraintOwned: true,
++      directionInferred: true,
++    }
++  }
++
+   if (junction) {
+     return {
+       point: junction.point,
+diff --git a/packages/mcp/src/modeling-agent-manual.ts b/packages/mcp/src/modeling-agent-manual.ts
+index 84653713..43ab9165 100644
+--- a/packages/mcp/src/modeling-agent-manual.ts
++++ b/packages/mcp/src/modeling-agent-manual.ts
+@@ -78,7 +78,7 @@ export const MODELING_AGENT_MANUAL = [
+   '## Direct Editor Interactions',
+   '',
+   '- In the 2D measurement menu, choose Guide Line for the existing reference-offset flow, Vertical Guide for a one-click model-Z guide, or Horizontal Guide for a one-click model-X guide. A selected direct guide exposes a signed, unit-aware distance field and orientation-specific stretch buttons; Escape, deselection, or closing the control changes no scene data.',
+-  '- Straight wall drawing and endpoint dragging in 2D and 3D use weak direction inference in grid/lines mode: within 2 degrees of a building-local 45-degree axis ray or parallel/perpendicular to a straight wall at the fixed corner, the endpoint follows that ray; outside that window it follows freely. At a linked corner, same-level straight stationary outer endpoints may provide a collinear datum when their opposite rays form a straight continuation inside that same 2-degree window; a cursor within 0.15 m uses the inferred or locked ray intersection, while a datum-only cursor projects to the datum. Exact endpoint hits remain intentional, while a physical construction-envelope face capture intersects the owned ray with the straight target centerline and preserves `targetWallIds`; nearby off-ray edge/alignment snaps do not override that constraint. Existing endpoint/edge snaps take priority for exact cursor endpoint hits, and explicit construction guides take priority over weak inference. ArrowRight toggles building-local X-axis lock; ArrowLeft toggles plan Z-axis lock; ArrowDown toggles the nearest parallel/perpendicular direction of a straight wall at the fixed corner. Axis locks allow both positive and negative travel and survive Shift release; Escape, commit, and tool changes clear them. Walls edit in the XZ plane (Pascal Y is vertical, unlike SketchUp Z), so ArrowUp does not change wall height. Shift locks the current inferred direction, Off disables weak inference, and the separate Angles mode retains its explicit 15-degree constraint. The 2-degree window is a Pascal tuning value, not a documented SketchUp tolerance.',
++  '- Straight wall drawing and endpoint dragging in 2D and 3D use weak direction inference in grid/lines mode: within 2 degrees of a building-local 45-degree axis ray or parallel/perpendicular to a straight wall at the fixed corner, the endpoint follows that ray; endpoint edits first prefer horizontal or vertical model-axis intent within 2 degrees and assign the fixed coordinate directly even when a nearby reference is slightly tilted; outside that window it follows freely. At a linked corner, same-level straight stationary outer endpoints may provide a collinear datum when their opposite rays form a straight continuation inside that same 2-degree window, or a single complementary cardinal outer ray may form an exact L-corner intersection within 0.15 m; distinct competing intersections fail closed to the primary cardinal ray. A cursor within 0.15 m uses the inferred or locked ray intersection, while a datum-only cursor projects to the datum. Exact endpoint hits remain intentional, while a physical construction-envelope face capture intersects the owned ray with the straight target centerline and preserves `targetWallIds`; nearby off-ray edge/alignment snaps do not override that constraint. Existing endpoint/edge snaps take priority for exact cursor endpoint hits, and explicit construction guides take priority over weak inference. ArrowRight toggles building-local X-axis lock; ArrowLeft toggles plan Z-axis lock; ArrowDown toggles the nearest parallel/perpendicular direction of a straight wall at the fixed corner. Axis locks allow both positive and negative travel and survive Shift release; Escape, commit, and tool changes clear them. Walls edit in the XZ plane (Pascal Y is vertical, unlike SketchUp Z), so ArrowUp does not change wall height. Shift locks the current inferred direction, Off disables weak inference, and the separate Angles mode retains its explicit 15-degree constraint. The 2-degree window is a Pascal tuning value, not a documented SketchUp tolerance.',
+   '- The default grid/measurement snap step is 0.001 m (1 mm). While drawing a wall or moving its endpoint in either 2D or 3D, hold Shift to freeze the currently previewed direction; pointer movement then changes only the length along that ray. Release Shift to resume free direction changes. Wall snapping modes remain selectable from the HUD; Shift still cycles snapping for other tools. Alt keeps its existing bypass/detach behavior. Typed wall lengths preserve the held direction, and cancel or commit clears the lock.',
+   '- Selecting or re-clicking any scene element is inert: selection alone never starts movement or another modeling gesture. Move an element only after explicitly choosing Move from its action menu or pressing the Move shortcut. A selected Body likewise requires the explicit 3D action menu to arm Rotate, Scale, Push/Pull, Offset, or Follow Path; later face and point clicks belong only to that armed action.',
+   '- In 3D, Body Move follows a two-click point-to-point workflow: activate Move, click a vertex, edge point, edge midpoint, face point, face center, or Body center as the base, then click the same inference types on another element to place that exact base point there. These object inferences are active in the default grid mode and the lines mode; Off disables them. Snapped feedback names the inference in Korean (꼭짓점, 선 중점, 선 위, 면 중심, 면 위, 요소 중심). Hold Alt while choosing the destination to bypass inference snapping for deliberate free movement or overlap. In the floor plan, the Move action intentionally uses the 2D-owned placement overlay and plan snapping instead of mounting the 3D base-point tool.',
+diff --git a/packages/mcp/src/ontology-manual.test.ts b/packages/mcp/src/ontology-manual.test.ts
+index e8748c6a..3a476712 100644
+--- a/packages/mcp/src/ontology-manual.test.ts
++++ b/packages/mcp/src/ontology-manual.test.ts
+@@ -9,6 +9,9 @@ describe('Phase 2 ontology manual contract', () => {
+     expect(MODELING_AGENT_MANUAL).toContain('survive Shift release')
+     expect(MODELING_AGENT_MANUAL).toContain('wall drawing and endpoint dragging')
+     expect(MODELING_AGENT_MANUAL).toContain('within 2 degrees')
++    expect(MODELING_AGENT_MANUAL).toContain('horizontal or vertical model-axis intent')
++    expect(MODELING_AGENT_MANUAL).toContain('exact L-corner intersection')
++    expect(MODELING_AGENT_MANUAL).toContain('distinct competing intersections fail closed')
+     expect(MODELING_AGENT_MANUAL).toContain(
+       'Existing endpoint/edge snaps take priority for exact cursor endpoint hits',
+     )
+diff --git a/packages/mcp/src/resources/resources.test.ts b/packages/mcp/src/resources/resources.test.ts
+index 9f116bbc..a055522e 100644
+--- a/packages/mcp/src/resources/resources.test.ts
++++ b/packages/mcp/src/resources/resources.test.ts
+@@ -229,6 +229,9 @@ describe('pascal://agent-guide', () => {
+       expect(text).toContain('`targetWallIds`')
+       expect(text).toContain('0.15 m')
+       expect(text).toContain('linked corner')
++      expect(text).toContain('horizontal or vertical model-axis intent')
++      expect(text).toContain('exact L-corner intersection')
++      expect(text).toContain('distinct competing intersections fail closed')
+       expect(text).toContain('local swing-arc evidence')
+       expect(text).toContain('semantic zones without creating physical walls')
+       expect(text).toContain('adoptContainedApartmentZones')
+diff --git a/packages/nodes/src/wall/floorplan-affordances.test.ts b/packages/nodes/src/wall/floorplan-affordances.test.ts
+index 0b3b1991..45ef8fcb 100644
+--- a/packages/nodes/src/wall/floorplan-affordances.test.ts
++++ b/packages/nodes/src/wall/floorplan-affordances.test.ts
+@@ -166,6 +166,95 @@ describe('wall center curve handle release', () => {
+     expect(useLiveNodeOverrides.getState().get(upper.id)).toBeUndefined()
+   })
+ 
++  const lCornerOrientationCases = [
++    { selectedAxis: 'horizontal', primaryEndpoint: 'start', linkedEndpoint: 'start' },
++    { selectedAxis: 'horizontal', primaryEndpoint: 'start', linkedEndpoint: 'end' },
++    { selectedAxis: 'horizontal', primaryEndpoint: 'end', linkedEndpoint: 'start' },
++    { selectedAxis: 'horizontal', primaryEndpoint: 'end', linkedEndpoint: 'end' },
++    { selectedAxis: 'vertical', primaryEndpoint: 'start', linkedEndpoint: 'start' },
++    { selectedAxis: 'vertical', primaryEndpoint: 'start', linkedEndpoint: 'end' },
++    { selectedAxis: 'vertical', primaryEndpoint: 'end', linkedEndpoint: 'start' },
++    { selectedAxis: 'vertical', primaryEndpoint: 'end', linkedEndpoint: 'end' },
++  ] as const
++
++  for (const [index, scenario] of lCornerOrientationCases.entries()) {
++    test(`squares an L corner for ${scenario.selectedAxis} primary ${scenario.primaryEndpoint} and linked ${scenario.linkedEndpoint}`, () => {
++      const levelId = `level_l_corner_${index}`
++      const sharedPoint: [number, number] = [4.04, 0.03]
++      const selectedFixedPoint: [number, number] =
++        scenario.selectedAxis === 'horizontal' ? [0, 0] : [4, 3]
++      const linkedFixedPoint: [number, number] =
++        scenario.selectedAxis === 'horizontal' ? [4, 3] : [0, 0]
++      const primaryEndpoints =
++        scenario.primaryEndpoint === 'start'
++          ? { start: sharedPoint, end: selectedFixedPoint }
++          : { start: selectedFixedPoint, end: sharedPoint }
++      const linkedEndpoints =
++        scenario.linkedEndpoint === 'start'
++          ? { start: sharedPoint, end: linkedFixedPoint }
++          : { start: linkedFixedPoint, end: sharedPoint }
++      const wall = WallNode.parse({
++        id: `wall_l_primary_${index}`,
++        parentId: levelId,
++        ...primaryEndpoints,
++      })
++      const linked = WallNode.parse({
++        id: `wall_l_outer_${index}`,
++        parentId: levelId,
++        ...linkedEndpoints,
++      })
++      useScene.setState({ nodes: { [wall.id]: wall, [linked.id]: linked } })
++      useScene.temporal.getState().clear()
++      useScene.temporal.getState().resume()
++      useEditor.setState({ gridSnapStep: 0.001 })
++      useEditor.getState().setSnappingMode('wall', 'grid')
++      useInteractionScope.getState().begin({
++        kind: 'reshaping',
++        nodeId: wall.id,
++        reshape: 'endpoint',
++        driver: 'floorplan',
++      })
++      const session = wallMoveEndpointAffordance.start({
++        node: wall,
++        nodes: useScene.getState().nodes,
++        payload: { wallId: wall.id, endpoint: scenario.primaryEndpoint },
++        initialPlanPoint: wall[scenario.primaryEndpoint],
++        gridSnapStep: 0.001,
++      })
++      const baseline = structuredClone(useScene.getState().nodes)
++      const fixedPrimaryEndpoint = scenario.primaryEndpoint === 'start' ? 'end' : 'start'
++      const fixedLinkedEndpoint = scenario.linkedEndpoint === 'start' ? 'end' : 'start'
++
++      session.apply({ planPoint: sharedPoint, modifiers })
++
++      const primaryPreview = useLiveNodeOverrides.getState().get(wall.id)
++      const linkedPreview = useLiveNodeOverrides.getState().get(linked.id)
++      expect(primaryPreview?.[scenario.primaryEndpoint]).toEqual([4, 0])
++      expect(linkedPreview?.[scenario.linkedEndpoint]).toEqual([4, 0])
++      expect(primaryPreview?.[fixedPrimaryEndpoint] ?? wall[fixedPrimaryEndpoint]).toEqual(
++        wall[fixedPrimaryEndpoint],
++      )
++      expect(linkedPreview?.[fixedLinkedEndpoint] ?? linked[fixedLinkedEndpoint]).toEqual(
++        linked[fixedLinkedEndpoint],
++      )
++      expect(useScene.getState().nodes).toEqual(baseline)
++      expect(session.canCommit()).toBe(true)
++
++      session.commit?.()
++
++      const committedPrimary = useScene.getState().nodes[wall.id] as WallNode
++      const committedLinked = useScene.getState().nodes[linked.id] as WallNode
++      expect(committedPrimary[scenario.primaryEndpoint]).toEqual([4, 0])
++      expect(committedLinked[scenario.linkedEndpoint]).toEqual([4, 0])
++      expect(committedPrimary[fixedPrimaryEndpoint]).toEqual(wall[fixedPrimaryEndpoint])
++      expect(committedLinked[fixedLinkedEndpoint]).toEqual(linked[fixedLinkedEndpoint])
++      expect(useScene.temporal.getState().pastStates).toHaveLength(1)
++
++      useScene.temporal.getState().undo()
++      expect(useScene.getState().nodes).toEqual(baseline)
++    })
++  }
++
+   test('Shift preserves endpoint direction through preview, commit and undo', () => {
+     const wall = WallNode.parse({ id: 'wall_shift', start: [2, 3], end: [2, 5] })
+     useScene.setState({ nodes: { [wall.id]: wall } })
+diff --git a/packages/nodes/src/wall/floorplan-affordances.ts b/packages/nodes/src/wall/floorplan-affordances.ts
+index e18c092e..036e83cd 100644
+--- a/packages/nodes/src/wall/floorplan-affordances.ts
++++ b/packages/nodes/src/wall/floorplan-affordances.ts
+@@ -134,7 +134,7 @@ function getLinkedJunctionReference(
+         : null
+     if (opposite) oppositeEndpoints.push([...opposite] as WallPlanPoint)
+   }
+-  if (oppositeEndpoints.length < 2) return undefined
++  if (oppositeEndpoints.length < 1) return undefined
+   return {
+     sharedPoint: [...movingOriginal] as WallPlanPoint,
+     oppositeEndpoints,
+diff --git a/packages/nodes/src/wall/move-endpoint-tool.tsx b/packages/nodes/src/wall/move-endpoint-tool.tsx
+index a2433e17..67942655 100644
+--- a/packages/nodes/src/wall/move-endpoint-tool.tsx
++++ b/packages/nodes/src/wall/move-endpoint-tool.tsx
+@@ -178,7 +178,7 @@ function getLinkedJunctionReference(
+         : null
+     if (opposite) oppositeEndpoints.push([...opposite] as WallPlanPoint)
+   }
+-  if (oppositeEndpoints.length < 2) return undefined
++  if (oppositeEndpoints.length < 1) return undefined
+   return {
+     sharedPoint: [...movingOriginal] as WallPlanPoint,
+     oppositeEndpoints,

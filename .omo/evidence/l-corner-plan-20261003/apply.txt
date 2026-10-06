@@ -1,0 +1,87 @@
+packages/core/src/store/actions/node-actions.ts:869: export const applyNodeChangesAction = (
+packages/core/src/store/actions/node-actions.ts:870:   set: (fn: (state: SceneState) => Partial<SceneState>) => void,
+packages/core/src/store/actions/node-actions.ts:871:   get: () => SceneState,
+packages/core/src/store/actions/node-actions.ts:872:   changes: { create?: NodeCreateOp[]; update?: NodeUpdateOp[]; delete?: NodeDeleteOp[] },
+packages/core/src/store/actions/node-actions.ts:873: ) => {
+packages/core/src/store/actions/node-actions.ts:874:   if (get().readOnly) return
+packages/core/src/store/actions/node-actions.ts:875: 
+packages/core/src/store/actions/node-actions.ts:876:   const createOps = changes.create ?? []
+packages/core/src/store/actions/node-actions.ts:877:   const updateOps = expandLinkedBodyUpdates(get().nodes, changes.update ?? [])
+packages/core/src/store/actions/node-actions.ts:878:   const deleteOps = changes.delete ?? []
+packages/core/src/store/actions/node-actions.ts:879:   const nodesToMarkDirty = new Set<AnyNodeId>()
+packages/core/src/store/actions/node-actions.ts:880:   const parentsToMarkDirty = new Set<AnyNodeId>()
+packages/core/src/store/actions/node-actions.ts:881: 
+packages/core/src/store/actions/node-actions.ts:882:   set((state) => {
+packages/core/src/store/actions/node-actions.ts:883:     const nextNodes = { ...state.nodes }
+packages/core/src/store/actions/node-actions.ts:884:     const nextCollections = { ...state.collections }
+packages/core/src/store/actions/node-actions.ts:885:     const nextRootIds = [...state.rootNodeIds]
+packages/core/src/store/actions/node-actions.ts:886:     let resolvedRootIds = nextRootIds
+packages/core/src/store/actions/node-actions.ts:887: 
+packages/core/src/store/actions/node-actions.ts:888:     for (const { id, data } of updateOps) {
+packages/core/src/store/actions/node-actions.ts:889:       const currentNode = nextNodes[id]
+packages/core/src/store/actions/node-actions.ts:890:       if (!currentNode) continue
+packages/core/src/store/actions/node-actions.ts:891:       const updatedNode = parseUpdatedNode(currentNode, data)
+packages/core/src/store/actions/node-actions.ts:892: 
+packages/core/src/store/actions/node-actions.ts:893:       if (data.parentId !== undefined && data.parentId !== currentNode.parentId) {
+packages/core/src/store/actions/node-actions.ts:894:         const oldParentId = currentNode.parentId as AnyNodeId | null
+packages/core/src/store/actions/node-actions.ts:895:         if (oldParentId && nextNodes[oldParentId]) {
+packages/core/src/store/actions/node-actions.ts:896:           const oldParent = nextNodes[oldParentId] as AnyContainerNode
+packages/core/src/store/actions/node-actions.ts:897:           nextNodes[oldParent.id] = {
+packages/core/src/store/actions/node-actions.ts:898:             ...oldParent,
+packages/core/src/store/actions/node-actions.ts:899:             children: oldParent.children.filter((childId) => childId !== id),
+packages/core/src/store/actions/node-actions.ts:900:           } as AnyNode
+packages/core/src/store/actions/node-actions.ts:901:           parentsToMarkDirty.add(oldParent.id)
+packages/core/src/store/actions/node-actions.ts:902:         }
+packages/core/src/store/actions/node-actions.ts:903: 
+packages/core/src/store/actions/node-actions.ts:904:         const newParentId = data.parentId as AnyNodeId | null
+packages/core/src/store/actions/node-actions.ts:905:         if (newParentId && nextNodes[newParentId]) {
+packages/core/src/store/actions/node-actions.ts:906:           const newParent = nextNodes[newParentId] as AnyContainerNode
+packages/core/src/store/actions/node-actions.ts:907:           nextNodes[newParent.id] = {
+packages/core/src/store/actions/node-actions.ts:908:             ...newParent,
+packages/core/src/store/actions/node-actions.ts:909:             children: Array.from(new Set([...newParent.children, id])),
+packages/core/src/store/actions/node-actions.ts:910:           } as AnyNode
+packages/core/src/store/actions/node-actions.ts:911:           parentsToMarkDirty.add(newParent.id)
+packages/core/src/store/actions/node-actions.ts:912:         }
+packages/core/src/store/actions/node-actions.ts:913:       }
+packages/core/src/store/actions/node-actions.ts:914: 
+packages/core/src/store/actions/node-actions.ts:915:       nextNodes[id] = updatedNode
+packages/core/src/store/actions/node-actions.ts:916:       if (updatedNode.type === 'roof-segment' && shouldRefreshDefaultRidgeVents(data)) {
+packages/core/src/store/actions/node-actions.ts:917:         for (const ventId of refreshDefaultRidgeVentsForSegment(nextNodes, updatedNode)) {
+packages/core/src/store/actions/node-actions.ts:918:           nodesToMarkDirty.add(ventId)
+packages/core/src/store/actions/node-actions.ts:919:         }
+packages/core/src/store/actions/node-actions.ts:920:       }
+packages/core/src/store/actions/node-actions.ts:921:       nodesToMarkDirty.add(id)
+packages/core/src/store/actions/node-actions.ts:922:     }
+packages/core/src/store/actions/node-actions.ts:923: 
+packages/core/src/store/actions/node-actions.ts:924:     for (const { node, parentId } of createOps) {
+packages/core/src/store/actions/node-actions.ts:925:       const effectiveParentId = parentId ?? (node.parentId as AnyNodeId | null) ?? null
+packages/core/src/store/actions/node-actions.ts:926:       const newNode = parseCreatedNode(node, effectiveParentId)
+packages/core/src/store/actions/node-actions.ts:927: 
+packages/core/src/store/actions/node-actions.ts:928:       nextNodes[newNode.id as AnyNodeId] = newNode
+packages/core/src/store/actions/node-actions.ts:929:       nodesToMarkDirty.add(newNode.id as AnyNodeId)
+packages/core/src/store/actions/node-actions.ts:930: 
+packages/core/src/store/actions/node-actions.ts:931:       if (effectiveParentId && nextNodes[effectiveParentId]) {
+packages/core/src/store/actions/node-actions.ts:932:         const parent = nextNodes[effectiveParentId]
+packages/core/src/store/actions/node-actions.ts:933:         if ('children' in parent && Array.isArray(parent.children)) {
+packages/core/src/store/actions/node-actions.ts:934:           nextNodes[effectiveParentId] = {
+packages/core/src/store/actions/node-actions.ts:935:             ...parent,
+packages/core/src/store/actions/node-actions.ts:936:             children: Array.from(new Set([...parent.children, newNode.id])) as any,
+packages/core/src/store/actions/node-actions.ts:937:           }
+packages/core/src/store/actions/node-actions.ts:938:           parentsToMarkDirty.add(effectiveParentId)
+packages/core/src/store/actions/node-actions.ts:939:         }
+packages/core/src/store/actions/node-actions.ts:940:       } else if (!effectiveParentId && !nextRootIds.includes(newNode.id as AnyNodeId)) {
+packages/core/src/store/actions/node-actions.ts:941:         nextRootIds.push(newNode.id as AnyNodeId)
+packages/core/src/store/actions/node-actions.ts:942:       }
+packages/core/src/store/actions/node-actions.ts:943:     }
+packages/core/src/store/actions/node-actions.ts:944: 
+packages/core/src/store/actions/node-actions.ts:945:     const allIdsToDelete = new Set<AnyNodeId>()
+packages/core/src/store/actions/node-actions.ts:946:     const collectDelete = (id: AnyNodeId) => {
+packages/core/src/store/actions/node-actions.ts:947:       if (allIdsToDelete.has(id)) return
+packages/core/src/store/actions/node-actions.ts:948:       allIdsToDelete.add(id)
+packages/core/src/store/actions/node-actions.ts:949:       const node = nextNodes[id]
+packages/core/src/store/actions/node-actions.ts:950:       if (node && 'children' in node && Array.isArray(node.children)) {
+packages/core/src/store/actions/node-actions.ts:951:         for (const childId of node.children) {
+packages/core/src/store/actions/node-actions.ts:952:           collectDelete(childId as AnyNodeId)
+packages/core/src/store/actions/node-actions.ts:953:         }
+packages/core/src/store/actions/node-actions.ts:954:       }
+packages/core/src/store/actions/node-actions.ts:955:     }

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>노란 핸들 배포 검증</title>
+<style>body{max-width:1020px;margin:40px auto;padding:0 24px;font-family:system-ui,sans-serif;line-height:1.7;color:#253342;background:#f6f8fa}main{background:white;padding:32px;border:1px solid #dce3ea;border-radius:14px}h1{font-size:28px}a{color:#215ab0}table{border-collapse:collapse;width:100%}td{padding:14px;border-bottom:1px solid #dce3ea;overflow-wrap:anywhere}td:first-child{width:180px;font-weight:600}img{max-width:100%;border:1px solid #dce3ea;border-radius:8px}nav a{margin-right:18px}@media(max-width:600px){body{margin:16px auto;padding:0 10px}main{padding:18px}td{display:block}td:first-child{width:auto;border-bottom:0}}@media print{body{background:white;margin:0}main{border:0}}</style>
+<main>
+<h1>노란 핸들 수동 보완 배포 완료</h1>
+<p>2026-10-03 · 검증된 31개 파일을 배포했습니다. 노란 끝점의 대상 연결, 직접 드래그, 개방 유지 / 다시 점검을 제공합니다.</p>
+<nav><a href="#proof">검증</a><a href="#limits">검증 범위</a><a href="#evidence">기록</a></nav>
+<h2 id="proof">확인한 결과</h2>
+<table>
+<tr><td>커밋 · 푸시</td><td>eebf144b0b6e9229c0a3c57571c2a987fbbae3e1 · fork deploy/floorplan</td></tr>
+<tr><td>운영 릴리스</td><td>/Volumes/DATABASE/floorplan-releases/20261003-eebf144b/apps/editor</td></tr>
+<tr><td>운영 / 공개 BUILD_ID</td><td>csT47Zfy9wm5VxYJ1rRMf · 공개 HTTP 200</td></tr>
+<tr><td>프로세스</td><td>apt-subdomain · online · PID 41025 · 재시작 0</td></tr>
+<tr><td>검증</td><td>로컬 및 운영 서버 224 tests · 0 failures · 14 files. core·nodes·MCP 빌드, 앱 타입 검사와 프로덕션 빌드 통과.</td></tr>
+<tr><td>직접 조작</td><td>노란 핸들 → 상대 벽 선택 → 160mm·53mm 연결 적용. 두 끝점이 [8.14421627274387, -3.8852224848374206]에 정확히 일치. 다른 벽 끝점은 불변.</td></tr>
+<tr><td>이력 / 저장</td><td>미리보기는 저장 그래프 불변. 한 번의 Undo는 전체 그래프 정확 복원. Redo 및 새로고침 결과도 정확히 일치.</td></tr>
+<tr><td>공개 브라우저</td><td>아파트 검색 데이터 정상 로드 · 콘솔 오류 없음 · 공개 응답의 BUILD_ID 일치.</td></tr>
+</table>
+<p>아래는 배포한 커밋을 프로덕션 모드로 실행한 격리 QA 복사 장면입니다.</p>
+<img src="release-final.png" alt="수동 연결 적용 후 벽 코너">
+<h2 id="limits">검증 범위와 제한</h2>
+<ul>
+<li>운영 에디터는 브라우저의 INTM 로그인 만료로 접근이 막혔습니다. 운영 저장 장면에 연결 적용을 수행하지 않았습니다. 기능 조작은 같은 커밋의 격리 프로덕션 빌드에서 검증했습니다.</li>
+<li>실제 3D 끝점 드래그는 미검증입니다. 공유 2D/3D 계획·검증 테스트는 통과했습니다.</li>
+<li>fork의 Actions API에 등록된 워크플로와 실행이 없어 CI는 실행되지 않았습니다. 로컬과 운영 서버에서 직접 검증했습니다.</li>
+<li>관련 없는 아파트 가져오기·source-chain·공간 그래프 보정·space ID·슬래브 생명주기·뷰어 변경은 제외했습니다. 기존 자동 구역 탐지의 해당 제한은 이번 배포에서 개선하지 않았습니다.</li>
+<li>이전 릴리스, PM2 복구 구성과 SQLite 온라인 백업을 보존했습니다. 활성화 때 초기 연결 재시도 후 HTTP 200이 확인됐습니다.</li>
+<li>요청한 Luna/max 경로가 실제 Astra/high로 해석되는 제약을 공개하고, 기존 검증 코드에서 배포 범위 분리만 진행했습니다.</li>
+</ul>
+<h2 id="evidence">증거 파일</h2>
+<p><a href="deployment-status.json">상태와 그래프 해시</a> · <a href="projection-report.md">배포 범위 검증</a> · <a href="scope-audit.md">독립 범위 감사</a> · <a href="remote-validation.txt">서버 검증</a> · <a href="remote-activate.log">활성화 기록</a> · <a href="runtime-after.json">실행 정보</a></p>
+</main>
+</html>

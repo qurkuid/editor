@@ -236,12 +236,7 @@ export function prepareSceneForExport(
   }
 
   pruneNonRenderableMeshes(scene, identityNodes)
-  for (const [id, original] of sceneRegistry.nodes) {
-    const clone = cloneByOriginal.get(original)
-    if (nodes[id]?.type === 'wall' && clone instanceof THREE.Mesh) {
-      clone.geometry = conformWallGeometry(clone.geometry)
-    }
-  }
+  conformWallMeshes(cloneByOriginal, nodes)
   sanitizeMaterialGroups(scene, identityNodes)
   convertMaterials(scene, options.textures ?? 'embed')
 
@@ -260,6 +255,35 @@ export function prepareSceneForExport(
   stampIdentity(scene, cloneByOriginal, nodes, clipNamesByNode, wallContracts)
 
   return { scene, animations: clips }
+}
+
+/**
+ * Conform every mesh owned by a wall, including the optional construction
+ * assembly mounted below the wall renderer's registered root. Nested
+ * registered nodes are separate scene owners (for example a hosted door or
+ * window), so their geometry must keep its own exporter treatment.
+ */
+function conformWallMeshes(
+  cloneByOriginal: Map<THREE.Object3D, THREE.Object3D>,
+  nodes: Record<string, AnyNode>,
+) {
+  const registeredClones = new Set<THREE.Object3D>()
+  for (const original of sceneRegistry.nodes.values()) {
+    const clone = cloneByOriginal.get(original)
+    if (clone) registeredClones.add(clone)
+  }
+
+  const conform = (object: THREE.Object3D, root: THREE.Object3D) => {
+    if (object !== root && registeredClones.has(object)) return
+    if (object instanceof THREE.Mesh) object.geometry = conformWallGeometry(object.geometry)
+    for (const child of object.children) conform(child, root)
+  }
+
+  for (const [id, original] of sceneRegistry.nodes) {
+    if (nodes[id]?.type !== 'wall') continue
+    const clone = cloneByOriginal.get(original)
+    if (clone) conform(clone, clone)
+  }
 }
 
 /**

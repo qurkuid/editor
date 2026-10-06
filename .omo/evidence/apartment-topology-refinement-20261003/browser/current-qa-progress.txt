@@ -1,0 +1,1 @@
+2026-10-03 QA progress: calibrated p12 82P1 auto-model success; manual scaleReference retained; p14 selected Room 1 via UI slab membership panel; AX contains heading 구역, 실 이름 Room 1, 구획 Value 구획됨, Room 1 Enclosed room, screenshot/AX saved.

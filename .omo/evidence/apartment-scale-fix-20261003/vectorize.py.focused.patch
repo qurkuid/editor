@@ -1,0 +1,196 @@
+--- /Users/changseok/editor/.omo/evidence/apartment-scale-fix-20261003/vectorize.py.before.py
++++ /Users/changseok/editor/.omx/recovery-20260929/data/vectorize.py
+@@ -3412,10 +3412,19 @@
+     return items
+ 
+ 
+-def dimension_scale(ocr_items, masks, ext_th_px):
++def dimension_scale(ocr_items, masks, ext_th_px, *, with_evidence=False):
+     """mm/px by matching each OCR dimension number to the dimension line
+     right next to it, then majority-voting the resulting ratios. Robust for
+-    non-rectangular plans where overall dims don't span the silhouette bbox."""
++    non-rectangular plans where overall dims don't span the silhouette bbox.
++
++    ``with_evidence`` lets regression callers distinguish absent centered
++    dimension evidence from centered but contradictory OCR. Both cases fail
++    closed at the scale boundary; no unrelated silhouette measurement may
++    supply a replacement scale.
++    """
++    def result(scale, centered=False):
++        return (scale, centered) if with_evidence else scale
++
+     sil, chroma, v = masks['sil'], masks['chroma'], masks['v']
+     dil_k = 4 * UP * 2 + 1
+     sil_dil = cv2.dilate(sil, np.ones((dil_k, dil_k), np.uint8))
+@@ -3423,11 +3432,14 @@
+     lines = cv2.HoughLinesP(dim * 255, 1, np.pi / 360, 25 * UP,
+                             minLineLength=30 * UP, maxLineGap=3 * UP)
+     if lines is None:
+-        return None
++        return result(None)
+     dsegs = [Seg(np.array([x1, y1], float), np.array([x2, y2], float))
+              for x1, y1, x2, y2 in lines[:, 0]]
+     dsegs = merge_segments(merge_segments(dsegs))
+-    cands = []
++    # A merged interval represents one physical printed dimension. Multiple
++    # OCR boxes near the same interval are competing readings, not votes.
++    interval_candidates = {}
++    centered_evidence = False
+     for it in ocr_items:
+         t = it['text'].replace(',', '').strip()
+         if not t.isdigit() or len(t) < 3:
+@@ -3437,8 +3449,8 @@
+             continue
+         cx, cy = it['x'] + it['w'] / 2, it['y'] + it['h'] / 2
+         horizontal = it['w'] >= it['h']
+-        best = None
+-        for s in dsegs:
++        options = []
++        for index, s in enumerate(dsegs):
+             ang = s.angle
+             if horizontal:
+                 if not (ang < 8 or ang > 172):
+@@ -3447,6 +3459,8 @@
+                 if not (x1 - 8 * UP <= cx <= x2 + 8 * UP):
+                     continue
+                 off = abs((s.p1[1] + s.p2[1]) / 2 - cy)
++                projection = float(np.dot(np.array([cx, cy]) - s.p1,
++                                          s.vec / (s.length + 1e-9)))
+             else:
+                 if not (82 < ang < 98):
+                     continue
+@@ -3454,78 +3468,65 @@
+                 if not (y1 - 8 * UP <= cy <= y2 + 8 * UP):
+                     continue
+                 off = abs((s.p1[0] + s.p2[0]) / 2 - cx)
++                projection = float(np.dot(np.array([cx, cy]) - s.p1,
++                                          s.vec / (s.length + 1e-9)))
+             if off > 24 * UP:
+                 continue
+-            if best is None or off < best[0]:
+-                best = (off, s.length)
+-        if best and best[1] > 20 * UP:
+-            sc = val / best[1]
+-            if 4.0 / UP <= sc <= 30.0 / UP:
+-                cands.append(sc)
++            center_distance = abs(projection - s.length / 2) / (s.length + 1e-9)
++            if center_distance > 0.10:
++                continue
++            centered_evidence = True
++            options.append((off, center_distance, index, s.length, val))
++        if not options:
++            continue
++        # Preserve nearest-line ownership for boxes that sit between parallel
++        # dimension lines; interval-level selection below handles duplicates
++        # that belong to the same merged physical line.
++        off, center_distance, index, length, value = min(options)
++        interval_candidates.setdefault(index, []).append(
++            (center_distance, off, length, value)
++        )
++
++    cands = []
++    for candidates in interval_candidates.values():
++        candidates.sort(key=lambda item: (item[0], item[1]))
++        # Two nearly equally centered OCR readings leave no trustworthy value
++        # for this interval. Do not let duplicated labels manufacture votes.
++        if (len(candidates) > 1
++                and abs(candidates[0][0] - candidates[1][0]) <= 0.02):
++            continue
++        center_distance, off, length, value = candidates[0]
++        if length <= 20 * UP:
++            continue
++        sc = value / length
++        if 4.0 / UP <= sc <= 30.0 / UP:
++            cands.append(sc)
+     if not cands:
+-        return None
++        return result(None, centered_evidence)
+     cands.sort()
+     cluster = max(([x for x in cands if abs(x - c) <= 0.06 * c] for c in cands), key=len)
+     if len(cluster) < 2:
+-        return None
++        return result(None, centered_evidence)
+     s = float(np.median(cluster))
+     # a 3+ vote cluster of independent dimension lines is stronger evidence
+     # than the exterior-thickness sanity band — wood-dense renders leave only
+     # the wall outline in the mask, halving the measured thickness
+     if len(cluster) < 3 and ext_th_px and not (110 <= ext_th_px * s <= 540):
++        return result(None, centered_evidence)
++    return result(s, centered_evidence)
++
++
++def estimate_scale(ocr_items, sil, ext_th_px, masks=None):
++    """mm/px from independently centered OCR dimension-line evidence.
++
++    A silhouette bounding box can pair a room or furniture label with an
++    unrelated overall number, so it is not a trustworthy calibration source.
++    Keep the old signature for callers, but require the measured line matcher
++    to prove the scale before returning one.
++    """
++    if masks is None:
+         return None
+-    return s
+-
+-
+-def estimate_scale(ocr_items, sil, ext_th_px, masks=None):
+-    """mm/px from OCR dimension numbers. Prefer per-line matching; fall back
+-    to cross-validated silhouette-bbox pairing (rectangular plans)."""
+-    if masks is not None:
+-        s = dimension_scale(ocr_items, masks, ext_th_px)
+-        if s:
+-            return s
+-    ys, xs = np.nonzero(sil)
+-    if not len(xs):
+-        return None
+-    bw = float(xs.max() - xs.min())
+-    bh = float(ys.max() - ys.min())
+-    nums = []
+-    for it in ocr_items:
+-        t = it['text'].replace(',', '').strip()
+-        if t.isdigit() and len(t) >= 4 and int(t) >= 1500:
+-            nums.append(int(t))
+-    nums = sorted(set(nums), reverse=True)[:14]
+-
+-    def plausible(s):
+-        if not (4.0 / UP <= s <= 30.0 / UP):
+-            return False
+-        return not ext_th_px or (110 <= ext_th_px * s <= 540)
+-
+-    best = None
+-    for vw in nums:
+-        sw = vw / bw
+-        if not plausible(sw):
+-            continue
+-        for vh in nums:
+-            if vh == vw:
+-                continue
+-            sh = vh / bh
+-            if not plausible(sh):
+-                continue
+-            if abs(sw - sh) > 0.06 * max(sw, sh):
+-                continue
+-            score = vw + vh  # overall dims are the largest consistent pair
+-            if best is None or score > best[0]:
+-                best = (score, (sw + sh) / 2)
+-    if best:
+-        return best[1]
+-    # fallback: single axis, largest plausible number
+-    for v in nums:
+-        for ext in (bw, bh):
+-            s = v / ext
+-            if plausible(s):
+-                return s
+-    return None
++    return dimension_scale(ocr_items, masks, ext_th_px)
+ 
+ 
+ def room_label_items(items):
+@@ -3882,7 +3883,7 @@
+         return value
+ 
+     return dict(
+-        source=os.path.basename(img_path), unit=unit, docVersion=13,
++        source=os.path.basename(img_path), unit=unit, docVersion=15,
+         imageSize=[img_shape[1], img_shape[0]], mmPerPx=scale,
+         walls=[dict(id=f'w{i}', kind='exterior' if sg.exterior else 'interior',
+                     start=pt(sg.p1), end=pt(sg.p2), thickness=round(sg.th * s, 1))

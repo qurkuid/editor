@@ -1,0 +1,5 @@
+fc48930db79098c18184d32666bcfa42b82af50878f17aa95e50de7244def05e  packages/core/src/lib/space-detection.ts
+7816271e1390a31cfe13eee2eb21e9c58184b519e126679de387793b7112c4f9  packages/core/src/lib/space-detection.test.ts
+6092586698577501b55cf656696bdc78e02e6aae77644a75708a419dc61b8b46  apps/editor/lib/apt-vector-scene.ts
+aca0d9372c5bb5aafe45c3cdf975bd420e213c99fb2ce765adfe81042895946f  packages/core/src/lib/space-detection-history.test.ts
+77e13470b4a52e9116ba6882a9bbfac12a9a047298e40bcf6331408aea528010  packages/core/src/lib/room-boundary.test.ts

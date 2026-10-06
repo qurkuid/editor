@@ -1,0 +1,7 @@
+INVOCATION: rg -n "RelatedZonePanel|related-zone-panel" packages/nodes/src/wall/panel.tsx packages/nodes/src/slab/panel.tsx packages/editor/src/components/ui/panels/related-zone-panel.tsx
+EXIT: 0
+packages/editor/src/components/ui/panels/related-zone-panel.tsx:16:export function RelatedZonePanel({ nodeId }: { nodeId: AnyNodeId }) {
+packages/nodes/src/wall/panel.tsx:56:  RelatedZonePanel,
+packages/nodes/src/wall/panel.tsx:246:      <RelatedZonePanel nodeId={node.id} />
+packages/nodes/src/slab/panel.tsx:10:  RelatedZonePanel,
+packages/nodes/src/slab/panel.tsx:285:      <RelatedZonePanel nodeId={node.id} />

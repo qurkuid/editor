@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>실제 아파트 도면 50개 평가와 3D 복구</title>
+<style>
+:root{color-scheme:light;--ink:#152033;--muted:#5d6878;--line:#dce3ec;--panel:#fff;--bg:#f4f7fb;--blue:#2457d6;--green:#087443;--amber:#9a5b00;--red:#ae263c;--code:#eef2f8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}main{max-width:1180px;margin:0 auto;padding:28px 20px 64px}header{color:#fff;background:linear-gradient(135deg,#172a50,#285bd5);border-radius:24px;padding:34px 36px;box-shadow:0 18px 42px #1b3c8428}h1{font-size:clamp(28px,4vw,44px);line-height:1.15;letter-spacing:-.04em;margin:8px 0 13px}h2{font-size:24px;line-height:1.25;letter-spacing:-.02em;margin:0 0 14px}h3{font-size:18px;margin:21px 0 8px}p{margin:8px 0 14px}a{color:var(--blue);text-underline-offset:3px;text-decoration-thickness:1px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.1em;opacity:.8}.lede{font-size:19px;line-height:1.55;max-width:900px}.tag{display:inline-flex;border:1px solid #ffffff55;background:#ffffff18;border-radius:999px;padding:4px 10px;font-size:12px;margin:4px 6px 0 0}.notice{margin-top:18px;padding:14px 16px;border-radius:14px;background:#fff3d5;border:1px solid #e5c16a;color:#654300}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:15px;margin-top:21px}.card{grid-column:span 3;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:19px;box-shadow:0 7px 22px #15264a0b}.card.wide{grid-column:span 6}.card.full{grid-column:1/-1}.num{font-size:30px;font-weight:850;letter-spacing:-.04em}.label{font-size:13px;color:var(--muted)}.ok{color:var(--green);font-weight:750}.warn{color:var(--amber);font-weight:750}.bad{color:var(--red);font-weight:750}.section{margin-top:31px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:25px 27px;box-shadow:0 7px 25px #15264a0b}.section>h2{border-bottom:1px solid var(--line);padding-bottom:11px}.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}table{width:100%;border-collapse:collapse;margin:13px 0 9px;font-size:14px}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:9px 8px}th{font-weight:780;background:#f0f4fa}code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:var(--code);border-radius:5px;padding:1px 5px;overflow-wrap:anywhere}.callout{border-left:4px solid var(--blue);background:#f0f5ff;padding:13px 15px;border-radius:0 10px 10px 0;margin:14px 0}.callout.warn{border-color:#d28b00;background:#fff8e7}.small{font-size:13px;color:var(--muted)}.figure{margin:17px 0}.figure img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:13px;box-shadow:0 8px 24px #15264a1a}.caption{font-size:13px;color:var(--muted);margin-top:6px}.status{border:1px solid var(--line);border-radius:12px;background:#fbfcfe;padding:13px 15px;margin:9px 0}.status strong{display:block;margin-bottom:4px}.hash{font-size:12px;color:#566378;word-break:break-all}.steps{margin:8px 0;padding-left:23px}.steps li{margin:6px 0}.footer{color:var(--muted);font-size:13px;margin-top:24px}@media(max-width:820px){main{padding:17px 12px 43px}header{padding:25px 22px;border-radius:18px}.lede{font-size:17px}.card,.card.wide{grid-column:1/-1}.two{grid-template-columns:1fr}.section{padding:20px 17px}table{display:block;overflow-x:auto}th,td{min-width:125px}}@media print{body{background:#fff;color:#111;font-size:11px}main{max-width:none;padding:0}header,.section,.card{box-shadow:none;border:1px solid #aaa;break-inside:avoid}.section{padding:15px;margin-top:15px}.figure img{max-height:360px}a{color:#111}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="eyebrow">INTERIM EVIDENCE · 2026-10-03 · REPORT-ONLY</div>
+  <h1>실제 아파트 도면 50개 평가와 3D 복구</h1>
+  <p class="lede"><strong>현재 확인:</strong> 자동 모델링은 <strong>44건</strong> 완료됐고, 축척·입력 조건으로 <strong>6건</strong>은 보류됐습니다(오류 0건). 바닥 검사점은 <strong>298/330(90.3%)</strong>입니다. p13의 별도 실제 화면에서는 6760&nbsp;mm 가이드 보정 뒤 2D와 저장된 3D 렌더를 확인했습니다. 중복 벽 보정은 아직 검토 중이므로 자동 50건 결과로 승격하지 않았습니다.</p>
+  <p>이 문서는 최종 완료 보고서가 아닌 새 중간 스냅샷입니다. 기존 raw/import/evaluation/report를 덮어쓰지 않았고, 자동 50건·수동 p13·별도 3D 렌더의 분모와 의미를 분리합니다.</p>
+  <span class="tag">resolved: gpt-5.6-luna / max</span><span class="tag">source freeze: 55c24008…12667</span><span class="tag">renderer build: iTwh4yjf6QUUNRbXuuXQv</span>
+  <div class="notice"><strong>읽는 순서:</strong> 자동 50건 → p13 실제 UI → 정확한 면 audit와 baseline 진단 → B/C 상태와 남은 한계. 전체 링크와 SHA는 <a href="report-progress-3d-20261003.manifest.json">이 문서의 manifest</a>에서 확인합니다.</div>
+</header>
+
+<section class="grid" aria-label="핵심 수치">
+  <div class="card"><div class="num">44 / 50</div><div class="label">자동 import / raw plans</div><p class="ok">오류 0 · reject 6</p></div>
+  <div class="card"><div class="num">298 / 330</div><div class="label">source floor probe 적중</div><p class="warn">90.3% · 미적중 32</p></div>
+  <div class="card"><div class="num">374 + 374</div><div class="label">저장 Slab / Ceiling</div><p class="ok">44개 accepted import</p></div>
+  <div class="card"><div class="num">0</div><div class="label">정확한 양의 면적 면 교차쌍</div><p class="ok">raw / Slab / Ceiling audit</p></div>
+</section>
+
+<section class="section" id="lane-a">
+<h2>1. 50개 도면 평가</h2>
+<div class="two"><div>
+<table><thead><tr><th>항목</th><th>측정값</th><th>해석</th></tr></thead><tbody>
+<tr><td>자동 모델링</td><td>44건 완료 · 6건 보류 · 오류 0건</td><td>보류 도면을 성공으로 합산하지 않음</td></tr>
+<tr><td>바닥 검사점</td><td>298 / 330</td><td>16개 plan에서 합계 32개 미적중, case별 floor-hit loss 0</td></tr>
+<tr><td>저장 surface</td><td>374 Slab · 374 Ceiling</td><td>저장 결과의 exact polygon audit는 양의 면적 교차 0</td></tr>
+<tr><td>보존</td><td>wall/opening/source Zone 44/44</td><td>authored geometry와 원본 semantic metadata 별도 확인</td></tr>
+<tr><td>성능 준비</td><td>importer p95 12.468375 ms</td><td>동결 core source copy 기준선; 최종 B timing은 아직 없음</td></tr>
+</tbody></table>
+</div><div>
+<div class="callout"><strong>정확 audit와 픽셀 진단을 분리:</strong> exact source-metre raw/Slab/Ceiling polygon audit는 양의 면적 교차를 모두 0으로 기록합니다. 별도 raster/shared-edge 진단의 602쌍·29.030909&nbsp;m²를 실제 저장 면 overlap으로 읽지 않습니다.</div>
+<p>원본 도면 축척과 source certainty는 여전히 인쇄 치수 annotation에 의존합니다. 치수 평가가 가능한 44개 중 <strong>43개</strong>가 허용 오차 안에 들었고, p19는 <strong>-5.7973%</strong>로 남습니다. 이전 기준 40/46과 분모가 다르므로 개선율로 주장하지 않습니다. 보류 6건과 미적중 검사점 32건은 전체 정확도 100%로 포장하지 않습니다.</p>
+<p class="small">동결 core/importer/frame source copy와 baseline metric은 새 preparation manifest에 묶여 있습니다. 현재 workspace의 24-file freeze와 다른 12개 live source hash는 별도 drift snapshot에 기록했습니다.</p>
+</div></div>
+<p class="small">근거: <a href="../../apartment-next-residual-20261003/source-freeze-lane-a-final.json">동결 source</a> · <a href="../../apartment-next-residual-20261003/verification/parent-lane-a-automatic-source-gate.json">자동 gate</a> · <a href="../../apartment-next-residual-20261003/replay/candidate-machine-lane-a-final.json">machine counters</a> · <a href="../../apartment-next-residual-20261003/replay/candidate-lane-a-final-metrics.json">paired metrics</a> · <a href="../../apartment-next-residual-20261003/replay/candidate-exact-lane-a-final-reviewed.json">exact audit</a> · <a href="preparation-manifest-lane-b-final-frozen-core-baseline-measured.json">new baseline manifest</a> · <a href="preparation-verification-frozen-core-baseline.json">baseline verification</a></p>
+</section>
+
+<section class="section" id="p13">
+<h2>2. 치수 보정과 실제 화면</h2>
+<p>별도 fresh scene <code>2880f77b1dbc</code>에서 표시 가이드는 <strong>6760&nbsp;mm = 6.76&nbsp;m</strong>입니다. calibration, import graph, Undo/Redo/Reload, 2D 화면은 별도 UI acceptance 기록으로 확인했습니다. 수동 recovery 대상은 6건 중 실제 확인 1건이며, 이 수치를 자동 50건의 45/50으로 합산하지 않습니다.</p>
+<table><thead><tr><th>구간</th><th>결과</th><th>의미</th></tr></thead><tbody>
+<tr><td>자동 모델링</td><td>44 / 50 완료</td><td>동일 raw V15와 source probe 330</td></tr>
+<tr><td>수동 p13 UI</td><td>1 / 6 recovery 확인</td><td>자동 분모와 별도인 수동 대상</td></tr>
+<tr><td>2D 화면</td><td class="ok">PASS</td><td>벽과 공간 라벨이 실제 화면에 표시됨</td></tr>
+<tr><td>3D 화면</td><td class="ok">실제 화면 확인</td><td>저장된 3D 렌더는 보였지만 바닥 3개·Zone 10개 수준의 부분 범위이며 전체 298/330 방을 뜻하지 않음</td></tr>
+</tbody></table>
+<div class="two">
+<figure class="figure"><img src="../../apartment-next-residual-improvement-20261003/lane-a/browser/fresh-2880-final-2d.jpg" alt="p13 저장 2D floor plan 화면"><figcaption class="caption">실제 p13 저장 2D 화면. SHA는 manifest에서 검증합니다.</figcaption></figure>
+<figure class="figure"><img src="../../apartment-viewer-init-recovery-20261003/runtime/supplement-restored-3d.jpg" alt="실제 p13 저장 3D 렌더"><figcaption class="caption">실제 저장 3D 렌더. 벽·창·부분 바닥이 보이며, 바닥 3개·Zone 10개의 부분 확인이라 자동 50건 전체 3D 성공을 뜻하지 않습니다.</figcaption></figure>
+</div>
+<p class="small">UI 기록: <a href="../../apartment-next-residual-improvement-20261003/lane-a/browser/fresh-2880-ui-acceptance-final.json">p13 UI acceptance</a> · <a href="../../apartment-next-residual-improvement-20261003/lane-a/browser/fresh-2880-final-2d-evidence.json">2D evidence</a> · <a href="../../apartment-viewer-init-recovery-20261003/verification/parent-lane-c-acceptance.json">별도 3D acceptance</a> · <a href="../../apartment-viewer-init-recovery-20261003/source-freeze/manifest-phase1-final.json">3D source freeze</a></p>
+</section>
+
+<section class="section" id="baseline">
+<h2>3. 중복 벽 진단</h2>
+<div class="status"><strong class="warn">WIP · NOT APPROVED</strong> 중복 벽 product revision은 source-chain safety addendum과 candidate replay가 끝나기 전까지 승인 결과로 표시하지 않습니다.</div>
+<table><thead><tr><th>진단</th><th>기존 기준선</th><th>범위</th></tr></thead><tbody>
+<tr><td>contained duplicate span</td><td>20쌍 · 5.8379844762&nbsp;m</td><td>짧은 S의 양 끝점이 긴 L의 구간·시공 반두께 안에 들어오는 물리 벽 span</td></tr>
+<tr><td>p07</td><td>3쌍 · 1.2844009967&nbsp;m</td><td>후속 수정에서 재현·해결할 대표 진단</td></tr>
+<tr><td>other 43 accepted</td><td>17쌍 · 4.5535834795&nbsp;m</td><td>baseline 관측값; candidate-after 결과 아님</td></tr>
+</tbody></table>
+<p>이 수치는 모든 벽 polygon overlap이나 Slab overlap을 뜻하지 않습니다. 일반 L/T/X 접점과 raster shared-edge는 별도이며, O5 source window는 3.275&nbsp;m world interval/host-child integrity 계약으로 분리해 확인합니다.</p>
+<p class="small">근거: <a href="contained-duplicate-span-lane-a-final.json">contained span audit</a> · <a href="o5-source-window-lane-a-final.json">O5 window audit</a> · <a href="preparation-manifest-lane-b-final-frozen-core-baseline-measured.json">baseline contract</a> · <a href="source-delta-lane-a-live-snapshot.json">live source drift</a></p>
+</section>
+
+<section class="section" id="next">
+<h2>4. 남은 검증</h2>
+<ul><li>중복 벽 보정은 explicit final source freeze 후에만 같은 50 raw / 44 accepted / 298/330 probes로 candidate replay를 실행합니다. 현재 candidate execution은 <strong>0</strong>입니다.</li><li>별도 3D 렌더 acceptance는 PASS했지만, focused tests 8 pass·current materials 6 pass 등 제한을 보존하며 전체 viewer suite 통과로 확대하지 않습니다.</li><li>자동 결과와 수동 UI 결과를 합치지 않고, source scale 오류·p19 dimension 실패·32 probe 미적중을 다음 보고서에도 유지합니다.</li></ul>
+<h3>2D에서 확인하는 방법</h3>
+<ol class="steps"><li>존 패널에서 <strong>“2D에서 위치”</strong>를 누릅니다.</li><li>존 경계 패널에서 <strong>“연결”</strong>을 눌러 경계점과 연결 상태를 확인합니다.</li><li>저장된 화면, source annotation, probe 결과를 분리해 봅니다.</li></ol>
+<div class="callout warn"><strong>현재 상태:</strong> 이 HTML은 중간 evidence snapshot입니다. B source-chain 최종 replay, importer after-performance, 전체 50건의 새 3D acceptance를 완료했다고 선언하지 않습니다.</div>
+</section>
+
+<section class="section" id="hashes">
+<h2>5. 재현 자료</h2>
+<p>아래 링크의 실제 파일과 SHA-256은 함께 생성한 manifest에 기록했습니다. 이전 report와 source/import 결과는 보존합니다.</p>
+<table><thead><tr><th>구분</th><th>파일</th><th>역할</th></tr></thead><tbody>
+<tr><td>new preparation</td><td><a href="preparation-manifest-lane-b-final-frozen-core-baseline-measured.json">manifest</a> · <a href="preparation-verification-frozen-core-baseline.json">verification</a></td><td>동결 core baseline, live drift, candidate blocked</td></tr>
+<tr><td>performance</td><td><a href="performance/lane-a-eb96-importer-baseline-frozen-core-importer-benchmark.json">importer benchmark</a></td><td>2 warm-up + 12 rounds × 44</td></tr>
+<tr><td>dimensions</td><td><a href="../../apartment-scale-fix-20261003/dimension-metrics-v15.json">independent dimension evidence</a></td><td>43/44 strict eligible; p19 remains failure</td></tr>
+<tr><td>별도 3D</td><td><a href="../../apartment-viewer-init-recovery-20261003/verification/parent-lane-c-acceptance.json">acceptance</a> · <a href="../../apartment-viewer-init-recovery-20261003/runtime/supplement-restored-3d.jpg">3D image</a></td><td>actual phase-1 render evidence, separate gate</td></tr>
+</tbody></table>
+<p class="footer">이 문서의 목적은 현재 증거 경계를 읽기 쉽게 고정하는 것입니다. 생성 시각과 전체 링크 검증 결과는 manifest를 따릅니다.</p>
+</section>
+</main>
+</body>
+</html>

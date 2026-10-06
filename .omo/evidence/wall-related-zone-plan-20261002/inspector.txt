@@ -1,0 +1,41 @@
+INVOCATION: sed -n '223,262p' packages/editor/src/components/ui/panels/panel-manager.tsx
+EXIT: 0
+
+  if (isMobile) {
+    if (selectedReferenceId) {
+      return <MobilePanelLayer isReference={true} node={null} panel={<ReferencePanel />} />
+    }
+    return (
+      <MobilePanelLayer
+        isReference={false}
+        node={selectedNode}
+        panel={panelForType(selectedNodeType, undefined, inspectorZoneSection)}
+      />
+    )
+  }
+
+  // Show reference panel if a reference is selected
+  if (selectedReferenceId) {
+    return <ReferencePanel />
+  }
+
+  if (selectedZoneId && selectedIds.length === 0) {
+    return (
+      <ParametricInspector
+        footer={inspectorFooter}
+        inspectorZoneSection={inspectorZoneSection}
+        key={selectedZoneId}
+        nodeId={selectedZoneId as AnyNodeId}
+        onClose={() => setSelection({ zoneId: null })}
+      />
+    )
+  }
+
+  // Multi-selection: compact docked panel (desktop only — the mobile branch
+  // above keeps today's behavior and renders nothing for multi-selections).
+  if (selectedIds.length > 1) {
+    return <MultiSelectionPanel footer={multiSelectionFooter} />
+  }
+
+  return panelForType(selectedNodeType, inspectorFooter, inspectorZoneSection)
+}

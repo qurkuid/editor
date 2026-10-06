@@ -1,0 +1,31 @@
+Evidence refresh at: 2026-10-03T00:47:46Z
+Final post-freeze verification
+Generated at: 2026-10-03T00:07:52.661875+00:00
+Resolved route: gpt-5.6-luna / max
+
+Core freeze
+- source SHA256: 0b92675436829c6fbde644544309a125485433c8c94669b12d92825f63bcbe11
+- focused test SHA256: e1988753531da0543c52aaae5f38054e2be82bf866b596b2d69d0dae9357869f
+- core tests: 101 pass / 0 fail / 370 expect() across 5 files
+
+Apartment guide scale and MCP exposure
+- apartment import: 42 pass / 0 fail / 406 expect() against the current guide-scale source freeze
+- MCP manual/resources: 36 pass / 0 fail / 323 expect() across 2 files
+- editor closure: 2 pass / 0 fail / 4 expect() against the current source freeze
+- fresh non-overlapping focused total: 181 pass / 0 fail / 1,103 expect()
+
+Other gates
+- Biome: 20 files checked, no fixes applied
+- core build: pass
+- MCP build: pass
+- editor typecheck: pass
+- app typecheck: pass
+- isolated app production build: pass; middleware deprecation warning only
+- git diff check: pass
+
+Scope notes
+- The prior actual-three importer replay is retained as pre-topology-refinement evidence; no 50-vector replay was rerun.
+- Fresh guide-scale CUA/DevTools evidence: p12 scene b87112c9bc8e reloaded with 10 slabs / 10 ceilings and graph equality; p14 scene 928b2dc5a49e reloaded with 7 slabs / 7 ceilings, graph equality across before/redo/reload, and selected closed Room 1. Native DevTools clear + hard-reload scope recorded p12 errors=0/warnings=2/Issues=5 and p14 errors=0/warnings=1/Issues=10; this is scene-tab scoped and does not claim global console cleanliness.
+- p14 model-readiness follow-up after DevTools close: actual 3D apartment walls/floor/windows rendered, Room 1 closed-zone panel remained present, and accessibility text recorded `Room 1 Enclosed room A 24.70m²`; the readiness-timeout warning remains a warning and is not erased by this visual proof.
+- Fresh normalized physical-geometry comparison: p12 walls 54/54, openings 27/27, zones 14/14, surfaces 20/20; p14 walls 30/30, openings 12/12, zones 10/10, surfaces 14/14. Derived classifications equal after ID normalization. Aggregate equality remains false because the browser wrapper (site/building/level/guide) counts and source metadata/level-parent references are kept separate; see browser/fresh-ui-physical-geometry-comparison.json (SHA256 2fa6cd2855af4f410dc301169ee7f4e539bf778c3016966365f2d968944c7bcc).
+- Fresh UI limits: p12 intermediate Undo/Redo API hashes are not claimed; all 14 zones closed is not claimed; fresh p12/p14 evidence is not a 50-row live-browser pass. Earlier 6/5 pre-guide-scale UI mismatch remains historical selected evidence.

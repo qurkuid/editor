@@ -1,0 +1,167 @@
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:140:     () => () => {
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:141:       clearPreview()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:142:       useInteractionScope
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:143:         .getState()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:144:         .endIf(
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:145:           (s) =>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:146:             s.kind === 'reshaping' &&
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:147:             (s.intent === 'boundary-connect' || s.intent === 'boundary-move'),
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:148:         )
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:149:     },
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:150:     [clearPreview],
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:151:   )
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:152: 
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:153:   if (!active || !levelId || !endpoint || !sourceId || readOnly) return null
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:154:   const walls = Object.values(nodes).filter(
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:155:     (node): node is WallNode =>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:156:       node.type === 'wall' && node.parentId === levelId && node.id !== sourceId,
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:157:   )
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:158:   const selectTarget = (targetWallId: WallNode['id'], targetEndpoint?: 'start' | 'end') => {
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:159:     clearPreview()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:160:     setChoices([])
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:161:     const scene = useScene.getState()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:162:     if (scene.readOnly) return cancel()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:163:     const input: ManualRoomBoundaryInput = {
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:164:       levelId,
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:165:       wallId: sourceId as WallNode['id'],
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:166:       endpoint,
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:167:       targetWallId,
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:168:       targetEndpoint,
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:169:     }
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:170:     const plan = buildManualRoomBoundaryRepair(scene.nodes, input)
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:171:     if (!plan.ok) {
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:172:       setError(plan.message ?? '연결할 수 없습니다.')
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:173:       setDraft(null)
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:174:       return
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:175:     }
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:176:     for (const update of plan.updates) {
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:177:       useLiveNodeOverrides.getState().set(update.id, update.data)
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:178:       scene.markDirty(update.id)
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:179:     }
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:180:     owned.current = plan.updates.map((update) => update.id)
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:181:     setError(null)
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:182:     setDraft({ input: { ...input, expectedSnapshot: plan.snapshot }, plan })
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:183:   }
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:184:   const apply = () => {
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:185:     if (!draft) return
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:186:     const scene = useScene.getState()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:187:     if (scene.readOnly) return cancel()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:188:     const plan = buildManualRoomBoundaryRepair(scene.nodes, draft.input)
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:189:     clearPreview()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:190:     if (!plan.ok || JSON.stringify(plan.updates) !== JSON.stringify(draft.plan.updates)) {
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:191:       setDraft(null)
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:192:       setError(plan.message ?? '미리보기가 변경되었습니다. 대상을 다시 선택하세요.')
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:193:       return
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:194:     }
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:195:     runAsSingleSceneHistoryStep(useScene, () =>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:196:       useScene.getState().applyNodeChanges({ update: plan.updates }),
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:197:     )
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:198:     cancel()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:199:   }
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:200:   const scale = render?.unitsPerPixel ?? 0.01
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:201:   const wallLabel = (id: string, fallback: string) => nodes[id as AnyNodeId]?.name || fallback
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:202:   const sourceLabel = wallLabel(sourceId, '출발 벽')
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:203:   const targetLabel = draft ? wallLabel(draft.input.targetWallId, '대상 벽') : ''
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:204:   const wallCoordinates = (id: WallNode['id']) => {
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:205:     const wall = nodes[id]
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:206:     if (wall?.type !== 'wall') return ''
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:207:     const point = (value: readonly [number, number]) =>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:208:       value.map((axis) => formatLinearMeasurement(axis, unit, metricNotation)).join(', ')
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:209:     return `시작 (${point(wall.start)}) → 끝 (${point(wall.end)})`
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:210:   }
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:290:               data-testid="room-boundary-connect-panel"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:291:               role="dialog"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:292:               aria-label={connecting ? '수동 벽 연결' : '끝점 이동'}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:293:               className="fixed bottom-24 left-1/2 z-[100] w-80 max-w-[90vw] -translate-x-1/2 rounded-xl border border-border bg-background p-3 text-xs text-foreground shadow-xl"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:294:               onPointerDown={(event) => event.stopPropagation()}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:295:             >
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:296:               <div className="font-semibold">{connecting ? '수동 벽 연결' : '끝점 이동'}</div>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:297:               <div className="mt-1 text-muted-foreground">
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:298:                 {sourceLabel} · 끝점({endpoint === 'start' ? '시작' : '끝'})
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:299:               </div>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:300:               <div className="mt-2">
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:301:                 {connecting
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:302:                   ? draft
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:303:                     ? `대상: ${targetLabel}`
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:304:                     : '대상 벽 또는 끝점을 선택하세요'
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:305:                   : '노란 끝점을 드래그하세요. Esc로 취소합니다.'}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:306:               </div>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:307:               {choices.length > 1 ? (
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:308:                 <div
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:309:                   className="mt-2 flex flex-col gap-1"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:310:                   data-testid="room-boundary-target-choices"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:311:                 >
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:312:                   <div>같은 위치의 대상이 여러 개입니다. 연결할 벽을 선택하세요.</div>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:313:                   {choices.map((choice, index) => (
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:314:                     <button
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:315:                       key={choice.wallId}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:316:                       type="button"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:317:                       data-target-wall-id={choice.wallId}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:318:                       className="rounded border px-2 py-1 text-left"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:319:                       onClick={() => selectTarget(choice.wallId, choice.endpoint)}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:320:                     >
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:321:                       {wallLabel(choice.wallId, `대상 벽 ${index + 1}`)}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:322:                       <span className="block text-muted-foreground">
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:323:                         {wallCoordinates(choice.wallId)}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:324:                       </span>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:325:                       {choice.endpoint
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:326:                         ? ` · 끝점(${choice.endpoint === 'start' ? '시작' : '끝'})`
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:327:                         : ''}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:328:                     </button>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:329:                   ))}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:330:                 </div>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:331:               ) : null}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:332:               {draft?.plan.movements.map((move) => (
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:333:                 <div key={`${move.wallId}:${move.endpoint}`}>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:334:                   {wallLabel(move.wallId, move.wallId === sourceId ? '출발 벽' : '대상 벽')} ·{' '}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:335:                   {formatLinearMeasurement(move.distance, unit, metricNotation)} 연장/조정
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:336:                 </div>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:337:               ))}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:338:               {error ? (
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:339:                 <div
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:340:                   role="alert"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:341:                   data-testid="room-boundary-connect-error"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:342:                   className="mt-2 text-red-600"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:343:                 >
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:344:                   {error}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:345:                 </div>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:346:               ) : null}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:347:               <div className="mt-3 flex gap-2">
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:348:                 {connecting ? (
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:349:                   <button
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:350:                     type="button"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:351:                     data-testid="room-boundary-connect-apply"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:352:                     className="rounded border px-3 py-2 disabled:opacity-40"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:353:                     disabled={!draft}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:354:                     onClick={apply}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:355:                   >
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:356:                     연결 적용
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:357:                   </button>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:358:                 ) : null}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:359:                 <button type="button" className="rounded border px-3 py-2" onClick={cancel}>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:360:                   취소
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:361:                 </button>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:362:                 {connecting ? (
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:363:                   <button
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:364:                     type="button"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:365:                     className="rounded border px-3 py-2"
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:366:                     onClick={() => {
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:367:                       cancel()
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:368:                       beginRoomBoundaryInteraction(
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:369:                         sourceId as WallNode['id'],
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:370:                         endpoint,
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:371:                         'boundary-move',
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:372:                       )
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:373:                     }}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:374:                   >
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:375:                     끝점 이동
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:376:                   </button>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:377:                 ) : null}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:378:               </div>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:379:             </div>,
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:380:             document.body,
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:381:           )
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:382:         : null}
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:383:     </>
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:384:   )
+packages/editor/src/components/editor-2d/room-boundary-connect.tsx:385: }

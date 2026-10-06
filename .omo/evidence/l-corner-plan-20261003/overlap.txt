@@ -1,0 +1,108 @@
+packages/core/src/lib/wall-operations.ts:638: export function validateWallEndpointOverlaps(
+packages/core/src/lib/wall-operations.ts:639:   nodes: Readonly<Record<AnyNodeId, AnyNode>>,
+packages/core/src/lib/wall-operations.ts:640:   updates: readonly WallEndpointUpdate[],
+packages/core/src/lib/wall-operations.ts:641: ) {
+packages/core/src/lib/wall-operations.ts:642:   const changed = new Map(updates.map((update) => [update.id, update.data]))
+packages/core/src/lib/wall-operations.ts:643:   const walls = Object.values(nodes).filter(isWall)
+packages/core/src/lib/wall-operations.ts:644:   const after = new Map(
+packages/core/src/lib/wall-operations.ts:645:     walls.map((wall) => [wall.id, { ...wall, ...changed.get(wall.id) } as WallNodeData]),
+packages/core/src/lib/wall-operations.ts:646:   )
+packages/core/src/lib/wall-operations.ts:647:   const overlap = (a: WallNodeData, b: WallNodeData) => {
+packages/core/src/lib/wall-operations.ts:648:     if (Math.abs(a.curveOffset ?? 0) > EPSILON || Math.abs(b.curveOffset ?? 0) > EPSILON) return 0
+packages/core/src/lib/wall-operations.ts:649:     const length = distance(a.start, a.end)
+packages/core/src/lib/wall-operations.ts:650:     if (length <= EPSILON) return 0
+packages/core/src/lib/wall-operations.ts:651:     const axis = direction(a.start, a.end)
+packages/core/src/lib/wall-operations.ts:652:     const start: Vec2 = [b.start[0] - a.start[0], b.start[1] - a.start[1]]
+packages/core/src/lib/wall-operations.ts:653:     const end: Vec2 = [b.end[0] - a.start[0], b.end[1] - a.start[1]]
+packages/core/src/lib/wall-operations.ts:654:     if (Math.abs(cross(start, axis)) > EPSILON || Math.abs(cross(end, axis)) > EPSILON) return 0
+packages/core/src/lib/wall-operations.ts:655:     const first = dot(start, axis)
+packages/core/src/lib/wall-operations.ts:656:     const second = dot(end, axis)
+packages/core/src/lib/wall-operations.ts:657:     return Math.max(
+packages/core/src/lib/wall-operations.ts:658:       0,
+packages/core/src/lib/wall-operations.ts:659:       Math.min(length, Math.max(first, second)) - Math.max(0, Math.min(first, second)),
+packages/core/src/lib/wall-operations.ts:660:     )
+packages/core/src/lib/wall-operations.ts:661:   }
+packages/core/src/lib/wall-operations.ts:662:   for (const wall of walls) {
+packages/core/src/lib/wall-operations.ts:663:     if (!changed.has(wall.id)) continue
+packages/core/src/lib/wall-operations.ts:664:     for (const other of walls) {
+packages/core/src/lib/wall-operations.ts:665:       if (wall.id === other.id || wall.parentId !== other.parentId) continue
+packages/core/src/lib/wall-operations.ts:666:       if (overlap(after.get(wall.id)!, after.get(other.id)!) > overlap(wall, other) + EPSILON)
+packages/core/src/lib/wall-operations.ts:667:         throw new WallOperationError('overlap', '다른 벽과 겹치는 연결은 적용할 수 없습니다.')
+packages/core/src/lib/wall-operations.ts:668:     }
+packages/core/src/lib/wall-operations.ts:669:   }
+packages/core/src/lib/wall-operations.ts:670: }
+packages/core/src/lib/wall-operations.ts:671: 
+packages/core/src/lib/wall-operations.ts:672: function uniqueWallId(nodes: Record<AnyNodeId, AnyNode>, requested?: AnyNodeId) {
+packages/core/src/lib/wall-operations.ts:673:   if (requested) {
+packages/core/src/lib/wall-operations.ts:674:     if (nodes[requested]) {
+packages/core/src/lib/wall-operations.ts:675:       throw new WallOperationError('wall-id-conflict', `Wall id ${requested} is already in use`)
+packages/core/src/lib/wall-operations.ts:676:     }
+packages/core/src/lib/wall-operations.ts:677:     return requested
+packages/core/src/lib/wall-operations.ts:678:   }
+packages/core/src/lib/wall-operations.ts:679:   let id = generateId('wall') as AnyNodeId
+packages/core/src/lib/wall-operations.ts:680:   while (nodes[id]) id = generateId('wall') as AnyNodeId
+packages/core/src/lib/wall-operations.ts:681:   return id
+packages/core/src/lib/wall-operations.ts:1137:  * Split a straight wall at every interior T/X contact with a sibling wall.
+packages/core/src/lib/wall-operations.ts:1138:  *
+packages/core/src/lib/wall-operations.ts:1139:  * The individual split builder is deliberately reused on an in-memory
+packages/core/src/lib/wall-operations.ts:1140:  * snapshot. This keeps attachment, parent, and collection bookkeeping in one
+packages/core/src/lib/wall-operations.ts:1141:  * place while ensuring a failed later split never leaks a partial mutation to
+packages/core/src/lib/wall-operations.ts:1142:  * the caller.
+packages/core/src/lib/wall-operations.ts:1143:  */
+packages/core/src/lib/wall-operations.ts:1144: export function buildWallSplitAtContacts(scene: WallSceneState, wallId: AnyNodeId): WallMutation {
+packages/core/src/lib/wall-operations.ts:1145:   const wall = requireWall(scene.nodes, wallId)
+packages/core/src/lib/wall-operations.ts:1146:   const wallLength = distance(wall.start, wall.end)
+packages/core/src/lib/wall-operations.ts:1147:   if (wallLength <= EPSILON) {
+packages/core/src/lib/wall-operations.ts:1148:     throw new WallOperationError('zero-length-wall', 'Zero-length walls cannot be split')
+packages/core/src/lib/wall-operations.ts:1149:   }
+packages/core/src/lib/wall-operations.ts:1150:   if (Math.abs(wall.curveOffset ?? 0) > EPSILON) {
+packages/core/src/lib/wall-operations.ts:1151:     throw new WallOperationError('curved-wall', 'Only straight walls can be split')
+packages/core/src/lib/wall-operations.ts:1152:   }
+packages/core/src/lib/wall-operations.ts:1153: 
+packages/core/src/lib/wall-operations.ts:1154:   const hostAxis: Vec2 = [wall.end[0] - wall.start[0], wall.end[1] - wall.start[1]]
+packages/core/src/lib/wall-operations.ts:1155:   const contacts: number[] = []
+packages/core/src/lib/wall-operations.ts:1156:   for (const node of Object.values(scene.nodes)) {
+packages/core/src/lib/wall-operations.ts:1157:     if (!isWall(node) || node.id === wall.id || node.parentId !== wall.parentId) continue
+packages/core/src/lib/wall-operations.ts:1158:     if (Math.abs(node.curveOffset ?? 0) > EPSILON) continue
+packages/core/src/lib/wall-operations.ts:1159:     const otherLength = distance(node.start, node.end)
+packages/core/src/lib/wall-operations.ts:1160:     if (otherLength <= EPSILON) continue
+packages/core/src/lib/wall-operations.ts:1161:     const otherAxis: Vec2 = [node.end[0] - node.start[0], node.end[1] - node.start[1]]
+packages/core/src/lib/wall-operations.ts:1162:     const denominator = cross(hostAxis, otherAxis)
+packages/core/src/lib/wall-operations.ts:1163:     if (Math.abs(denominator) <= EPSILON * wallLength * otherLength) continue
+packages/core/src/lib/wall-operations.ts:1164: 
+packages/core/src/lib/wall-operations.ts:1165:     const offset: Vec2 = [node.start[0] - wall.start[0], node.start[1] - wall.start[1]]
+packages/core/src/lib/wall-operations.ts:1166:     const hostT = cross(offset, otherAxis) / denominator
+packages/core/src/lib/wall-operations.ts:1167:     const otherT = cross(offset, hostAxis) / denominator
+packages/core/src/lib/wall-operations.ts:1168:     // The selected wall must be split in its interior. The contact may be an
+packages/core/src/lib/wall-operations.ts:1169:     // endpoint or interior point of the other wall (T and X junctions).
+packages/core/src/lib/wall-operations.ts:1170:     if (hostT <= EPSILON / wallLength || hostT >= 1 - EPSILON / wallLength) continue
+packages/core/src/lib/wall-operations.ts:1171:     if (otherT < -EPSILON / otherLength || otherT > 1 + EPSILON / otherLength) continue
+packages/core/src/lib/wall-operations.ts:1172:     const distanceFromStart = hostT * wallLength
+packages/core/src/lib/wall-operations.ts:1173:     if (contacts.some((existing) => Math.abs(existing - distanceFromStart) <= EPSILON)) continue
+packages/core/src/lib/wall-operations.ts:1174:     contacts.push(distanceFromStart)
+packages/core/src/lib/wall-operations.ts:1175:   }
+packages/core/src/lib/wall-operations.ts:1176: 
+packages/core/src/lib/wall-operations.ts:1177:   if (contacts.length === 0) {
+packages/core/src/lib/wall-operations.ts:1178:     throw new WallOperationError(
+packages/core/src/lib/wall-operations.ts:1179:       'no-wall-contacts',
+packages/core/src/lib/wall-operations.ts:1180:       'No interior T or X wall contacts were found for this wall',
+packages/core/src/lib/wall-operations.ts:1181:     )
+packages/core/src/lib/wall-operations.ts:1182:   }
+packages/core/src/lib/wall-operations.ts:1183: 
+packages/core/src/lib/wall-operations.ts:1184:   // Descending distances keep the retained wall id as the prefix segment for
+packages/core/src/lib/wall-operations.ts:1185:   // each subsequent split. All builders operate on snapshots until every
+packages/core/src/lib/wall-operations.ts:1186:   // contact has validated successfully, making the operation atomic.
+packages/core/src/lib/wall-operations.ts:1187:   contacts.sort((a, b) => b - a)
+packages/core/src/lib/wall-operations.ts:1188:   let snapshot: WallSceneState = scene
+packages/core/src/lib/wall-operations.ts:1189:   const createdNodeIds: AnyNodeId[] = []
+packages/core/src/lib/wall-operations.ts:1190:   const changedNodeIds = new Set<AnyNodeId>()
+packages/core/src/lib/wall-operations.ts:1191:   for (const distanceFromStart of contacts) {
+packages/core/src/lib/wall-operations.ts:1192:     const mutation = buildWallSplit(snapshot, wallId, distanceFromStart)
+packages/core/src/lib/wall-operations.ts:1193:     snapshot = {
+packages/core/src/lib/wall-operations.ts:1194:       nodes: mutation.nodes,
+packages/core/src/lib/wall-operations.ts:1195:       rootNodeIds: mutation.rootNodeIds,
+packages/core/src/lib/wall-operations.ts:1196:       collections: mutation.collections,
+packages/core/src/lib/wall-operations.ts:1197:     }
+packages/core/src/lib/wall-operations.ts:1198:     createdNodeIds.push(...mutation.createdNodeIds)
+packages/core/src/lib/wall-operations.ts:1199:     for (const id of mutation.changedNodeIds) changedNodeIds.add(id)
+packages/core/src/lib/wall-operations.ts:1200:   }

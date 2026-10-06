@@ -1,0 +1,207 @@
+packages/core/src/lib/room-boundary.ts:673:     }
+packages/core/src/lib/room-boundary.ts:674:   }
+packages/core/src/lib/room-boundary.ts:675: 
+packages/core/src/lib/room-boundary.ts:676:   return { ...plan, updates: [...updatesById.values()] }
+packages/core/src/lib/room-boundary.ts:677: }
+packages/core/src/lib/room-boundary.ts:678: 
+packages/core/src/lib/room-boundary.ts:679: export type ManualRoomBoundaryInput = {
+packages/core/src/lib/room-boundary.ts:680:   levelId: string
+packages/core/src/lib/room-boundary.ts:681:   wallId: WallNodeType['id']
+packages/core/src/lib/room-boundary.ts:682:   endpoint: 'start' | 'end'
+packages/core/src/lib/room-boundary.ts:683:   targetWallId: WallNodeType['id']
+packages/core/src/lib/room-boundary.ts:684:   targetEndpoint?: 'start' | 'end'
+packages/core/src/lib/room-boundary.ts:685:   expectedSnapshot?: string
+packages/core/src/lib/room-boundary.ts:686: }
+packages/core/src/lib/room-boundary.ts:687: 
+packages/core/src/lib/room-boundary.ts:688: export type ManualRoomBoundaryPlan = {
+packages/core/src/lib/room-boundary.ts:689:   ok: boolean
+packages/core/src/lib/room-boundary.ts:690:   updates: WallEndpointUpdate[]
+packages/core/src/lib/room-boundary.ts:691:   point?: Point
+packages/core/src/lib/room-boundary.ts:692:   reason?: string
+packages/core/src/lib/room-boundary.ts:693:   message?: string
+packages/core/src/lib/room-boundary.ts:694:   snapshot: string
+packages/core/src/lib/room-boundary.ts:695:   movements: {
+packages/core/src/lib/room-boundary.ts:696:     wallId: WallNodeType['id']
+packages/core/src/lib/room-boundary.ts:697:     endpoint: 'start' | 'end'
+packages/core/src/lib/room-boundary.ts:698:     from: Point
+packages/core/src/lib/room-boundary.ts:699:     to: Point
+packages/core/src/lib/room-boundary.ts:700:     distance: number
+packages/core/src/lib/room-boundary.ts:701:   }[]
+packages/core/src/lib/room-boundary.ts:702: }
+packages/core/src/lib/room-boundary.ts:703: 
+packages/core/src/lib/room-boundary.ts:704: export function roomBoundarySnapshot(
+packages/core/src/lib/room-boundary.ts:705:   nodes: Readonly<Record<AnyNodeId, AnyNode>>,
+packages/core/src/lib/room-boundary.ts:706:   levelId: string | null,
+packages/core/src/lib/room-boundary.ts:707: ) {
+packages/core/src/lib/room-boundary.ts:708:   const wallIds = new Set(
+packages/core/src/lib/room-boundary.ts:709:     Object.values(nodes)
+packages/core/src/lib/room-boundary.ts:710:       .filter((node) => node.type === 'wall' && node.parentId === levelId)
+packages/core/src/lib/room-boundary.ts:711:       .map((node) => node.id),
+packages/core/src/lib/room-boundary.ts:712:   )
+packages/core/src/lib/room-boundary.ts:713:   return JSON.stringify(
+packages/core/src/lib/room-boundary.ts:714:     Object.values(nodes)
+packages/core/src/lib/room-boundary.ts:715:       .filter(
+packages/core/src/lib/room-boundary.ts:716:         (node) =>
+packages/core/src/lib/room-boundary.ts:717:           node.id === levelId ||
+packages/core/src/lib/room-boundary.ts:718:           wallIds.has(node.id) ||
+packages/core/src/lib/room-boundary.ts:719:           wallIds.has(node.parentId as AnyNodeId) ||
+packages/core/src/lib/room-boundary.ts:720:           wallIds.has((node as AnyNode & { wallId?: AnyNodeId }).wallId!),
+packages/core/src/lib/room-boundary.ts:721:       )
+packages/core/src/lib/room-boundary.ts:722:       .sort((a, b) => a.id.localeCompare(b.id)),
+packages/core/src/lib/room-boundary.ts:723:   )
+packages/core/src/lib/room-boundary.ts:724: }
+packages/core/src/lib/room-boundary.ts:725: 
+packages/core/src/lib/room-boundary.ts:726: function boundaryWallSignature(wall: WallNodeType) {
+packages/core/src/lib/room-boundary.ts:727:   return JSON.stringify([
+packages/core/src/lib/room-boundary.ts:728:     wall.parentId,
+packages/core/src/lib/room-boundary.ts:729:     wall.start,
+packages/core/src/lib/room-boundary.ts:730:     wall.end,
+packages/core/src/lib/room-boundary.ts:731:     wall.curveOffset ?? 0,
+packages/core/src/lib/room-boundary.ts:732:     wall.thickness,
+packages/core/src/lib/room-boundary.ts:733:   ])
+packages/core/src/lib/room-boundary.ts:734: }
+packages/core/src/lib/room-boundary.ts:735: 
+packages/core/src/lib/room-boundary.ts:736: export function isRoomBoundaryReviewedOpen(wall: WallNodeType, endpoint: 'start' | 'end') {
+packages/core/src/lib/room-boundary.ts:737:   const metadata = wall.metadata as Record<string, unknown> | undefined
+packages/core/src/lib/room-boundary.ts:738:   const reviews = metadata?.boundaryOpenReviews as Record<string, unknown> | undefined
+packages/core/src/lib/room-boundary.ts:739:   return reviews?.[endpoint] === boundaryWallSignature(wall)
+packages/core/src/lib/room-boundary.ts:740: }
+packages/core/src/lib/room-boundary.ts:741: 
+packages/core/src/lib/room-boundary.ts:742: export function buildRoomBoundaryOpenReviewUpdate(
+packages/core/src/lib/room-boundary.ts:743:   wall: WallNodeType,
+packages/core/src/lib/room-boundary.ts:744:   endpoint: 'start' | 'end',
+packages/core/src/lib/room-boundary.ts:745:   reviewed: boolean,
+packages/core/src/lib/room-boundary.ts:746: ): WallEndpointUpdate {
+packages/core/src/lib/room-boundary.ts:747:   const metadata = { ...(wall.metadata as Record<string, unknown> | undefined) }
+packages/core/src/lib/room-boundary.ts:748:   const reviews = { ...(metadata.boundaryOpenReviews as Record<string, unknown> | undefined) }
+packages/core/src/lib/room-boundary.ts:749:   if (reviewed) reviews[endpoint] = boundaryWallSignature(wall)
+packages/core/src/lib/room-boundary.ts:750:   else delete reviews[endpoint]
+packages/core/src/lib/room-boundary.ts:751:   if (Object.keys(reviews).length) metadata.boundaryOpenReviews = reviews
+packages/core/src/lib/room-boundary.ts:752:   else delete metadata.boundaryOpenReviews
+packages/core/src/lib/room-boundary.ts:753:   return { id: wall.id, data: { metadata: metadata as WallNodeType['metadata'] } }
+packages/core/src/lib/room-boundary.ts:754: }
+packages/core/src/lib/room-boundary.ts:755: 
+packages/core/src/lib/room-boundary.ts:756: export function buildManualRoomBoundaryRepair(
+packages/core/src/lib/room-boundary.ts:757:   nodes: Readonly<Record<AnyNodeId, AnyNode>>,
+packages/core/src/lib/room-boundary.ts:758:   input: ManualRoomBoundaryInput,
+packages/core/src/lib/room-boundary.ts:759: ): ManualRoomBoundaryPlan {
+packages/core/src/lib/room-boundary.ts:760:   const snapshot = roomBoundarySnapshot(nodes, input.levelId)
+packages/core/src/lib/room-boundary.ts:761:   const reject = (reason: string, message: string): ManualRoomBoundaryPlan => ({
+packages/core/src/lib/room-boundary.ts:762:     ok: false,
+packages/core/src/lib/room-boundary.ts:763:     updates: [],
+packages/core/src/lib/room-boundary.ts:764:     movements: [],
+packages/core/src/lib/room-boundary.ts:765:     snapshot,
+packages/core/src/lib/room-boundary.ts:766:     reason,
+packages/core/src/lib/room-boundary.ts:767:     message,
+packages/core/src/lib/room-boundary.ts:768:   })
+packages/core/src/lib/room-boundary.ts:769:   if (input.expectedSnapshot !== undefined && input.expectedSnapshot !== snapshot)
+packages/core/src/lib/room-boundary.ts:770:     return reject('stale', '벽 또는 부착물이 변경되었습니다. 대상을 다시 선택하세요.')
+packages/core/src/lib/room-boundary.ts:771:   const source = nodes[input.wallId]
+packages/core/src/lib/room-boundary.ts:772:   const target = nodes[input.targetWallId]
+packages/core/src/lib/room-boundary.ts:773:   if (
+packages/core/src/lib/room-boundary.ts:774:     source?.type !== 'wall' ||
+packages/core/src/lib/room-boundary.ts:775:     target?.type !== 'wall' ||
+packages/core/src/lib/room-boundary.ts:776:     source.id === target.id ||
+packages/core/src/lib/room-boundary.ts:777:     source.parentId !== input.levelId ||
+packages/core/src/lib/room-boundary.ts:778:     target.parentId !== input.levelId
+packages/core/src/lib/room-boundary.ts:779:   )
+packages/core/src/lib/room-boundary.ts:780:     return reject('invalid-target', '같은 층의 다른 벽을 선택하세요.')
+packages/core/src/lib/room-boundary.ts:781:   if (isCurvedWall(source) || isCurvedWall(target))
+packages/core/src/lib/room-boundary.ts:782:     return reject('curved', '곡선 벽은 직선 경계 연결을 지원하지 않습니다.')
+packages/core/src/lib/room-boundary.ts:783:   const sourceDirection = normalize(...subtract(source.end, source.start))
+packages/core/src/lib/room-boundary.ts:784:   const targetDirection = normalize(...subtract(target.end, target.start))
+packages/core/src/lib/room-boundary.ts:785:   if (
+packages/core/src/lib/room-boundary.ts:786:     !sourceDirection ||
+packages/core/src/lib/room-boundary.ts:787:     !targetDirection ||
+packages/core/src/lib/room-boundary.ts:788:     ![...source.start, ...source.end, ...target.start, ...target.end].every(Number.isFinite)
+packages/core/src/lib/room-boundary.ts:789:   )
+packages/core/src/lib/room-boundary.ts:790:     return reject('invalid', '유효한 직선 벽이 필요합니다.')
+packages/core/src/lib/room-boundary.ts:791:   const intersection = lineIntersection(
+packages/core/src/lib/room-boundary.ts:792:     source.start,
+packages/core/src/lib/room-boundary.ts:793:     sourceDirection,
+packages/core/src/lib/room-boundary.ts:794:     target.start,
+packages/core/src/lib/room-boundary.ts:795:     targetDirection,
+packages/core/src/lib/room-boundary.ts:796:   )
+packages/core/src/lib/room-boundary.ts:797:   let point: Point
+packages/core/src/lib/room-boundary.ts:798:   let targetEndpoint: 'start' | 'end' | undefined
+packages/core/src/lib/room-boundary.ts:799:   if (!intersection) {
+packages/core/src/lib/room-boundary.ts:800:     if (Math.abs(cross(subtract(target.start, source.start), sourceDirection)) > 1e-6)
+packages/core/src/lib/room-boundary.ts:801:       return reject('parallel', '분리된 평행 벽은 직접 연결할 수 없습니다.')
+packages/core/src/lib/room-boundary.ts:802:     targetEndpoint =
+packages/core/src/lib/room-boundary.ts:803:       input.targetEndpoint ?? nearestEndpoint(target, source[input.endpoint]).endpoint
+packages/core/src/lib/room-boundary.ts:804:     point = [...target[targetEndpoint]]
+packages/core/src/lib/room-boundary.ts:805:     const sourceFixed = source[input.endpoint === 'start' ? 'end' : 'start']
+packages/core/src/lib/room-boundary.ts:806:     const targetOther = target[targetEndpoint === 'start' ? 'end' : 'start']
+packages/core/src/lib/room-boundary.ts:807:     if (dot(subtract(sourceFixed, point), subtract(targetOther, point)) >= 0)
+packages/core/src/lib/room-boundary.ts:808:       return reject('overlap', '벽이 겹치는 연결은 적용할 수 없습니다.')
+packages/core/src/lib/room-boundary.ts:809:     targetEndpoint = undefined
+packages/core/src/lib/room-boundary.ts:810:   } else {
+packages/core/src/lib/room-boundary.ts:811:     point = intersection.point
+packages/core/src/lib/room-boundary.ts:812:     const length = distance(target.start, target.end)
+packages/core/src/lib/room-boundary.ts:813:     if (intersection.otherAlong < -1e-6 || intersection.otherAlong > length + 1e-6) {
+packages/core/src/lib/room-boundary.ts:814:       targetEndpoint = intersection.otherAlong < 0 ? 'start' : 'end'
+packages/core/src/lib/room-boundary.ts:815:       if (input.targetEndpoint && input.targetEndpoint !== targetEndpoint)
+packages/core/src/lib/room-boundary.ts:816:         return reject('invalid-target', '교차점에 가까운 대상 끝점을 선택하세요.')
+packages/core/src/lib/room-boundary.ts:817:     } else if (input.targetEndpoint && distance(target[input.targetEndpoint], point) > 1e-6) {
+packages/core/src/lib/room-boundary.ts:818:       return reject(
+packages/core/src/lib/room-boundary.ts:819:         'invalid-target',
+packages/core/src/lib/room-boundary.ts:820:         '선택한 끝점은 원래 벽 진행선의 교차점이 아닙니다. 벽 몸체를 선택하세요.',
+packages/core/src/lib/room-boundary.ts:821:       )
+packages/core/src/lib/room-boundary.ts:822:     }
+packages/core/src/lib/room-boundary.ts:823:   }
+packages/core/src/lib/room-boundary.ts:824:   const proposals = [
+packages/core/src/lib/room-boundary.ts:825:     {
+packages/core/src/lib/room-boundary.ts:826:       wallId: source.id,
+packages/core/src/lib/room-boundary.ts:827:       endpoint: input.endpoint,
+packages/core/src/lib/room-boundary.ts:828:       from: source[input.endpoint],
+packages/core/src/lib/room-boundary.ts:829:       to: point,
+packages/core/src/lib/room-boundary.ts:830:       distance: distance(source[input.endpoint], point),
+packages/core/src/lib/room-boundary.ts:831:     },
+packages/core/src/lib/room-boundary.ts:832:   ]
+packages/core/src/lib/room-boundary.ts:833:   if (targetEndpoint)
+packages/core/src/lib/room-boundary.ts:834:     proposals.push({
+packages/core/src/lib/room-boundary.ts:835:       wallId: target.id,
+packages/core/src/lib/room-boundary.ts:836:       endpoint: targetEndpoint,
+packages/core/src/lib/room-boundary.ts:837:       from: target[targetEndpoint],
+packages/core/src/lib/room-boundary.ts:838:       to: point,
+packages/core/src/lib/room-boundary.ts:839:       distance: distance(target[targetEndpoint], point),
+packages/core/src/lib/room-boundary.ts:840:     })
+packages/core/src/lib/room-boundary.ts:841:   const working = { ...nodes }
+packages/core/src/lib/room-boundary.ts:842:   const updates = new Map<AnyNodeId, WallEndpointUpdate>()
+packages/core/src/lib/room-boundary.ts:843:   try {
+packages/core/src/lib/room-boundary.ts:844:     for (const proposal of proposals) {
+packages/core/src/lib/room-boundary.ts:845:       if (proposal.distance <= 1e-9) continue
+packages/core/src/lib/room-boundary.ts:846:       const wall = working[proposal.wallId] as WallNodeType
+packages/core/src/lib/room-boundary.ts:847:       const patches = buildWallEndpointUpdates(
+packages/core/src/lib/room-boundary.ts:848:         working,
+packages/core/src/lib/room-boundary.ts:849:         wall.id,
+packages/core/src/lib/room-boundary.ts:850:         proposal.endpoint === 'start' ? point : wall.start,
+packages/core/src/lib/room-boundary.ts:851:         proposal.endpoint === 'end' ? point : wall.end,
+packages/core/src/lib/room-boundary.ts:852:       )
+packages/core/src/lib/room-boundary.ts:853:       for (const patch of patches) {
+packages/core/src/lib/room-boundary.ts:854:         working[patch.id] = { ...working[patch.id], ...patch.data } as AnyNode
+packages/core/src/lib/room-boundary.ts:855:         updates.set(patch.id, {
+packages/core/src/lib/room-boundary.ts:856:           id: patch.id,
+packages/core/src/lib/room-boundary.ts:857:           data: { ...updates.get(patch.id)?.data, ...patch.data } as Partial<AnyNode>,
+packages/core/src/lib/room-boundary.ts:858:         })
+packages/core/src/lib/room-boundary.ts:859:       }
+packages/core/src/lib/room-boundary.ts:860:     }
+packages/core/src/lib/room-boundary.ts:861:   } catch (error) {
+packages/core/src/lib/room-boundary.ts:862:     if (error instanceof WallOperationError) return reject(error.code, error.message)
+packages/core/src/lib/room-boundary.ts:863:     throw error
+packages/core/src/lib/room-boundary.ts:864:   }
+packages/core/src/lib/room-boundary.ts:865:   try {
+packages/core/src/lib/room-boundary.ts:866:     validateWallEndpointOverlaps(nodes, [...updates.values()])
+packages/core/src/lib/room-boundary.ts:867:   } catch (error) {
+packages/core/src/lib/room-boundary.ts:868:     if (error instanceof WallOperationError) return reject(error.code, error.message)
+packages/core/src/lib/room-boundary.ts:869:     throw error
+packages/core/src/lib/room-boundary.ts:870:   }
+packages/core/src/lib/room-boundary.ts:871:   if (!updates.size) return reject('unchanged', '이미 연결된 위치입니다.')
+packages/core/src/lib/room-boundary.ts:872:   return {
+packages/core/src/lib/room-boundary.ts:873:     ok: true,
+packages/core/src/lib/room-boundary.ts:874:     point,
+packages/core/src/lib/room-boundary.ts:875:     updates: [...updates.values()],
+packages/core/src/lib/room-boundary.ts:876:     movements: proposals.filter((p) => p.distance > 1e-9),
+packages/core/src/lib/room-boundary.ts:877:     snapshot,
+packages/core/src/lib/room-boundary.ts:878:   }
+packages/core/src/lib/room-boundary.ts:879: }

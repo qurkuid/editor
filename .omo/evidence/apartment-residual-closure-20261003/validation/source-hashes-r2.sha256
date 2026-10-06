@@ -1,0 +1,5 @@
+fc48930db79098c18184d32666bcfa42b82af50878f17aa95e50de7244def05e  packages/core/src/lib/space-detection.ts
+def41838b325c17b4f1bb77354ffec6d365c36c04c294f5c12334e77e4188473  packages/core/src/lib/space-detection.test.ts
+aca0d9372c5bb5aafe45c3cdf975bd420e213c99fb2ce765adfe81042895946f  packages/core/src/lib/space-detection-history.test.ts
+3c2eb0552b74b0f1c9ad117b5dc8b4a39e7aefca9b360cff5255dd39dda6c950  packages/core/src/lib/room-boundary.ts
+77e13470b4a52e9116ba6882a9bbfac12a9a047298e40bcf6331408aea528010  packages/core/src/lib/room-boundary.test.ts

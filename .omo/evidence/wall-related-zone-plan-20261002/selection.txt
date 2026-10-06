@@ -1,0 +1,23 @@
+INVOCATION: sed -n '503,523p' packages/viewer/src/store/use-viewer.ts
+EXIT: 0
+      setSelection: (updates) =>
+        set((state) => {
+          const newSelection = { ...state.selection, ...updates }
+
+          // Hierarchy Guard: If we change a high-level parent, reset the children unless explicitly provided
+          if (updates.buildingId !== undefined) {
+            if (updates.levelId === undefined) newSelection.levelId = null
+            if (updates.zoneId === undefined) newSelection.zoneId = null
+            if (updates.selectedIds === undefined) newSelection.selectedIds = []
+          }
+          if (updates.levelId !== undefined) {
+            if (updates.zoneId === undefined) newSelection.zoneId = null
+            if (updates.selectedIds === undefined) newSelection.selectedIds = []
+          }
+          if (updates.zoneId !== undefined) {
+            if (updates.selectedIds === undefined) newSelection.selectedIds = []
+          }
+
+          return { selection: newSelection, previewSelectedIds: [] }
+        }),
+

@@ -1,0 +1,102 @@
+raw HTTP/accessibility/URL output	.omo/evidence/apartment-50-browser-20261003/parent-p42-v14-2d-zones-ax.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/01-baseline-text.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/02-baseline-ax-snapshot.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/04-baseline-console.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/05-baseline-console-errors.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/06-baseline-network.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/07-baseline-url.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/08-baseline-forms.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/09-baseline-cursor-snapshot.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/10-baseline-input-html.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/11-baseline-full-html.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/12-search-filled-snapshot.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/13-search-filled-text.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/15-after-apartment-url.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/16-after-apartment-snapshot-diff.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/17-after-apartment-text.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/19-after-apartment-console.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/20-after-apartment-console-errors.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/21-after-apartment-network.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/22-apartment-loaded-snapshot-diff.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/23-apartment-loaded-text.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/25-apartment-loaded-console.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/26-apartment-loaded-console-errors.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/27-apartment-loaded-network.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/28-plan-list-ax.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/29-interior-info-browser-status-body.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/30-plan-89b-modal-snapshot-diff.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/31-plan-89b-modal-text.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/33-plan-89b-modal-console.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/34-plan-89b-modal-console-errors.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/35-plan-89b-modal-network.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/36-plan-89b-modal-url.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/37-plans-browser-status-body.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/38-plan-images-media.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/39-modal-ax.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/41-tabs.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/42-network-failures.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/43-browse-status.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/45-scenes-browser-status-body.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/46-final-console.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/47-final-console-errors.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/48-final-network.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/49-final-url.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/50-final-text.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/51-final-ax.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/53-qa-summary.md
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/54-hash-verification.txt
+raw public browser console/network capture	.omo/evidence/apartment-r4-deployment-20261003/public-console-final/SHA256SUMS.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/browser-final/canary-console-ax.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/browser-final/canary-import-attempt.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/browser-final/canary-renderer-ax.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/browser-final/public-console-ax.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/browser-final/public-page-ax.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/browser-final/screenshot-capture.md
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/canary-followup-v2-runtime.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/final-evidence-hashes.sha256
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/production-db-before-correction-switch.sha256
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/production-db-final-readonly.sha256
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/production-db-readonly-binding.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/public-vector-cache-after.sha256
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/public-vector-cache-before.sha256
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/public-vector-headers.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/rollback-cache-inventory.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/vector-cache-inventory.txt
+server/runtime operational capture	.omo/evidence/apartment-r4-deployment-20261003/server-final/vectorizer-before.sha256
+reconstructed/copied vectorizer workspace	.omo/evidence/apartment-r4-deployment-20261003/vectorizer/reconstruction/c685-recovery-hashes.txt
+reconstructed/copied vectorizer workspace	.omo/evidence/apartment-r4-deployment-20261003/vectorizer/reconstruction/c685-vs-local-9e.diff
+reconstructed/copied vectorizer workspace	.omo/evidence/apartment-r4-deployment-20261003/vectorizer/reconstruction/hashes.txt
+reconstructed/copied vectorizer workspace	.omo/evidence/apartment-r4-deployment-20261003/vectorizer/reconstruction/remote-operating-host-6307.readonly.txt
+reconstructed/copied vectorizer workspace	.omo/evidence/apartment-r4-deployment-20261003/vectorizer/reconstruction/vectorize.py.c685-transcript.patch
+reconstructed/copied vectorizer workspace	.omo/evidence/apartment-r4-deployment-20261003/vectorizer/reconstruction/vectorize.py.focused.rebased.patch
+raw HTTP/accessibility/URL output	.omo/evidence/apartment-residual-closure-20261003/browser/checkpoint-eba42adc-vector-url.txt
+raw runtime/public HTML snapshot	.omo/evidence/apartment-residual-closure-20261003/browser/runtime-final-eba42adc-apt.html
+raw runtime/public HTML snapshot	.omo/evidence/apartment-residual-closure-20261003/browser/runtime-final-eba42adc-editor.html
+raw runtime/public HTML snapshot	.omo/evidence/apartment-residual-closure-20261003/browser/runtime-final-eba42adc-scene.html
+experimental copied source/results	.omo/evidence/apartment-residual-closure-20261003/optimization-experiment/compare_geometry.ts
+experimental copied source/results	.omo/evidence/apartment-residual-closure-20261003/optimization-experiment/fc48930d-distance-footprint-memo/space-detection.ts
+experimental copied source/results	.omo/evidence/apartment-residual-closure-20261003/optimization-experiment/fc48930d-distance-footprint-memo/variant.patch
+experimental copied source/results	.omo/evidence/apartment-residual-closure-20261003/optimization-experiment/fc48930d-distance-footprint-memo/verify_experiment.py
+raw HTTP/accessibility/URL output	.omo/evidence/apartment-residual-closure-20261003/validation/nearparallel-product-raw.txt
+raw runtime/public HTML snapshot	.omo/evidence/apartment-topology-refinement-20261003/browser/apt-3008.html
+raw HTTP/accessibility/URL output	.omo/evidence/editor-completion-20261002/beonyeong-headers.txt
+raw HTTP/accessibility/URL output	.omo/evidence/editor-completion-20261002/centum-headers.txt
+raw HTTP/accessibility/URL output	.omo/evidence/editor-completion-20261002/daeyeon-headers.txt
+raw HTTP/accessibility/URL output	.omo/evidence/editor-completion-20261002/forest-headers.txt
+raw HTTP/accessibility/URL output	.omo/evidence/editor-completion-20261002/haeundae-headers.txt
+raw HTTP/accessibility/URL output	.omo/evidence/editor-completion-20261002/hwmyeong-headers.txt
+raw HTTP/accessibility/URL output	.omo/evidence/editor-completion-20261002/jangjeon-headers.txt
+raw public HTML snapshot	.omo/evidence/editor-completion-20261002/public-apt.html
+raw HTTP/accessibility/URL output	.omo/evidence/editor-completion-20261002/sajik-headers.txt
+pre-existing/unscoped diff snapshot	.omo/evidence/manual-boundary-release-20261003/dirty-before.patch
+raw public HTML snapshot	.omo/evidence/manual-boundary-release-20261003/public-after.html
+raw public HTML snapshot	.omo/evidence/manual-boundary-release-20261003/public-before.html
+local/remote status snapshot	.omo/evidence/manual-boundary-release-20261003/remote-validation.txt
+local/remote status snapshot	.omo/evidence/manual-boundary-release-20261003/status-before.txt
+pre-existing/unscoped diff snapshot	.omo/evidence/manual-l-connection-20261003/initial-diff.patch
+raw public HTML snapshot	.omo/evidence/manual-l-connection-20261003/public-apt.html
+pre-existing/unscoped diff snapshot	.omo/evidence/wall-axis-snap-20261003/preexisting-diff-before.patch
+local/remote status snapshot	.omo/evidence/wall-axis-snap-20261003/preexisting-status-before.txt
+local/remote status snapshot	.omo/evidence/wall-axis-snap-release-20261003/remote-validation.txt
+local/remote status snapshot	.omo/evidence/wall-related-zone-plan-20261002/dirty.txt
+raw public HTML snapshot	.omo/evidence/wall-related-zone-release-20261002/public-apt.html

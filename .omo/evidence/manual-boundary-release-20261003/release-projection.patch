@@ -1,0 +1,5003 @@
+diff --git a/apps/editor/lib/ai-provider.test.ts b/apps/editor/lib/ai-provider.test.ts
+index b58eaf3f..2c9b4ecf 100644
+--- a/apps/editor/lib/ai-provider.test.ts
++++ b/apps/editor/lib/ai-provider.test.ts
+@@ -395,6 +395,9 @@ describe('AI provider boundary', () => {
+     const prompt = buildAiModelingPrompt(request)
+ 
+     expect(prompt).toContain(MODELING_AGENT_MANUAL)
++    expect(prompt).toContain('Explicit target connection can extend both straight walls')
++    expect(prompt).toContain('Keep open stores a geometry-specific endpoint review')
++    expect(prompt).toContain('Endpoint dragging in both 2D and 3D validates')
+     expect(prompt).toContain(
+       'align one uniquely resolved same-parent straight continuation within 2 degrees',
+     )
+diff --git a/packages/core/src/index.ts b/packages/core/src/index.ts
+index 7e0b2d42..040b0dc0 100644
+--- a/packages/core/src/index.ts
++++ b/packages/core/src/index.ts
+@@ -311,6 +311,27 @@ export {
+   polygonsOverlap,
+   segmentsIntersect,
+ } from './lib/polygon-relations'
++export {
++  buildManualRoomBoundaryRepair,
++  buildRoomBoundaryOpenReviewUpdate,
++  buildRoomBoundaryRepairUpdates,
++  diagnoseRoomBoundaries,
++  isRoomBoundaryReviewedOpen,
++  type ManualRoomBoundaryInput,
++  type ManualRoomBoundaryPlan,
++  planRoomBoundaryRepair,
++  ROOM_BOUNDARY_CONNECT_TOLERANCE,
++  ROOM_BOUNDARY_MAX_DISPLAY_GAP,
++  ROOM_BOUNDARY_MAX_REPAIR_GAP,
++  type RoomBoundaryCandidate,
++  type RoomBoundaryCandidateReason,
++  type RoomBoundaryDiagnostics,
++  type RoomBoundaryEndpoint,
++  type RoomBoundaryIssue,
++  type RoomBoundaryRepairPlan,
++  type RoomBoundaryRepairUpdates,
++  roomBoundarySnapshot,
++} from './lib/room-boundary'
+ export { resolveSelectionProxyId, selectionProxyIdFromMetadata } from './lib/selection-proxy'
+ export {
+   getRenderableSlabPolygon,
+@@ -415,11 +436,13 @@ export {
+   type WallSegmentClosest,
+ } from './lib/wall-distance'
+ export {
++  buildWallEndpointUpdates,
+   buildWallLengthUpdates,
+   buildWallMerge,
+   buildWallParallelAlignmentUpdates,
+   buildWallSplit,
+   buildWallSplitAtContacts,
++  type WallEndpointUpdate,
+   type WallMutation,
+   WallOperationError,
+   type WallSceneState,
+diff --git a/packages/core/src/lib/space-detection-history.test.ts b/packages/core/src/lib/space-detection-history.test.ts
+index f9434c64..d4082e56 100644
+--- a/packages/core/src/lib/space-detection-history.test.ts
++++ b/packages/core/src/lib/space-detection-history.test.ts
+@@ -9,6 +9,51 @@ globalThis.requestAnimationFrame ??= (callback) => {
+ }
+ globalThis.cancelAnimationFrame ??= () => {}
+ 
++function replacementRoomsHistoryFixture() {
++  const level = LevelNode.parse({ id: 'level_same_prefix_history' })
++  const rectangle = (prefix: string, y: number) => {
++    const x = 0
++    const width = 4
++    const height = 0.2
++    const south = WallNode.parse({
++      id: `${prefix}_south`,
++      parentId: level.id,
++      start: [x, y],
++      end: [x + width, y],
++    })
++    const east = WallNode.parse({
++      id: `${prefix}_east`,
++      parentId: level.id,
++      start: [x + width, y],
++      end: [x + width, y + height],
++    })
++    const north = WallNode.parse({
++      id: `${prefix}_north`,
++      parentId: level.id,
++      start: [x + width, y + height],
++      end: [x, y + height],
++    })
++    const west = WallNode.parse({
++      id: `${prefix}_west`,
++      parentId: level.id,
++      start: [x, y + height],
++      end: [x, y],
++    })
++    return { open: [south, east, north], closing: west }
++  }
++
++  const first = rectangle('wall_same_prefix_a', 0.1)
++  const second = rectangle('wall_same_prefix_b', 0.9)
++  return {
++    level: LevelNode.parse({
++      ...level,
++      children: [...first.open, ...second.open].map((wall) => wall.id),
++    }),
++    openWalls: [...first.open, ...second.open],
++    closingWalls: [first.closing, second.closing],
++  }
++}
++
+ test('undo/redo restores zone review metadata without regenerating the restored snapshot', () => {
+   const level = LevelNode.parse({ id: 'level_zone_history' })
+   const walls = [
+@@ -63,3 +108,180 @@ test('undo/redo restores zone review metadata without regenerating the restored
+     clearSceneHistory()
+   }
+ })
++
++test('apt-vector wall closure creates a room zone in the same undo step', () => {
++  const level = LevelNode.parse({ id: 'level_apt_closure_history' })
++  const walls = [
++    WallNode.parse({
++      id: 'wall_apt_closure_south',
++      parentId: level.id,
++      start: [0, 0],
++      end: [4, 0],
++      metadata: { source: 'apt-vector' },
++    }),
++    WallNode.parse({
++      id: 'wall_apt_closure_east',
++      parentId: level.id,
++      start: [4, 0],
++      end: [4, 3],
++      metadata: { source: 'apt-vector' },
++    }),
++    WallNode.parse({
++      id: 'wall_apt_closure_north',
++      parentId: level.id,
++      start: [4, 3],
++      end: [0, 3],
++      metadata: { source: 'apt-vector' },
++    }),
++  ]
++  const closingWall = WallNode.parse({
++    id: 'wall_apt_closure_west',
++    parentId: level.id,
++    start: [0, 3],
++    end: [0, 0],
++    metadata: { source: 'apt-vector' },
++  })
++  const original = Object.fromEntries([level, ...walls].map((node) => [node.id, node]))
++  useScene.setState({
++    nodes: original,
++    rootNodeIds: [level.id],
++    collections: {},
++    materials: {},
++    readOnly: false,
++  })
++  clearSceneHistory()
++  const editorState = {
++    spaces: {},
++    setSpaces(spaces: object) {
++      this.spaces = spaces
++    },
++  }
++  const stop = initSpaceDetectionSync(useScene, { getState: () => editorState })
++  try {
++    useScene.getState().createNode(closingWall, level.id)
++    const closed = useScene.getState().nodes
++    const generatedZones = Object.values(closed).filter(
++      (node: any) =>
++        node.type === 'zone' &&
++        node.autoFromWalls === true &&
++        node.metadata?.generatedFrom === 'detected-space',
++    )
++    expect(generatedZones).toHaveLength(1)
++    expect(Object.keys(editorState.spaces)).toHaveLength(1)
++
++    useScene.temporal.getState().undo()
++    expect(useScene.getState().nodes[closingWall.id]).toBeUndefined()
++    expect(
++      Object.values(useScene.getState().nodes).some(
++        (node: any) => node.type === 'zone' && node.metadata?.generatedFrom === 'detected-space',
++      ),
++    ).toBe(false)
++
++    useScene.temporal.getState().redo()
++    expect(useScene.getState().nodes[closingWall.id]).toBeDefined()
++    expect(
++      Object.values(useScene.getState().nodes).some(
++        (node: any) => node.type === 'zone' && node.metadata?.generatedFrom === 'detected-space',
++      ),
++    ).toBe(true)
++  } finally {
++    stop()
++    clearSceneHistory()
++  }
++})
++
++test('one history step replaces an obsolete generated room with two closed rooms', () => {
++  const { level: baseLevel, openWalls, closingWalls } = replacementRoomsHistoryFixture()
++  const obsoleteZone = ZoneNode.parse({
++    id: 'zone_obsolete_history_room',
++    parentId: baseLevel.id,
++    name: 'Room 2',
++    autoFromWalls: true,
++    spaceRole: 'room',
++    boundaryWallIds: ['wall_obsolete_history'],
++    polygon: [
++      [0, 0.1],
++      [4, 0.1],
++      [4, 1.1],
++      [0, 1.1],
++    ],
++    metadata: { source: 'apt-vector', generatedFrom: 'detected-space' },
++  })
++  const level = LevelNode.parse({
++    ...baseLevel,
++    children: [...openWalls, obsoleteZone].map((node) => node.id),
++  })
++  const original = Object.fromEntries(
++    [level, ...openWalls, obsoleteZone].map((node) => [node.id, node]),
++  )
++  useScene.setState({
++    nodes: original,
++    rootNodeIds: [level.id],
++    collections: {},
++    materials: {},
++    readOnly: false,
++  })
++  clearSceneHistory()
++  const editorState = {
++    spaces: {} as Record<string, { id: string }>,
++    setSpaces(spaces: Record<string, { id: string }>) {
++      this.spaces = spaces
++    },
++  }
++  const stop = initSpaceDetectionSync(useScene, { getState: () => editorState })
++  try {
++    useScene.getState().createNodes(closingWalls.map((node) => ({ node, parentId: level.id })))
++    const closed = useScene.getState().nodes
++    const replacements = Object.values(closed).filter(
++      (node: any) =>
++        node.type === 'zone' &&
++        node.id !== obsoleteZone.id &&
++        node.metadata?.generatedFrom === 'detected-space',
++    )
++    expect(Object.keys(editorState.spaces)).toHaveLength(2)
++    expect(replacements).toHaveLength(2)
++    expect(closed[obsoleteZone.id]).toMatchObject({
++      name: obsoleteZone.name,
++      polygon: obsoleteZone.polygon,
++      enclosureStatus: 'open',
++      metadata: {
++        source: 'apt-vector',
++        generatedFrom: 'detected-space',
++        boundaryNeedsReview: true,
++      },
++    })
++
++    useScene.temporal.getState().undo()
++    expect(useScene.getState().nodes).toEqual(original)
++    expect(Object.keys(editorState.spaces)).toHaveLength(0)
++
++    useScene.temporal.getState().redo()
++    const redone = useScene.getState().nodes
++    expect(redone[closingWalls[0]!.id]).toBeDefined()
++    expect(redone[closingWalls[1]!.id]).toBeDefined()
++    expect(
++      Object.values(redone).filter(
++        (node: any) =>
++          node.type === 'zone' &&
++          node.id !== obsoleteZone.id &&
++          node.metadata?.generatedFrom === 'detected-space',
++      ),
++    ).toHaveLength(2)
++    expect(Object.keys(editorState.spaces)).toHaveLength(2)
++
++    // Re-publishing the restored scene is a hydration baseline and must not
++    // create another pair of generated zones.
++    useScene.setState({ nodes: { ...redone } })
++    expect(
++      Object.values(useScene.getState().nodes).filter(
++        (node: any) =>
++          node.type === 'zone' &&
++          node.id !== obsoleteZone.id &&
++          node.metadata?.generatedFrom === 'detected-space',
++      ),
++    ).toHaveLength(2)
++  } finally {
++    stop()
++    clearSceneHistory()
++  }
++})
+diff --git a/packages/core/src/lib/space-detection.test.ts b/packages/core/src/lib/space-detection.test.ts
+index 0aeff211..7c921dbb 100644
+--- a/packages/core/src/lib/space-detection.test.ts
++++ b/packages/core/src/lib/space-detection.test.ts
+@@ -24,6 +24,25 @@ function roomPolygon() {
+   return square.map(([x, y]) => ({ x, y }))
+ }
+ 
++function samePrefixRoomWalls() {
++  const rectangle = (y: number) => {
++    const x = -1000
++    const width = 4
++    const height = 0.2
++    return [
++      WallNode.parse({ start: [x, y], end: [x + width, y] }),
++      WallNode.parse({ start: [x + width, y], end: [x + width, y + height] }),
++      WallNode.parse({
++        start: [x + width, y + height],
++        end: [x, y + height],
++      }),
++      WallNode.parse({ start: [x, y + height], end: [x, y] }),
++    ]
++  }
++
++  return [...rectangle(0.1), ...rectangle(0.9)]
++}
++
+ function squareWalls(height = 2.5) {
+   return [
+     WallNode.parse({ start: [0, 0], end: [4, 0], height }),
+@@ -783,7 +802,20 @@ describe('procedural zones', () => {
+       adoptContainedApartmentZones: true,
+     })
+ 
+-    expect(plan.update).toHaveLength(0)
++    expect(plan.update).toHaveLength(2)
++    for (const zone of zones) {
++      const update = plan.update.find((entry) => entry.id === zone.id)
++      expect(update?.data).toMatchObject({
++        enclosureStatus: 'open',
++        metadata: {
++          source: 'apt-vector',
++          sourceRoomId: zone.metadata?.sourceRoomId,
++          boundaryNeedsReview: true,
++        },
++      })
++      expect(update?.data.name).toBeUndefined()
++      expect(update?.data.polygon).toBeUndefined()
++    }
+   })
+ 
+   test('requires the import flag and apt-vector provenance before contained adoption', () => {
+@@ -814,6 +846,232 @@ describe('procedural zones', () => {
+       planAutoZonesForLevel(spaces, [manualZone], { adoptContainedApartmentZones: true }).update,
+     ).toHaveLength(0)
+   })
++
++  test('creates a provenance-tagged zone for every detected apartment room when labels are empty', () => {
++    const level = LevelNode.parse({ id: 'level_zone_import_empty' })
++    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
++    const spaces = detectSpacesForLevel(level.id, walls).spaces
++    const plan = planAutoZonesForLevel(spaces, [], {
++      createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
++    })
++
++    expect(plan.update).toHaveLength(0)
++    expect(plan.create).toHaveLength(1)
++    expect(plan.create[0]).toMatchObject({
++      parentId: level.id,
++      autoFromWalls: true,
++      spaceRole: 'room',
++      enclosureStatus: 'enclosed',
++      boundaryWallIds: spaces[0]?.wallIds,
++      metadata: { source: 'apt-vector', generatedFrom: 'detected-space' },
++    })
++  })
++
++  test('does not let an auto room demoted to open cover replacement spaces', () => {
++    const level = LevelNode.parse({ id: 'level_zone_replacement_spaces' })
++    const walls = samePrefixRoomWalls().map((wall) => ({ ...wall, parentId: level.id }))
++    const spaces = detectSpacesForLevel(level.id, walls).spaces
++    const obsoleteZone = ZoneNode.parse({
++      id: 'zone_obsolete_generated_room',
++      parentId: level.id,
++      name: 'Room 2',
++      autoFromWalls: true,
++      spaceRole: 'room',
++      boundaryWallIds: ['wall_obsolete_generated'],
++      polygon: [
++        [-1000, 0.1],
++        [-996, 0.1],
++        [-996, 1.1],
++        [-1000, 1.1],
++      ],
++      metadata: { source: 'apt-vector', generatedFrom: 'detected-space' },
++    })
++
++    const plan = planAutoZonesForLevel(spaces, [obsoleteZone], {
++      createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
++    })
++
++    expect(plan.update).toHaveLength(1)
++    expect(plan.update[0]).toMatchObject({
++      id: obsoleteZone.id,
++      data: {
++        enclosureStatus: 'open',
++        metadata: {
++          source: 'apt-vector',
++          generatedFrom: 'detected-space',
++          boundaryNeedsReview: true,
++        },
++      },
++    })
++    expect(plan.update[0]?.data.name).toBeUndefined()
++    expect(plan.update[0]?.data.polygon).toBeUndefined()
++    expect(plan.create).toHaveLength(2)
++    expect(plan.create.every((zone) => zone.enclosureStatus === 'enclosed')).toBe(true)
++    expect(plan.create.every((zone) => zone.metadata?.generatedFrom === 'detected-space')).toBe(
++      true,
++    )
++  })
++
++  test('keeps an enclosed generated room as coverage when it still matches', () => {
++    const level = LevelNode.parse({ id: 'level_zone_matched_generated' })
++    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
++    const spaces = detectSpacesForLevel(level.id, walls).spaces
++    const generatedZone = ZoneNode.parse({
++      id: 'zone_matched_generated_room',
++      parentId: level.id,
++      name: 'Room 1',
++      autoFromWalls: true,
++      spaceRole: 'room',
++      enclosureStatus: 'enclosed',
++      boundaryWallIds: spaces[0]!.wallIds,
++      polygon: spaces[0]!.polygon,
++      metadata: { source: 'apt-vector', generatedFrom: 'detected-space' },
++    })
++
++    const plan = planAutoZonesForLevel(spaces, [generatedZone], {
++      createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
++    })
++
++    expect(plan.create).toHaveLength(0)
++    expect(plan.update).toHaveLength(0)
++  })
++
++  test('keeps a manual open room as coverage without changing its provenance', () => {
++    const level = LevelNode.parse({ id: 'level_zone_manual_coverage' })
++    const walls = samePrefixRoomWalls().map((wall) => ({ ...wall, parentId: level.id }))
++    const spaces = detectSpacesForLevel(level.id, walls).spaces
++    const manualZone = ZoneNode.parse({
++      id: 'zone_manual_open_room',
++      parentId: level.id,
++      name: 'Manual room',
++      enclosureStatus: 'open',
++      polygon: [
++        [-1000.01, 0.09],
++        [-995.99, 0.09],
++        [-995.99, 0.31],
++        [-1000.01, 0.31],
++      ],
++      metadata: { source: 'user', boundaryNeedsReview: true },
++    })
++
++    const plan = planAutoZonesForLevel(spaces, [manualZone], {
++      createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
++    })
++
++    expect(plan.create).toHaveLength(1)
++    expect(plan.create[0]?.polygon).toEqual(spaces[1]!.polygon)
++    expect(plan.update).toHaveLength(0)
++  })
++
++  test('does not create a duplicate room over a union of semantic subdivisions', () => {
++    const level = LevelNode.parse({ id: 'level_zone_semantic_union' })
++    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
++    const [left, right] = [
++      ZoneNode.parse({
++        id: 'zone_semantic_left',
++        parentId: level.id,
++        name: 'Living',
++        polygon: [
++          [0, 0],
++          [2, 0],
++          [2, 3],
++          [0, 3],
++        ],
++        metadata: { source: 'user' },
++      }),
++      ZoneNode.parse({
++        id: 'zone_semantic_right',
++        parentId: level.id,
++        name: 'Dining',
++        polygon: [
++          [2, 0],
++          [4, 0],
++          [4, 3],
++          [2, 3],
++        ],
++        metadata: { source: 'user' },
++      }),
++    ]
++    const plan = planAutoZonesForLevel(
++      detectSpacesForLevel(level.id, walls).spaces,
++      [left!, right!],
++      {
++        createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
++      },
++    )
++    expect(plan.create).toHaveLength(0)
++    expect(plan.update).toHaveLength(0)
++  })
++
++  test('keeps an unmatched apartment zone open for review and restores it to enclosed', () => {
++    const level = LevelNode.parse({ id: 'level_zone_status' })
++    const walls = squareWalls().map((wall) => ({ ...wall, parentId: level.id }))
++    const zone = ZoneNode.parse({
++      id: 'zone_status_room',
++      parentId: level.id,
++      name: 'Bedroom',
++      spaceRole: 'room',
++      autoFromWalls: true,
++      boundaryWallIds: walls.map((wall) => wall.id),
++      polygon: square,
++      metadata: { source: 'apt-vector' },
++    })
++    const broken = planAutoZonesForLevel([], [zone], {
++      previousSpaces: detectSpacesForLevel(level.id, walls).spaces,
++      changedWalls: [walls[0]!],
++    })
++    expect(broken.update[0]?.data.enclosureStatus).toBe('open')
++    expect(broken.update[0]?.data.metadata).toEqual({
++      source: 'apt-vector',
++      boundaryNeedsReview: true,
++    })
++
++    const restored = ZoneNode.parse({ ...zone, ...broken.update[0]?.data })
++    const enclosed = planAutoZonesForLevel(detectSpacesForLevel(level.id, walls).spaces, [restored])
++    expect(enclosed.update[0]?.data.enclosureStatus).toBe('enclosed')
++    expect(enclosed.update[0]?.data.metadata).toEqual({ source: 'apt-vector' })
++  })
++
++  test('creates a missing zone after an apt-vector wall edit closes a live room', () => {
++    const level = LevelNode.parse({ id: 'level_zone_live_create' })
++    const apartmentSource = {
++      source: 'apt-vector',
++      apartmentId: 'apt-live',
++      planId: 'plan-live',
++    }
++    const openWalls = squareWalls()
++      .slice(0, 3)
++      .map((wall) => ({ ...wall, parentId: level.id, metadata: apartmentSource }))
++    const initial = Object.fromEntries(
++      [level, ...openWalls].map((node) => [node.id, node]),
++    ) as Record<string, AnyNode>
++    const scene = createSceneStoreStub(initial)
++    const stop = initSpaceDetectionSync(scene, createEditorStoreStub())
++    try {
++      const closing = WallNode.parse({
++        id: 'wall_live_closing',
++        parentId: level.id,
++        start: [0, 3],
++        end: [0, 0],
++        metadata: apartmentSource,
++      })
++      scene.setNodes({ ...scene.getState().nodes, [closing.id]: closing })
++      const zones = Object.values(scene.getState().nodes).filter((node) => node.type === 'zone')
++      expect(zones).toHaveLength(1)
++      expect(zones[0]).toMatchObject({
++        autoFromWalls: true,
++        enclosureStatus: 'enclosed',
++        metadata: {
++          source: 'apt-vector',
++          generatedFrom: 'detected-space',
++          apartmentId: 'apt-live',
++          planId: 'plan-live',
++        },
++      })
++    } finally {
++      stop()
++    }
++  })
+ })
+ 
+ describe('wallClosesRoom', () => {
+diff --git a/packages/core/src/lib/space-detection.ts b/packages/core/src/lib/space-detection.ts
+index 6b8cba61..3026ee10 100644
+--- a/packages/core/src/lib/space-detection.ts
++++ b/packages/core/src/lib/space-detection.ts
+@@ -86,9 +86,17 @@ export type AutoCeilingSyncPlan = {
+ }
+ 
+ export type AutoZoneSyncPlan = {
++  create: ZoneNodeType[]
+   update: Array<{ id: ZoneNodeType['id']; data: Partial<ZoneNodeType> }>
+ }
+ 
++type AutoZoneCreationContext = {
++  source?: string
++  generatedFrom?: string
++  apartmentId?: string
++  planId?: string
++}
++
+ const DEFAULT_AUTO_SLAB_ELEVATION = 0.05
+ const CEILING_HEIGHT_EPSILON = 1e-6
+ const ROOM_CURVE_TOLERANCE = 0.04
+@@ -830,6 +838,17 @@ function nextAutoRoomName(
+   return `Room ${maxIndex + 1} ${suffix}`
+ }
+ 
++function nextAutoZoneName(nodes: Array<{ name?: string }>) {
++  let maxIndex = 0
++  for (const node of nodes) {
++    const match = /^Room\s+(\d+)$/i.exec((node.name ?? '').trim())
++    if (!match) continue
++    const index = Number(match[1])
++    if (Number.isFinite(index)) maxIndex = Math.max(maxIndex, index)
++  }
++  return `Room ${maxIndex + 1}`
++}
++
+ function sameTuplePolygon(current: Array<[number, number]>, next: Array<[number, number]>) {
+   return (
+     current.length === next.length &&
+@@ -973,9 +992,13 @@ export function planAutoZonesForLevel(
+     changedWalls?: readonly WallNode[]
+     /** Adopt source apartment zones only during explicit import reconciliation. */
+     adoptContainedApartmentZones?: boolean
++    /** Create missing room zones only for an explicit import or apt-vector live level. */
++    createMissingZones?: boolean | AutoZoneCreationContext
+   } = {},
+ ): AutoZoneSyncPlan {
++  const create: AutoZoneSyncPlan['create'] = []
+   const update: AutoZoneSyncPlan['update'] = []
++  const claimedSpaces = new Set<Space>()
+   // ponytail: reuse the existing sampled overlap; ambiguous semantic subdivisions stay manual.
+   const coversSameRoom = (zone: ZoneNodeType, space: Space) => {
+     const zonePolygon = zone.polygon.map(pointFromTuple)
+@@ -1032,6 +1055,15 @@ export function planAutoZonesForLevel(
+       metadata.source === 'apt-vector' &&
+       ambiguousApartmentZoneIds.has(zone.id)
+     ) {
++      update.push({
++        id: zone.id,
++        data: {
++          ...(zone.enclosureStatus !== 'open' ? { enclosureStatus: 'open' as const } : {}),
++          ...(!zoneNeedsBoundaryReview(zone)
++            ? { metadata: { ...metadata, boundaryNeedsReview: true } }
++            : {}),
++        },
++      })
+       continue
+     }
+     const storedSignature = polygonSignature(
+@@ -1059,6 +1091,7 @@ export function planAutoZonesForLevel(
+       const affected =
+         zone.autoFromWalls ||
+         previousSpace ||
++        (context.adoptContainedApartmentZones && metadata.source === 'apt-vector') ||
+         (zone.spaceRole === 'room' &&
+           metadata.source === 'apt-vector' &&
+           context.changedWalls?.some(
+@@ -1076,12 +1109,22 @@ export function planAutoZonesForLevel(
+                 zone.polygon.map(pointFromTuple),
+               ),
+           ))
+-      if (affected && !zoneNeedsBoundaryReview(zone)) {
+-        update.push({ id: zone.id, data: { metadata: { ...metadata, boundaryNeedsReview: true } } })
++      if (affected && (!zoneNeedsBoundaryReview(zone) || zone.enclosureStatus !== 'open')) {
++        update.push({
++          id: zone.id,
++          data: {
++            ...(zone.enclosureStatus !== 'open' ? { enclosureStatus: 'open' as const } : {}),
++            ...(!zoneNeedsBoundaryReview(zone)
++              ? { metadata: { ...metadata, boundaryNeedsReview: true } }
++              : {}),
++          },
++        })
+       }
+       continue
+     }
+ 
++    claimedSpaces.add(matchingSpace)
++
+     const data: Partial<ZoneNodeType> = {}
+     if (!zone.autoFromWalls) data.autoFromWalls = true
+     if (!sameStringSet(zone.boundaryWallIds, matchingSpace.wallIds)) {
+@@ -1090,6 +1133,7 @@ export function planAutoZonesForLevel(
+     if (!sameTuplePolygon(zone.polygon, matchingSpace.polygon)) {
+       data.polygon = matchingSpace.polygon
+     }
++    if (zone.enclosureStatus !== 'enclosed') data.enclosureStatus = 'enclosed'
+     if (zoneNeedsBoundaryReview(zone)) {
+       const { boundaryNeedsReview: _, ...remainingMetadata } = metadata
+       data.metadata = remainingMetadata
+@@ -1097,7 +1141,62 @@ export function planAutoZonesForLevel(
+     if (Object.keys(data).length > 0) update.push({ id: zone.id, data })
+   }
+ 
+-  return { update }
++  const createContext =
++    context.createMissingZones === true
++      ? { source: undefined, generatedFrom: 'detected-space' }
++      : context.createMissingZones && typeof context.createMissingZones === 'object'
++        ? {
++            source: context.createMissingZones.source,
++            generatedFrom: context.createMissingZones.generatedFrom ?? 'detected-space',
++            apartmentId: context.createMissingZones.apartmentId,
++            planId: context.createMissingZones.planId,
++          }
++        : null
++  if (createContext) {
++    const updatedById = new Map(update.map((entry) => [entry.id, entry.data]))
++    const coveredPolygons = existingZones.flatMap((zone) => {
++      const data = updatedById.get(zone.id)
++      const effectiveEnclosureStatus = data?.enclosureStatus ?? zone.enclosureStatus
++      const effectiveMetadata = data?.metadata ?? zone.metadata
++      if (
++        effectiveEnclosureStatus === 'open' &&
++        effectiveMetadata !== null &&
++        typeof effectiveMetadata === 'object' &&
++        !Array.isArray(effectiveMetadata) &&
++        effectiveMetadata.generatedFrom === 'detected-space'
++      ) {
++        return []
++      }
++      return [(data?.polygon ?? zone.polygon).map(pointFromTuple)]
++    })
++    const names = existingZones.map((zone) => ({ name: zone.name }))
++    for (const space of spaces) {
++      if (claimedSpaces.has(space)) continue
++      const roomPolygon = space.polygon.map(pointFromTuple)
++      if (polygonCoverageRatio(roomPolygon, coveredPolygons) >= 0.9) continue
++      const zone = ZoneNode.parse({
++        parentId: space.levelId,
++        name: nextAutoZoneName(names),
++        polygon: space.polygon,
++        autoFromWalls: true,
++        boundaryWallIds: space.wallIds,
++        spaceRole: 'room',
++        enclosureStatus: 'enclosed',
++        clearDimensionPolicy: 'finish-faces',
++        metadata: {
++          ...(createContext.source ? { source: createContext.source } : {}),
++          generatedFrom: createContext.generatedFrom,
++          ...(createContext.apartmentId ? { apartmentId: createContext.apartmentId } : {}),
++          ...(createContext.planId ? { planId: createContext.planId } : {}),
++        },
++      })
++      create.push(zone)
++      names.push(zone)
++      coveredPolygons.push(roomPolygon)
++    }
++  }
++
++  return { create, update }
+ }
+ 
+ export function resolveAutoZonePolygon(
+@@ -1642,6 +1741,34 @@ function runSpaceDetection(
+         heightForRoom: (polygon) => placementFor(polygon)?.ceilingHeight,
+       },
+     )
++    const aptVectorMetadata = [...walls, ...zones].flatMap((node: any) => {
++      const metadata =
++        node?.metadata !== null &&
++        typeof node?.metadata === 'object' &&
++        !Array.isArray(node.metadata)
++          ? (node.metadata as Record<string, unknown>)
++          : null
++      return metadata?.source === 'apt-vector' ? [metadata] : []
++    })
++    const uniqueAptMetadataValue = (key: 'apartmentId' | 'planId') => {
++      const values = new Set(
++        aptVectorMetadata
++          .map((metadata) => metadata[key])
++          .filter((value): value is string => typeof value === 'string' && value.length > 0),
++      )
++      return values.size === 1 ? values.values().next().value : undefined
++    }
++    const apartmentId = uniqueAptMetadataValue('apartmentId')
++    const planId = uniqueAptMetadataValue('planId')
++    const aptVectorZoneContext: AutoZoneCreationContext | undefined =
++      aptVectorMetadata.length > 0
++        ? {
++            source: 'apt-vector',
++            generatedFrom: 'detected-space',
++            ...(apartmentId ? { apartmentId } : {}),
++            ...(planId ? { planId } : {}),
++          }
++        : undefined
+     const zonePlan = planAutoZonesForLevel(
+       spaces,
+       zones.map((zone: any) => ZoneNode.parse(zone)),
+@@ -1662,9 +1789,15 @@ function runSpaceDetection(
+             )
+           },
+         ),
++        createMissingZones: aptVectorZoneContext,
+       },
+     )
+     if (zonePlan.update.length > 0) updateNodes(zonePlan.update)
++    if (zonePlan.create.length > 0) {
++      sceneStore
++        .getState()
++        .createNodes(zonePlan.create.map((zone) => ({ node: zone, parentId: levelId })))
++    }
+ 
+     for (const space of spaces) {
+       nextSpaces[space.id] = space
+diff --git a/packages/core/src/lib/wall-operations.ts b/packages/core/src/lib/wall-operations.ts
+index 89c53b50..9726883a 100644
+--- a/packages/core/src/lib/wall-operations.ts
++++ b/packages/core/src/lib/wall-operations.ts
+@@ -269,7 +269,7 @@ function getAttachmentSpan(node: AnyNode, wall: WallNodeData) {
+   return { center, half: 0 }
+ }
+ 
+-type WallEndpointUpdate = { id: AnyNodeId; data: Partial<AnyNode> }
++export type WallEndpointUpdate = { id: AnyNodeId; data: Partial<AnyNode> }
+ 
+ function finitePoint(point: Vec2) {
+   return Number.isFinite(point[0]) && Number.isFinite(point[1])
+@@ -299,12 +299,14 @@ function oppositeContinuation(a: Vec2, b: Vec2) {
+   return deviation <= (2 * Math.PI) / 180 + 1e-9
+ }
+ 
+-function buildWallEndpointUpdates(
++function buildWallEndpointPatches(
+   nodes: Record<AnyNodeId, AnyNode>,
+   wall: WallNodeData,
+   nextStart: Vec2,
+   nextEnd: Vec2,
+   preserveNearEqualUnchangedEndpoints = false,
++  rebaseHostedChildren = false,
++  detachLinkedWalls = false,
+ ): WallEndpointUpdate[] {
+   if (!finitePoint(nextStart) || !finitePoint(nextEnd)) {
+     throw new WallOperationError('invalid-wall-geometry', '벽 끝점은 유한한 좌표여야 합니다.')
+@@ -323,7 +325,7 @@ function buildWallEndpointUpdates(
+     )
+     .sort((a, b) => a.id.localeCompare(b.id))
+   const linked = getLinkedWallUpdates(
+-    siblings.map((other) => ({ wall: other })),
++    (detachLinkedWalls ? [] : siblings).map((other) => ({ wall: other })),
+     wall.start,
+     wall.end,
+     nextStart,
+@@ -401,7 +403,35 @@ function buildWallEndpointUpdates(
+       )
+     }
+     for (const child of listWallAttachments(nodes, before)) {
+-      const span = getAttachmentSpan(child, after)
++      const attachmentSpan = getAttachmentSpan(child, rebaseHostedChildren ? before : after)
++      const afterLength = nextLength
++      const beforeDirection = direction(before.start, before.end)
++      const afterDirection = direction(after.start, after.end)
++      const beforeLocalX = rebaseHostedChildren ? attachmentSpan?.center : undefined
++      const beforeWorldPoint =
++        beforeLocalX === undefined
++          ? null
++          : ([
++              before.start[0] + beforeDirection[0] * beforeLocalX,
++              before.start[1] + beforeDirection[1] * beforeLocalX,
++            ] as Vec2)
++      const nextLocalX =
++        beforeWorldPoint === null
++          ? undefined
++          : dot(
++              [beforeWorldPoint[0] - after.start[0], beforeWorldPoint[1] - after.start[1]],
++              afterDirection,
++            )
++      const validationCenter =
++        rebaseHostedChildren && nextLocalX !== undefined ? nextLocalX : attachmentSpan?.center
++      const span =
++        attachmentSpan && validationCenter !== undefined
++          ? {
++              ...attachmentSpan,
++              center: validationCenter,
++              half: getAttachmentSpan(child, after)?.half ?? attachmentSpan.half,
++            }
++          : attachmentSpan
+       if (
+         span &&
+         (span.center - span.half < -EPSILON || span.center + span.half > nextLength + EPSILON)
+@@ -411,15 +441,41 @@ function buildWallEndpointUpdates(
+           '문·창 또는 부착물이 벽 밖으로 나가는 벽 변경은 적용할 수 없습니다.',
+         )
+       }
+-      if (span && child.type === 'item') {
+-        const nextWallT = span.center / nextLength
+-        childUpdates.set(child.id, { id: child.id, data: { wallT: nextWallT } })
++      if (span) {
++        const data: Record<string, unknown> = {}
++        const attachment = asAttachment(child)
++        if (
++          rebaseHostedChildren &&
++          attachment.position &&
++          nextLocalX !== undefined &&
++          Math.abs(attachment.position[0] - nextLocalX) > EPSILON
++        ) {
++          const [_, y, z] = attachment.position
++          data.position = [nextLocalX, y, z]
++        }
++        if (child.type === 'item' && validationCenter !== undefined) {
++          data.wallT = validationCenter / afterLength
++        }
++        if (Object.keys(data).length > 0) {
++          childUpdates.set(child.id, { id: child.id, data: data as Partial<AnyNode> })
++        }
+       }
+     }
+     for (const other of allWalls) {
+       if (other.id === before.id) continue
+       const nextOther = nextWalls.get(other.id)!
+       for (const endpoint of ['start', 'end'] as const) {
++        const detachedCorner =
++          detachLinkedWalls &&
++          before.id === wall.id &&
++          (['start', 'end'] as const).some(
++            (end) =>
++              !pointsExactlyEqual(before[end], after[end]) &&
++              (pointsEqual(before[end], other[endpoint]) ||
++                (pointsEqual(before[endpoint], before[end]) &&
++                  (pointsEqual(other.start, before[end]) || pointsEqual(other.end, before[end])))),
++          )
++        if (detachedCorner) continue
+         if (
+           (onSegment(before[endpoint], other) && !onSegment(after[endpoint], nextOther)) ||
+           (onSegment(other[endpoint], before) && !onSegment(nextOther[endpoint], after))
+@@ -530,7 +586,7 @@ export function buildWallParallelAlignmentUpdates(
+   }
+   const nextStart = selectedEnd === 'start' ? joint : nextFree
+   const nextEnd = selectedEnd === 'start' ? nextFree : joint
+-  return buildWallEndpointUpdates(nodes, wall, nextStart, nextEnd, true)
++  return buildWallEndpointPatches(nodes, wall, nextStart, nextEnd, true)
+ }
+ 
+ export function buildWallLengthUpdates(
+@@ -547,7 +603,70 @@ export function buildWallLengthUpdates(
+     throw new WallOperationError('curved-wall', '곡선 벽은 곡률을 해제한 후 길이를 변경하세요.')
+   }
+   const end = pointAt(wall, newLength)
+-  return buildWallEndpointUpdates(nodes, wall, wall.start, end)
++  return buildWallEndpointPatches(nodes, wall, wall.start, end)
++}
++
++/**
++ * Build one validated endpoint mutation from a scene snapshot.
++ *
++ * The operation validates linked wall junctions and hosted children before it
++ * returns. Hosted children are rebased onto the new wall frame so moving a
++ * start endpoint preserves their world position; callers can apply the full
++ * update list in one history step.
++ */
++export function buildWallEndpointUpdates(
++  nodes: Record<AnyNodeId, AnyNode>,
++  wallId: AnyNodeId,
++  nextStart: Vec2,
++  nextEnd: Vec2,
++  options: { detachLinkedWalls?: boolean } = {},
++): WallEndpointUpdate[] {
++  const wall = requireWall(nodes, wallId)
++  const updates = buildWallEndpointPatches(
++    nodes,
++    wall,
++    nextStart,
++    nextEnd,
++    false,
++    true,
++    options.detachLinkedWalls,
++  )
++  validateWallEndpointOverlaps(nodes, updates)
++  return updates
++}
++
++export function validateWallEndpointOverlaps(
++  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
++  updates: readonly WallEndpointUpdate[],
++) {
++  const changed = new Map(updates.map((update) => [update.id, update.data]))
++  const walls = Object.values(nodes).filter(isWall)
++  const after = new Map(
++    walls.map((wall) => [wall.id, { ...wall, ...changed.get(wall.id) } as WallNodeData]),
++  )
++  const overlap = (a: WallNodeData, b: WallNodeData) => {
++    if (Math.abs(a.curveOffset ?? 0) > EPSILON || Math.abs(b.curveOffset ?? 0) > EPSILON) return 0
++    const length = distance(a.start, a.end)
++    if (length <= EPSILON) return 0
++    const axis = direction(a.start, a.end)
++    const start: Vec2 = [b.start[0] - a.start[0], b.start[1] - a.start[1]]
++    const end: Vec2 = [b.end[0] - a.start[0], b.end[1] - a.start[1]]
++    if (Math.abs(cross(start, axis)) > EPSILON || Math.abs(cross(end, axis)) > EPSILON) return 0
++    const first = dot(start, axis)
++    const second = dot(end, axis)
++    return Math.max(
++      0,
++      Math.min(length, Math.max(first, second)) - Math.max(0, Math.min(first, second)),
++    )
++  }
++  for (const wall of walls) {
++    if (!changed.has(wall.id)) continue
++    for (const other of walls) {
++      if (wall.id === other.id || wall.parentId !== other.parentId) continue
++      if (overlap(after.get(wall.id)!, after.get(other.id)!) > overlap(wall, other) + EPSILON)
++        throw new WallOperationError('overlap', '다른 벽과 겹치는 연결은 적용할 수 없습니다.')
++    }
++  }
+ }
+ 
+ function uniqueWallId(nodes: Record<AnyNodeId, AnyNode>, requested?: AnyNodeId) {
+diff --git a/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts b/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts
+index 997f3351..6568683a 100644
+--- a/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts
++++ b/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts
+@@ -252,7 +252,7 @@ describe('floorplan affordance cancellation', () => {
+ 
+     expect(dragRef.current).toBeNull()
+     expect(releasePointerCapture).toHaveBeenCalledWith(7)
+-    expect(restoreSnapshots).toHaveBeenCalledWith(snapshots)
++    expect(restoreSnapshots).not.toHaveBeenCalled()
+     expect(resumeHistory).toHaveBeenCalledTimes(1)
+     expect(clearPreview).toHaveBeenCalledTimes(2)
+     expect(clearPreview).toHaveBeenNthCalledWith(1, 'wall_a')
+diff --git a/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx b/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
+index 834f5cf1..1bce11a2 100644
+--- a/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
++++ b/packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
+@@ -111,6 +111,7 @@ import {
+   useFloorplanStaticRender,
+   useFloorplanStaticUnitsPerPixel,
+ } from '../floorplan-render-context'
++import { FloorplanZoneClosureLayer } from '../floorplan-zone-closure-layer'
+ import {
+   floorplanAnnotationObstacleMode,
+   isFloorplanAnnotationObstacleGeometry,
+@@ -340,7 +341,7 @@ export function cancelFloorplanAffordanceDrag(
+     drag.captureTarget.releasePointerCapture?.(drag.pointerId)
+   }
+ 
+-  effects.restoreSnapshots(drag.snapshots)
++  if (!drag.session.commit) effects.restoreSnapshots(drag.snapshots)
+   if (drag.historyPaused) {
+     effects.resumeHistory()
+     drag.historyPaused = false
+@@ -1286,7 +1287,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+       rotationPivot?: FloorplanPoint,
+     ) => {
+       if (event.button !== 0) return
+-      if (movingNode) return
++      if (movingNode || useScene.getState().readOnly || dragRef.current) return
+ 
+       const sceneNodes = useScene.getState().nodes
+       const node = sceneNodes[nodeId]
+@@ -1317,7 +1318,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+         if (n) snapshots.push(snapshotNode(n))
+       }
+ 
+-      pauseSceneHistory(useScene)
++      if (!session.commit) pauseSceneHistory(useScene)
+ 
+       // Rotation readout setup. The wedge radius tracks the grab distance
+       // from the pivot (≈ the handle's orbit), nudged inward so the swept
+@@ -1350,7 +1351,7 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+         handleId,
+         session,
+         snapshots,
+-        historyPaused: true,
++        historyPaused: !session.commit,
+         lastPlanPoint: initialPlanPoint,
+         rotation,
+         reshapeScopeNodeId: reshapeScope ? nodeId : undefined,
+@@ -1449,16 +1450,13 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+       const drag = dragRef.current
+       if (!drag || event.pointerId !== drag.pointerId) return
+ 
+-      const commitValid = drag.session.canCommit()
++      const commitValid = !useScene.getState().readOnly && drag.session.canCommit()
+ 
+       // Sessions with a `commit` hook own their atomic write (e.g.
+       // affordances that publish to `useLiveNodeOverrides` during
+       // `apply()` and never touch scene mid-drag). Mirrors the move
+-      // overlay's `session.commit` path — revert untracked (no-op when
+-      // the session never wrote to scene), resume history, then let
+-      // the session do the tracked write.
++      // overlay's `session.commit` path — the session owns its tracked write.
+       if (commitValid && drag.session.commit) {
+-        useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
+         if (drag.historyPaused) {
+           resumeSceneHistory(useScene)
+           drag.historyPaused = false
+@@ -1499,7 +1497,8 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+         //   1. Revert to baseline while history is still paused (untracked).
+         //   2. Resume history.
+         //   3. Re-apply the final state — recorded as one tracked change.
+-        useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
++        if (!drag.session.commit)
++          useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
+         if (drag.historyPaused) {
+           resumeSceneHistory(useScene)
+           drag.historyPaused = false
+@@ -1511,7 +1510,8 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+         // resume without committing. Also clear any live overrides
+         // the session published (no-op when the session writes to
+         // scene directly).
+-        useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
++        if (!drag.session.commit)
++          useScene.getState().updateNodes(snapshotsToUpdates(drag.snapshots))
+         if (drag.historyPaused) {
+           resumeSceneHistory(useScene)
+           drag.historyPaused = false
+@@ -1710,6 +1710,19 @@ export const FloorplanRegistryLayer = memo(function FloorplanRegistryLayer() {
+         ))}
+       </g>
+       <FloorplanAnnotationLayoutResolver active={floorplanVisible} />
++      {!isAmbient && floorplanVisible ? (
++        <FloorplanZoneClosureLayer
++          onEndpointDrag={(endpoint, event) =>
++            startAffordanceDrag(
++              endpoint.wallId,
++              `${endpoint.wallId}:${endpoint.endpoint}`,
++              'move-endpoint',
++              { wallId: endpoint.wallId, endpoint: endpoint.endpoint },
++              event,
++            )
++          }
++        />
++      ) : null}
+       {/* Dashed group bbox — shows what a group drag carries along while a
+           multi-selection exists, rides the live delta mid-drag, and doubles
+           as the group's whole-area drag handle. */}
+diff --git a/packages/editor/src/components/editor/floorplan-panel.tsx b/packages/editor/src/components/editor/floorplan-panel.tsx
+index cd417182..980bc3bf 100644
+--- a/packages/editor/src/components/editor/floorplan-panel.tsx
++++ b/packages/editor/src/components/editor/floorplan-panel.tsx
+@@ -4588,7 +4588,7 @@ function FloorplanDraftCursorLayer({
+   }, [activePolygonDraftPoints, cursorPoint, isPolygonDraftBuildActive])
+ 
+   return (
+-    <>
++    <g pointerEvents="none">
+       {polygon && <polygon fill={draftFill} fillOpacity={0.2} points={polygon} stroke="none" />}
+ 
+       {polyline && (
+@@ -4636,7 +4636,7 @@ function FloorplanDraftCursorLayer({
+           />
+         </g>
+       )}
+-    </>
++    </g>
+   )
+ }
+ 
+@@ -11758,6 +11758,7 @@ export function FloorplanPanel({
+ 
+               {activeDraftAnchorPoint && (
+                 <circle
++                  pointerEvents="none"
+                   cx={toSvgX(activeDraftAnchorPoint[0])}
+                   cy={toSvgY(activeDraftAnchorPoint[1])}
+                   fill={palette.anchor}
+diff --git a/packages/editor/src/components/tools/wall/wall-drafting.ts b/packages/editor/src/components/tools/wall/wall-drafting.ts
+index f70fae02..d8dbf934 100644
+--- a/packages/editor/src/components/tools/wall/wall-drafting.ts
++++ b/packages/editor/src/components/tools/wall/wall-drafting.ts
+@@ -374,15 +374,58 @@ export function resolveEndpointWallSplit(args: {
+    */
+   radius?: number
+ }): WallPlanPoint | null {
+-  const { point, levelId, ignoreWallIds, radius = WALL_CONNECT_SNAP_RADIUS } = args
+-  const { nodes, createNodes, updateNodes, deleteNode } = useScene.getState()
++  const plan = planEndpointWallSplit({ ...args, nodes: useScene.getState().nodes })
++  if (!plan) return null
++  useScene.getState().applyNodeChanges(plan.changes)
++  return plan.point
++}
++
++export function planEndpointWallSplit(args: {
++  point: WallPlanPoint
++  levelId: string | null
++  ignoreWallIds: string[]
++  radius?: number
++  nodes: ReturnType<typeof useScene.getState>['nodes']
++}) {
++  const { point, levelId, ignoreWallIds, radius = WALL_CONNECT_SNAP_RADIUS, nodes } = args
+   const walls = Object.values(nodes).filter(
+     (node): node is WallNode => node?.type === 'wall' && (node.parentId ?? null) === levelId,
+   )
+-
++  const changes: Parameters<ReturnType<typeof useScene.getState>['applyNodeChanges']>[0] = {
++    create: [],
++    update: [],
++    delete: [],
++  }
+   const intersection = findWallIntersection(point, walls, radius, ignoreWallIds)
+-  const split = splitWallIfNeeded(intersection, walls, nodes, createNodes, updateNodes, deleteNode)
+-  return split ? split.point : null
++  const split = splitWallIfNeeded(
++    intersection,
++    walls,
++    nodes,
++    (entries) => {
++      changes.create!.push(...entries)
++    },
++    (entries) => {
++      changes.update!.push(...entries)
++    },
++    (id) => {
++      changes.delete!.push(id)
++    },
++  )
++  for (const entry of changes.create ?? []) {
++    if (entry.node.type !== 'wall') continue
++    entry.node.children = (changes.update ?? [])
++      .filter((update) => update.data.parentId === entry.node.id)
++      .map((update) => update.id) as WallNode['children']
++  }
++  return split
++    ? {
++        point: split.point,
++        changes,
++        blocked: Boolean(
++          intersection?.wallId && !changes.delete?.includes(intersection.wallId as AnyNodeId),
++        ),
++      }
++    : null
+ }
+ 
+ export type GuideSnapLine = {
+diff --git a/packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx b/packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx
+index 99bd2d61..189af76a 100644
+--- a/packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx
++++ b/packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx
+@@ -53,6 +53,7 @@ import { cn } from './../../../../../lib/utils'
+ import useEditor from './../../../../../store/use-editor'
+ import { useUploadStore } from '../../../../../store/use-upload'
+ import { LevelDuplicateDialog } from '../../../level-duplicate-dialog'
++import { ZoneClosurePanel } from '../zone-panel/zone-closure-panel'
+ import { InlineRenameInput } from './inline-rename-input'
+ import { focusTreeNode, TreeNode } from './tree-node'
+ import { TreeNodeDragProvider } from './tree-node-drag'
+@@ -1355,17 +1356,21 @@ const ContentSection = memo(function ContentSection() {
+ 
+     if (levelZones.length === 0) {
+       return (
+-        <div className="px-3 py-4 text-muted-foreground text-sm">
+-          No zones on this level.{' '}
+-          <button className="cursor-pointer text-primary hover:underline" onClick={handleAddZone}>
+-            Add one
+-          </button>
++        <div className="flex flex-col">
++          <ZoneClosurePanel />
++          <div className="px-3 py-4 text-muted-foreground text-sm">
++            No zones on this level.{' '}
++            <button className="cursor-pointer text-primary hover:underline" onClick={handleAddZone}>
++              Add one
++            </button>
++          </div>
+         </div>
+       )
+     }
+ 
+     return (
+       <div className="flex flex-col">
++        <ZoneClosurePanel />
+         {levelZones.map((zone, index) => (
+           <ZoneItem isLast={index === levelZones.length - 1} key={zone.id} zone={zone} />
+         ))}
+diff --git a/packages/editor/src/components/ui/sidebar/panels/zone-panel/index.tsx b/packages/editor/src/components/ui/sidebar/panels/zone-panel/index.tsx
+index 871cb67c..55932c4f 100644
+--- a/packages/editor/src/components/ui/sidebar/panels/zone-panel/index.tsx
++++ b/packages/editor/src/components/ui/sidebar/panels/zone-panel/index.tsx
+@@ -19,6 +19,7 @@ import { cn } from './../../../../../lib/utils'
+ import useEditor from './../../../../../store/use-editor'
+ import { ActionButton } from '../../../controls/action-button'
+ import { PanelSection } from '../../../controls/panel-section'
++import { ZoneClosurePanel } from './zone-closure-panel'
+ import { useT } from '../../../../../i18n/use-t'
+ 
+ function ZoneItem({ zone }: { zone: ZoneNode }) {
+@@ -179,6 +180,7 @@ export function ZonePanel() {
+ 
+   return (
+     <div className="py-1">
++      <ZoneClosurePanel />
+       {levelZones.length === 0 ? (
+         <div className="px-3 py-4 text-muted-foreground text-sm">
+           No zones on this level.{' '}
+diff --git a/packages/editor/src/index.tsx b/packages/editor/src/index.tsx
+index cd4ca4f8..3552fbc6 100644
+--- a/packages/editor/src/index.tsx
++++ b/packages/editor/src/index.tsx
+@@ -199,6 +199,7 @@ export {
+   createWallOnCurrentLevel,
+   getSegmentGridStep,
+   isSegmentLongEnough,
++  planEndpointWallSplit,
+   resolveEndpointWallSplit,
+   resolveWallEndpointPoint,
+   snapPointToGrid,
+diff --git a/packages/editor/src/lib/interaction/scope.ts b/packages/editor/src/lib/interaction/scope.ts
+index 0cef25e5..a4f63bfb 100644
+--- a/packages/editor/src/lib/interaction/scope.ts
++++ b/packages/editor/src/lib/interaction/scope.ts
+@@ -62,6 +62,7 @@ export type InteractionScope =
+       // Set only for `reshape: 'drop'` — the ceiling drop zone being reshaped.
+       dropId?: string
+       endpoint?: 'start' | 'end'
++      intent?: 'boundary-connect' | 'boundary-move'
+       index?: number
+       side?: 'in' | 'out'
+     }
+diff --git a/packages/mcp/src/modeling-agent-manual.ts b/packages/mcp/src/modeling-agent-manual.ts
+index c605be05..84653713 100644
+--- a/packages/mcp/src/modeling-agent-manual.ts
++++ b/packages/mcp/src/modeling-agent-manual.ts
+@@ -29,6 +29,7 @@ export const MODELING_AGENT_MANUAL = [
+   '- The shared single-wall properties panel can align one uniquely resolved same-parent straight continuation within 2 degrees, preserving the shared corner, reference wall, and selected length while validating linked walls and hosted spans atomically. This is a direct UI capability with no AI/MCP mutation operation.',
+   '- Wall length input in the shared 2D/3D properties panel uses `buildWallLengthUpdates`: shared endpoints follow together, all affected host spans are checked before a single undoable update, and collapsed walls, detached T junctions, or unsupported curved walls are rejected. Single-wall split controls are in that properties panel; multi-selection merge remains in the contextual helper.',
+   '- Wall-driven zone sync follows confirmed enclosing wall loops, including a uniquely matched approximate apartment room. A split/merge with unchanged room geometry rebinds its boundary wall ids. A deletion-only boundary loss preserves the stored zone polygon, boundary wall ids, names, finishes, and source metadata without merging rooms, while setting `metadata.boundaryNeedsReview`; a valid linked-wall move updates the polygon and clears review, while lost or ambiguous moved boundaries preserve the last valid polygon and set `metadata.boundaryNeedsReview`. Both views display a boundary review warning and 2D suppresses unproven clear dimensions. Undo/redo restores the saved graph without rewriting zone metadata; only derived space detection is refreshed. Open semantic subdivisions are not guessed into physical rooms.',
++  '- Zone boundary panel reconciliation and live apt-vector wall edits create one `Zone` for each uncovered confirmed closed wall loop; generated zones carry `generatedFrom: detected-space` provenance and existing semantic subdivision coverage prevents duplicates. Split closed faces get replacement enclosed zones, while existing open review zones retain their stored polygon, content, and review marker. An unmatched apartment zone keeps its polygon and content but becomes open with `metadata.boundaryNeedsReview`. The 2D editor automatic boundary diagnostic may repair only a unique short straight non-parallel gap that simulation proves closes a room (including a smallest multi-gap bundle); collinear, curved, ambiguous, or large gaps remain review-only for automatic repair. Manual yellow endpoint handles and the zone boundary panel offer explicit target connection, endpoint dragging, and Keep open review. Explicit target connection can extend both straight walls to their supporting-line corner without the automatic 350 mm or room-count-increase gate. It preserves target identity and rejects invalid final hosted spans, reversed walls, broken junctions, and new or increased collinear overlap. Endpoint dragging in both 2D and 3D validates linked walls and hosted children with ephemeral previews and one atomic commit. Keep open stores a geometry-specific endpoint review in metadata, changes no geometry, and can be reset; geometry edits expire that review. Escape or changing tool/view clears manual previews without overwriting external edits; one Undo restores the committed graph. This is a direct UI capability with no AI/MCP mutation operation. Apply a validated repair as one undoable update with hosted openings preserved, and reject stale or read-only scenes before mutation.',
+   '- Structural wall and slab inspectors expose read-only Zone membership at the same Level. Shared partition walls may list both proven rooms; a containing support Slab may list each proven room; holes, concave boundaries, and ambiguous or invalid finish targets fail closed. The Zone inspector consumes the host finish panel inside a collapsed 마감재 section; all-wall material selection uses four columns for built-in, vendor, favorite, and scene catalogs.',
+   '- Axis-guide stretch is a direct 2D authoring workflow: a Vertical Guide is parallel to model Z and moves X (Left X− or Right X+), while a Horizontal Guide is parallel to model X and moves Z (Up Z− or Down Z+). Use the selected guide distance control; the operation applies one complete plan as one undo step and the committed walls, openings, and zones render consistently in 3D.',
+   '- Axis-guide stretch transforms only same-level walls. Walls wholly on the selected half-plane translate rigidly; a straight wall crossing the guide may change only its movement-axis extent, while fixed endpoints and points on the guide remain exact. Doors, windows, and wall-hosted items follow their host; classify an opening by its world center, preserve its full footprint and metadata, and allow a valid opening footprint to straddle the guide. Auto zones are reconciled from post-stretch walls; manual semantic zones receive the same piecewise transform.',
+diff --git a/packages/mcp/src/ontology-manual.test.ts b/packages/mcp/src/ontology-manual.test.ts
+index 4f8f092d..e8748c6a 100644
+--- a/packages/mcp/src/ontology-manual.test.ts
++++ b/packages/mcp/src/ontology-manual.test.ts
+@@ -21,6 +21,23 @@ describe('Phase 2 ontology manual contract', () => {
+     expect(MODELING_AGENT_MANUAL).toContain('buildWallLengthUpdates')
+     expect(MODELING_AGENT_MANUAL).toContain('all affected host spans')
+     expect(MODELING_AGENT_MANUAL).toContain('metadata.boundaryNeedsReview')
++    expect(MODELING_AGENT_MANUAL).toContain(
++      'Zone boundary panel reconciliation and live apt-vector wall edits create one `Zone`',
++    )
++    expect(MODELING_AGENT_MANUAL).toContain('generatedFrom: detected-space')
++    expect(MODELING_AGENT_MANUAL).toContain(
++      'Split closed faces get replacement enclosed zones, while existing open review zones retain their stored polygon, content, and review marker',
++    )
++    expect(MODELING_AGENT_MANUAL).toContain('smallest multi-gap bundle')
++    expect(MODELING_AGENT_MANUAL).toContain(
++      'direct UI capability with no AI/MCP mutation operation',
++    )
++    expect(MODELING_AGENT_MANUAL).toContain('reject stale or read-only scenes before mutation')
++    expect(MODELING_AGENT_MANUAL).toContain(
++      'Explicit target connection can extend both straight walls',
++    )
++    expect(MODELING_AGENT_MANUAL).toContain('Keep open stores a geometry-specific endpoint review')
++    expect(MODELING_AGENT_MANUAL).toContain('Endpoint dragging in both 2D and 3D validates')
+   })
+ 
+   test('documents the shared wall parallel alignment capability', () => {
+diff --git a/packages/mcp/src/resources/resources.test.ts b/packages/mcp/src/resources/resources.test.ts
+index b9a13969..9f116bbc 100644
+--- a/packages/mcp/src/resources/resources.test.ts
++++ b/packages/mcp/src/resources/resources.test.ts
+@@ -233,6 +233,16 @@ describe('pascal://agent-guide', () => {
+       expect(text).toContain('semantic zones without creating physical walls')
+       expect(text).toContain('adoptContainedApartmentZones')
+       expect(text).toContain('covers at least 90% of exactly one current enclosed space')
++      expect(text).toContain(
++        'Zone boundary panel reconciliation and live apt-vector wall edits create one `Zone`',
++      )
++      expect(text).toContain('generatedFrom: detected-space')
++      expect(text).toContain('smallest multi-gap bundle')
++      expect(text).toContain('direct UI capability with no AI/MCP mutation operation')
++      expect(text).toContain('reject stale or read-only scenes before mutation')
++      expect(text).toContain('Explicit target connection can extend both straight walls')
++      expect(text).toContain('Keep open stores a geometry-specific endpoint review')
++      expect(text).toContain('Endpoint dragging in both 2D and 3D validates')
+       expect(text).toContain(
+         'align one uniquely resolved same-parent straight continuation within 2 degrees',
+       )
+diff --git a/packages/nodes/src/wall/floorplan-affordances.test.ts b/packages/nodes/src/wall/floorplan-affordances.test.ts
+index 0be1ccf0..0b3b1991 100644
+--- a/packages/nodes/src/wall/floorplan-affordances.test.ts
++++ b/packages/nodes/src/wall/floorplan-affordances.test.ts
+@@ -1,5 +1,11 @@
+ import { afterEach, describe, expect, test } from 'bun:test'
+-import { type AnyNodeId, useLiveNodeOverrides, useScene, WallNode } from '@pascal-app/core'
++import {
++  type AnyNodeId,
++  DoorNode,
++  useLiveNodeOverrides,
++  useScene,
++  WallNode,
++} from '@pascal-app/core'
+ import { useEditor, useInteractionScope } from '@pascal-app/editor'
+ import { wallCurveAffordance, wallMoveEndpointAffordance } from './floorplan-affordances'
+ 
+@@ -60,7 +66,8 @@ describe('wall center curve handle release', () => {
+     useEditor.getState().setSnappingMode('wall', 'grid')
+     expect(session.keyDown?.('ArrowRight')).toBe(true)
+     session.apply({ planPoint: [-4, 2], modifiers })
+-    expect(useLiveNodeOverrides.getState().get(wall.id)?.end).toEqual([-4, 0])
++    expect(useLiveNodeOverrides.getState().get(wall.id)).toBeUndefined()
++    expect(session.canCommit()).toBe(false)
+     expect(session.keyDown?.('ArrowRight')).toBe(true)
+     session.apply({ planPoint: [4, 0.1], modifiers })
+     expect(session.canCommit()).toBe(true)
+@@ -220,3 +227,101 @@ describe('wall center curve handle release', () => {
+     expect(useLiveNodeOverrides.getState().get(wall.id as AnyNodeId)).toBeUndefined()
+   })
+ })
++
++describe('validated endpoint session', () => {
++  afterEach(() => {
++    useScene.setState({ readOnly: false })
++    useLiveNodeOverrides.getState().clearAll()
++  })
++  function setup() {
++    const wall = WallNode.parse({ id: 'wall_child_preview', start: [0, 0], end: [4, 0] })
++    const door = DoorNode.parse({
++      id: 'door_child_preview',
++      parentId: wall.id,
++      wallId: wall.id,
++      width: 0.6,
++      position: [2, 1, 0],
++    })
++    wall.children = [door.id]
++    useScene.setState({ nodes: { [wall.id]: wall, [door.id]: door }, readOnly: false })
++    useScene.temporal.getState().resume()
++    useScene.temporal.getState().clear()
++    useEditor.getState().setSnappingMode('wall', 'off')
++    const session = wallMoveEndpointAffordance.start({
++      node: wall,
++      nodes: useScene.getState().nodes,
++      payload: { wallId: wall.id, endpoint: 'start' },
++      initialPlanPoint: wall.start,
++      gridSnapStep: 0.001,
++    })
++    return { wall, door, session }
++  }
++  test('rebases hosted preview ephemerally, commits once and exactly undoes', () => {
++    const { wall, door, session } = setup()
++    const baseline = structuredClone(useScene.getState().nodes)
++    session.apply({ planPoint: [-1, 0], modifiers })
++    expect(useLiveNodeOverrides.getState().get(door.id)?.position).toEqual([3, 1, 0])
++    expect(useScene.getState().nodes).toEqual(baseline)
++    expect(session.canCommit()).toBe(true)
++    session.commit?.()
++    expect((useScene.getState().nodes[wall.id] as WallNode).start).toEqual([-1, 0])
++    expect(useScene.temporal.getState().pastStates).toHaveLength(1)
++    useScene.temporal.getState().undo()
++    expect(useScene.getState().nodes).toEqual(baseline)
++  })
++  test('rejects final host clipping without writing the graph', () => {
++    const { session } = setup()
++    const baseline = structuredClone(useScene.getState().nodes)
++    session.apply({ planPoint: [1.9, 0], modifiers })
++    expect(session.canCommit()).toBe(false)
++    session.commit?.()
++    expect(useScene.getState().nodes).toEqual(baseline)
++  })
++  test('rejects stale 0.1mm edits and preserves the external change', () => {
++    const { wall, session } = setup()
++    session.apply({ planPoint: [-1, 0], modifiers })
++    useScene.getState().updateNode(wall.id, { end: [4.0001, 0] })
++    const external = structuredClone(useScene.getState().nodes)
++    expect(session.canCommit()).toBe(false)
++    session.commit?.()
++    expect(useScene.getState().nodes).toEqual(external)
++    expect(useLiveNodeOverrides.getState().get(wall.id)).toBeUndefined()
++  })
++  test('rejects read-only toggled during a valid preview', () => {
++    const { session } = setup()
++    const baseline = structuredClone(useScene.getState().nodes)
++    session.apply({ planPoint: [-1, 0], modifiers })
++    useScene.setState({ readOnly: true })
++    expect(session.canCommit()).toBe(false)
++    session.commit?.()
++    expect(useScene.getState().nodes).toEqual(baseline)
++  })
++})
++
++test('endpoint drag rejects a new collinear overlap and preserves unrelated baseline overlaps', () => {
++  const wall = WallNode.parse({ id: 'wall_drag_overlap', start: [0, 0], end: [1, 0] })
++  const third = WallNode.parse({ id: 'wall_drag_third', start: [1.5, 0], end: [2.5, 0] })
++  const run = (other: WallNode) => {
++    useScene.setState({ nodes: { [wall.id]: wall, [other.id]: other }, readOnly: false })
++    useEditor.getState().setSnappingMode('wall', 'off')
++    const baseline = structuredClone(useScene.getState().nodes)
++    const session = wallMoveEndpointAffordance.start({
++      node: wall,
++      nodes: useScene.getState().nodes,
++      payload: { wallId: wall.id, endpoint: 'end' },
++      initialPlanPoint: wall.end,
++      gridSnapStep: 0.001,
++    })
++    session.apply({ planPoint: [3, 0], modifiers })
++    return { session, baseline }
++  }
++  const rejected = run(third)
++  expect(useLiveNodeOverrides.getState().get(wall.id)).toBeUndefined()
++  expect(rejected.session.canCommit()).toBe(false)
++  rejected.session.commit?.()
++  expect(useScene.getState().nodes).toEqual(rejected.baseline)
++  const accepted = run({ ...third, start: [0, 0], end: [0.5, 0] })
++  expect(accepted.session.canCommit()).toBe(true)
++  accepted.session.commit?.()
++  expect((useScene.getState().nodes[wall.id] as WallNode).end).toEqual([3, 0])
++})
+diff --git a/packages/nodes/src/wall/floorplan-affordances.ts b/packages/nodes/src/wall/floorplan-affordances.ts
+index e27b8d3d..e18c092e 100644
+--- a/packages/nodes/src/wall/floorplan-affordances.ts
++++ b/packages/nodes/src/wall/floorplan-affordances.ts
+@@ -1,15 +1,18 @@
+ import {
+   type AnyNode,
+   type AnyNodeId,
++  buildWallEndpointUpdates,
+   type FloorplanAffordance,
+   type FloorplanAffordanceSession,
+   getMaxWallCurveOffset,
+   getWallChordFrame,
+   normalizeWallCurveOffset,
++  roomBoundarySnapshot,
+   runAsSingleSceneHistoryStep,
+   useLiveNodeOverrides,
+   useScene,
+   type WallNode,
++  WallOperationError,
+ } from '@pascal-app/core'
+ import {
+   alignFloorplanDraftPoint,
+@@ -19,7 +22,6 @@ import {
+   isAngleSnapActive,
+   isMagneticSnapActive,
+   isSegmentLongEnough,
+-  resolveEndpointWallSplit,
+   resolveWallEndpointPoint,
+   snapBuildingLocalToWorldGrid,
+   snapScalarToGrid,
+@@ -28,6 +30,8 @@ import {
+   type WallPlanPoint,
+ } from '@pascal-app/editor'
+ 
++import { buildWallEndpointEditPlan } from './endpoint-edit-plan'
++
+ /**
+  * Floor-plan 2D drag affordances for wall.
+  *
+@@ -206,6 +210,10 @@ export const wallCurveAffordance: FloorplanAffordance<WallNode> = {
+ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+   start({ node, payload, nodes }): FloorplanAffordanceSession {
+     const { endpoint } = payload as WallEndpointPayload
++    const baseline = roomBoundarySnapshot(nodes, node.parentId)
++    let detached = false
++    let validPreview = false
++    let previewIds: AnyNodeId[] = []
+     const fixedPoint: WallPlanPoint =
+       endpoint === 'start' ? ([...node.end] as WallPlanPoint) : ([...node.start] as WallPlanPoint)
+     const originalStart: WallPlanPoint = [...node.start] as WallPlanPoint
+@@ -234,7 +242,6 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+     // Remember the latest preview so `commit()` can write it tracked.
+     let lastPrimaryStart: WallPlanPoint = originalStart
+     let lastPrimaryEnd: WallPlanPoint = originalEnd
+-    let lastLinkedUpdates: Array<{ id: AnyNodeId; start: WallPlanPoint; end: WallPlanPoint }> = []
+     const directionLock = createWallDirectionLock()
+     let directionInferred = false
+ 
+@@ -251,6 +258,7 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+         )
+       },
+       apply({ planPoint, modifiers }) {
++        detached = modifiers.altKey
+         directionLock.set(
+           modifiers.shiftKey,
+           fixedPoint,
+@@ -321,49 +329,31 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+         const primaryStart: WallPlanPoint = endpoint === 'start' ? aligned : fixedPoint
+         const primaryEnd: WallPlanPoint = endpoint === 'end' ? aligned : fixedPoint
+ 
+-        // ALT detaches: the linked walls keep their original endpoints,
+-        // and only the dragged wall moves.
+-        const linkedUpdates = modifiers.altKey
+-          ? []
+-          : linkedWalls.map((w) => ({
+-              id: w.id,
+-              start: pointsEqual(w.start, originalStart)
+-                ? primaryStart
+-                : pointsEqual(w.start, originalEnd)
+-                  ? primaryEnd
+-                  : w.start,
+-              end: pointsEqual(w.end, originalStart)
+-                ? primaryStart
+-                : pointsEqual(w.end, originalEnd)
+-                  ? primaryEnd
+-                  : w.end,
+-            }))
+-
+         lastPrimaryStart = primaryStart
+         lastPrimaryEnd = primaryEnd
+-        lastLinkedUpdates = linkedUpdates
+ 
+-        // Publish overrides instead of writing to scene. WallSystem +
+-        // 2D layer + sidebar panel merge these in. Marking dirty
+-        // wakes the system's `useFrame` rebuild pass.
+         const overrides = useLiveNodeOverrides.getState()
+-        const sceneState = useScene.getState()
+-        overrides.set(node.id as AnyNodeId, { start: primaryStart, end: primaryEnd })
+-        sceneState.markDirty(node.id as AnyNodeId)
+-        if (modifiers.altKey) {
+-          // Attach→detach transition: linked walls dragged on earlier attached
+-          // ticks still carry overrides — drop them so their corners snap back
+-          // to the scene originals (untouched during the drag).
+-          for (const linked of linkedWalls) {
+-            if (overrides.get(linked.id)) {
+-              overrides.clear(linked.id)
+-              sceneState.markDirty(linked.id)
+-            }
+-          }
++        const scene = useScene.getState()
++        for (const id of previewIds) {
++          overrides.clear(id)
++          scene.markDirty(id)
+         }
+-        for (const upd of linkedUpdates) {
+-          overrides.set(upd.id, { start: upd.start, end: upd.end })
+-          sceneState.markDirty(upd.id)
++        previewIds = []
++        validPreview = false
++        if (scene.readOnly || roomBoundarySnapshot(scene.nodes, node.parentId) !== baseline) return
++        try {
++          const updates = buildWallEndpointUpdates(scene.nodes, node.id, primaryStart, primaryEnd, {
++            detachLinkedWalls: detached,
++          })
++          validPreview = true
++          for (const update of updates) {
++            overrides.set(update.id, update.data)
++            scene.markDirty(update.id)
++            if (!affectedIds.includes(update.id)) affectedIds.push(update.id)
++          }
++          previewIds = updates.map((update) => update.id)
++        } catch (error) {
++          if (!(error instanceof WallOperationError)) throw error
+         }
+       },
+       canCommit() {
+@@ -373,50 +363,60 @@ export const wallMoveEndpointAffordance: FloorplanAffordance<WallNode> = {
+         // The dragged wall must still be long enough at the preview
+         // length — checked against `lastPrimary*`, not scene, because
+         // scene holds baseline values until commit().
+-        return isSegmentLongEnough(lastPrimaryStart, lastPrimaryEnd)
++        const scene = useScene.getState()
++        if (
++          !validPreview ||
++          scene.readOnly ||
++          roomBoundarySnapshot(scene.nodes, node.parentId) !== baseline ||
++          !isSegmentLongEnough(lastPrimaryStart, lastPrimaryEnd)
++        )
++          return false
++        try {
++          buildWallEndpointEditPlan(scene.nodes, {
++            wall: node,
++            endpoint,
++            start: lastPrimaryStart,
++            end: lastPrimaryEnd,
++            detach: detached,
++            radius: directionLock.active || directionInferred ? 1e-7 : undefined,
++          })
++          return true
++        } catch (error) {
++          if (error instanceof WallOperationError) return false
++          throw error
++        }
+       },
+       commit() {
+-        // Atomic tracked write of the final endpoints, then drop the
+-        // overrides so the scene state is the single source of truth
+-        // again. Parity with the 3D move-endpoint tool: a drop on another
+-        // wall's interior splits that host (create halves, migrate
+-        // attachments, delete host) inside the same single history step as
+-        // the endpoint write. Linked walls updated here share the drop point
+-        // as an endpoint (a corner join, not a split) so they're excluded
+-        // with the dragged wall; a zero-move drop skips the resolution
+-        // entirely.
+-        const movingPoint = endpoint === 'start' ? lastPrimaryStart : lastPrimaryEnd
+-        const originalMovingPoint = endpoint === 'start' ? originalStart : originalEnd
+-        runAsSingleSceneHistoryStep(useScene, () => {
+-          const resolved = pointsEqual(movingPoint, originalMovingPoint)
+-            ? null
+-            : resolveEndpointWallSplit({
+-                point: movingPoint,
+-                levelId: (node.parentId ?? null) as string | null,
+-                ignoreWallIds: [node.id, ...lastLinkedUpdates.map((u) => String(u.id))],
+-                radius: directionLock.active || directionInferred ? 1e-7 : undefined,
+-              })
+-          const finalPoint = resolved ?? movingPoint
+-          useScene.getState().updateNodes([
+-            {
+-              id: node.id,
+-              data: {
+-                start: endpoint === 'start' ? finalPoint : lastPrimaryStart,
+-                end: endpoint === 'end' ? finalPoint : lastPrimaryEnd,
+-              },
+-            },
+-            ...lastLinkedUpdates.map((u) => ({
+-              id: u.id,
+-              data: {
+-                start: pointsEqual(u.start, movingPoint) ? finalPoint : u.start,
+-                end: pointsEqual(u.end, movingPoint) ? finalPoint : u.end,
+-              },
+-            })),
+-          ])
+-        })
+-        const overrides = useLiveNodeOverrides.getState()
+-        overrides.clear(node.id as AnyNodeId)
+-        for (const upd of lastLinkedUpdates) overrides.clear(upd.id)
++        const scene = useScene.getState()
++        try {
++          if (
++            scene.readOnly ||
++            roomBoundarySnapshot(scene.nodes, node.parentId) !== baseline ||
++            !validPreview
++          )
++            return
++          if (
++            pointsEqual(lastPrimaryStart, originalStart) &&
++            pointsEqual(lastPrimaryEnd, originalEnd)
++          )
++            return
++          const plan = buildWallEndpointEditPlan(scene.nodes, {
++            wall: node,
++            endpoint,
++            start: lastPrimaryStart,
++            end: lastPrimaryEnd,
++            detach: detached,
++            radius: directionLock.active || directionInferred ? 1e-7 : undefined,
++          })
++          runAsSingleSceneHistoryStep(useScene, () => scene.applyNodeChanges(plan.changes))
++        } catch (error) {
++          if (!(error instanceof WallOperationError)) throw error
++        } finally {
++          for (const id of previewIds) {
++            useLiveNodeOverrides.getState().clear(id)
++            scene.markDirty(id)
++          }
++        }
+       },
+     }
+   },
+diff --git a/packages/nodes/src/wall/move-endpoint-tool.tsx b/packages/nodes/src/wall/move-endpoint-tool.tsx
+index 28262286..a2433e17 100644
+--- a/packages/nodes/src/wall/move-endpoint-tool.tsx
++++ b/packages/nodes/src/wall/move-endpoint-tool.tsx
+@@ -2,20 +2,21 @@
+ 
+ import {
+   type AnyNodeId,
++  buildWallEndpointUpdates,
+   collectAlignmentAnchors,
+   emitter,
+   type GridEvent,
+   getWallBaseElevationForNodes,
+   getWallCurveLength,
+   getWallThickness,
+-  pauseSceneHistory,
+   resolveAlignment,
+   resolveMovedWallSupportSlabPatch,
+-  resumeSceneHistory,
++  roomBoundarySnapshot,
+   runAsSingleSceneHistoryStep,
+   useLiveNodeOverrides,
+   useScene,
+   type WallNode,
++  WallOperationError,
+ } from '@pascal-app/core'
+ import {
+   CursorSphere,
+@@ -30,7 +31,6 @@ import {
+   isSegmentLongEnough,
+   MeasurementPill,
+   markToolCancelConsumed,
+-  resolveEndpointWallSplit,
+   resolveWallEndpointPoint,
+   triggerSFX,
+   useAlignmentGuides,
+@@ -45,6 +45,7 @@ import { Html } from '@react-three/drei'
+ import { useCallback, useEffect, useRef, useState } from 'react'
+ import { LevelOffsetGroup } from '../shared/level-offset-group'
+ import { resolveWallOpeningCeiling } from '../shared/wall-opening-ceiling'
++import { buildWallEndpointEditPlan } from './endpoint-edit-plan'
+ 
+ /**
+  * Wall endpoint move tool (kind-owned).
+@@ -294,7 +295,8 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+       (anchor) => !movingLinkedIdSet.has(anchor.nodeId),
+     )
+ 
+-    pauseSceneHistory(useScene)
++    const baseline = roomBoundarySnapshot(useScene.getState().nodes, target.wall.parentId)
++    let validPreview = false
+     let wasCommitted = false
+     // Last RAW cursor point from `grid:move` — lets the Alt keydown/keyup
+     // handlers re-run the FULL snap pipeline immediately on a modifier change
+@@ -318,23 +320,6 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+     // The store is written ONCE, atomically, on commit.
+     const touchedWallIds = new Set<AnyNodeId>()
+ 
+-    const applyNodePreview = (
+-      updates: Array<{ id: WallNode['id']; start: WallPlanPoint; end: WallPlanPoint }>,
+-    ) => {
+-      const overrides = useLiveNodeOverrides.getState()
+-      const sceneState = useScene.getState()
+-      overrides.setMany(
+-        updates.map(
+-          (entry) =>
+-            [entry.id, { start: entry.start, end: entry.end }] as [string, Record<string, unknown>],
+-        ),
+-      )
+-      for (const entry of updates) {
+-        touchedWallIds.add(entry.id as AnyNodeId)
+-        sceneState.markDirty(entry.id as AnyNodeId)
+-      }
+-    }
+-
+     // Drop every live override (mesh + miters revert to the scene store, which
+     // was never mutated during the drag) and re-dirty so geometry rebuilds.
+     const clearPreviewOverrides = () => {
+@@ -390,7 +375,24 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+           nodeId,
+         }),
+       )
+-      applyNodePreview([{ id: nodeId, start: nextStart, end: nextEnd }, ...linkedUpdates])
++      clearPreviewOverrides()
++      validPreview = false
++      const scene = useScene.getState()
++      if (scene.readOnly || roomBoundarySnapshot(scene.nodes, target.wall.parentId) !== baseline)
++        return
++      try {
++        const updates = buildWallEndpointUpdates(scene.nodes, nodeId, nextStart, nextEnd, {
++          detachLinkedWalls,
++        })
++        for (const update of updates) {
++          useLiveNodeOverrides.getState().set(update.id, update.data)
++          touchedWallIds.add(update.id)
++          scene.markDirty(update.id)
++        }
++        validPreview = true
++      } catch (error) {
++        if (!(error instanceof WallOperationError)) throw error
++      }
+     }
+ 
+     const restoreOriginal = (clearAngleLabel = true) => {
+@@ -569,75 +571,41 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+         return
+       }
+ 
+-      if (isSegmentLongEnough(preview.start, preview.end)) {
+-        wasCommitted = true
+-
+-        const linkedUpdates = altPressedRef.current
+-          ? []
+-          : getLinkedWallUpdates(
+-              linkedOriginalsRef.current,
+-              originalStart,
+-              originalEnd,
+-              preview.start,
+-              preview.end,
+-            )
+-
+-        // Drop the live overrides; the store write below is the source of truth.
+-        // The store sat at the pre-drag (original) values the whole drag — only
+-        // overrides moved — so one resume+write records original→final as a
+-        // single tracked change (one Ctrl-Z reverts to original). The split
+-        // ops (create halves, migrate attachments, delete host) would each
+-        // push their own entry, so the whole commit runs as one history step.
+-        clearPreviewOverrides()
+-        resumeSceneHistory(useScene)
+-        runAsSingleSceneHistoryStep(useScene, () => {
+-          // Dropping the endpoint on another wall's interior splits that host
+-          // like the draw path does. Linked walls updated in this commit share
+-          // the drop point as an endpoint (a corner join, not a split), so
+-          // they're excluded along with the moved wall — in Alt-detach mode
+-          // `linkedUpdates` is empty and a stationary former sibling can be
+-          // split like any other host.
+-          const movingPoint = target.endpoint === 'start' ? preview.start : preview.end
+-          const resolved = resolveEndpointWallSplit({
+-            point: movingPoint,
+-            levelId: target.wall.parentId ?? null,
+-            ignoreWallIds: [nodeId, ...linkedUpdates.map((u) => String(u.id))],
++      const scene = useScene.getState()
++      if (
++        validPreview &&
++        !scene.readOnly &&
++        roomBoundarySnapshot(scene.nodes, target.wall.parentId) === baseline &&
++        isSegmentLongEnough(preview.start, preview.end)
++      ) {
++        try {
++          const plan = buildWallEndpointEditPlan(scene.nodes, {
++            wall: target.wall,
++            endpoint: target.endpoint,
++            start: preview.start,
++            end: preview.end,
++            detach: altPressedRef.current,
+             radius: directionLock.active || directionInferred ? 1e-7 : undefined,
+           })
+-          const finalPoint = resolved ?? movingPoint
+-          useScene.getState().updateNodes([
+-            {
+-              id: nodeId as AnyNodeId,
+-              data: {
+-                start: target.endpoint === 'start' ? finalPoint : preview.start,
+-                end: target.endpoint === 'end' ? finalPoint : preview.end,
+-              },
+-            },
+-            ...linkedUpdates.map((u) => ({
+-              id: u.id as AnyNodeId,
+-              data: {
+-                start: samePoint(u.start, movingPoint) ? finalPoint : u.start,
+-                end: samePoint(u.end, movingPoint) ? finalPoint : u.end,
+-              },
+-            })),
+-          ])
+-          const affectedIds = [nodeId as AnyNodeId, ...linkedUpdates.map((u) => u.id as AnyNodeId)]
+-          const committedNodes = useScene.getState().nodes
+-          useScene.getState().updateNodes(
+-            affectedIds.flatMap((id) => {
+-              const wall = committedNodes[id]
+-              return wall?.type === 'wall'
+-                ? [{ id, data: resolveMovedWallSupportSlabPatch(wall, committedNodes) }]
+-                : []
+-            }),
+-          )
+-          useScene.getState().markDirty(nodeId as AnyNodeId)
+-          for (const u of linkedUpdates) {
+-            useScene.getState().markDirty(u.id as AnyNodeId)
+-          }
+-        })
+-        pauseSceneHistory(useScene)
+-        triggerSFX('sfx:item-place')
++          clearPreviewOverrides()
++          runAsSingleSceneHistoryStep(useScene, () => {
++            scene.applyNodeChanges(plan.changes)
++            const committedNodes = useScene.getState().nodes
++            scene.updateNodes(
++              plan.updates.flatMap((update) => {
++                const wall = committedNodes[update.id]
++                return wall?.type === 'wall'
++                  ? [{ id: wall.id, data: resolveMovedWallSupportSlabPatch(wall, committedNodes) }]
++                  : []
++              }),
++            )
++          })
++          wasCommitted = true
++          triggerSFX('sfx:item-place')
++        } catch (error) {
++          if (!(error instanceof WallOperationError)) throw error
++          restoreOriginal()
++        }
+       }
+ 
+       useViewer.getState().setSelection({ selectedIds: [nodeId] })
+@@ -650,7 +618,6 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+       useWallSnapIndicator.getState().clear()
+       restoreOriginal()
+       useViewer.getState().setSelection({ selectedIds: [nodeId] })
+-      resumeSceneHistory(useScene)
+       setAngleLabel(null)
+       markToolCancelConsumed()
+       exitMoveMode()
+@@ -731,7 +698,6 @@ export const MoveWallEndpointTool: React.FC<{ target: MovingWallEndpoint }> = ({
+       if (!wasCommitted) {
+         restoreOriginal(false)
+       }
+-      resumeSceneHistory(useScene)
+       emitter.off('grid:move', onGridMove)
+       emitter.off('tool:cancel', onCancel)
+       window.removeEventListener('pointerup', onPointerUp)
+diff --git a/packages/core/src/lib/room-boundary-manual.test.ts b/packages/core/src/lib/room-boundary-manual.test.ts
+new file mode 100644
+index 00000000..881b85cf
+--- /dev/null
++++ b/packages/core/src/lib/room-boundary-manual.test.ts
+@@ -0,0 +1,218 @@
++import { describe, expect, test } from 'bun:test'
++import { DoorNode, ItemNode, LevelNode, WallNode } from '../schema'
++import {
++  buildManualRoomBoundaryRepair,
++  buildRoomBoundaryOpenReviewUpdate,
++  isRoomBoundaryReviewedOpen,
++  roomBoundarySnapshot,
++} from './room-boundary'
++
++const level = LevelNode.parse({ id: 'level_manual_boundary' })
++function fixture() {
++  const a = WallNode.parse({
++    id: 'wall_manual_a',
++    parentId: level.id,
++    start: [0, 0],
++    end: [1.8, 0],
++  })
++  const b = WallNode.parse({
++    id: 'wall_manual_b',
++    parentId: level.id,
++    start: [2, 0.2],
++    end: [2, 2],
++  })
++  return { [level.id]: level, [a.id]: a, [b.id]: b }
++}
++const input = {
++  levelId: level.id,
++  wallId: 'wall_manual_a' as const,
++  endpoint: 'end' as const,
++  targetWallId: 'wall_manual_b' as const,
++}
++
++describe('explicit manual room boundary repair', () => {
++  test('extends both walls of an open L without requiring a room', () => {
++    const nodes = fixture()
++    const plan = buildManualRoomBoundaryRepair(nodes, input)
++    expect(plan.ok).toBe(true)
++    expect(plan.point).toEqual([2, 0])
++    expect(plan.updates.find((u) => u.id === input.wallId)?.data).toMatchObject({ end: [2, 0] })
++    expect(plan.updates.find((u) => u.id === input.targetWallId)?.data).toMatchObject({
++      start: [2, 0],
++    })
++    expect(nodes[input.wallId].end).toEqual([1.8, 0])
++  })
++  test('allows a one metre explicit gap and preserves target segment identity', () => {
++    const nodes = fixture()
++    nodes[input.wallId] = { ...nodes[input.wallId], end: [1, 0] }
++    nodes[input.targetWallId] = { ...nodes[input.targetWallId], start: [2, -1] }
++    const plan = buildManualRoomBoundaryRepair(nodes, input)
++    expect(plan.ok).toBe(true)
++    expect(plan.updates).toHaveLength(1)
++    expect(plan.updates[0]?.data).toMatchObject({ end: [2, 0] })
++  })
++  test('rebases a hosted opening and rejects precise stale snapshots', () => {
++    const nodes = fixture()
++    const door = DoorNode.parse({
++      id: 'door_manual',
++      parentId: input.targetWallId,
++      wallId: input.targetWallId,
++      width: 0.6,
++      position: [0.8, 1, 0],
++    })
++    const scene = { ...nodes, [door.id]: door }
++    const signature = roomBoundarySnapshot(scene, level.id)
++    const plan = buildManualRoomBoundaryRepair(scene, { ...input, expectedSnapshot: signature })
++    expect(plan.ok).toBe(true)
++    expect(
++      (plan.updates.find((u) => u.id === door.id)?.data as typeof door).position[0],
++    ).toBeCloseTo(1)
++    scene[input.wallId] = { ...scene[input.wallId], end: [1.8001, 0] }
++    expect(
++      buildManualRoomBoundaryRepair(scene, { ...input, expectedSnapshot: signature }),
++    ).toMatchObject({ ok: false, reason: 'stale', updates: [] })
++  })
++  test('rejects different levels, curves and detached existing T junctions', () => {
++    const nodes = fixture()
++    expect(
++      buildManualRoomBoundaryRepair(
++        {
++          ...nodes,
++          [input.targetWallId]: { ...nodes[input.targetWallId], parentId: 'level_other' },
++        },
++        input,
++      ).ok,
++    ).toBe(false)
++    expect(
++      buildManualRoomBoundaryRepair(
++        { ...nodes, [input.wallId]: { ...nodes[input.wallId], curveOffset: 0.2 } },
++        input,
++      ).ok,
++    ).toBe(false)
++  })
++  test('explicit selection disambiguates competing targets and keeps the unselected wall exact', () => {
++    const nodes = fixture()
++    const competing = WallNode.parse({
++      ...nodes[input.targetWallId],
++      id: 'wall_manual_competing',
++      start: [2.03, 0.3],
++      end: [2.03, 2],
++    })
++    const scene = { ...nodes, [competing.id]: competing }
++    const plan = buildManualRoomBoundaryRepair(scene, input)
++    expect(plan.ok).toBe(true)
++    expect(plan.point).toEqual([2, 0])
++    expect(plan.updates.some((update) => update.id === competing.id)).toBe(false)
++    expect(scene[competing.id]).toEqual(competing)
++  })
++  test('joins a collinear explicit gap but rejects the far target endpoint and separated parallel walls', () => {
++    const nodes = fixture()
++    const target = {
++      ...nodes[input.targetWallId],
++      start: [2, 0] as [number, number],
++      end: [4, 0] as [number, number],
++    }
++    const scene = { ...nodes, [target.id]: target }
++    expect(buildManualRoomBoundaryRepair(scene, { ...input, targetEndpoint: 'start' }).ok).toBe(
++      true,
++    )
++    expect(buildManualRoomBoundaryRepair(scene, { ...input, targetEndpoint: 'end' }).ok).toBe(false)
++    expect(
++      buildManualRoomBoundaryRepair(
++        { ...scene, [target.id]: { ...target, start: [2, 1], end: [4, 1] } },
++        input,
++      ),
++    ).toMatchObject({ ok: false, reason: 'parallel', updates: [] })
++  })
++  test('rejects detaching a preexisting target T contact and reversing the source', () => {
++    const nodes = fixture()
++    const host = WallNode.parse({
++      id: 'wall_t_host',
++      parentId: level.id,
++      start: [1, 0.2],
++      end: [3, 0.2],
++    })
++    const scene = { ...nodes, [host.id]: host }
++    const baseline = structuredClone(scene)
++    expect(buildManualRoomBoundaryRepair(scene, input).ok).toBe(false)
++    expect(scene).toEqual(baseline)
++    expect(
++      buildManualRoomBoundaryRepair(
++        {
++          ...nodes,
++          [input.targetWallId]: { ...nodes[input.targetWallId], start: [-1, 0.2], end: [-1, 2] },
++        },
++        input,
++      ).ok,
++    ).toBe(false)
++  })
++  test('rejects new collinear overlaps but retains unrelated preexisting overlaps', () => {
++    const nodes = fixture()
++    const third = WallNode.parse({
++      id: 'wall_overlap',
++      parentId: level.id,
++      start: [1.9, 0],
++      end: [2.4, 0],
++    })
++    expect(buildManualRoomBoundaryRepair({ ...nodes, [third.id]: third }, input)).toMatchObject({
++      ok: false,
++      reason: 'overlap',
++      updates: [],
++    })
++    const unrelated = {
++      ...third,
++      start: [10, 10] as [number, number],
++      end: [12, 10] as [number, number],
++    }
++    const duplicate = { ...unrelated, id: 'wall_overlap_duplicate' as const }
++    expect(
++      buildManualRoomBoundaryRepair(
++        { ...nodes, [unrelated.id]: unrelated, [duplicate.id]: duplicate },
++        input,
++      ).ok,
++    ).toBe(true)
++  })
++  test('checks final footprint of an item on a linked wall after the corner turns', () => {
++    const nodes = fixture()
++    const linked = WallNode.parse({
++      id: 'wall_linked_item',
++      parentId: level.id,
++      start: [2, 0.2],
++      end: [3, 0.2],
++    })
++    const item = ItemNode.parse({
++      id: 'item_boundary',
++      parentId: linked.id,
++      wallId: linked.id,
++      wallT: 0.35,
++      position: [0.35, 1, 0],
++      rotation: [0, 0, 0],
++      asset: {
++        id: 'cabinet',
++        name: 'Cabinet',
++        category: 'cabinet',
++        thumbnail: '',
++        src: 'https://example.com/item.glb',
++        dimensions: [0.6, 1, 2],
++        attachTo: 'wall',
++      },
++    })
++    linked.children = [item.id]
++    expect(
++      buildManualRoomBoundaryRepair({ ...nodes, [linked.id]: linked, [item.id]: item }, input),
++    ).toMatchObject({ ok: false, reason: 'attachment-outside-wall', updates: [] })
++  })
++  test('intentional open review preserves metadata and expires on geometry changes', () => {
++    const wall = { ...fixture()[input.wallId], metadata: { source: 'fixture', other: 42 } }
++    const update = buildRoomBoundaryOpenReviewUpdate(wall, 'end', true)
++    const reviewed = { ...wall, ...update.data } as typeof wall
++    expect(reviewed.metadata).toMatchObject({ source: 'fixture', other: 42 })
++    expect(isRoomBoundaryReviewedOpen(reviewed, 'end')).toBe(true)
++    expect(isRoomBoundaryReviewedOpen({ ...reviewed, end: [1.8001, 0] }, 'end')).toBe(false)
++    const reset = {
++      ...reviewed,
++      ...buildRoomBoundaryOpenReviewUpdate(reviewed, 'end', false).data,
++    } as typeof wall
++    expect(isRoomBoundaryReviewedOpen(reset, 'end')).toBe(false)
++  })
++})
+diff --git a/packages/core/src/lib/room-boundary.test.ts b/packages/core/src/lib/room-boundary.test.ts
+new file mode 100644
+index 00000000..1e3ca8f5
+--- /dev/null
++++ b/packages/core/src/lib/room-boundary.test.ts
+@@ -0,0 +1,385 @@
++import { describe, expect, test } from 'bun:test'
++import { DoorNode, LevelNode, WallNode, ZoneNode } from '../schema'
++import {
++  buildRoomBoundaryRepairUpdates,
++  diagnoseRoomBoundaries,
++  planRoomBoundaryRepair,
++  type RoomBoundaryDiagnostics,
++} from './room-boundary'
++import { detectSpacesForLevel, planAutoZonesForLevel } from './space-detection'
++
++const level = LevelNode.parse({ id: 'level_boundary_test' })
++
++function rectangleWalls(gap = 0, metadata: Record<string, unknown> = {}) {
++  return [
++    WallNode.parse({
++      id: 'wall_south',
++      parentId: level.id,
++      start: [-2, -1.5],
++      end: [2 - gap, -1.5],
++      metadata,
++    }),
++    WallNode.parse({
++      id: 'wall_east',
++      parentId: level.id,
++      start: [2, -1.5],
++      end: [2, 1.5],
++      metadata,
++    }),
++    WallNode.parse({
++      id: 'wall_north',
++      parentId: level.id,
++      start: [2, 1.5],
++      end: [-2, 1.5],
++      metadata,
++    }),
++    WallNode.parse({
++      id: 'wall_west',
++      parentId: level.id,
++      start: [-2, 1.5],
++      end: [-2, -1.5],
++      metadata,
++    }),
++  ]
++}
++
++function diagnose(walls = rectangleWalls(0.2), zones: ZoneNode[] = []) {
++  return diagnoseRoomBoundaries(level.id, walls, zones)
++}
++
++describe('room boundary diagnostics', () => {
++  test('finds a repairable dangling corner without requiring a zone', () => {
++    const result = diagnose()
++
++    expect(result.spaces).toHaveLength(0)
++    expect(result.danglingEndpoints.length).toBeGreaterThan(0)
++    expect(
++      result.issues.some((issue) => issue.candidates.some((candidate) => candidate.safe)),
++    ).toBe(true)
++    expect(
++      result.issues.some((issue) => issue.candidates.some((candidate) => candidate.distance)),
++    ).toBe(true)
++  })
++
++  test('does not surface a zero-length mirror candidate beyond the target segment', () => {
++    const result = diagnose()
++    const eastStart = result.issues.find(
++      (issue) => issue.wallId === 'wall_east' && issue.endpoint === 'start',
++    )
++
++    expect(eastStart).toBeDefined()
++    expect(eastStart!.candidates.some((candidate) => candidate.distance <= 1e-6)).toBe(false)
++    expect(result.candidateGaps.some((candidate) => candidate.distance <= 1e-6)).toBe(false)
++  })
++
++  test('surfaces a corner seam beyond the derived physical-contact tolerance', () => {
++    const result = diagnose(rectangleWalls(0.09))
++    expect(result.spaces).toHaveLength(0)
++    expect(result.danglingEndpoints.some((endpoint) => endpoint.wallId === 'wall_south')).toBe(true)
++  })
++
++  test('does not mark a sub-millimetre quantized corner as dangling', () => {
++    const result = diagnose(rectangleWalls(0.0004))
++    expect(result.spaces).toHaveLength(1)
++    expect(result.danglingEndpoints).toHaveLength(0)
++  })
++
++  test('rejects a T contact that is already within the room graph tolerance', () => {
++    const walls = rectangleWalls(0)
++    walls.push(
++      WallNode.parse({
++        id: 'wall_t_branch',
++        parentId: level.id,
++        start: [0, -1.5],
++        end: [0, 1.5],
++      }),
++    )
++
++    const result = diagnose(walls)
++    expect(result.issues.some((issue) => issue.wallId === 'wall_t_branch')).toBe(false)
++  })
++
++  test('reports a collinear passage as manual review only', () => {
++    const walls = [
++      WallNode.parse({ id: 'wall_collinear_a', parentId: level.id, start: [0, 0], end: [1.8, 0] }),
++      WallNode.parse({ id: 'wall_collinear_b', parentId: level.id, start: [2, 0], end: [4, 0] }),
++      WallNode.parse({ id: 'wall_collinear_up', parentId: level.id, start: [4, 0], end: [4, 3] }),
++      WallNode.parse({ id: 'wall_collinear_left', parentId: level.id, start: [0, 0], end: [0, 3] }),
++      WallNode.parse({ id: 'wall_collinear_top', parentId: level.id, start: [4, 3], end: [0, 3] }),
++    ]
++
++    const result = diagnose(walls)
++    const candidates = result.issues.flatMap((issue) => issue.candidates)
++    expect(candidates.some((candidate) => candidate.reason === 'collinear')).toBe(true)
++    expect(candidates.some((candidate) => candidate.safe)).toBe(false)
++  })
++
++  test('does not flag a continuous hosted opening as a boundary gap', () => {
++    const walls = rectangleWalls(0)
++    const door = DoorNode.parse({
++      id: 'door_hosted',
++      parentId: walls[0]!.id,
++      wallId: walls[0]!.id,
++      position: [0.8, 1, 0],
++      width: 0.8,
++    })
++
++    walls[0]!.children = [door.id]
++    const result = diagnose(walls, [])
++    expect(result.danglingEndpoints).toHaveLength(0)
++    expect(result.issues).toHaveLength(0)
++  })
++
++  test('marks a large gap as non-repairable', () => {
++    const largeGap = [
++      WallNode.parse({ id: 'wall_large_a', parentId: level.id, start: [0, 0], end: [1, 0] }),
++      WallNode.parse({ id: 'wall_large_b', parentId: level.id, start: [2, 0], end: [2, 3] }),
++      WallNode.parse({ id: 'wall_large_c', parentId: level.id, start: [2, 3], end: [0, 3] }),
++      WallNode.parse({ id: 'wall_large_d', parentId: level.id, start: [0, 3], end: [0, 0] }),
++    ]
++    const largeResult = diagnose(largeGap)
++    expect(
++      largeResult.issues.flatMap((issue) => issue.candidates).some((c) => c.reason === 'large'),
++    ).toBe(true)
++    expect(largeResult.issues.flatMap((issue) => issue.candidates).some((c) => c.safe)).toBe(false)
++  })
++
++  test('marks competing straight targets as ambiguous', () => {
++    const walls = [
++      WallNode.parse({
++        id: 'wall_ambiguous_source',
++        parentId: level.id,
++        start: [0, 0],
++        end: [1.8, 0],
++      }),
++      WallNode.parse({
++        id: 'wall_ambiguous_target_a',
++        parentId: level.id,
++        start: [2, -1],
++        end: [2, 1],
++      }),
++      WallNode.parse({
++        id: 'wall_ambiguous_target_b',
++        parentId: level.id,
++        start: [2.04, -1],
++        end: [2.04, 1],
++      }),
++      WallNode.parse({ id: 'wall_ambiguous_top', parentId: level.id, start: [2, 1], end: [0, 1] }),
++      WallNode.parse({ id: 'wall_ambiguous_left', parentId: level.id, start: [0, 1], end: [0, 0] }),
++    ]
++    const result = diagnose(walls)
++    expect(
++      result.issues.flatMap((issue) => issue.candidates).some((c) => c.reason === 'ambiguous'),
++    ).toBe(true)
++    expect(result.issues.flatMap((issue) => issue.candidates).some((c) => c.safe)).toBe(false)
++  })
++
++  test('a simulated safe repair proves a new closed space and rejects stale geometry', () => {
++    const walls = rectangleWalls(0.2)
++    const result = diagnose(walls)
++    const issue = result.issues.find((entry) =>
++      entry.candidates.some((candidate) => candidate.safe),
++    )
++    expect(issue).toBeDefined()
++
++    const plan = planRoomBoundaryRepair(level.id, walls, issue!.id)
++    expect(plan.ok).toBe(true)
++    expect(plan.updates.length).toBeGreaterThan(0)
++    expect(plan.beforeSpaceCount).toBe(0)
++    expect(plan.afterSpaceCount).toBeGreaterThan(plan.beforeSpaceCount)
++
++    const stale = walls.map((wall) =>
++      wall.id === 'wall_south' ? WallNode.parse({ ...wall, end: [1.7, -1.5] }) : wall,
++    )
++    const stalePlan = planRoomBoundaryRepair(level.id, stale, issue!.id)
++    expect(stalePlan.ok).toBe(false)
++  })
++
++  test('reuses a current diagnostics snapshot for render-time planning', () => {
++    const walls = rectangleWalls(0.2)
++    const diagnostics = diagnose(walls)
++    const issue = diagnostics.issues.find((entry) =>
++      entry.candidates.some((candidate) => candidate.safe),
++    )
++    expect(issue).toBeDefined()
++
++    const plan = planRoomBoundaryRepair(level.id, walls, issue!.id, diagnostics)
++    expect(plan.ok).toBe(true)
++
++    const nodes = Object.fromEntries([level, ...walls].map((node) => [node.id, node]))
++    const updates = buildRoomBoundaryRepairUpdates(nodes, level.id, issue!.id, diagnostics)
++    expect(updates.ok).toBe(true)
++  })
++
++  test('plans the smallest two-gap bundle and rebases a hosted opening on a moved start', () => {
++    const walls = [
++      WallNode.parse({
++        id: 'wall_bundle_south',
++        parentId: level.id,
++        start: [-2, -1.5],
++        end: [1.8, -1.5],
++      }),
++      WallNode.parse({
++        id: 'wall_bundle_east',
++        parentId: level.id,
++        start: [2, -1.3],
++        end: [2, 1.5],
++      }),
++      WallNode.parse({
++        id: 'wall_bundle_north',
++        parentId: level.id,
++        start: [2, 1.5],
++        end: [-2, 1.5],
++      }),
++      WallNode.parse({
++        id: 'wall_bundle_west',
++        parentId: level.id,
++        start: [-2, 1.5],
++        end: [-2, -1.5],
++      }),
++    ]
++    const door = DoorNode.parse({
++      id: 'door_bundle_east',
++      parentId: walls[1]!.id,
++      wallId: walls[1]!.id,
++      position: [1.4, 1, 0],
++      width: 0.8,
++    })
++    walls[1]!.children = [door.id]
++    const result = diagnoseRoomBoundaries(level.id, walls)
++    const issue = result.issues.find((entry) =>
++      entry.candidates.some((candidate) => candidate.reason === 'does-not-close-room'),
++    )
++    expect(issue).toBeDefined()
++    expect(issue!.candidates.some((candidate) => candidate.safe)).toBe(true)
++
++    const plan = planRoomBoundaryRepair(level.id, walls, issue!.id)
++    expect(plan.ok).toBe(true)
++    expect(plan.candidates).toHaveLength(2)
++    expect(plan.updates.map((update) => update.id)).toEqual(
++      expect.arrayContaining(['wall_bundle_south', 'wall_bundle_east']),
++    )
++    expect(plan.afterSpaceCount).toBeGreaterThan(plan.beforeSpaceCount)
++
++    const nodes = Object.fromEntries([
++      [level.id, level],
++      ...walls.map((wall) => [wall.id, wall]),
++      [door.id, door],
++    ])
++    const validated = buildRoomBoundaryRepairUpdates(nodes, level.id, issue!.id)
++    expect(validated.ok).toBe(true)
++    expect(validated.updates.map((update) => update.id)).toEqual(
++      expect.arrayContaining(['wall_bundle_south', 'wall_bundle_east', door.id]),
++    )
++    const doorUpdate = validated.updates.find((update) => update.id === door.id)
++    expect(
++      (doorUpdate?.data as { position?: [number, number, number] })?.position?.[0],
++    ).toBeCloseTo(1.6)
++    expect(
++      (doorUpdate?.data as { position?: [number, number, number] })?.position?.slice(1),
++    ).toEqual([1, 0])
++  })
++
++  test('does not bundle an unrelated dangling L into a separate room closure', () => {
++    const walls = [
++      WallNode.parse({
++        id: 'wall_unrelated_l_horizontal',
++        parentId: level.id,
++        start: [0, 1],
++        end: [9.8, 1],
++      }),
++      WallNode.parse({
++        id: 'wall_unrelated_l_vertical',
++        parentId: level.id,
++        start: [0, 1],
++        end: [0, 4],
++      }),
++      WallNode.parse({
++        id: 'wall_remote_south',
++        parentId: level.id,
++        start: [10, 0],
++        end: [13.8, 0],
++      }),
++      WallNode.parse({
++        id: 'wall_remote_east',
++        parentId: level.id,
++        start: [14, 0.2],
++        end: [14, 3],
++      }),
++      WallNode.parse({
++        id: 'wall_remote_north',
++        parentId: level.id,
++        start: [14, 3],
++        end: [10, 3],
++      }),
++      WallNode.parse({
++        id: 'wall_remote_west',
++        parentId: level.id,
++        start: [10, 3],
++        end: [10, 0],
++      }),
++    ]
++    const result = diagnoseRoomBoundaries(level.id, walls)
++    const unrelatedIssue = result.issues.find(
++      (issue) => issue.wallId === 'wall_unrelated_l_horizontal' && issue.endpoint === 'end',
++    )
++    expect(
++      unrelatedIssue?.candidates.some((candidate) => candidate.reason === 'does-not-close-room'),
++    ).toBe(true)
++
++    const unrelatedPlan = planRoomBoundaryRepair(level.id, walls, unrelatedIssue!.id)
++    expect(unrelatedPlan.ok).toBe(false)
++
++    const remoteIssue = result.issues.find(
++      (issue) => issue.wallId === 'wall_remote_south' && issue.endpoint === 'end',
++    )
++    expect(remoteIssue).toBeDefined()
++    const remotePlan = planRoomBoundaryRepair(level.id, walls, remoteIssue!.id)
++    expect(remotePlan.ok).toBe(true)
++    expect(remotePlan.candidates).toHaveLength(2)
++  })
++
++  test('preserves existing semantic subdivision coverage when planning auto zones', () => {
++    const walls = rectangleWalls(0)
++    const subdivision = ZoneNode.parse({
++      id: 'zone_semantic_subdivision_a',
++      parentId: level.id,
++      name: 'Living area',
++      polygon: [
++        [-2, -1.5],
++        [2, -1.5],
++        [2, 0],
++        [-2, 0],
++      ],
++      spaceRole: 'generic',
++      autoFromWalls: false,
++      metadata: { source: 'user' },
++    })
++    const secondSubdivision = ZoneNode.parse({
++      id: 'zone_semantic_subdivision_b',
++      parentId: level.id,
++      name: 'Kitchen area',
++      polygon: [
++        [-2, 0],
++        [2, 0],
++        [2, 1.5],
++        [-2, 1.5],
++      ],
++      spaceRole: 'generic',
++      autoFromWalls: false,
++      metadata: { source: 'user' },
++    })
++    const result: RoomBoundaryDiagnostics = diagnoseRoomBoundaries(level.id, walls, [
++      subdivision,
++      secondSubdivision,
++    ])
++    expect(result.spaces).toHaveLength(1)
++
++    const spaces = detectSpacesForLevel(level.id, walls).spaces
++    const plan = planAutoZonesForLevel(spaces, [subdivision, secondSubdivision], {
++      createMissingZones: { source: 'apt-vector', generatedFrom: 'detected-space' },
++    })
++    expect(plan.create).toHaveLength(0)
++    expect(plan.update).toHaveLength(0)
++  })
++})
+diff --git a/packages/core/src/lib/room-boundary.ts b/packages/core/src/lib/room-boundary.ts
+new file mode 100644
+index 00000000..342ad00f
+--- /dev/null
++++ b/packages/core/src/lib/room-boundary.ts
+@@ -0,0 +1,879 @@
++import {
++  type AnyNode,
++  type AnyNodeId,
++  WallNode,
++  type WallNode as WallNodeType,
++  type ZoneNode,
++} from '../schema'
++import { isCurvedWall } from '../systems/wall/wall-curve'
++import { detectSpacesForLevel, type Space } from './space-detection'
++import {
++  buildWallEndpointUpdates,
++  validateWallEndpointOverlaps,
++  type WallEndpointUpdate,
++  WallOperationError,
++} from './wall-operations'
++
++export const ROOM_BOUNDARY_CONNECT_TOLERANCE = 0.08
++export const ROOM_BOUNDARY_MAX_REPAIR_GAP = 0.35
++export const ROOM_BOUNDARY_MAX_DISPLAY_GAP = 1.5
++
++type Point = [number, number]
++
++export type RoomBoundaryEndpoint = {
++  wallId: WallNodeType['id']
++  endpoint: 'start' | 'end'
++  point: Point
++}
++
++export type RoomBoundaryCandidateReason =
++  | 'ambiguous'
++  | 'collinear'
++  | 'curved'
++  | 'large'
++  | 'parallel'
++  | 'does-not-close-room'
++
++export type RoomBoundaryCandidate = {
++  id: string
++  endpoint: RoomBoundaryEndpoint
++  targetWallId: WallNodeType['id']
++  targetEndpoint?: 'start' | 'end'
++  targetPoint: Point
++  distance: number
++  join: 'end-to-end' | 'end-to-segment'
++  safe: boolean
++  /** A short straight non-parallel gap that can participate in a bundle. */
++  geometric?: boolean
++  reason?: RoomBoundaryCandidateReason
++}
++
++export type RoomBoundaryIssue = {
++  id: string
++  wallId: WallNodeType['id']
++  endpoint: RoomBoundaryEndpoint['endpoint']
++  point: Point
++  candidates: RoomBoundaryCandidate[]
++  reviewedOpen?: boolean
++}
++
++export type RoomBoundaryDiagnostics = {
++  levelId: string
++  spaces: Space[]
++  zones: ZoneNode[]
++  danglingEndpoints: RoomBoundaryEndpoint[]
++  issues: RoomBoundaryIssue[]
++  candidateGaps: RoomBoundaryCandidate[]
++}
++
++export type RoomBoundaryRepairPlan = {
++  ok: boolean
++  issueId: string
++  updates: WallEndpointUpdate[]
++  candidate?: RoomBoundaryCandidate
++  candidates?: RoomBoundaryCandidate[]
++  beforeSpaceCount: number
++  afterSpaceCount: number
++  spaces: Space[]
++  reason?:
++    | RoomBoundaryCandidateReason
++    | 'stale'
++    | 'not-found'
++    | 'no-repairable-candidate'
++    | 'invalid'
++}
++
++export type RoomBoundaryRepairUpdates = RoomBoundaryRepairPlan & {
++  updates: WallEndpointUpdate[]
++}
++
++type EndpointRecord = RoomBoundaryEndpoint & { wall: WallNodeType }
++
++type SharedBoundaryNode = {
++  point: Point
++  wallIds: Set<WallNodeType['id']>
++}
++
++function distance(a: Point, b: Point) {
++  return Math.hypot(a[0] - b[0], a[1] - b[1])
++}
++
++function pointKey(point: Point) {
++  return `${point[0].toFixed(3)},${point[1].toFixed(3)}`
++}
++
++function endpointId(endpoint: RoomBoundaryEndpoint) {
++  return `${endpoint.wallId}:${endpoint.endpoint}:${pointKey(endpoint.point)}`
++}
++
++function normalize(dx: number, dy: number): Point | null {
++  const length = Math.hypot(dx, dy)
++  return length > 1e-9 ? [dx / length, dy / length] : null
++}
++
++function cross(a: Point, b: Point) {
++  return a[0] * b[1] - a[1] * b[0]
++}
++
++function dot(a: Point, b: Point) {
++  return a[0] * b[0] + a[1] * b[1]
++}
++
++function subtract(a: Point, b: Point): Point {
++  return [a[0] - b[0], a[1] - b[1]]
++}
++
++function add(a: Point, b: Point): Point {
++  return [a[0] + b[0], a[1] + b[1]]
++}
++
++function scale(point: Point, amount: number): Point {
++  return [point[0] * amount, point[1] * amount]
++}
++
++function projectPoint(point: Point, start: Point, end: Point) {
++  const direction = subtract(end, start)
++  const lengthSquared = dot(direction, direction)
++  if (lengthSquared <= 1e-12) {
++    return { point: [...start] as Point, t: 0, distance: distance(point, start) }
++  }
++  const t = dot(subtract(point, start), direction) / lengthSquared
++  const clamped = Math.max(0, Math.min(1, t))
++  const projected = add(start, scale(direction, clamped))
++  return { point: projected, t, distance: distance(point, projected) }
++}
++
++function lineIntersection(
++  start: Point,
++  direction: Point,
++  otherStart: Point,
++  otherDirection: Point,
++) {
++  const denominator = cross(direction, otherDirection)
++  if (Math.abs(denominator) <= 1e-7) return null
++  const offset = subtract(otherStart, start)
++  const along = cross(offset, otherDirection) / denominator
++  const otherAlong = cross(offset, direction) / denominator
++  return {
++    point: add(start, scale(direction, along)),
++    along,
++    otherAlong,
++  }
++}
++
++function nearestEndpoint(wall: WallNodeType, point: Point) {
++  const start = distance(point, wall.start)
++  const end = distance(point, wall.end)
++  return start <= end
++    ? { point: [...wall.start] as Point, endpoint: 'start' as const, distance: start }
++    : { point: [...wall.end] as Point, endpoint: 'end' as const, distance: end }
++}
++
++function buildSharedBoundaryNodes(spaces: readonly Space[]) {
++  const byKey = new Map<string, SharedBoundaryNode>()
++  for (const space of spaces) {
++    for (const boundary of space.boundaryFaces) {
++      const first = boundary.points[0]
++      const last = boundary.points[boundary.points.length - 1]
++      const endpointPoints = first && last && first !== last ? [first, last] : [first]
++      for (const tuple of endpointPoints) {
++        if (!tuple) continue
++        const point: Point = [tuple[0], tuple[1]]
++        const key = pointKey(point)
++        const node = byKey.get(key) ?? { point, wallIds: new Set<WallNodeType['id']>() }
++        node.wallIds.add(boundary.wallId)
++        byKey.set(key, node)
++      }
++    }
++  }
++  return [...byKey.values()].filter((node) => node.wallIds.size >= 2)
++}
++
++function isConnected(
++  endpoint: EndpointRecord,
++  walls: readonly WallNodeType[],
++  sharedBoundaryNodes: readonly SharedBoundaryNode[],
++) {
++  const endpointWall = endpoint.wall
++  const endpointLength = distance(endpointWall.start, endpointWall.end)
++  if (endpointLength > 1e-9 && !isCurvedWall(endpointWall)) {
++    const endpointDirection = subtract(endpointWall.end, endpointWall.start)
++    const endpointLengthSquared = dot(endpointDirection, endpointDirection)
++    for (const node of sharedBoundaryNodes) {
++      if (!node.wallIds.has(endpoint.wallId) || node.wallIds.size < 2) continue
++      if (distance(endpoint.point, node.point) > ROOM_BOUNDARY_CONNECT_TOLERANCE) continue
++
++      const along =
++        dot(subtract(node.point, endpointWall.start), endpointDirection) / endpointLengthSquared
++      const isOutward = endpoint.endpoint === 'start' ? along <= 1e-7 : along >= 1 - 1e-7
++      if (!isOutward) continue
++      const pointOnLine = add(endpointWall.start, scale(endpointDirection, along))
++      if (distance(node.point, pointOnLine) <= 1e-6) return true
++    }
++  }
++
++  return walls.some((wall) => {
++    if (wall.id === endpoint.wallId) return false
++    if (isCurvedWall(wall)) {
++      return (
++        Math.min(distance(endpoint.point, wall.start), distance(endpoint.point, wall.end)) <= 1e-6
++      )
++    }
++    if (
++      pointKey(endpoint.point) === pointKey(wall.start) ||
++      pointKey(endpoint.point) === pointKey(wall.end)
++    ) {
++      return true
++    }
++    const projection = projectPoint(endpoint.point, wall.start, wall.end)
++    if (projection.distance > ROOM_BOUNDARY_CONNECT_TOLERANCE) return false
++    const length = distance(wall.start, wall.end)
++    const along = projection.t * length
++    return (
++      along > ROOM_BOUNDARY_CONNECT_TOLERANCE && along < length - ROOM_BOUNDARY_CONNECT_TOLERANCE
++    )
++  })
++}
++
++function candidateForWall(
++  endpoint: EndpointRecord,
++  wall: WallNodeType,
++): RoomBoundaryCandidate | null {
++  if (wall.id === endpoint.wallId) return null
++
++  const sourceDirection = normalize(
++    endpoint.wall.end[0] - endpoint.wall.start[0],
++    endpoint.wall.end[1] - endpoint.wall.start[1],
++  )
++  if (!sourceDirection) return null
++
++  if (isCurvedWall(endpoint.wall) || isCurvedWall(wall)) {
++    const nearest = nearestEndpoint(wall, endpoint.point)
++    if (nearest.distance > ROOM_BOUNDARY_MAX_DISPLAY_GAP) return null
++    return {
++      id: `${endpointId(endpoint)}->${wall.id}:${pointKey(nearest.point)}`,
++      endpoint,
++      targetWallId: wall.id,
++      targetEndpoint: nearest.endpoint,
++      targetPoint: nearest.point,
++      distance: nearest.distance,
++      join: 'end-to-end',
++      safe: false,
++      geometric: false,
++      reason: 'curved',
++    }
++  }
++
++  const targetStart = wall.start as Point
++  const targetEnd = wall.end as Point
++  const targetDirection = normalize(targetEnd[0] - targetStart[0], targetEnd[1] - targetStart[1])
++  if (!targetDirection) return null
++
++  const intersection = lineIntersection(
++    endpoint.point,
++    sourceDirection,
++    targetStart,
++    targetDirection,
++  )
++  const targetLength = distance(targetStart, targetEnd)
++  if (intersection) {
++    const targetOnSegment =
++      intersection.otherAlong >= -1e-6 && intersection.otherAlong <= targetLength + 1e-6
++    const targetPoint = intersection.point
++    const gap = distance(endpoint.point, targetPoint)
++    // An endpoint can lie on the infinite extension of a target wall while
++    // sitting beyond that wall's actual segment. That produces a zero-length
++    // mirror candidate for the same corner; the real repair is the opposing
++    // endpoint's positive gap.
++    if (!targetOnSegment && gap <= 1e-6) return null
++    const targetEndpoint = !targetOnSegment
++      ? undefined
++      : intersection.otherAlong <= 1e-6
++        ? ('start' as const)
++        : intersection.otherAlong >= targetLength - 1e-6
++          ? ('end' as const)
++          : undefined
++    const join = targetEndpoint ? 'end-to-end' : 'end-to-segment'
++    if (gap > ROOM_BOUNDARY_MAX_DISPLAY_GAP) return null
++    const reason = gap > ROOM_BOUNDARY_MAX_REPAIR_GAP ? 'large' : undefined
++    return {
++      id: `${endpointId(endpoint)}->${wall.id}:${pointKey(targetPoint)}`,
++      endpoint,
++      targetWallId: wall.id,
++      ...(targetEndpoint ? { targetEndpoint } : {}),
++      targetPoint,
++      distance: gap,
++      join,
++      safe: false,
++      geometric: !reason,
++      ...(reason ? { reason } : {}),
++    }
++  }
++
++  const projected = projectPoint(endpoint.point, wall.start, wall.end)
++  if (projected.distance > ROOM_BOUNDARY_MAX_DISPLAY_GAP) return null
++
++  const parallelDistance = Math.abs(cross(subtract(endpoint.point, targetStart), targetDirection))
++  const reason: RoomBoundaryCandidateReason =
++    parallelDistance <= ROOM_BOUNDARY_CONNECT_TOLERANCE ? 'collinear' : 'parallel'
++  const nearest = nearestEndpoint(wall, projected.point)
++  return {
++    id: `${endpointId(endpoint)}->${wall.id}:${pointKey(projected.point)}`,
++    endpoint,
++    targetWallId: wall.id,
++    ...(nearest.distance <= ROOM_BOUNDARY_CONNECT_TOLERANCE
++      ? { targetEndpoint: nearest.endpoint }
++      : {}),
++    targetPoint: projected.point,
++    distance: projected.distance,
++    join: nearest.distance <= ROOM_BOUNDARY_CONNECT_TOLERANCE ? 'end-to-end' : 'end-to-segment',
++    safe: false,
++    geometric: false,
++    reason: projected.distance > ROOM_BOUNDARY_MAX_REPAIR_GAP ? 'large' : reason,
++  }
++}
++
++function applyCandidate(walls: readonly WallNodeType[], candidate: RoomBoundaryCandidate) {
++  return walls.map((wall) => {
++    if (wall.id !== candidate.endpoint.wallId) return wall
++    return candidate.endpoint.endpoint === 'start'
++      ? WallNode.parse({ ...wall, start: candidate.targetPoint })
++      : WallNode.parse({ ...wall, end: candidate.targetPoint })
++  })
++}
++
++function applyCandidates(
++  walls: readonly WallNodeType[],
++  candidates: readonly RoomBoundaryCandidate[],
++) {
++  let nextWalls = [...walls]
++  for (const candidate of candidates) nextWalls = applyCandidate(nextWalls, candidate)
++  return nextWalls
++}
++
++function spaceContainsCandidates(space: Space, candidates: readonly RoomBoundaryCandidate[]) {
++  const wallIds = new Set(space.wallIds)
++  return candidates.every(
++    (candidate) => wallIds.has(candidate.endpoint.wallId) && wallIds.has(candidate.targetWallId),
++  )
++}
++
++function candidateClosesRoom(
++  levelId: string,
++  walls: readonly WallNodeType[],
++  candidate: RoomBoundaryCandidate,
++) {
++  const movingWall = walls.find((wall) => wall.id === candidate.endpoint.wallId)
++  if (!movingWall || candidate.distance > ROOM_BOUNDARY_MAX_REPAIR_GAP) return false
++  const nextWall =
++    candidate.endpoint.endpoint === 'start'
++      ? { ...movingWall, start: candidate.targetPoint }
++      : { ...movingWall, end: candidate.targetPoint }
++  const nextLength = distance(nextWall.start, nextWall.end)
++  if (nextLength < 0.01) return false
++  const before = detectSpacesForLevel(levelId, [...walls]).spaces.length
++  const after = detectSpacesForLevel(levelId, applyCandidate(walls, candidate)).spaces
++  return after.length > before && after.some((space) => spaceContainsCandidates(space, [candidate]))
++}
++
++function candidatesCloseRoom(
++  levelId: string,
++  walls: readonly WallNodeType[],
++  candidates: readonly RoomBoundaryCandidate[],
++) {
++  if (candidates.length < 2) return false
++  const before = detectSpacesForLevel(levelId, [...walls]).spaces.length
++  const after = detectSpacesForLevel(levelId, applyCandidates(walls, candidates)).spaces
++  return after.length > before && after.some((space) => spaceContainsCandidates(space, candidates))
++}
++
++function candidateBundleKey(candidate: RoomBoundaryCandidate) {
++  return `${candidate.endpoint.wallId}:${candidate.endpoint.endpoint}`
++}
++
++function combinations<T>(items: readonly T[], size: number): T[][] {
++  const result: T[][] = []
++  const visit = (start: number, current: T[]) => {
++    if (current.length === size) {
++      result.push([...current])
++      return
++    }
++    for (let index = start; index < items.length; index += 1) {
++      current.push(items[index]!)
++      visit(index + 1, current)
++      current.pop()
++    }
++  }
++  visit(0, [])
++  return result
++}
++
++function findClosingCandidateBundle(
++  levelId: string,
++  walls: readonly WallNodeType[],
++  issue: RoomBoundaryIssue,
++  issues: readonly RoomBoundaryIssue[],
++) {
++  const candidates = issues
++    .flatMap((entry) => entry.candidates)
++    .filter(
++      (candidate) =>
++        candidate.geometric === true &&
++        candidate.reason === 'does-not-close-room' &&
++        candidate.distance <= ROOM_BOUNDARY_MAX_REPAIR_GAP,
++    )
++    .sort((a, b) => a.distance - b.distance)
++    .slice(0, 8)
++  const requested = issue.candidates.filter(
++    (candidate) => candidate.geometric === true && candidate.reason === 'does-not-close-room',
++  )
++  if (requested.length === 0 || candidates.length < 2) return null
++
++  for (const size of [2, 3, 4]) {
++    if (candidates.length < size) continue
++    for (const bundle of combinations(candidates, size)) {
++      if (!bundle.some((candidate) => requested.some((entry) => entry.id === candidate.id)))
++        continue
++      const keys = bundle.map(candidateBundleKey)
++      if (new Set(keys).size !== keys.length) continue
++      if (candidatesCloseRoom(levelId, walls, bundle)) return bundle
++    }
++  }
++  return null
++}
++
++function diagnoseEndpoint(
++  levelId: string,
++  endpoint: EndpointRecord,
++  walls: readonly WallNodeType[],
++): RoomBoundaryIssue {
++  const candidates = walls
++    .map((wall) => candidateForWall(endpoint, wall))
++    .filter((candidate): candidate is RoomBoundaryCandidate => Boolean(candidate))
++    .sort((a, b) => a.distance - b.distance)
++    .slice(0, 6)
++
++  const safeCandidates = candidates.filter(
++    (candidate) =>
++      !candidate.reason &&
++      candidate.distance <= ROOM_BOUNDARY_MAX_REPAIR_GAP &&
++      candidate.distance > 1e-6,
++  )
++  const nearestDistance = safeCandidates[0]?.distance ?? Number.POSITIVE_INFINITY
++  const competing = safeCandidates.filter(
++    (candidate) => Math.abs(candidate.distance - nearestDistance) <= 0.05,
++  )
++  for (const candidate of candidates) {
++    if (candidate.reason || !safeCandidates.includes(candidate)) continue
++    if (competing.length !== 1) {
++      candidate.reason = 'ambiguous'
++      continue
++    }
++    candidate.safe = candidateClosesRoom(levelId, walls, candidate)
++    if (!candidate.safe) candidate.reason = 'does-not-close-room'
++  }
++
++  return {
++    id: endpointId(endpoint),
++    wallId: endpoint.wallId,
++    endpoint: endpoint.endpoint,
++    point: [...endpoint.point],
++    candidates,
++    reviewedOpen: isRoomBoundaryReviewedOpen(endpoint.wall, endpoint.endpoint),
++  }
++}
++
++export function diagnoseRoomBoundaries(
++  levelId: string,
++  walls: readonly WallNodeType[],
++  zones: readonly ZoneNode[] = [],
++): RoomBoundaryDiagnostics {
++  const spaces = detectSpacesForLevel(levelId, [...walls]).spaces
++  const sharedBoundaryNodes = buildSharedBoundaryNodes(spaces)
++  const endpoints: EndpointRecord[] = walls.flatMap((wall) => [
++    { wallId: wall.id, endpoint: 'start' as const, point: [...wall.start] as Point, wall },
++    { wallId: wall.id, endpoint: 'end' as const, point: [...wall.end] as Point, wall },
++  ])
++  const danglingEndpoints = endpoints.filter(
++    (endpoint) => !isConnected(endpoint, walls, sharedBoundaryNodes),
++  )
++  const issues = danglingEndpoints.map((endpoint) => diagnoseEndpoint(levelId, endpoint, walls))
++  // A short gap may need a second independent endpoint move before a room
++  // exists. Mark every member of a proven bundle as safe so the panel can
++  // offer the same one-click action it offers for a direct repair. Keep the
++  // `does-not-close-room` reason for diagnostics; planning recognizes the
++  // bundle before considering the individual candidate.
++  for (const issue of issues) {
++    const bundle = findClosingCandidateBundle(levelId, walls, issue, issues)
++    for (const candidate of bundle ?? []) candidate.safe = true
++  }
++  const candidateGaps = issues
++    .flatMap((issue) => issue.candidates)
++    .filter(
++      (candidate, index, candidates) =>
++        candidates.findIndex((other) => other.id === candidate.id) === index,
++    )
++
++  return {
++    levelId,
++    spaces,
++    zones: [...zones],
++    danglingEndpoints: danglingEndpoints.map(({ wall, ...endpoint }) => endpoint),
++    issues,
++    candidateGaps,
++  }
++}
++
++export function planRoomBoundaryRepair(
++  levelId: string,
++  walls: readonly WallNodeType[],
++  issueId: string,
++  diagnosticsSnapshot?: RoomBoundaryDiagnostics,
++): RoomBoundaryRepairPlan {
++  const diagnostics =
++    diagnosticsSnapshot?.levelId === levelId
++      ? diagnosticsSnapshot
++      : diagnoseRoomBoundaries(levelId, walls)
++  const beforeSpaceCount = diagnostics.spaces.length
++  const issue = diagnostics.issues.find((entry) => entry.id === issueId)
++  if (!issue) {
++    return {
++      ok: false,
++      issueId,
++      updates: [],
++      beforeSpaceCount,
++      afterSpaceCount: beforeSpaceCount,
++      spaces: diagnostics.spaces,
++      reason: 'stale',
++    }
++  }
++
++  const candidate = issue.candidates.find((entry) => entry.safe && !entry.reason)
++  const bundle = candidate
++    ? null
++    : findClosingCandidateBundle(levelId, walls, issue, diagnostics.issues)
++  const selectedCandidates = candidate ? [candidate] : (bundle ?? [])
++  if (selectedCandidates.length === 0) {
++    return {
++      ok: false,
++      issueId,
++      updates: [],
++      beforeSpaceCount,
++      afterSpaceCount: beforeSpaceCount,
++      spaces: diagnostics.spaces,
++      reason: issue.candidates[0]?.reason ?? 'no-repairable-candidate',
++    }
++  }
++
++  const nextWalls = applyCandidates(walls, selectedCandidates)
++  const spaces = detectSpacesForLevel(levelId, nextWalls).spaces
++  if (spaces.length <= beforeSpaceCount) {
++    return {
++      ok: false,
++      issueId,
++      updates: [],
++      candidate: selectedCandidates[0],
++      candidates: selectedCandidates,
++      beforeSpaceCount,
++      afterSpaceCount: spaces.length,
++      spaces,
++      reason: 'does-not-close-room',
++    }
++  }
++
++  return {
++    ok: true,
++    issueId,
++    candidate: selectedCandidates[0],
++    candidates: selectedCandidates,
++    updates: selectedCandidates.map((entry) => ({
++      id: entry.endpoint.wallId,
++      data:
++        entry.endpoint.endpoint === 'start'
++          ? { start: entry.targetPoint }
++          : { end: entry.targetPoint },
++    })),
++    beforeSpaceCount,
++    afterSpaceCount: spaces.length,
++    spaces,
++  }
++}
++
++/**
++ * Rebuild and validate a room-boundary repair against a complete scene
++ * snapshot. This expands the geometry-only plan into the same wall operation
++ * updates used by endpoint editing, including linked walls and hosted-child
++ * rebasing. The caller can apply the returned list as one atomic update.
++ */
++export function buildRoomBoundaryRepairUpdates(
++  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
++  levelId: string,
++  issueId: string,
++  diagnosticsSnapshot?: RoomBoundaryDiagnostics,
++): RoomBoundaryRepairUpdates {
++  const walls = Object.values(nodes).filter(
++    (node): node is WallNodeType => node.type === 'wall' && node.parentId === levelId,
++  )
++  const plan = planRoomBoundaryRepair(levelId, walls, issueId, diagnosticsSnapshot)
++  if (!plan.ok) return plan
++
++  const candidates = plan.candidates ?? (plan.candidate ? [plan.candidate] : [])
++  if (candidates.length === 0) {
++    return { ...plan, ok: false, updates: [], reason: 'no-repairable-candidate' }
++  }
++
++  const snapshot: Record<AnyNodeId, AnyNode> = { ...nodes }
++  const updatesById = new Map<AnyNodeId, WallEndpointUpdate>()
++  const movedEndpoints = new Set<string>()
++  try {
++    for (const candidate of candidates) {
++      const endpointKey = `${candidate.endpoint.wallId}:${candidate.endpoint.endpoint}`
++      if (movedEndpoints.has(endpointKey)) {
++        return { ...plan, ok: false, updates: [], reason: 'invalid' }
++      }
++      movedEndpoints.add(endpointKey)
++
++      const wall = snapshot[candidate.endpoint.wallId]
++      if (wall?.type !== 'wall' || wall.parentId !== levelId) {
++        return { ...plan, ok: false, updates: [], reason: 'stale' }
++      }
++      const nextStart = candidate.endpoint.endpoint === 'start' ? candidate.targetPoint : wall.start
++      const nextEnd = candidate.endpoint.endpoint === 'end' ? candidate.targetPoint : wall.end
++      const validated = buildWallEndpointUpdates(snapshot, wall.id, nextStart, nextEnd)
++      for (const update of validated) {
++        const current = snapshot[update.id]
++        if (!current) return { ...plan, ok: false, updates: [], reason: 'stale' }
++        snapshot[update.id] = { ...current, ...update.data } as AnyNode
++        const previous = updatesById.get(update.id)
++        updatesById.set(update.id, {
++          id: update.id,
++          data: { ...(previous?.data ?? {}), ...update.data } as Partial<AnyNode>,
++        })
++      }
++    }
++  } catch (error) {
++    if (error instanceof WallOperationError) {
++      return { ...plan, ok: false, updates: [], reason: 'invalid' }
++    }
++    throw error
++  }
++
++  const finalWalls = Object.values(snapshot).filter(
++    (node): node is WallNodeType => node.type === 'wall' && node.parentId === levelId,
++  )
++  const spaces = detectSpacesForLevel(levelId, finalWalls).spaces
++  if (spaces.length <= plan.beforeSpaceCount) {
++    return {
++      ...plan,
++      ok: false,
++      updates: [],
++      afterSpaceCount: spaces.length,
++      spaces,
++      reason: 'does-not-close-room',
++    }
++  }
++
++  return { ...plan, updates: [...updatesById.values()] }
++}
++
++export type ManualRoomBoundaryInput = {
++  levelId: string
++  wallId: WallNodeType['id']
++  endpoint: 'start' | 'end'
++  targetWallId: WallNodeType['id']
++  targetEndpoint?: 'start' | 'end'
++  expectedSnapshot?: string
++}
++
++export type ManualRoomBoundaryPlan = {
++  ok: boolean
++  updates: WallEndpointUpdate[]
++  point?: Point
++  reason?: string
++  message?: string
++  snapshot: string
++  movements: {
++    wallId: WallNodeType['id']
++    endpoint: 'start' | 'end'
++    from: Point
++    to: Point
++    distance: number
++  }[]
++}
++
++export function roomBoundarySnapshot(
++  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
++  levelId: string | null,
++) {
++  const wallIds = new Set(
++    Object.values(nodes)
++      .filter((node) => node.type === 'wall' && node.parentId === levelId)
++      .map((node) => node.id),
++  )
++  return JSON.stringify(
++    Object.values(nodes)
++      .filter(
++        (node) =>
++          node.id === levelId ||
++          wallIds.has(node.id) ||
++          wallIds.has(node.parentId as AnyNodeId) ||
++          wallIds.has((node as AnyNode & { wallId?: AnyNodeId }).wallId!),
++      )
++      .sort((a, b) => a.id.localeCompare(b.id)),
++  )
++}
++
++function boundaryWallSignature(wall: WallNodeType) {
++  return JSON.stringify([
++    wall.parentId,
++    wall.start,
++    wall.end,
++    wall.curveOffset ?? 0,
++    wall.thickness,
++  ])
++}
++
++export function isRoomBoundaryReviewedOpen(wall: WallNodeType, endpoint: 'start' | 'end') {
++  const metadata = wall.metadata as Record<string, unknown> | undefined
++  const reviews = metadata?.boundaryOpenReviews as Record<string, unknown> | undefined
++  return reviews?.[endpoint] === boundaryWallSignature(wall)
++}
++
++export function buildRoomBoundaryOpenReviewUpdate(
++  wall: WallNodeType,
++  endpoint: 'start' | 'end',
++  reviewed: boolean,
++): WallEndpointUpdate {
++  const metadata = { ...(wall.metadata as Record<string, unknown> | undefined) }
++  const reviews = { ...(metadata.boundaryOpenReviews as Record<string, unknown> | undefined) }
++  if (reviewed) reviews[endpoint] = boundaryWallSignature(wall)
++  else delete reviews[endpoint]
++  if (Object.keys(reviews).length) metadata.boundaryOpenReviews = reviews
++  else delete metadata.boundaryOpenReviews
++  return { id: wall.id, data: { metadata: metadata as WallNodeType['metadata'] } }
++}
++
++export function buildManualRoomBoundaryRepair(
++  nodes: Readonly<Record<AnyNodeId, AnyNode>>,
++  input: ManualRoomBoundaryInput,
++): ManualRoomBoundaryPlan {
++  const snapshot = roomBoundarySnapshot(nodes, input.levelId)
++  const reject = (reason: string, message: string): ManualRoomBoundaryPlan => ({
++    ok: false,
++    updates: [],
++    movements: [],
++    snapshot,
++    reason,
++    message,
++  })
++  if (input.expectedSnapshot !== undefined && input.expectedSnapshot !== snapshot)
++    return reject('stale', '벽 또는 부착물이 변경되었습니다. 대상을 다시 선택하세요.')
++  const source = nodes[input.wallId]
++  const target = nodes[input.targetWallId]
++  if (
++    source?.type !== 'wall' ||
++    target?.type !== 'wall' ||
++    source.id === target.id ||
++    source.parentId !== input.levelId ||
++    target.parentId !== input.levelId
++  )
++    return reject('invalid-target', '같은 층의 다른 벽을 선택하세요.')
++  if (isCurvedWall(source) || isCurvedWall(target))
++    return reject('curved', '곡선 벽은 직선 경계 연결을 지원하지 않습니다.')
++  const sourceDirection = normalize(...subtract(source.end, source.start))
++  const targetDirection = normalize(...subtract(target.end, target.start))
++  if (
++    !sourceDirection ||
++    !targetDirection ||
++    ![...source.start, ...source.end, ...target.start, ...target.end].every(Number.isFinite)
++  )
++    return reject('invalid', '유효한 직선 벽이 필요합니다.')
++  const intersection = lineIntersection(
++    source.start,
++    sourceDirection,
++    target.start,
++    targetDirection,
++  )
++  let point: Point
++  let targetEndpoint: 'start' | 'end' | undefined
++  if (!intersection) {
++    if (Math.abs(cross(subtract(target.start, source.start), sourceDirection)) > 1e-6)
++      return reject('parallel', '분리된 평행 벽은 직접 연결할 수 없습니다.')
++    targetEndpoint =
++      input.targetEndpoint ?? nearestEndpoint(target, source[input.endpoint]).endpoint
++    point = [...target[targetEndpoint]]
++    const sourceFixed = source[input.endpoint === 'start' ? 'end' : 'start']
++    const targetOther = target[targetEndpoint === 'start' ? 'end' : 'start']
++    if (dot(subtract(sourceFixed, point), subtract(targetOther, point)) >= 0)
++      return reject('overlap', '벽이 겹치는 연결은 적용할 수 없습니다.')
++    targetEndpoint = undefined
++  } else {
++    point = intersection.point
++    const length = distance(target.start, target.end)
++    if (intersection.otherAlong < -1e-6 || intersection.otherAlong > length + 1e-6) {
++      targetEndpoint = intersection.otherAlong < 0 ? 'start' : 'end'
++      if (input.targetEndpoint && input.targetEndpoint !== targetEndpoint)
++        return reject('invalid-target', '교차점에 가까운 대상 끝점을 선택하세요.')
++    } else if (input.targetEndpoint && distance(target[input.targetEndpoint], point) > 1e-6) {
++      return reject(
++        'invalid-target',
++        '선택한 끝점은 원래 벽 진행선의 교차점이 아닙니다. 벽 몸체를 선택하세요.',
++      )
++    }
++  }
++  const proposals = [
++    {
++      wallId: source.id,
++      endpoint: input.endpoint,
++      from: source[input.endpoint],
++      to: point,
++      distance: distance(source[input.endpoint], point),
++    },
++  ]
++  if (targetEndpoint)
++    proposals.push({
++      wallId: target.id,
++      endpoint: targetEndpoint,
++      from: target[targetEndpoint],
++      to: point,
++      distance: distance(target[targetEndpoint], point),
++    })
++  const working = { ...nodes }
++  const updates = new Map<AnyNodeId, WallEndpointUpdate>()
++  try {
++    for (const proposal of proposals) {
++      if (proposal.distance <= 1e-9) continue
++      const wall = working[proposal.wallId] as WallNodeType
++      const patches = buildWallEndpointUpdates(
++        working,
++        wall.id,
++        proposal.endpoint === 'start' ? point : wall.start,
++        proposal.endpoint === 'end' ? point : wall.end,
++      )
++      for (const patch of patches) {
++        working[patch.id] = { ...working[patch.id], ...patch.data } as AnyNode
++        updates.set(patch.id, {
++          id: patch.id,
++          data: { ...updates.get(patch.id)?.data, ...patch.data } as Partial<AnyNode>,
++        })
++      }
++    }
++  } catch (error) {
++    if (error instanceof WallOperationError) return reject(error.code, error.message)
++    throw error
++  }
++  try {
++    validateWallEndpointOverlaps(nodes, [...updates.values()])
++  } catch (error) {
++    if (error instanceof WallOperationError) return reject(error.code, error.message)
++    throw error
++  }
++  if (!updates.size) return reject('unchanged', '이미 연결된 위치입니다.')
++  return {
++    ok: true,
++    point,
++    updates: [...updates.values()],
++    movements: proposals.filter((p) => p.distance > 1e-9),
++    snapshot,
++  }
++}
+diff --git a/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.test.ts b/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.test.ts
+new file mode 100644
+index 00000000..dc0e28f7
+--- /dev/null
++++ b/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.test.ts
+@@ -0,0 +1,141 @@
++import { describe, expect, test } from 'bun:test'
++import type {
++  RoomBoundaryCandidate,
++  RoomBoundaryEndpoint,
++  RoomBoundaryIssue,
++} from '@pascal-app/core'
++import { createElement } from 'react'
++import { renderToStaticMarkup } from 'react-dom/server'
++import {
++  buildRoomBoundaryOverlayEntries,
++  RoomBoundaryMarker,
++  roomBoundaryMarkerPointerHandlers,
++  selectBestRoomBoundaryCandidate,
++} from './floorplan-zone-closure-layer'
++
++function candidate(overrides: Partial<RoomBoundaryCandidate>): RoomBoundaryCandidate {
++  return {
++    id: 'candidate-default',
++    endpoint: { wallId: 'wall_a', endpoint: 'end', point: [2, 0] },
++    targetWallId: 'wall_b',
++    targetPoint: [2, 0.2],
++    distance: 0.2,
++    join: 'end-to-end',
++    safe: false,
++    ...overrides,
++  }
++}
++
++describe('floorplan zone closure layer', () => {
++  test.each([
++    0.01, 0.1,
++  ])('keeps keyboard focus indication screen-scaled at %s units per pixel', (unitsPerPixel) => {
++    const markup = renderToStaticMarkup(
++      createElement(RoomBoundaryMarker, {
++        entry: {
++          endpoint: { wallId: 'wall_open', endpoint: 'start', point: [2, 3] },
++          status: 'manual',
++        },
++        metricNotation: 'millimeters',
++        onActivate: () => {},
++        sceneRotationDeg: 0,
++        unit: 'metric',
++        unitsPerPixel,
++      }),
++    )
++    const marker = markup.match(/^<g\b[^>]*>/)?.[0] ?? ''
++    expect(marker).toContain('style="outline:none"')
++    expect(marker).toContain('class="group/room-boundary"')
++    expect(marker).toContain('role="button"')
++    expect(marker).toContain('tabindex="0"')
++    expect(marker).toContain('aria-label="벽 wall_open start 경계 점검"')
++
++    const ring = markup.match(/<circle\b[^>]*data-room-boundary-focus="true"[^>]*>/)?.[0] ?? ''
++    expect(ring).toContain('class="hidden group-focus-visible/room-boundary:block"')
++    expect(ring).toContain('aria-hidden="true"')
++    expect(ring).toContain('pointer-events="none"')
++    expect(ring).toContain('fill="none"')
++    expect(ring).toContain('stroke="#f59e0b"')
++    expect(ring).toContain('cx="2"')
++    expect(ring).toContain('cy="3"')
++    expect(Number(ring.match(/\br="([^"]+)"/)?.[1]) / unitsPerPixel).toBeCloseTo(9)
++    expect(Number(ring.match(/\bstroke-width="([^"]+)"/)?.[1]) / unitsPerPixel).toBeCloseTo(2)
++  })
++
++  test('shows the best safe candidate instead of a nearer manual candidate', () => {
++    const manual = candidate({ id: 'manual', distance: 0.04, reason: 'ambiguous' })
++    const safe = candidate({ id: 'safe', distance: 0.2, safe: true })
++    const issue: RoomBoundaryIssue = {
++      id: 'wall_a:end:2,0',
++      wallId: 'wall_a',
++      endpoint: 'end',
++      point: [2, 0],
++      candidates: [manual, safe],
++    }
++
++    expect(selectBestRoomBoundaryCandidate(issue)).toBe(safe)
++    const endpoint: RoomBoundaryEndpoint = {
++      wallId: 'wall_a',
++      endpoint: 'end',
++      point: [2, 0],
++    }
++    const [entry] = buildRoomBoundaryOverlayEntries({
++      danglingEndpoints: [endpoint],
++      issues: [issue],
++    })
++
++    expect(entry).toMatchObject({
++      candidate: safe,
++      status: 'repairable',
++    })
++  })
++
++  test('keeps a dangling endpoint visible when no candidate is available', () => {
++    const endpoint: RoomBoundaryEndpoint = {
++      wallId: 'wall_open',
++      endpoint: 'start',
++      point: [0, 0],
++    }
++
++    const [entry] = buildRoomBoundaryOverlayEntries({
++      danglingEndpoints: [endpoint],
++      issues: [],
++    })
++
++    expect(entry).toMatchObject({ endpoint, status: 'manual' })
++    expect(entry?.candidate).toBeUndefined()
++  })
++})
++
++test('marker drag relays original anchor and lets threshold move and release reach registry', () => {
++  const pending = { current: null } as Parameters<typeof roomBoundaryMarkerPointerHandlers>[0]
++  let stops = 0
++  const captured: number[][] = []
++  const handlers = roomBoundaryMarkerPointerHandlers(pending, (event) => {
++    captured.push([event.clientX, event.clientY])
++    event.stopPropagation()
++  })
++  const event = (x: number, y: number) =>
++    ({
++      button: 0,
++      clientX: x,
++      clientY: y,
++      pointerId: 1,
++      currentTarget: { setPointerCapture() {} },
++      preventDefault() {},
++      stopPropagation() {
++        stops++
++      },
++    }) as unknown as Parameters<typeof handlers.onPointerDown>[0]
++  handlers.onPointerDown(event(100, 200))
++  handlers.onPointerMove(event(103, 200))
++  expect(captured).toHaveLength(0)
++  handlers.onPointerMove(event(106, 208))
++  expect(captured).toEqual([[100, 200]])
++  handlers.onPointerUp(event(106, 208))
++  expect(stops).toBe(1)
++  expect(pending.current?.dragged).toBe(true)
++  handlers.onPointerDown(event(100, 200))
++  handlers.onPointerUp(event(100, 200))
++  expect(stops).toBe(3)
++})
+diff --git a/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.tsx b/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.tsx
+new file mode 100644
+index 00000000..b11c0f17
+--- /dev/null
++++ b/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.tsx
+@@ -0,0 +1,363 @@
++'use client'
++
++import {
++  diagnoseRoomBoundaries,
++  type LevelNode,
++  type RoomBoundaryCandidate,
++  type RoomBoundaryDiagnostics,
++  type RoomBoundaryEndpoint,
++  type RoomBoundaryIssue,
++  useScene,
++  type WallNode,
++  type ZoneNode,
++} from '@pascal-app/core'
++import { useViewer } from '@pascal-app/viewer'
++import {
++  type KeyboardEvent,
++  type MouseEvent,
++  memo,
++  type PointerEvent,
++  useMemo,
++  useRef,
++} from 'react'
++import { useShallow } from 'zustand/react/shallow'
++import { formatLinearMeasurement } from '../../lib/measurements'
++import useEditor from '../../store/use-editor'
++import useInteractionScope from '../../store/use-interaction-scope'
++import { useFloorplanRender } from './floorplan-render-context'
++import { RoomBoundaryConnect } from './room-boundary-connect'
++import { beginRoomBoundaryInteraction } from './room-boundary-interaction'
++
++export const ROOM_BOUNDARY_REPAIRABLE_COLOR = '#dc2626'
++export const ROOM_BOUNDARY_MANUAL_COLOR = '#f59e0b'
++
++export type RoomBoundaryOverlayEntry = {
++  endpoint: RoomBoundaryEndpoint
++  issue?: RoomBoundaryIssue
++  candidate?: RoomBoundaryCandidate
++  status: 'repairable' | 'manual'
++}
++
++function endpointKey(endpoint: Pick<RoomBoundaryEndpoint, 'wallId' | 'endpoint'>) {
++  return `${endpoint.wallId}:${endpoint.endpoint}`
++}
++
++/** Pick the single candidate shown by the 2D overlay for one dangling endpoint. */
++export function selectBestRoomBoundaryCandidate(
++  issue: Pick<RoomBoundaryIssue, 'candidates'>,
++): RoomBoundaryCandidate | undefined {
++  return issue.candidates.find((candidate) => candidate.safe) ?? issue.candidates[0]
++}
++
++/**
++ * Keep the overlay deliberately sparse: one marker for every dangling endpoint
++ * and at most one candidate segment for each marker. The panel can still show
++ * all candidate reasons without turning the floor plan into a spider web.
++ */
++export function buildRoomBoundaryOverlayEntries(
++  diagnostics: Pick<RoomBoundaryDiagnostics, 'danglingEndpoints' | 'issues'>,
++  repairableIssueIds?: ReadonlySet<string>,
++): RoomBoundaryOverlayEntry[] {
++  const issuesByEndpoint = new Map(
++    diagnostics.issues.map((issue) => [endpointKey(issue), issue] as const),
++  )
++
++  return diagnostics.danglingEndpoints.map((endpoint) => {
++    const issue = issuesByEndpoint.get(endpointKey(endpoint))
++    const candidate = issue ? selectBestRoomBoundaryCandidate(issue) : undefined
++    return {
++      endpoint,
++      issue,
++      candidate,
++      status:
++        candidate?.safe || (issue !== undefined && repairableIssueIds?.has(issue.id) === true)
++          ? 'repairable'
++          : 'manual',
++    }
++  })
++}
++
++const EMPTY_WALLS: WallNode[] = []
++const EMPTY_ZONES: ZoneNode[] = []
++
++function useLevelWalls(levelId: LevelNode['id'] | null): WallNode[] {
++  return useScene(
++    useShallow((state) => {
++      if (!levelId) return EMPTY_WALLS
++      const level = state.nodes[levelId]
++      if (level?.type !== 'level') return EMPTY_WALLS
++      return level.children
++        .map((childId) => state.nodes[childId])
++        .filter((node): node is WallNode => node?.type === 'wall')
++    }),
++  )
++}
++
++function useLevelZones(levelId: LevelNode['id'] | null): ZoneNode[] {
++  return useScene(
++    useShallow((state) => {
++      if (!levelId) return EMPTY_ZONES
++      const level = state.nodes[levelId]
++      if (level?.type !== 'level') return EMPTY_ZONES
++      return level.children
++        .map((childId) => state.nodes[childId])
++        .filter((node): node is ZoneNode => node?.type === 'zone')
++    }),
++  )
++}
++
++type MarkerPointerState = { current: { x: number; y: number; dragged: boolean } | null }
++
++export function roomBoundaryMarkerPointerHandlers(
++  pending: MarkerPointerState,
++  onDrag?: (event: PointerEvent<SVGGElement>) => void,
++) {
++  return {
++    onPointerDown(event: PointerEvent<SVGGElement>) {
++      event.stopPropagation()
++      if (event.button !== 0) return
++      pending.current = { x: event.clientX, y: event.clientY, dragged: false }
++      event.currentTarget.setPointerCapture?.(event.pointerId)
++    },
++    onPointerMove(event: PointerEvent<SVGGElement>) {
++      const start = pending.current
++      if (
++        !start ||
++        start.dragged ||
++        !onDrag ||
++        Math.hypot(event.clientX - start.x, event.clientY - start.y) < 4
++      )
++        return
++      start.dragged = true
++      onDrag({
++        ...event,
++        button: 0,
++        clientX: start.x,
++        clientY: start.y,
++        preventDefault: () => event.preventDefault(),
++        // The registry must also receive this move after taking ownership.
++        stopPropagation: () => {},
++      })
++    },
++    onPointerUp(event: PointerEvent<SVGGElement>) {
++      if (!pending.current?.dragged) event.stopPropagation()
++    },
++  }
++}
++
++export function RoomBoundaryMarker({
++  entry,
++  metricNotation,
++  onActivate,
++  onEndpointDrag,
++  sceneRotationDeg,
++  unit,
++  unitsPerPixel,
++}: {
++  entry: RoomBoundaryOverlayEntry
++  metricNotation: Parameters<typeof formatLinearMeasurement>[2]
++  onActivate: (
++    event: MouseEvent<SVGGElement> | KeyboardEvent<SVGGElement>,
++    wallId: WallNode['id'],
++  ) => void
++  onEndpointDrag?: (endpoint: RoomBoundaryEndpoint, event: PointerEvent<SVGGElement>) => void
++  sceneRotationDeg: number
++  unit: Parameters<typeof formatLinearMeasurement>[1]
++  unitsPerPixel: number
++}) {
++  const pending = useRef<{ x: number; y: number; dragged: boolean } | null>(null)
++  const color = entry.issue?.reviewedOpen
++    ? '#16a34a'
++    : entry.status === 'repairable'
++      ? ROOM_BOUNDARY_REPAIRABLE_COLOR
++      : ROOM_BOUNDARY_MANUAL_COLOR
++  const [x, z] = entry.endpoint.point
++  const candidate = entry.candidate
++  const target = candidate?.targetPoint
++  const candidateDistance = candidate?.distance ?? Number.NaN
++  const hasGap =
++    target !== undefined &&
++    Number.isFinite(candidateDistance) &&
++    candidateDistance > 1e-6 &&
++    (target[0] !== x || target[1] !== z)
++
++  const markerRadius = 6 * unitsPerPixel
++  const stroke = 1.5 * unitsPerPixel
++  const dash = `${4 * unitsPerPixel} ${3 * unitsPerPixel}`
++  const labelFontSize = 10 * unitsPerPixel
++  const labelX = hasGap && target ? (x + target[0]) / 2 : x
++  const labelZ = hasGap && target ? (z + target[1]) / 2 : z
++  const dx = hasGap && target ? target[0] - x : 0
++  const dz = hasGap && target ? target[1] - z : 0
++  const gapLength = Math.hypot(dx, dz)
++  const offset = gapLength > 1e-6 ? (8 * unitsPerPixel) / gapLength : 0
++  const labelOffsetX = -dz * offset
++  const labelOffsetZ = dx * offset
++  const label =
++    hasGap && candidate ? formatLinearMeasurement(candidateDistance, unit, metricNotation) : null
++  const issueId = entry.issue?.id ?? endpointKey(entry.endpoint)
++
++  const handleKeyDown = (event: KeyboardEvent<SVGGElement>) => {
++    if (event.key !== 'Enter' && event.key !== ' ') return
++    onActivate(event, entry.endpoint.wallId)
++  }
++
++  return (
++    <g
++      aria-label={`벽 ${entry.endpoint.wallId} ${entry.endpoint.endpoint} 경계 점검`}
++      className="group/room-boundary"
++      data-room-boundary-status={entry.status}
++      data-testid={`room-boundary-marker-${issueId}`}
++      onClick={(event) => {
++        if (pending.current?.dragged) {
++          event.stopPropagation()
++          pending.current = null
++          return
++        }
++        onActivate(event, entry.endpoint.wallId)
++      }}
++      onKeyDown={handleKeyDown}
++      {...roomBoundaryMarkerPointerHandlers(
++        pending,
++        onEndpointDrag ? (event) => onEndpointDrag(entry.endpoint, event) : undefined,
++      )}
++      role="button"
++      style={{ outline: 'none' }}
++      tabIndex={0}
++    >
++      <circle
++        aria-hidden="true"
++        className="hidden group-focus-visible/room-boundary:block"
++        cx={x}
++        cy={z}
++        data-room-boundary-focus="true"
++        fill="none"
++        pointerEvents="none"
++        r={9 * unitsPerPixel}
++        stroke={color}
++        strokeWidth={2 * unitsPerPixel}
++        tabIndex={-1}
++      />
++      {hasGap && target ? (
++        <line
++          data-room-boundary-candidate="best"
++          pointerEvents="none"
++          stroke={color}
++          strokeDasharray={dash}
++          strokeWidth={stroke}
++          x1={x}
++          x2={target[0]}
++          y1={z}
++          y2={target[1]}
++        />
++      ) : null}
++      <circle
++        cx={x}
++        cy={z}
++        data-room-boundary-marker="endpoint"
++        fill="#ffffff"
++        fillOpacity={0.92}
++        r={markerRadius}
++        stroke={color}
++        strokeWidth={stroke}
++      />
++      <circle cx={x} cy={z} fill={color} r={Math.max(unitsPerPixel, markerRadius * 0.28)} />
++      {label ? (
++        <g transform={`rotate(${-sceneRotationDeg} ${labelX} ${labelZ})`}>
++          <text
++            fill={color}
++            fontFamily="-apple-system, system-ui, sans-serif"
++            fontSize={labelFontSize}
++            fontWeight={600}
++            pointerEvents="none"
++            textAnchor="middle"
++            x={labelX + labelOffsetX}
++            y={labelZ + labelOffsetZ + labelFontSize * 0.35}
++          >
++            {label}
++          </text>
++        </g>
++      ) : null}
++    </g>
++  )
++}
++
++export const FloorplanZoneClosureLayer = memo(function FloorplanZoneClosureLayer({
++  onEndpointDrag,
++}: {
++  onEndpointDrag?: (endpoint: RoomBoundaryEndpoint, event: PointerEvent<SVGGElement>) => void
++}) {
++  const scope = useInteractionScope((state) => state.scope)
++  const readOnly = useScene((state) => state.readOnly)
++  const levelId = useViewer((state) => state.selection.levelId)
++  const unit = useViewer((state) => state.unit)
++  const metricNotation = useViewer((state) => state.metricNotation)
++  const setSelection = useViewer((state) => state.setSelection)
++  const setPhase = useEditor((state) => state.setPhase)
++  const setMode = useEditor((state) => state.setMode)
++  const setStructureLayer = useEditor((state) => state.setStructureLayer)
++  const setActiveSidebarPanel = useEditor((state) => state.setActiveSidebarPanel)
++  const renderContext = useFloorplanRender()
++  const walls = useLevelWalls(levelId)
++  const zones = useLevelZones(levelId)
++  const diagnostics = useMemo(
++    () => (levelId ? diagnoseRoomBoundaries(levelId, walls, zones) : null),
++    [levelId, walls, zones],
++  )
++  const entries = useMemo(
++    () => (diagnostics ? buildRoomBoundaryOverlayEntries(diagnostics) : []),
++    [diagnostics],
++  )
++
++  if (!levelId || !diagnostics || entries.length === 0) return null
++
++  const handleActivate = (
++    event: MouseEvent<SVGGElement> | KeyboardEvent<SVGGElement>,
++    wallId: WallNode['id'],
++    endpoint: 'start' | 'end',
++  ) => {
++    event.preventDefault()
++    event.stopPropagation()
++    setPhase('structure')
++    setStructureLayer('zones')
++    setMode('select')
++    setActiveSidebarPanel('site')
++    setSelection({ selectedIds: [wallId], zoneId: null })
++    if (!readOnly) beginRoomBoundaryInteraction(wallId, endpoint)
++  }
++
++  const unitsPerPixel = renderContext?.unitsPerPixel ?? 0.01
++  const sceneRotationDeg = renderContext?.sceneRotationDeg ?? 0
++
++  return (
++    <g data-testid="floorplan-zone-closure-layer">
++      {(scope.kind === 'reshaping' && scope.intent === 'boundary-connect' ? [] : entries).map(
++        (entry) => (
++          <RoomBoundaryMarker
++            entry={entry}
++            key={entry.issue?.id ?? endpointKey(entry.endpoint)}
++            metricNotation={metricNotation}
++            onActivate={(event, wallId) => handleActivate(event, wallId, entry.endpoint.endpoint)}
++            onEndpointDrag={
++              readOnly
++                ? undefined
++                : (endpoint, event) => {
++                    useInteractionScope
++                      .getState()
++                      .endIf(
++                        (current) =>
++                          current.kind === 'reshaping' && current.intent === 'boundary-connect',
++                      )
++                    onEndpointDrag?.(endpoint, event)
++                  }
++            }
++            sceneRotationDeg={sceneRotationDeg}
++            unit={unit}
++            unitsPerPixel={unitsPerPixel}
++          />
++        ),
++      )}
++      <RoomBoundaryConnect />
++    </g>
++  )
++})
+diff --git a/packages/editor/src/components/editor-2d/room-boundary-connect.tsx b/packages/editor/src/components/editor-2d/room-boundary-connect.tsx
+new file mode 100644
+index 00000000..0bf70e67
+--- /dev/null
++++ b/packages/editor/src/components/editor-2d/room-boundary-connect.tsx
+@@ -0,0 +1,385 @@
++'use client'
++
++import {
++  type AnyNodeId,
++  buildManualRoomBoundaryRepair,
++  type ManualRoomBoundaryInput,
++  type ManualRoomBoundaryPlan,
++  roomBoundarySnapshot,
++  runAsSingleSceneHistoryStep,
++  useLiveNodeOverrides,
++  useScene,
++  type WallNode,
++} from '@pascal-app/core'
++import { useViewer } from '@pascal-app/viewer'
++import { useCallback, useEffect, useRef, useState } from 'react'
++import { createPortal } from 'react-dom'
++import { clientToPlan } from '../../lib/floorplan/plan-coords'
++import { formatLinearMeasurement } from '../../lib/measurements'
++import useEditor from '../../store/use-editor'
++import useInteractionScope from '../../store/use-interaction-scope'
++import { useFloorplanRender } from './floorplan-render-context'
++import {
++  beginRoomBoundaryInteraction,
++  closestRoomBoundaryTargets,
++  type RoomBoundaryTargetHit,
++} from './room-boundary-interaction'
++
++export function RoomBoundaryConnect() {
++  const scope = useInteractionScope((s) => s.scope)
++  const levelId = useViewer((s) => s.selection.levelId)
++  const unit = useViewer((s) => s.unit)
++  const metricNotation = useViewer((s) => s.metricNotation)
++  const nodes = useScene((s) => s.nodes)
++  const readOnly = useScene((s) => s.readOnly)
++  const viewMode = useEditor((s) => s.viewMode)
++  const mode = useEditor((s) => s.mode)
++  const tool = useEditor((s) => s.tool)
++  const render = useFloorplanRender()
++  const [draft, setDraft] = useState<{
++    input: ManualRoomBoundaryInput
++    plan: ManualRoomBoundaryPlan
++  } | null>(null)
++  const [error, setError] = useState<string | null>(null)
++  const [hovered, setHovered] = useState<string | null>(null)
++  const [choices, setChoices] = useState<RoomBoundaryTargetHit[]>([])
++  const owned = useRef<AnyNodeId[]>([])
++  const active =
++    scope.kind === 'reshaping' &&
++    (scope.intent === 'boundary-connect' || scope.intent === 'boundary-move') &&
++    scope.endpoint !== undefined
++  const connecting = active && scope.intent === 'boundary-connect'
++  const sourceId = active ? scope.nodeId : null
++  const endpoint = active ? scope.endpoint : undefined
++  const identity = active ? `${sourceId}:${endpoint}` : null
++  const context = useRef<{
++    identity: string | null
++    levelId: typeof levelId
++    viewMode: typeof viewMode
++    tool: typeof tool
++  } | null>(null)
++
++  const clearPreview = useCallback(() => {
++    for (const id of owned.current) {
++      useLiveNodeOverrides.getState().clear(id)
++      useScene.getState().markDirty(id)
++    }
++    owned.current = []
++  }, [])
++  const cancel = useCallback(() => {
++    clearPreview()
++    setDraft(null)
++    setChoices([])
++    setError(null)
++    useInteractionScope
++      .getState()
++      .endIf(
++        (s) =>
++          s.kind === 'reshaping' &&
++          (s.intent === 'boundary-connect' || s.intent === 'boundary-move'),
++      )
++  }, [clearPreview])
++
++  useEffect(() => {
++    if (!active || context.current?.identity !== identity) {
++      clearPreview()
++      setDraft(null)
++      setChoices([])
++      setError(null)
++      context.current = active ? { identity, levelId, viewMode, tool } : null
++    }
++    if (!active) return
++    if (
++      (context.current &&
++        (context.current.levelId !== levelId ||
++          context.current.viewMode !== viewMode ||
++          context.current.tool !== tool)) ||
++      readOnly ||
++      viewMode === '3d' ||
++      mode !== 'select' ||
++      !sourceId ||
++      nodes[sourceId as AnyNodeId]?.parentId !== levelId
++    )
++      cancel()
++  }, [
++    readOnly,
++    viewMode,
++    mode,
++    tool,
++    levelId,
++    sourceId,
++    nodes,
++    active,
++    identity,
++    cancel,
++    clearPreview,
++  ])
++
++  useEffect(() => {
++    if (!active) return
++    const onKey = (event: KeyboardEvent) => {
++      if (event.key === 'Escape') {
++        event.preventDefault()
++        cancel()
++      }
++    }
++    window.addEventListener('keydown', onKey, true)
++    return () => window.removeEventListener('keydown', onKey, true)
++  }, [active, cancel])
++
++  useEffect(() => {
++    if (!draft || !levelId || !active) return
++    if (roomBoundarySnapshot(nodes, levelId) !== draft.plan.snapshot) {
++      clearPreview()
++      setDraft(null)
++      setError('벽 또는 부착물이 변경되었습니다. 대상을 다시 선택하세요.')
++    }
++  }, [nodes, draft, levelId, active, clearPreview])
++
++  useEffect(
++    () => () => {
++      clearPreview()
++      useInteractionScope
++        .getState()
++        .endIf(
++          (s) =>
++            s.kind === 'reshaping' &&
++            (s.intent === 'boundary-connect' || s.intent === 'boundary-move'),
++        )
++    },
++    [clearPreview],
++  )
++
++  if (!active || !levelId || !endpoint || !sourceId || readOnly) return null
++  const walls = Object.values(nodes).filter(
++    (node): node is WallNode =>
++      node.type === 'wall' && node.parentId === levelId && node.id !== sourceId,
++  )
++  const selectTarget = (targetWallId: WallNode['id'], targetEndpoint?: 'start' | 'end') => {
++    clearPreview()
++    setChoices([])
++    const scene = useScene.getState()
++    if (scene.readOnly) return cancel()
++    const input: ManualRoomBoundaryInput = {
++      levelId,
++      wallId: sourceId as WallNode['id'],
++      endpoint,
++      targetWallId,
++      targetEndpoint,
++    }
++    const plan = buildManualRoomBoundaryRepair(scene.nodes, input)
++    if (!plan.ok) {
++      setError(plan.message ?? '연결할 수 없습니다.')
++      setDraft(null)
++      return
++    }
++    for (const update of plan.updates) {
++      useLiveNodeOverrides.getState().set(update.id, update.data)
++      scene.markDirty(update.id)
++    }
++    owned.current = plan.updates.map((update) => update.id)
++    setError(null)
++    setDraft({ input: { ...input, expectedSnapshot: plan.snapshot }, plan })
++  }
++  const apply = () => {
++    if (!draft) return
++    const scene = useScene.getState()
++    if (scene.readOnly) return cancel()
++    const plan = buildManualRoomBoundaryRepair(scene.nodes, draft.input)
++    clearPreview()
++    if (!plan.ok || JSON.stringify(plan.updates) !== JSON.stringify(draft.plan.updates)) {
++      setDraft(null)
++      setError(plan.message ?? '미리보기가 변경되었습니다. 대상을 다시 선택하세요.')
++      return
++    }
++    runAsSingleSceneHistoryStep(useScene, () =>
++      useScene.getState().applyNodeChanges({ update: plan.updates }),
++    )
++    cancel()
++  }
++  const scale = render?.unitsPerPixel ?? 0.01
++  const wallLabel = (id: string, fallback: string) => nodes[id as AnyNodeId]?.name || fallback
++  const sourceLabel = wallLabel(sourceId, '출발 벽')
++  const targetLabel = draft ? wallLabel(draft.input.targetWallId, '대상 벽') : ''
++  const wallCoordinates = (id: WallNode['id']) => {
++    const wall = nodes[id]
++    if (wall?.type !== 'wall') return ''
++    const point = (value: readonly [number, number]) =>
++      value.map((axis) => formatLinearMeasurement(axis, unit, metricNotation)).join(', ')
++    return `시작 (${point(wall.start)}) → 끝 (${point(wall.end)})`
++  }
++  return (
++    <>
++      {connecting ? (
++        <g
++          data-testid="room-boundary-targets"
++          onClick={(event) => {
++            event.stopPropagation()
++            const point = clientToPlan(event.clientX, event.clientY)
++            if (!point) return
++            const hits = closestRoomBoundaryTargets(walls, point, scale)
++            if (hits.length === 1) selectTarget(hits[0]!.wallId, hits[0]!.endpoint)
++            else if (hits.length > 1) {
++              clearPreview()
++              setDraft(null)
++              setError(null)
++              setChoices(hits)
++            }
++          }}
++          onPointerMove={(event) => {
++            const point = clientToPlan(event.clientX, event.clientY)
++            const hits = point ? closestRoomBoundaryTargets(walls, point, scale) : []
++            setHovered(hits.length === 1 ? hits[0]!.wallId : null)
++          }}
++          onPointerLeave={() => setHovered(null)}
++        >
++          {walls.map((wall) => (
++            <g key={wall.id}>
++              <line
++                data-testid={`room-boundary-target-${wall.id}`}
++                x1={wall.start[0]}
++                y1={wall.start[1]}
++                x2={wall.end[0]}
++                y2={wall.end[1]}
++                stroke={hovered === wall.id ? '#06b6d4' : 'transparent'}
++                strokeWidth={18 * scale}
++                strokeOpacity={0.5}
++                style={{ cursor: 'crosshair' }}
++                onPointerDown={(event) => {
++                  event.preventDefault()
++                  event.stopPropagation()
++                }}
++              />
++              {(['start', 'end'] as const).map((end) => (
++                <circle
++                  key={end}
++                  data-testid={`room-boundary-target-${wall.id}-${end}`}
++                  cx={wall[end][0]}
++                  cy={wall[end][1]}
++                  r={7 * scale}
++                  fill={hovered === wall.id ? '#06b6d4' : 'transparent'}
++                  fillOpacity={0.5}
++                  style={{ cursor: 'crosshair' }}
++                  onPointerDown={(event) => {
++                    event.preventDefault()
++                    event.stopPropagation()
++                  }}
++                />
++              ))}
++            </g>
++          ))}
++          {draft?.plan.movements.map((move) => (
++            <line
++              key={`${move.wallId}:${move.endpoint}`}
++              data-testid="room-boundary-extension-preview"
++              x1={move.from[0]}
++              y1={move.from[1]}
++              x2={move.to[0]}
++              y2={move.to[1]}
++              stroke="#06b6d4"
++              strokeWidth={4 * scale}
++              strokeDasharray={`${4 * scale} ${3 * scale}`}
++              pointerEvents="none"
++            />
++          ))}
++        </g>
++      ) : null}
++      {typeof document !== 'undefined'
++        ? createPortal(
++            <div
++              data-testid="room-boundary-connect-panel"
++              role="dialog"
++              aria-label={connecting ? '수동 벽 연결' : '끝점 이동'}
++              className="fixed bottom-24 left-1/2 z-[100] w-80 max-w-[90vw] -translate-x-1/2 rounded-xl border border-border bg-background p-3 text-xs text-foreground shadow-xl"
++              onPointerDown={(event) => event.stopPropagation()}
++            >
++              <div className="font-semibold">{connecting ? '수동 벽 연결' : '끝점 이동'}</div>
++              <div className="mt-1 text-muted-foreground">
++                {sourceLabel} · 끝점({endpoint === 'start' ? '시작' : '끝'})
++              </div>
++              <div className="mt-2">
++                {connecting
++                  ? draft
++                    ? `대상: ${targetLabel}`
++                    : '대상 벽 또는 끝점을 선택하세요'
++                  : '노란 끝점을 드래그하세요. Esc로 취소합니다.'}
++              </div>
++              {choices.length > 1 ? (
++                <div
++                  className="mt-2 flex flex-col gap-1"
++                  data-testid="room-boundary-target-choices"
++                >
++                  <div>같은 위치의 대상이 여러 개입니다. 연결할 벽을 선택하세요.</div>
++                  {choices.map((choice, index) => (
++                    <button
++                      key={choice.wallId}
++                      type="button"
++                      data-target-wall-id={choice.wallId}
++                      className="rounded border px-2 py-1 text-left"
++                      onClick={() => selectTarget(choice.wallId, choice.endpoint)}
++                    >
++                      {wallLabel(choice.wallId, `대상 벽 ${index + 1}`)}
++                      <span className="block text-muted-foreground">
++                        {wallCoordinates(choice.wallId)}
++                      </span>
++                      {choice.endpoint
++                        ? ` · 끝점(${choice.endpoint === 'start' ? '시작' : '끝'})`
++                        : ''}
++                    </button>
++                  ))}
++                </div>
++              ) : null}
++              {draft?.plan.movements.map((move) => (
++                <div key={`${move.wallId}:${move.endpoint}`}>
++                  {wallLabel(move.wallId, move.wallId === sourceId ? '출발 벽' : '대상 벽')} ·{' '}
++                  {formatLinearMeasurement(move.distance, unit, metricNotation)} 연장/조정
++                </div>
++              ))}
++              {error ? (
++                <div
++                  role="alert"
++                  data-testid="room-boundary-connect-error"
++                  className="mt-2 text-red-600"
++                >
++                  {error}
++                </div>
++              ) : null}
++              <div className="mt-3 flex gap-2">
++                {connecting ? (
++                  <button
++                    type="button"
++                    data-testid="room-boundary-connect-apply"
++                    className="rounded border px-3 py-2 disabled:opacity-40"
++                    disabled={!draft}
++                    onClick={apply}
++                  >
++                    연결 적용
++                  </button>
++                ) : null}
++                <button type="button" className="rounded border px-3 py-2" onClick={cancel}>
++                  취소
++                </button>
++                {connecting ? (
++                  <button
++                    type="button"
++                    className="rounded border px-3 py-2"
++                    onClick={() => {
++                      cancel()
++                      beginRoomBoundaryInteraction(
++                        sourceId as WallNode['id'],
++                        endpoint,
++                        'boundary-move',
++                      )
++                    }}
++                  >
++                    끝점 이동
++                  </button>
++                ) : null}
++              </div>
++            </div>,
++            document.body,
++          )
++        : null}
++    </>
++  )
++}
+diff --git a/packages/editor/src/components/editor-2d/room-boundary-interaction.test.ts b/packages/editor/src/components/editor-2d/room-boundary-interaction.test.ts
+new file mode 100644
+index 00000000..4eda3441
+--- /dev/null
++++ b/packages/editor/src/components/editor-2d/room-boundary-interaction.test.ts
+@@ -0,0 +1,39 @@
++import { describe, expect, test } from 'bun:test'
++import { WallNode } from '@pascal-app/core'
++import { closestRoomBoundaryTargets } from './room-boundary-interaction'
++
++const target = WallNode.parse({ id: 'wall_target_hit', start: [2, 0.2], end: [2, 2] })
++const competing = WallNode.parse({ id: 'wall_competing_hit', start: [2.03, 0.3], end: [2.03, 2] })
++
++describe('manual boundary target hit resolution', () => {
++  test('selects the nearest actual centerline independent of SVG wall order', () => {
++    for (const walls of [
++      [target, competing],
++      [competing, target],
++    ]) {
++      expect(closestRoomBoundaryTargets(walls, [2, 1], 0.01)).toEqual([
++        { wallId: target.id, endpoint: undefined, distance: 0 },
++      ])
++      expect(closestRoomBoundaryTargets(walls, [2.03, 1], 0.01)).toEqual([
++        { wallId: competing.id, endpoint: undefined, distance: expect.closeTo(0, 12) },
++      ])
++    }
++  })
++  test('selects the exact endpoint over an overlapping later wall hit area', () => {
++    expect(closestRoomBoundaryTargets([target, competing], [2, 0.2], 0.02)).toEqual([
++      { wallId: target.id, endpoint: 'start', distance: 0 },
++    ])
++  })
++  test('returns all exact equidistant choices for explicit selection in stable order', () => {
++    const forward = closestRoomBoundaryTargets([target, competing], [2.015, 1], 0.01)
++    const reverse = closestRoomBoundaryTargets([competing, target], [2.015, 1], 0.01)
++    expect(forward).toHaveLength(2)
++    expect(reverse).toEqual(forward)
++  })
++  test('rejects outside hit radius and zero-length targets', () => {
++    expect(closestRoomBoundaryTargets([target], [2.2, 1], 0.01)).toEqual([])
++    expect(
++      closestRoomBoundaryTargets([{ ...target, end: target.start }], target.start, 0.01),
++    ).toEqual([])
++  })
++})
+diff --git a/packages/editor/src/components/editor-2d/room-boundary-interaction.ts b/packages/editor/src/components/editor-2d/room-boundary-interaction.ts
+new file mode 100644
+index 00000000..0ef898ff
+--- /dev/null
++++ b/packages/editor/src/components/editor-2d/room-boundary-interaction.ts
+@@ -0,0 +1,61 @@
++import type { WallNode } from '@pascal-app/core'
++import useInteractionScope from '../../store/use-interaction-scope'
++
++export function beginRoomBoundaryInteraction(
++  wallId: WallNode['id'],
++  endpoint: 'start' | 'end',
++  intent: 'boundary-connect' | 'boundary-move' = 'boundary-connect',
++) {
++  useInteractionScope.getState().begin({
++    kind: 'reshaping',
++    reshape: 'endpoint',
++    driver: 'floorplan',
++    nodeId: wallId,
++    endpoint,
++    intent,
++  })
++}
++
++export type RoomBoundaryTargetHit = {
++  wallId: WallNode['id']
++  endpoint?: 'start' | 'end'
++  distance: number
++}
++
++export function closestRoomBoundaryTargets(
++  walls: readonly WallNode[],
++  point: readonly [number, number],
++  unitsPerPixel: number,
++): RoomBoundaryTargetHit[] {
++  const hits: RoomBoundaryTargetHit[] = []
++  for (const wall of walls) {
++    const dx = wall.end[0] - wall.start[0]
++    const dy = wall.end[1] - wall.start[1]
++    const lengthSquared = dx * dx + dy * dy
++    if (lengthSquared <= 1e-12) continue
++    const t = Math.max(
++      0,
++      Math.min(
++        1,
++        ((point[0] - wall.start[0]) * dx + (point[1] - wall.start[1]) * dy) / lengthSquared,
++      ),
++    )
++    const distance = Math.hypot(
++      point[0] - wall.start[0] - t * dx,
++      point[1] - wall.start[1] - t * dy,
++    )
++    if (distance > 9 * unitsPerPixel) continue
++    const startDistance = Math.hypot(point[0] - wall.start[0], point[1] - wall.start[1])
++    const endDistance = Math.hypot(point[0] - wall.end[0], point[1] - wall.end[1])
++    const endpoint =
++      Math.min(startDistance, endDistance) <= 7 * unitsPerPixel
++        ? startDistance <= endDistance
++          ? 'start'
++          : 'end'
++        : undefined
++    hits.push({ wallId: wall.id, endpoint, distance })
++  }
++  hits.sort((a, b) => a.distance - b.distance || a.wallId.localeCompare(b.wallId))
++  const closest = hits[0]
++  return closest ? hits.filter((hit) => Math.abs(hit.distance - closest.distance) <= 1e-6) : []
++}
+diff --git a/packages/editor/src/components/ui/sidebar/panels/zone-panel/zone-closure-panel.tsx b/packages/editor/src/components/ui/sidebar/panels/zone-panel/zone-closure-panel.tsx
+new file mode 100644
+index 00000000..531a4248
+--- /dev/null
++++ b/packages/editor/src/components/ui/sidebar/panels/zone-panel/zone-closure-panel.tsx
+@@ -0,0 +1,371 @@
++'use client'
++
++import {
++  buildRoomBoundaryRepairUpdates,
++  buildRoomBoundaryOpenReviewUpdate,
++  diagnoseRoomBoundaries,
++  planAutoZonesForLevel,
++  runAsSingleSceneHistoryStep,
++  zoneNeedsBoundaryReview,
++  type AnyNode,
++  type RoomBoundaryRepairPlan,
++  type WallNode,
++  type ZoneNode,
++  useScene,
++} from '@pascal-app/core'
++import { useViewer } from '@pascal-app/viewer'
++import { Link2, MapPin, Sparkles } from 'lucide-react'
++import { useMemo, useState } from 'react'
++import { formatLinearMeasurement } from '../../../../../lib/measurements'
++import useEditor from '../../../../../store/use-editor'
++import { beginRoomBoundaryInteraction } from '../../../../editor-2d/room-boundary-interaction'
++import { PanelSection } from '../../../controls/panel-section'
++
++const REPAIR_REASON_LABEL: Record<string, string> = {
++  ambiguous: '가장 가까운 연결이 여러 개입니다.',
++  collinear: '같은 선상에서 안전한 연결을 결정할 수 없습니다.',
++  curved: '곡선 벽은 자동 연결할 수 없습니다.',
++  large: '간격이 너무 큽니다.',
++  parallel: '평행한 벽과의 연결은 수동 확인이 필요합니다.',
++  'does-not-close-room': '연결해도 닫힌 공간이 생기지 않습니다.',
++  stale: '벽이 변경되어 점검 결과가 오래되었습니다.',
++  'not-found': '점검 항목을 찾을 수 없습니다.',
++  'no-repairable-candidate': '안전한 자동 연결 후보가 없습니다.',
++  invalid: '벽 연결 검증에 실패했습니다.',
++}
++
++function repairReason(plan: Pick<RoomBoundaryRepairPlan, 'reason'>) {
++  return plan.reason ? (REPAIR_REASON_LABEL[plan.reason] ?? '연결할 수 없습니다.') : '연결할 수 없습니다.'
++}
++
++function levelGeometry(nodes: Record<string, AnyNode>, levelId: string) {
++  const level = nodes[levelId]
++  if (level?.type !== 'level') return { walls: [] as WallNode[], zones: [] as ZoneNode[] }
++
++  const children = level.children.map((childId) => nodes[childId])
++  return {
++    walls: children.filter((node): node is WallNode => node?.type === 'wall'),
++    zones: children.filter((node): node is ZoneNode => node?.type === 'zone'),
++  }
++}
++
++type AutoZoneCreationContext = {
++  source: 'apt-vector'
++  generatedFrom: 'detected-space'
++  apartmentId?: string
++  planId?: string
++}
++
++function metadataRecord(node: Pick<AnyNode, 'metadata'>): Record<string, unknown> {
++  return node.metadata !== null && typeof node.metadata === 'object' && !Array.isArray(node.metadata)
++    ? (node.metadata as Record<string, unknown>)
++    : {}
++}
++
++function uniqueAptMetadataValue(
++  metadata: readonly Record<string, unknown>[],
++  key: 'apartmentId' | 'planId',
++) {
++  const values = new Set(
++    metadata
++      .map((entry) => entry[key])
++      .filter((value): value is string => typeof value === 'string' && value.length > 0),
++  )
++  return values.size === 1 ? values.values().next().value : undefined
++}
++
++function zoneCreationContext(
++  walls: readonly WallNode[],
++  zones: readonly ZoneNode[],
++): AutoZoneCreationContext | undefined {
++  const aptMetadata = [...walls, ...zones]
++    .map(metadataRecord)
++    .filter((metadata) => metadata.source === 'apt-vector')
++  if (aptMetadata.length === 0) return undefined
++
++  const apartmentId = uniqueAptMetadataValue(aptMetadata, 'apartmentId')
++  const planId = uniqueAptMetadataValue(aptMetadata, 'planId')
++  return {
++    source: 'apt-vector',
++    generatedFrom: 'detected-space',
++    ...(apartmentId ? { apartmentId } : {}),
++    ...(planId ? { planId } : {}),
++  }
++}
++
++function candidateForIssue(issue: { candidates: RoomBoundaryRepairPlan['candidate'][] }) {
++  return issue.candidates.find((candidate) => candidate?.safe) ?? issue.candidates[0]
++}
++
++export function ZoneClosurePanel() {
++  const currentLevelId = useViewer((state) => state.selection.levelId)
++  const unit = useViewer((state) => state.unit)
++  const metricNotation = useViewer((state) => state.metricNotation)
++  const setSelection = useViewer((state) => state.setSelection)
++  const setPhase = useEditor((state) => state.setPhase)
++  const setMode = useEditor((state) => state.setMode)
++  const setViewMode = useEditor((state) => state.setViewMode)
++  const setStructureLayer = useEditor((state) => state.setStructureLayer)
++  const setActiveSidebarPanel = useEditor((state) => state.setActiveSidebarPanel)
++  const nodes = useScene((state) => state.nodes)
++  const readOnly = useScene((state) => state.readOnly)
++  const [busyIssueId, setBusyIssueId] = useState<string | null>(null)
++  const [error, setError] = useState<string | null>(null)
++
++  const { walls, zones } = useMemo(
++    () => (currentLevelId ? levelGeometry(nodes, currentLevelId) : { walls: [], zones: [] }),
++    [currentLevelId, nodes],
++  )
++  const diagnostics = useMemo(
++    () =>
++      currentLevelId ? diagnoseRoomBoundaries(currentLevelId, walls, zones) : null,
++    [currentLevelId, walls, zones],
++  )
++  const zonePlan = useMemo(
++    () =>
++      diagnostics
++        ? planAutoZonesForLevel(diagnostics.spaces, zones, {
++            createMissingZones: zoneCreationContext(walls, zones),
++          })
++        : { create: [], update: [] },
++    [diagnostics, walls, zones],
++  )
++  const repairPlans = useMemo(
++    () =>
++      diagnostics && currentLevelId
++        ? new Map(
++            diagnostics.issues.map((issue) => [
++              issue.id,
++              buildRoomBoundaryRepairUpdates(nodes, currentLevelId, issue.id, diagnostics),
++            ] as const),
++          )
++        : new Map(),
++    [currentLevelId, diagnostics, nodes],
++  )
++
++  const locateWall = (wallId: WallNode['id']) => {
++    setPhase('structure')
++    setStructureLayer('zones')
++    setMode('select')
++    setViewMode('2d')
++    setActiveSidebarPanel('site')
++    setSelection({ selectedIds: [wallId], zoneId: null })
++  }
++
++  const handleRepair = (issueId: string) => {
++    if (!currentLevelId) return
++    setError(null)
++    const scene = useScene.getState()
++    if (scene.readOnly) {
++      setError('읽기 전용 장면에서는 벽을 연결할 수 없습니다.')
++      return
++    }
++
++    setBusyIssueId(issueId)
++    try {
++      // Re-plan against the current scene at click time. The marker may have
++      // survived another wall edit, so its render-time candidate is advisory.
++      const plan = buildRoomBoundaryRepairUpdates(scene.nodes, currentLevelId, issueId)
++      if (!plan.ok || plan.updates.length === 0) {
++        setError(repairReason(plan))
++        return
++      }
++
++      runAsSingleSceneHistoryStep(useScene, () => {
++        useScene.getState().applyNodeChanges({ update: plan.updates })
++      })
++      // Keep the current 2D/Zones inspection context after a repair. Selecting
++      // the repaired wall is enough to make the result visible without
++      // switching the sidebar to the element tree or opening split view.
++      if (plan.candidate) {
++        setSelection({ selectedIds: [plan.candidate.endpoint.wallId], zoneId: null })
++      }
++    } catch (caught) {
++      setError(caught instanceof Error ? caught.message : '벽 연결 검증에 실패했습니다.')
++    } finally {
++      setBusyIssueId(null)
++    }
++  }
++
++  const handleCreateZones = () => {
++    if (!currentLevelId) return
++    setError(null)
++    const scene = useScene.getState()
++    if (scene.readOnly) {
++      setError('읽기 전용 장면에서는 존을 구성할 수 없습니다.')
++      return
++    }
++
++    const current = levelGeometry(scene.nodes, currentLevelId)
++    const currentDiagnostics = diagnoseRoomBoundaries(currentLevelId, current.walls, current.zones)
++    const currentPlan = planAutoZonesForLevel(currentDiagnostics.spaces, current.zones, {
++      createMissingZones: zoneCreationContext(current.walls, current.zones),
++    })
++    if (currentPlan.create.length === 0 && currentPlan.update.length === 0) {
++      setError('추가로 구성할 닫힌 공간 존이 없습니다.')
++      return
++    }
++
++    runAsSingleSceneHistoryStep(useScene, () => {
++      useScene.getState().applyNodeChanges({
++        create: currentPlan.create.map((node) => ({ node, parentId: currentLevelId })),
++        update: currentPlan.update,
++      })
++    })
++  }
++
++  if (!currentLevelId || !diagnostics) return null
++
++  const closedRoomCount = diagnostics.spaces.filter((space) => !space.isExterior).length
++  const closedZoneCount = zones.filter(
++    (zone) => zone.spaceRole === 'room' && zone.enclosureStatus === 'enclosed',
++  ).length
++  const pendingBoundaryReviewIds = new Set(
++    zonePlan.update.flatMap((entry) => {
++      const metadata = entry.data.metadata
++      return metadata !== null &&
++        typeof metadata === 'object' &&
++        !Array.isArray(metadata) &&
++        metadata.boundaryNeedsReview === true
++        ? [entry.id]
++        : []
++    }),
++  )
++  const boundaryReviewZones = zones.filter(
++    (zone) => zoneNeedsBoundaryReview(zone) || pendingBoundaryReviewIds.has(zone.id),
++  )
++
++  return (
++    <PanelSection title="공간 경계 점검">
++      <div className="grid gap-2" data-testid="zone-closure-panel">
++        <div className="grid grid-cols-2 gap-1.5 text-[11px]" data-testid="zone-closure-stats">
++          <div className="rounded-md border border-border/60 bg-background/35 px-2 py-1.5">
++            <div className="text-muted-foreground">닫힌 공간</div>
++            <div className="font-semibold text-foreground">{closedRoomCount}</div>
++          </div>
++          <div className="rounded-md border border-border/60 bg-background/35 px-2 py-1.5">
++            <div className="text-muted-foreground">닫힌 존</div>
++            <div className="font-semibold text-foreground">{closedZoneCount}</div>
++          </div>
++        </div>
++
++        {zonePlan.create.length > 0 && !readOnly ? (
++          <button
++            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-primary/50 bg-primary/10 px-2.5 py-2 text-left text-primary text-xs transition-colors hover:bg-primary/20"
++            data-testid="zone-closure-create-zones"
++            onClick={handleCreateZones}
++            type="button"
++          >
++            <Sparkles className="h-3.5 w-3.5" />
++            닫힌 공간 존 구성 ({zonePlan.create.length})
++          </button>
++        ) : null}
++
++        {readOnly ? (
++          <div className="rounded-md border border-border/50 bg-muted/20 px-2.5 py-2 text-[11px] text-muted-foreground">
++            읽기 전용 장면에서는 연결과 존 구성을 변경할 수 없습니다.
++          </div>
++        ) : null}
++
++        {boundaryReviewZones.length > 0 ? (
++          <div
++            className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-700 dark:text-amber-300"
++            data-testid="zone-closure-boundary-review"
++            role="status"
++          >
++            경계 확인 필요: {boundaryReviewZones.map((zone) => zone.name || zone.id).join(', ')}
++          </div>
++        ) : null}
++
++        {diagnostics.issues.length === 0 ? (
++          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2.5 py-2 text-[11px] text-emerald-700 dark:text-emerald-300">
++            열린 벽 끝점이 없습니다.
++          </div>
++        ) : (
++          <div className="grid gap-1.5" data-testid="zone-closure-issues">
++            {diagnostics.issues.map((issue) => {
++              const repairPlan = repairPlans.get(issue.id)
++              const candidate = repairPlan?.candidate ?? candidateForIssue(issue)
++              const safe = repairPlan ? repairPlan.ok : candidate?.safe === true
++              const gap = candidate?.distance
++              return (
++                <div
++                  className="rounded-md border border-border/60 bg-background/35 px-2.5 py-2"
++                  data-room-boundary-issue={issue.id}
++                  key={issue.id}
++                >
++                  <div className="flex items-center gap-1.5">
++                    <span
++                      className={safe ? 'h-2 w-2 rounded-full bg-red-600' : 'h-2 w-2 rounded-full bg-amber-500'}
++                    />
++                    <span className="min-w-0 flex-1 truncate text-foreground text-xs">
++                      {issue.wallId} · {issue.endpoint}
++                    </span>
++                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
++                      {gap !== undefined
++                        ? formatLinearMeasurement(gap, unit, metricNotation)
++                        : '간격 미정'}
++                    </span>
++                  </div>
++                  <div className="mt-1 text-[10px] text-muted-foreground">
++                    {issue.reviewedOpen
++                      ? '개방 유지 · 확인 완료'
++                      : safe
++                      ? '빠른 연결 가능'
++                      : repairPlan?.reason
++                        ? repairReason(repairPlan)
++                        : REPAIR_REASON_LABEL[candidate?.reason ?? ''] ?? '수동 확인'}
++                  </div>
++                  {!readOnly ? <div className="mt-1.5 flex flex-wrap gap-1.5">
++                    <button type="button" className="rounded border px-2 py-1.5 text-[10px]" data-testid={`zone-closure-connect-${issue.id}`} onClick={() => { locateWall(issue.wallId); beginRoomBoundaryInteraction(issue.wallId, issue.endpoint) }}>대상 연결</button>
++                    <button type="button" className="rounded border px-2 py-1.5 text-[10px]" data-testid={`zone-closure-move-${issue.id}`} onClick={() => { locateWall(issue.wallId); beginRoomBoundaryInteraction(issue.wallId, issue.endpoint, 'boundary-move') }}>끝점 이동</button>
++                    <button type="button" className="rounded border px-2 py-1.5 text-[10px]" data-testid={`zone-closure-open-${issue.id}`} onClick={() => {
++                      const scene = useScene.getState()
++                      const wall = scene.nodes[issue.wallId]
++                      if (scene.readOnly || wall?.type !== 'wall') return
++                      runAsSingleSceneHistoryStep(useScene, () => scene.applyNodeChanges({ update: [buildRoomBoundaryOpenReviewUpdate(wall, issue.endpoint, !issue.reviewedOpen)] }))
++                    }}>{issue.reviewedOpen ? '다시 점검' : '개방 유지'}</button>
++                  </div> : null}
++                  <div className="mt-1.5 flex gap-1.5">
++                    <button
++                      className="flex flex-1 items-center justify-center gap-1 rounded-md border border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
++                      data-testid={`zone-closure-locate-${issue.id}`}
++                      onClick={() => locateWall(issue.wallId)}
++                      type="button"
++                    >
++                      <MapPin className="h-3 w-3" />
++                      2D에서 위치
++                    </button>
++                    {safe && !readOnly ? (
++                      <button
++                        className="flex flex-1 items-center justify-center gap-1 rounded-md border border-red-500/50 bg-red-500/10 px-2 py-1.5 text-[10px] text-red-700 transition-colors hover:bg-red-500/20 dark:text-red-300"
++                        data-testid={`zone-closure-repair-${issue.id}`}
++                        disabled={busyIssueId === issue.id}
++                        onClick={() => handleRepair(issue.id)}
++                        type="button"
++                      >
++                        <Link2 className="h-3 w-3" />
++                        {busyIssueId === issue.id ? '연결 중…' : '연결'}
++                      </button>
++                    ) : null}
++                  </div>
++                </div>
++              )
++            })}
++          </div>
++        )}
++
++        {error ? (
++          <div
++            aria-live="polite"
++            className="rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-2 text-[11px] text-red-700 dark:text-red-300"
++            data-testid="zone-closure-error"
++            role="alert"
++          >
++            {error}
++          </div>
++        ) : null}
++      </div>
++    </PanelSection>
++  )
++}
+diff --git a/packages/nodes/src/wall/endpoint-edit-plan.test.ts b/packages/nodes/src/wall/endpoint-edit-plan.test.ts
+new file mode 100644
+index 00000000..8d9daad4
+--- /dev/null
++++ b/packages/nodes/src/wall/endpoint-edit-plan.test.ts
+@@ -0,0 +1,71 @@
++import { describe, expect, test } from 'bun:test'
++import { DoorNode, LevelNode, WallNode } from '@pascal-app/core'
++import { buildWallEndpointEditPlan } from './endpoint-edit-plan'
++
++function fixture(position: number) {
++  const level = LevelNode.parse({ id: 'level_split_preflight' })
++  const source = WallNode.parse({
++    id: 'wall_split_source',
++    parentId: level.id,
++    start: [0, 2],
++    end: [1, 2],
++  })
++  const target = WallNode.parse({
++    id: 'wall_split_target',
++    parentId: level.id,
++    start: [2, 0],
++    end: [2, 4],
++  })
++  const door = DoorNode.parse({
++    id: 'door_split_preflight',
++    parentId: target.id,
++    wallId: target.id,
++    width: 0.8,
++    position: [position, 1, 0],
++  })
++  target.children = [door.id]
++  level.children = [source.id, target.id]
++  return {
++    nodes: { [level.id]: level, [source.id]: source, [target.id]: target, [door.id]: door },
++    source,
++    target,
++    door,
++  }
++}
++
++describe('shared 2D and 3D endpoint split preflight', () => {
++  test('plans valid split and attachment migration without changing source nodes', () => {
++    const { nodes, source, target, door } = fixture(1)
++    const baseline = structuredClone(nodes)
++    const plan = buildWallEndpointEditPlan(nodes, {
++      wall: source,
++      endpoint: 'end',
++      start: source.start,
++      end: [2, 2],
++      detach: false,
++    })
++    expect(nodes).toEqual(baseline)
++    expect(plan.changes.delete).toEqual([target.id])
++    expect(plan.changes.create).toHaveLength(2)
++    const childUpdate = plan.changes.update.find((update) => update.id === door.id)
++    expect(childUpdate?.data.parentId).not.toBe(target.id)
++    expect(
++      plan.changes.create?.find((entry) => entry.node.id === childUpdate?.data.parentId)?.node
++        .children,
++    ).toContain(door.id)
++  })
++  test('rejects a split through an opening before any source graph change', () => {
++    const { nodes, source } = fixture(2)
++    const baseline = structuredClone(nodes)
++    expect(() =>
++      buildWallEndpointEditPlan(nodes, {
++        wall: source,
++        endpoint: 'end',
++        start: source.start,
++        end: [2, 2],
++        detach: false,
++      }),
++    ).toThrow()
++    expect(nodes).toEqual(baseline)
++  })
++})
+diff --git a/packages/nodes/src/wall/endpoint-edit-plan.ts b/packages/nodes/src/wall/endpoint-edit-plan.ts
+new file mode 100644
+index 00000000..20817040
+--- /dev/null
++++ b/packages/nodes/src/wall/endpoint-edit-plan.ts
+@@ -0,0 +1,55 @@
++import {
++  type AnyNode,
++  type AnyNodeId,
++  buildWallEndpointUpdates,
++  type WallNode,
++  WallOperationError,
++} from '@pascal-app/core'
++import { planEndpointWallSplit, type WallPlanPoint } from '@pascal-app/editor'
++
++export function buildWallEndpointEditPlan(
++  nodes: Record<AnyNodeId, AnyNode>,
++  args: {
++    wall: WallNode
++    endpoint: 'start' | 'end'
++    start: WallPlanPoint
++    end: WallPlanPoint
++    detach: boolean
++    radius?: number
++  },
++) {
++  const provisional = buildWallEndpointUpdates(nodes, args.wall.id, args.start, args.end, {
++    detachLinkedWalls: args.detach,
++  })
++  const movingPoint = args.endpoint === 'start' ? args.start : args.end
++  const split = planEndpointWallSplit({
++    nodes,
++    point: movingPoint,
++    levelId: args.wall.parentId ?? null,
++    ignoreWallIds: provisional
++      .filter((update) => nodes[update.id]?.type === 'wall')
++      .map((update) => update.id),
++    radius: args.radius,
++  })
++  if (split?.blocked)
++    throw new WallOperationError('attachment-crosses-split', '벽 분할 위치가 부착물과 겹칩니다.')
++  const point = split?.point ?? movingPoint
++  const updates = buildWallEndpointUpdates(
++    nodes,
++    args.wall.id,
++    args.endpoint === 'start' ? point : args.start,
++    args.endpoint === 'end' ? point : args.end,
++    { detachLinkedWalls: args.detach },
++  )
++  const changes = { ...split?.changes, update: [...updates, ...(split?.changes.update ?? [])] }
++  const finalNodes = { ...nodes }
++  for (const entry of changes.create ?? []) finalNodes[entry.node.id] = entry.node
++  for (const update of changes.update)
++    finalNodes[update.id] = { ...finalNodes[update.id], ...update.data } as AnyNode
++  for (const id of changes.delete ?? []) delete finalNodes[id]
++  for (const entry of changes.create ?? []) {
++    if (entry.node.type === 'wall')
++      buildWallEndpointUpdates(finalNodes, entry.node.id, entry.node.start, entry.node.end)
++  }
++  return { changes, updates }
++}

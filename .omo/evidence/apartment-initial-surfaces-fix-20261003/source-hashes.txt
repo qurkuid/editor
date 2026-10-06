@@ -1,0 +1,8 @@
+Apartment initial surfaces fix source hashes
+Date: 2026-10-03 Asia/Seoul
+Command: shasum -a 256 apps/editor/lib/apt-vector-scene.ts apps/editor/lib/apt-vector-scene.test.ts apps/editor/components/apt-trace.tsx apps/editor/components/apt-search-panel.tsx apps/editor/lib/apt-import-frame.test.ts
+6092586698577501b55cf656696bdc78e02e6aae77644a75708a419dc61b8b46  apps/editor/lib/apt-vector-scene.ts
+93b7052141a49ea187fa08db5cd6a7084c54bcf9ff87a1aaa215032b9d6437c4  apps/editor/lib/apt-vector-scene.test.ts
+301337aabfe1312ff0903d1d4f873df42a5198477b526ef31e5693808b0f657e  apps/editor/components/apt-trace.tsx
+4da7ca19e9439d14c0b6ac3268760cbf60bb4e5bc036ddf713a071046f48bc66  apps/editor/components/apt-search-panel.tsx
+410a01e62dc0a6e013c557b29351837ad7d610890a7f5a80dda208ac1e6b1cd1  apps/editor/lib/apt-import-frame.test.ts

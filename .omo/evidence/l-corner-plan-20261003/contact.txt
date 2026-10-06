@@ -1,0 +1,70 @@
+packages/core/src/lib/polygon-relations.ts:1: export type Point2D = [number, number]
+packages/core/src/lib/polygon-relations.ts:2: 
+packages/core/src/lib/polygon-relations.ts:3: export function pointOnSegment(point: Point2D, start: Point2D, end: Point2D, tolerance = 1e-6) {
+packages/core/src/lib/polygon-relations.ts:4:   const dx = end[0] - start[0]
+packages/core/src/lib/polygon-relations.ts:5:   const dz = end[1] - start[1]
+packages/core/src/lib/polygon-relations.ts:6:   const cross = (point[0] - start[0]) * dz - (point[1] - start[1]) * dx
+packages/core/src/lib/polygon-relations.ts:7:   if (Math.abs(cross) > tolerance) return false
+packages/core/src/lib/polygon-relations.ts:8: 
+packages/core/src/lib/polygon-relations.ts:9:   const dot =
+packages/core/src/lib/polygon-relations.ts:10:     (point[0] - start[0]) * (point[0] - end[0]) + (point[1] - start[1]) * (point[1] - end[1])
+packages/core/src/lib/polygon-relations.ts:11:   return dot <= tolerance
+packages/core/src/lib/polygon-relations.ts:12: }
+packages/core/src/lib/polygon-relations.ts:13: 
+packages/core/src/lib/polygon-relations.ts:14: export function pointInPolygon(
+packages/core/src/lib/polygon-relations.ts:15:   point: Point2D,
+packages/core/src/lib/polygon-relations.ts:16:   polygon: Point2D[],
+packages/core/src/lib/polygon-relations.ts:17:   options?: { includeBoundary?: boolean },
+packages/core/src/lib/polygon-relations.ts:18: ) {
+packages/core/src/lib/polygon-relations.ts:19:   if (polygon.length < 3) return false
+packages/core/src/lib/polygon-relations.ts:20:   const includeBoundary = options?.includeBoundary ?? true
+packages/core/src/lib/polygon-relations.ts:21:   if (
+packages/core/src/lib/polygon-relations.ts:22:     polygon.some((start, index) =>
+packages/core/src/lib/polygon-relations.ts:23:       pointOnSegment(point, start, polygon[(index + 1) % polygon.length]!),
+packages/core/src/lib/polygon-relations.ts:24:     )
+packages/core/src/lib/polygon-relations.ts:25:   ) {
+packages/core/src/lib/polygon-relations.ts:26:     return includeBoundary
+packages/core/src/lib/polygon-relations.ts:27:   }
+packages/core/src/lib/polygon-relations.ts:28: 
+packages/core/src/lib/polygon-relations.ts:29:   let inside = false
+packages/core/src/lib/polygon-relations.ts:30:   const [x, z] = point
+packages/core/src/lib/polygon-relations.ts:31:   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+packages/core/src/lib/polygon-relations.ts:32:     const current = polygon[i]!
+packages/core/src/lib/polygon-relations.ts:33:     const previous = polygon[j]!
+packages/core/src/lib/polygon-relations.ts:34:     const intersects =
+packages/core/src/lib/polygon-relations.ts:35:       current[1] > z !== previous[1] > z &&
+packages/core/src/lib/polygon-relations.ts:36:       x < ((previous[0] - current[0]) * (z - current[1])) / (previous[1] - current[1]) + current[0]
+packages/core/src/lib/polygon-relations.ts:37:     if (intersects) inside = !inside
+packages/core/src/lib/polygon-relations.ts:38:   }
+packages/core/src/lib/polygon-relations.ts:39:   return inside
+packages/core/src/lib/polygon-relations.ts:40: }
+packages/core/src/lib/polygon-relations.ts:41: 
+packages/core/src/lib/polygon-relations.ts:42: export function segmentsIntersect(a: Point2D, b: Point2D, c: Point2D, d: Point2D) {
+packages/core/src/lib/polygon-relations.ts:43:   const cross = (ux: number, uz: number, vx: number, vz: number) => ux * vz - uz * vx
+packages/core/src/lib/polygon-relations.ts:44:   const abx = b[0] - a[0]
+packages/core/src/lib/polygon-relations.ts:45:   const abz = b[1] - a[1]
+packages/core/src/lib/polygon-relations.ts:46:   const acx = c[0] - a[0]
+packages/core/src/lib/polygon-relations.ts:47:   const acz = c[1] - a[1]
+packages/core/src/lib/polygon-relations.ts:48:   const adx = d[0] - a[0]
+packages/core/src/lib/polygon-relations.ts:49:   const adz = d[1] - a[1]
+packages/core/src/lib/polygon-relations.ts:50:   const cdx = d[0] - c[0]
+packages/core/src/lib/polygon-relations.ts:51:   const cdz = d[1] - c[1]
+packages/core/src/lib/polygon-relations.ts:52:   const cax = a[0] - c[0]
+packages/core/src/lib/polygon-relations.ts:53:   const caz = a[1] - c[1]
+packages/core/src/lib/polygon-relations.ts:54:   const cbx = b[0] - c[0]
+packages/core/src/lib/polygon-relations.ts:55:   const cbz = b[1] - c[1]
+packages/core/src/lib/polygon-relations.ts:56: 
+packages/core/src/lib/polygon-relations.ts:57:   const o1 = cross(abx, abz, acx, acz)
+packages/core/src/lib/polygon-relations.ts:58:   const o2 = cross(abx, abz, adx, adz)
+packages/core/src/lib/polygon-relations.ts:59:   const o3 = cross(cdx, cdz, cax, caz)
+packages/core/src/lib/polygon-relations.ts:60:   const o4 = cross(cdx, cdz, cbx, cbz)
+packages/core/src/lib/polygon-relations.ts:61: 
+packages/core/src/lib/polygon-relations.ts:62:   if (Math.sign(o1) !== Math.sign(o2) && Math.sign(o3) !== Math.sign(o4)) return true
+packages/core/src/lib/polygon-relations.ts:63:   return (
+packages/core/src/lib/polygon-relations.ts:64:     pointOnSegment(c, a, b) ||
+packages/core/src/lib/polygon-relations.ts:65:     pointOnSegment(d, a, b) ||
+packages/core/src/lib/polygon-relations.ts:66:     pointOnSegment(a, c, d) ||
+packages/core/src/lib/polygon-relations.ts:67:     pointOnSegment(b, c, d)
+packages/core/src/lib/polygon-relations.ts:68:   )
+packages/core/src/lib/polygon-relations.ts:69: }
+packages/core/src/lib/polygon-relations.ts:70: 

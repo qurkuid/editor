@@ -1,0 +1,5 @@
+apps/editor/components/viewer-toolbar.test.ts
+apps/editor/components/viewer-toolbar.tsx
+packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.test.ts
+packages/editor/src/components/editor-2d/renderers/floorplan-registry-layer.tsx
+packages/editor/src/i18n/dictionary/viewer-chrome.ts

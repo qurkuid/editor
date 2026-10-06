@@ -26,7 +26,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 type Point2D = readonly [number, number]
 
-function ZonePlanSketch({
+export function ZonePlanSketch({
   edgeLengths,
   metricNotation,
   polygon,
@@ -61,7 +61,7 @@ function ZonePlanSketch({
   const offsetX = (viewWidth - width * scale) / 2
   const offsetY = (viewHeight - height * scale) / 2
   const projected = polygon.map(
-    ([x, y]) => [offsetX + (x - minX) * scale, offsetY + (maxY - y) * scale] as Point2D,
+    ([x, y]) => [offsetX + (x - minX) * scale, offsetY + (y - minY) * scale] as Point2D,
   )
   const center = projected.reduce(
     (sum, point) => [sum[0] + point[0] / projected.length, sum[1] + point[1] / projected.length],

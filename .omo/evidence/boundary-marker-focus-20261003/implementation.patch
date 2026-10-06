@@ -1,0 +1,98 @@
+--- before/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.tsx
++++ after/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.tsx
+@@ -96,7 +96,7 @@
+   )
+ }
+ 
+-function RoomBoundaryMarker({
++export function RoomBoundaryMarker({
+   entry,
+   metricNotation,
+   onActivate,
+@@ -150,6 +150,7 @@
+   return (
+     <g
+       aria-label={`벽 ${entry.endpoint.wallId} ${entry.endpoint.endpoint} 경계 점검`}
++      className="group/room-boundary"
+       data-room-boundary-status={entry.status}
+       data-testid={`room-boundary-marker-${issueId}`}
+       onClick={(event) => onActivate(event, entry.endpoint.wallId)}
+@@ -157,8 +158,22 @@
+       onPointerDown={(event) => event.stopPropagation()}
+       onPointerUp={(event) => event.stopPropagation()}
+       role="button"
++      style={{ outline: 'none' }}
+       tabIndex={0}
+     >
++      <circle
++        aria-hidden="true"
++        className="hidden group-focus-visible/room-boundary:block"
++        cx={x}
++        cy={z}
++        data-room-boundary-focus="true"
++        fill="none"
++        pointerEvents="none"
++        r={9 * unitsPerPixel}
++        stroke={color}
++        strokeWidth={2 * unitsPerPixel}
++        tabIndex={-1}
++      />
+       {hasGap && target ? (
+         <line
+           data-room-boundary-candidate="best"
+--- before/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.test.ts
++++ after/packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.test.ts
+@@ -4,8 +4,11 @@
+   RoomBoundaryEndpoint,
+   RoomBoundaryIssue,
+ } from '@pascal-app/core'
++import { createElement } from 'react'
++import { renderToStaticMarkup } from 'react-dom/server'
+ import {
+   buildRoomBoundaryOverlayEntries,
++  RoomBoundaryMarker,
+   selectBestRoomBoundaryCandidate,
+ } from './floorplan-zone-closure-layer'
+ 
+@@ -23,6 +26,41 @@
+ }
+ 
+ describe('floorplan zone closure layer', () => {
++  test.each([
++    0.01, 0.1,
++  ])('keeps keyboard focus indication screen-scaled at %s units per pixel', (unitsPerPixel) => {
++    const markup = renderToStaticMarkup(
++      createElement(RoomBoundaryMarker, {
++        entry: {
++          endpoint: { wallId: 'wall_open', endpoint: 'start', point: [2, 3] },
++          status: 'manual',
++        },
++        metricNotation: 'millimeters',
++        onActivate: () => {},
++        sceneRotationDeg: 0,
++        unit: 'metric',
++        unitsPerPixel,
++      }),
++    )
++    const marker = markup.match(/^<g\b[^>]*>/)?.[0] ?? ''
++    expect(marker).toContain('style="outline:none"')
++    expect(marker).toContain('class="group/room-boundary"')
++    expect(marker).toContain('role="button"')
++    expect(marker).toContain('tabindex="0"')
++    expect(marker).toContain('aria-label="벽 wall_open start 경계 점검"')
++
++    const ring = markup.match(/<circle\b[^>]*data-room-boundary-focus="true"[^>]*>/)?.[0] ?? ''
++    expect(ring).toContain('class="hidden group-focus-visible/room-boundary:block"')
++    expect(ring).toContain('aria-hidden="true"')
++    expect(ring).toContain('pointer-events="none"')
++    expect(ring).toContain('fill="none"')
++    expect(ring).toContain('stroke="#f59e0b"')
++    expect(ring).toContain('cx="2"')
++    expect(ring).toContain('cy="3"')
++    expect(Number(ring.match(/\br="([^"]+)"/)?.[1]) / unitsPerPixel).toBeCloseTo(9)
++    expect(Number(ring.match(/\bstroke-width="([^"]+)"/)?.[1]) / unitsPerPixel).toBeCloseTo(2)
++  })
++
+   test('shows the best safe candidate instead of a nearer manual candidate', () => {
+     const manual = candidate({ id: 'manual', distance: 0.04, reason: 'ambiguous' })
+     const safe = candidate({ id: 'safe', distance: 0.2, safe: true })

@@ -1,0 +1,23 @@
+Verification scope: packages/core topology refinement owned slice
+
+Focused residual:
+bun test packages/core/src/lib/space-detection.test.ts --test-name-pattern='residual topology refinement'
+Result: 13 pass, 0 fail, 54 expect() calls. Reduced expected spaces: p12=1, p14=1, p22=2, p35=1. Coverage includes exact X/T intersections (including door-hosted T and a curved endpoint on a straight host), collinear passage, shared straight endpoint cluster, curved incident negative, close-parallel, ambiguous, and curved-wall controls. Polygon checks reject proper crossings, non-adjacent endpoint touches, collinear overlap, and degenerate edges.
+
+Focused core regression:
+bun test packages/core/src/lib/space-detection.test.ts packages/core/src/lib/space-detection-history.test.ts packages/core/src/lib/space-detection-pause.test.ts
+Result: 70 pass, 0 fail, 261 expect() calls.
+
+Formatting:
+bunx biome check --write packages/core/src/lib/space-detection.ts packages/core/src/lib/space-detection.test.ts
+Result: Checked 2 files. No fixes applied on the final check.
+
+Core build:
+bun run --cwd packages/core build
+Result: tsc --build passed.
+
+Selected replay with hard floors:
+bun .omo/evidence/apartment-topology-refinement-20261003/core/replay-selected.ts
+Result: p12=10 (floor 8), p14=7 (floor 5), p22=10 (floor 7), p35=14 (floor 11). All have unique IDs, valid boundary wall refs, spaceProperCrossings=0, slabProperCrossings=0, spaceBoundaryIssues=0, and slabBoundaryIssues=0. The replay exits nonzero if any floor or geometry invariant fails.
+
+Source hashes are recorded in source-hashes.sha256. Full 50-case batch and browser QA remain parent-owned.

@@ -134,6 +134,46 @@ test('plain wall stays twelve triangles', () => {
   expect(result.badEdges).toBe(0)
 })
 
+test('conforms unregistered wall construction meshes without taking over nested node owners', () => {
+  const { wall, root, mesh, geometry } = fixture(true)
+  const constructionGeometry = geometry.clone()
+  const construction = new THREE.Mesh(
+    constructionGeometry,
+    Array.from({ length: 8 }, () => new THREE.MeshStandardMaterial()),
+  )
+  construction.name = 'wall-construction-part'
+  mesh.add(construction)
+
+  const nestedGeometry = geometry.clone()
+  const nested = new THREE.Mesh(
+    nestedGeometry,
+    Array.from({ length: 8 }, () => new THREE.MeshStandardMaterial()),
+  )
+  nested.name = 'hosted-door-part'
+  const nestedOwner = new THREE.Group()
+  nestedOwner.name = 'hosted-door-owner'
+  nestedOwner.add(nested)
+  mesh.add(nestedOwner)
+  sceneRegistry.nodes.set('door_export', nestedOwner)
+
+  const constructionBefore = inspect([constructionGeometry])
+  const nestedBefore = inspect([nestedGeometry])
+  const constructionSource = constructionGeometry.toJSON()
+  const nestedSource = nestedGeometry.toJSON()
+  expect(constructionBefore.badEdges).toBeGreaterThan(0)
+  expect(nestedBefore.badEdges).toBeGreaterThan(0)
+
+  const { scene } = prepareSceneForExport(root, { [wall.id]: wall })
+  const exportedConstruction = scene.getObjectByName(construction.name) as THREE.Mesh
+  const exportedNested = scene.getObjectByName(nested.name) as THREE.Mesh
+
+  expect(inspect([exportedConstruction.geometry]).badEdges).toBe(0)
+  expect(exportedNested.geometry).toBe(nestedGeometry)
+  expect(inspect([exportedNested.geometry]).badEdges).toBe(nestedBefore.badEdges)
+  expect(constructionGeometry.toJSON()).toEqual(constructionSource)
+  expect(nestedGeometry.toJSON()).toEqual(nestedSource)
+})
+
 test('removes collapsed CSG triangles without changing the wall shell', () => {
   const { wall, root, mesh } = fixture(false)
   const geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone()

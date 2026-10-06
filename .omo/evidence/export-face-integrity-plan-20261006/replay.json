@@ -1,0 +1,806 @@
+{
+  "scenario": "actual downloaded layout -> registered wall host -> opening/support CSG -> construction CSG -> existing conformance",
+  "walls": 42,
+  "allRawBroken": true,
+  "allClosed": true,
+  "results": [
+    {
+      "id": "wall_bcj20b9lrugzi19x",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 35,
+            "badEdges": 21,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 54,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_tq8pi53tobxhzit3",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 52,
+            "badEdges": 22,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 72,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_3s949ac1ciuu8pm5",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 47,
+            "badEdges": 21,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 64,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_fllweyqyh1immuf3",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 62,
+            "badEdges": 32,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 94,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_xb23w87kwr0apg2c",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 48,
+            "badEdges": 24,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 68,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_w1gcoaho8o6jtk6z",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 17,
+            "badEdges": 3,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 20,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_58cbz7tm79a554kl",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 78,
+            "badEdges": 68,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 166,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_qynx1d1rcc9kzdva",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 120,
+            "badEdges": 102,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 236,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_bphlciefmvr95eu7",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 42,
+            "badEdges": 30,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 68,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_9hi87gdso38nq5be",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 40,
+            "badEdges": 24,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 60,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_zeb2dlit8v0kt7ue",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 120,
+            "badEdges": 94,
+            "dropped": 0,
+            "shortEdgeOccurrences": 2
+          },
+          "conformed": {
+            "triangles": 222,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_spea8xr3ezww4580",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 95,
+            "badEdges": 85,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 188,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_2769zwuof3zoa7l8",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 91,
+            "badEdges": 89,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 194,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_r506hadj82pjbbrf",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 44,
+            "badEdges": 30,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 70,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_tcghnmnvwhgk89lu",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 99,
+            "badEdges": 89,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 196,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_xswh6u478jvc4ftm",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 34,
+            "badEdges": 18,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 48,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_br2slu0ljmzklme4",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 34,
+            "badEdges": 18,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 48,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_6umucmp37yy5g18y",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 57,
+            "badEdges": 45,
+            "dropped": 0,
+            "shortEdgeOccurrences": 2
+          },
+          "conformed": {
+            "triangles": 106,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_c23hupumzw0wpwc4",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 49,
+            "badEdges": 17,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 64,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_gbu26bpmpn1jf8ob",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 31,
+            "badEdges": 15,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 44,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_a5xco29w7iiwwyv1",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 35,
+            "badEdges": 15,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 48,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_bfgl1ozzvss62pl3",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 48,
+            "badEdges": 20,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 68,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_36epw6kw0qhsgpla",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 40,
+            "badEdges": 24,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 60,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_16nowemc6e1hp4sm",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 183,
+            "badEdges": 133,
+            "dropped": 0,
+            "shortEdgeOccurrences": 52
+          },
+          "conformed": {
+            "triangles": 334,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 58
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_0i20ux6bjunis2u6",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 138,
+            "badEdges": 100,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 252,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_m5vz310de1v7srt0",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 46,
+            "badEdges": 30,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 72,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_9k96h3wc8iwsjul7",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 117,
+            "badEdges": 105,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 238,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_onqhpyb581id7o2m",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 49,
+            "badEdges": 17,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 68,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_gp0zdhhfcx48ld71",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 116,
+            "badEdges": 98,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 226,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_pp455v1i6jyw0bdj",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 99,
+            "badEdges": 95,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 204,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_6onwvji56mltgsg7",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 62,
+            "badEdges": 26,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 88,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_htn3zakhjuwj1fhw",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 48,
+            "badEdges": 36,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 80,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_0xdl4h3r4fmrwsrv",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 123,
+            "badEdges": 105,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 244,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_975ymkpsuhftzxno",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 39,
+            "badEdges": 15,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 52,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_fnswr6tbg5yslzd8",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 129,
+            "badEdges": 98,
+            "dropped": 1,
+            "shortEdgeOccurrences": 1
+          },
+          "conformed": {
+            "triangles": 248,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_xtgz1716wgdu67j7",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 140,
+            "badEdges": 108,
+            "dropped": 0,
+            "shortEdgeOccurrences": 20
+          },
+          "conformed": {
+            "triangles": 254,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 18
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_nbspuhl0y89eb4te",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 39,
+            "badEdges": 15,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 52,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_yw3ry6zjl9p6i261",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 36,
+            "badEdges": 18,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 52,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_ink4dxfhf3ed2bcf",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 132,
+            "badEdges": 94,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 234,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_fp0bmnv5k2w9n084",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 39,
+            "badEdges": 27,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 62,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_xf0yh1eha9e02hto",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 97,
+            "badEdges": 85,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 196,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "wall_vcj6nm5e9yokadmw",
+      "parts": [
+        {
+          "raw": {
+            "triangles": 53,
+            "badEdges": 25,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          },
+          "conformed": {
+            "triangles": 74,
+            "badEdges": 0,
+            "dropped": 0,
+            "shortEdgeOccurrences": 0
+          }
+        }
+      ]
+    }
+  ]
+}

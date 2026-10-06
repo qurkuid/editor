@@ -1,0 +1,62 @@
+ M apps/editor/app/api/apartments/[id]/plans/[planId]/vector/route.ts
+ M apps/editor/components/apt-search-panel.tsx
+ M apps/editor/components/apt-trace.tsx
+ M apps/editor/lib/apt-import-frame.test.ts
+ M apps/editor/lib/apt-import-frame.ts
+ M apps/editor/lib/apt-vector-scene.test.ts
+ M apps/editor/lib/apt-vector-scene.ts
+ M packages/core/src/index.ts
+ M packages/core/src/lib/space-detection-history.test.ts
+ M packages/core/src/lib/space-detection.test.ts
+ M packages/core/src/lib/space-detection.ts
+ M packages/core/src/lib/wall-operations.ts
+ M packages/editor/src/components/editor/floorplan-panel.tsx
+ M packages/editor/src/components/ui/sidebar/panels/site-panel/index.tsx
+ M packages/editor/src/components/ui/sidebar/panels/zone-panel/index.tsx
+ M packages/mcp/src/modeling-agent-manual.ts
+ M packages/mcp/src/ontology-manual.test.ts
+ M packages/mcp/src/resources/resources.test.ts
+ M packages/viewer/src/components/viewer/index.tsx
+?? .omo/evidence/apartment-50-browser-20261003/
+?? .omo/evidence/apartment-50-improvement-20261003/
+?? .omo/evidence/apartment-auto-slab-delete-fix-20261003/
+?? .omo/evidence/apartment-initial-surfaces-fix-20261003/
+?? .omo/evidence/apartment-next-residual-20261003/
+?? .omo/evidence/apartment-next-residual-improvement-20261003/
+?? .omo/evidence/apartment-residual-closure-20261003/
+?? .omo/evidence/apartment-scale-fix-20261003/
+?? .omo/evidence/apartment-source-chain-guards-20261003/
+?? .omo/evidence/apartment-space-id-fix-20261003/
+?? .omo/evidence/apartment-topology-refinement-20261003/
+?? .omo/evidence/apartment-viewer-init-recovery-20261003/
+?? .omo/evidence/apartment-weld-fix-20261003/
+?? .omo/evidence/apartment-zone-closure-20261002/
+?? .omo/evidence/apartment-zone-real-20261003/
+?? .omo/evidence/apartment-zone-split-fix-20261003/
+?? .omo/evidence/boundary-marker-focus-20261003/
+?? .omo/evidence/editor-completion-20261002/
+?? .omo/evidence/manual-boundary-plan-20261003/
+?? .omo/evidence/manual-boundary-repair-20261003/
+?? .omo/evidence/wall-related-zone-plan-20261002/
+?? .omo/evidence/wall-related-zone-release-20261002/
+?? .omo/evidence/zone-mode-20261002/
+?? .omo/plans/apartment-50-improvement-20261003.md
+?? .omo/plans/apartment-50-residual-improvement-20261003.md
+?? .omo/plans/apartment-guide-scale-default-20261003.md
+?? .omo/plans/apartment-next-residual-improvement-20261003.md
+?? .omo/plans/apartment-residual-closure-20261003.md
+?? .omo/plans/apartment-source-chain-guards-20261003.md
+?? .omo/plans/apartment-source-chain-guards-acceptance-clarification-20261003.md
+?? .omo/plans/apartment-source-chain-guards-product-revision-20261003.md
+?? .omo/plans/apartment-source-chain-guards-revision-20261003.md
+?? .omo/plans/apartment-viewer-init-recovery-20261003.md
+?? .omo/plans/apartment-zone-closure-20261002.md
+?? .omo/plans/apartment-zone-real-20261003.md
+?? .omo/plans/zone-mode-20261002.md
+?? packages/core/src/lib/room-boundary.test.ts
+?? packages/core/src/lib/room-boundary.ts
+?? packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.test.ts
+?? packages/editor/src/components/editor-2d/floorplan-zone-closure-layer.tsx
+?? packages/editor/src/components/ui/sidebar/panels/zone-panel/zone-closure-panel.tsx
+?? packages/viewer/src/lib/renderer-init.test.ts
+?? packages/viewer/src/lib/renderer-init.ts
