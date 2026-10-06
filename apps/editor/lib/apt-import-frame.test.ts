@@ -286,6 +286,11 @@ describe('apartment import frame', () => {
         parentId: levelId,
         start: [0, 3],
         end: [0, 0],
+        thickness: 0.23,
+        slots: {
+          interior: 'library:brick-common',
+          exterior: 'library:stucco-white',
+        },
         metadata: { source: 'manual' },
       }),
     ]
@@ -506,6 +511,13 @@ describe('apartment import frame', () => {
       expect(current[manualSlab.id]).toEqual(manualSlab)
       expect(current[manualCeiling.id]).toEqual(manualCeiling)
       expect(current[manualConnectedWall.id]).toEqual(manualConnectedWallBefore)
+      expect(current[manualConnectedWall.id]).toMatchObject({
+        thickness: 0.23,
+        slots: {
+          interior: 'library:brick-common',
+          exterior: 'library:stucco-white',
+        },
+      })
       const autoSlabs = Object.values(current).filter(
         (node) => node.type === 'slab' && node.autoFromWalls === true,
       )

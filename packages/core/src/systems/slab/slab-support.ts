@@ -274,6 +274,7 @@ export type WallOverlapInput = {
   end: [number, number]
   curveOffset?: number
   thickness?: number
+  supportOffset?: number
 }
 
 // Minimum length of wall that must lie on/inside a slab polygon before the
@@ -560,6 +561,55 @@ export function computeWallSlabSupport(
     group.slabIds.push(slab.id)
     for (let i = 0; i < perPolyline.length; i++) {
       group.perPolyline[i]!.push(...perPolyline[i]!)
+    }
+  }
+
+  if (groups.length === 0 && preferredSlabId == null && (wallLike.supportOffset ?? 0) === 0) {
+    const matchingWalls = levelWalls.filter(
+      (wall) =>
+        wall.start[0] === start[0] &&
+        wall.start[1] === start[1] &&
+        wall.end[0] === end[0] &&
+        wall.end[1] === end[1] &&
+        (wall.curveOffset ?? 0) === curveOffset &&
+        (wall.thickness ?? DEFAULT_WALL_THICKNESS) === thickness,
+    )
+    const matchedWall = matchingWalls.length === 1 ? matchingWalls[0]! : null
+    const matchedMetadata = matchedWall?.metadata
+    if (
+      matchedWall?.parentId &&
+      typeof matchedMetadata === 'object' &&
+      matchedMetadata !== null &&
+      !Array.isArray(matchedMetadata) &&
+      matchedMetadata.source === 'apt-vector' &&
+      matchedWall.height === undefined &&
+      matchedWall.supportSlabId === undefined &&
+      (matchedWall.supportOffset ?? 0) === 0
+    ) {
+      const sameLevelSlabs = slabs.filter((slab) => slab.parentId === matchedWall.parentId)
+      const autoSlabs = sameLevelSlabs.filter(
+        (slab) => slab.autoFromWalls && slab.polygon.length >= 3,
+      )
+      const fallbackElevation = autoSlabs[0]?.elevation
+      if (
+        fallbackElevation !== undefined &&
+        Number.isFinite(fallbackElevation) &&
+        sameLevelSlabs.every(
+          (slab) =>
+            Number.isFinite(slab.elevation) &&
+            Math.abs(slab.elevation - fallbackElevation) <= WALL_SLAB_ELEVATION_POOL_EPSILON &&
+            slab.recessed !== true &&
+            !(slab.holes ?? []).some((hole) => hole.length >= 3),
+        ) &&
+        (maxElevation == null || fallbackElevation <= maxElevation + SUPPORT_ELEVATION_EPSILON)
+      ) {
+        return {
+          elevation: fallbackElevation,
+          electedSlabId: null,
+          baseElevation: fallbackElevation,
+          baseSegments: [{ start: 0, end: 1, elevation: fallbackElevation }],
+        }
+      }
     }
   }
 

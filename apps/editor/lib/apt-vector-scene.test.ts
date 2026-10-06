@@ -2,8 +2,10 @@ import { describe, expect, test } from 'bun:test'
 import {
   CeilingNode,
   calculateLevelMiters,
+  DEFAULT_WALL_THICKNESS,
   detectSpacesForLevel,
   GuideNode,
+  getWallConstructionEnvelopeThickness,
   getWallPlanFootprint,
   SlabNode,
   WallNode,
@@ -402,7 +404,7 @@ function hasApprovedP30Host(scene: ReturnType<typeof buildVectorNodes>): boolean
       pointDistance(host.end, expectedEnd) <= 1e-6) ||
     (pointDistance(host.start, expectedEnd) <= 1e-6 &&
       pointDistance(host.end, expectedStart) <= 1e-6)
-  return envelopeMatches && Math.abs(host.thickness - 0.2708) <= 1e-6 && winner.width > 1.28
+  return envelopeMatches && host.thickness === DEFAULT_WALL_THICKNESS && winner.width > 1.28
 }
 
 function expectP30OrdinaryParity(variant: AptVectorDoc): void {
@@ -699,6 +701,35 @@ describe('normalizeAptVectorDocForGuide', () => {
 })
 
 describe('buildVectorNodes', () => {
+  test('fixes automatic walls at 100 mm concrete with concrete-plate finishes across guide scales', () => {
+    const input = structuredClone(doc)
+    const before = structuredClone(input)
+
+    for (const scale of [undefined, 0.5, 2] as const) {
+      const built = buildVectorNodes(input, scale === undefined ? {} : { scale })!
+      expect(built.walls.length).toBeGreaterThan(0)
+      for (const wall of built.walls) {
+        expect(wall.thickness).toBe(DEFAULT_WALL_THICKNESS)
+        expect(getWallConstructionEnvelopeThickness(wall)).toBeCloseTo(DEFAULT_WALL_THICKNESS)
+        expect(wall.faceBands?.construction?.upper).toMatchObject({
+          layers: [{ kind: 'concrete', thickness: DEFAULT_WALL_THICKNESS }],
+        })
+        expect(wall.faceBands?.construction?.upper?.layers).toHaveLength(1)
+        expect(wall.slots).toEqual({
+          interior: 'library:concrete-plate',
+          exterior: 'library:concrete-plate',
+        })
+      }
+      for (const opening of built.openings) {
+        const host = built.walls.find((wall) => wall.id === opening.wallId)
+        expect(host?.thickness).toBe(DEFAULT_WALL_THICKNESS)
+        expect(host).toBeDefined()
+      }
+    }
+
+    expect(input).toEqual(before)
+  })
+
   test('does not weld a short bevel beyond its original segment length', () => {
     const shortBevel = weldFixture([
       {
@@ -839,11 +870,7 @@ describe('buildVectorNodes', () => {
     expect(
       built.walls.some(
         (wall) =>
-          wall.thickness === 0.2 &&
-          wall.start[0] === 1.8 &&
-          wall.start[1] === -2 &&
-          wall.end[0] === 1.8 &&
-          wall.end[1] === 2,
+          wall.start[0] === 1.8 && wall.start[1] === -2 && wall.end[0] === 1.8 && wall.end[1] === 2,
       ),
     ).toBe(true)
   })
@@ -1182,9 +1209,9 @@ describe('buildVectorNodes', () => {
       expect(target.start[1]).toBeCloseTo(expectedStart[1])
       expect(target.end[0]).toBeCloseTo(expectedEnd[0])
       expect(target.end[1]).toBeCloseTo(expectedEnd[1])
-      expect(target.thickness).toBeCloseTo(source.thickness * 1.5)
+      expect(target.thickness).toBe(DEFAULT_WALL_THICKNESS)
       expect(target.faceBands?.construction?.upper?.layers[0]?.thickness).toBeCloseTo(
-        source.thickness * 1.5,
+        DEFAULT_WALL_THICKNESS,
       )
     }
     const baseDoor = base.openings.find((opening) => opening.type === 'door')!
@@ -1291,10 +1318,7 @@ describe('buildVectorNodes', () => {
     const built = buildVectorNodes(cornerContacts)!
     const horizontal = built.walls
       .filter(
-        (wall) =>
-          wall.thickness === 0.2 &&
-          Math.abs(wall.start[1]) < 1e-7 &&
-          Math.abs(wall.end[1] - wall.start[1]) < 1e-7,
+        (wall) => Math.abs(wall.start[1]) < 1e-7 && Math.abs(wall.end[1] - wall.start[1]) < 1e-7,
       )
       .sort((a, b) => a.start[0] - b.start[0])
 
@@ -1306,7 +1330,7 @@ describe('buildVectorNodes', () => {
     expect(horizontal[1]?.start[0]).toBeCloseTo(0)
     expect(horizontal[1]?.end[0]).toBeCloseTo(3)
     const authoredShorts = built.walls
-      .filter((wall) => wall.thickness === 0.1 && segLenOf(wall) < 0.3)
+      .filter((wall) => segLenOf(wall) < 0.3)
       .map(segLenOf)
       .sort((a, b) => a - b)
     expect(authoredShorts).toHaveLength(3)
@@ -1342,14 +1366,11 @@ describe('buildVectorNodes', () => {
       ],
     })!
     const host = built.walls.find(
-      (wall) => wall.thickness === 0.2 && Math.abs(wall.start[1]) < 1e-7,
+      (wall) => Math.abs(wall.start[1]) < 1e-7 && wall.children.length > 0,
     )!
     const horizontal = built.walls
       .filter(
-        (wall) =>
-          wall.thickness === 0.2 &&
-          Math.abs(wall.start[1]) < 1e-7 &&
-          Math.abs(wall.end[1] - wall.start[1]) < 1e-7,
+        (wall) => Math.abs(wall.start[1]) < 1e-7 && Math.abs(wall.end[1] - wall.start[1]) < 1e-7,
       )
       .sort((a, b) => a.start[0] - b.start[0])
     expect(horizontal).toHaveLength(2)
@@ -1420,15 +1441,19 @@ describe('buildVectorNodes', () => {
     ).toBe(true)
   })
 
-  test('uses solid concrete for apartment walls while preserving detected thickness', () => {
+  test('uses fixed 100 mm solid concrete and concrete-plate finishes for apartment walls', () => {
     const { walls, openings } = buildVectorNodes(doc)!
-    expect(new Set(walls.map((wall) => wall.thickness))).toEqual(new Set([0.1, 0.2]))
+    expect(new Set(walls.map((wall) => wall.thickness))).toEqual(new Set([0.1]))
     for (const wall of walls) {
       expect(wall.faceBands?.construction?.upper).toMatchObject({
         mode: 'assembly',
         layers: [{ kind: 'concrete', thickness: wall.thickness, wasteFactor: 0 }],
       })
       expect(wall.faceBands?.construction?.upper?.layers).toHaveLength(1)
+      expect(wall.slots).toEqual({
+        interior: 'library:concrete-plate',
+        exterior: 'library:concrete-plate',
+      })
     }
     for (const opening of openings) {
       expect(walls.some((wall) => wall.id === opening.wallId)).toBe(true)
@@ -1466,7 +1491,7 @@ describe('buildVectorNodes', () => {
     const [lo, hi] = [north.start[0], north.end[0]].sort((p, q) => p - q)
     expect(lo).toBeCloseTo(-4)
     expect(hi).toBeCloseTo(4)
-    expect(north.thickness).toBeCloseTo(0.2)
+    expect(north.thickness).toBe(DEFAULT_WALL_THICKNESS)
     // 1000 px * 10 mm/px = 10 m plan width → the 10 m guide plane needs scale 1
     expect(guideScale).toBeCloseTo(1)
   })
@@ -1722,9 +1747,11 @@ describe('buildVectorNodes', () => {
       ],
     }
     const { walls } = buildVectorNodes(gappy)!
-    const cornerV = walls.find((wall) => wall.thickness! > 0.12 && wall.start[0] === wall.end[0])!
+    const cornerV = walls.find(
+      (wall) => wall.start[0] === wall.end[0] && Math.abs(wall.start[0] + 4) < 1e-7,
+    )!
     const cornerH = walls.find(
-      (wall) => wall.thickness! > 0.12 && wall.start[1] === wall.end[1] && segLenOf(wall) > 1,
+      (wall) => wall.start[1] === wall.end[1] && Math.abs(wall.start[1] + 3) < 1e-7,
     )!
     // both legs now reach the shared corner (1000, 1000) mm → (-4, -3) m
     expect(Math.min(cornerV.start[1], cornerV.end[1])).toBeCloseTo(-3)
@@ -1732,7 +1759,9 @@ describe('buildVectorNodes', () => {
     // the collinear continuation `d` was absorbed into the same wall node
     expect(Math.max(cornerH.start[0], cornerH.end[0])).toBeCloseTo(-1.85)
     // the tee wall extends to wall `a`'s centreline x = -4
-    const tee = walls.find((wall) => wall.thickness! < 0.12 && segLenOf(wall) > 1)!
+    const tee = walls.find(
+      (wall) => wall.start[1] === wall.end[1] && Math.abs(wall.start[1] + 2) < 1e-7,
+    )!
     expect(Math.min(tee.start[0], tee.end[0])).toBeCloseTo(-4)
     // the isolated 150 mm pier survived as its own wall
     expect(walls.some((wall) => segLenOf(wall) < 0.2)).toBe(true)
@@ -1826,7 +1855,7 @@ describe('buildVectorNodes', () => {
     }
     const built = buildVectorNodes(traced)!
     expect(built.walls).toHaveLength(2)
-    const retained = built.walls.find((wall) => wall.thickness === 0.25)!
+    const retained = built.walls.find((wall) => wall.start[0] === wall.end[0])!
     expect(retained.start[0]).toBeCloseTo(-2)
     expect(retained.end[0]).toBeCloseTo(-2)
   })
@@ -2455,14 +2484,15 @@ describe('buildVectorNodes', () => {
     }
 
     const built = buildVectorNodes(sourceChain)!
-    const outer = built.walls.filter((wall) => wall.thickness === 0.25)
-    const thin = built.walls.filter((wall) => wall.thickness === 0.12)
-    expect(outer).toHaveLength(2)
-    expect(thin).toHaveLength(1)
-    expect(outer.map(segLenOf).sort((a, b) => a - b)).toEqual([
+    expect(built.walls).toHaveLength(4)
+    expect(built.walls.every((wall) => wall.thickness === DEFAULT_WALL_THICKNESS)).toBe(true)
+    expect(built.walls.map(segLenOf).sort((a, b) => a - b)).toEqual([
+      expect.closeTo(0.2502, 3),
       expect.closeTo(0.75015, 5),
+      expect.closeTo(1.5, 5),
       expect.closeTo(3, 5),
     ])
+    expect(countWallSpans(built.walls, [-1, -3], [-0.75, -2.99])).toBe(1)
     expect(containedDuplicateSpan([...built.walls])).toEqual({ count: 0, length: 0 })
   })
 
@@ -2513,14 +2543,14 @@ describe('buildVectorNodes', () => {
       (opening) => opening.metadata?.sourceOpeningId === 'contradictory-window',
     )!
     const host = built.walls.find((wall) => wall.id === hostOpening.wallId)!
-    expect(host.thickness).toBe(0.25)
+    expect(host.thickness).toBe(DEFAULT_WALL_THICKNESS)
     expect(segLenOf(host)).toBeCloseTo(4)
     expect(hostOpening.width).toBeCloseTo(0.5001, 4)
     expect(hostOpening.metadata).toMatchObject({
       sourceOpeningId: 'contradictory-window',
       sourceOpeningSource: 'pair',
     })
-    expect(built.walls.filter((wall) => wall.thickness === 0.12)).toHaveLength(1)
+    expect(built.walls.some((wall) => segLenOf(wall) > 0.29 && segLenOf(wall) < 0.31)).toBe(true)
     expect(built.diagnostics.unhostedOpeningIds).toEqual([])
   })
 
@@ -2569,8 +2599,9 @@ describe('buildVectorNodes', () => {
     }
     const built = buildVectorNodes(valid)!
     expect(built.openings).toHaveLength(1)
-    expect(built.walls.filter((wall) => wall.thickness === 0.4)).toHaveLength(1)
-    expect(built.walls.filter((wall) => wall.thickness === 0.25)).toHaveLength(2)
+    expect(built.walls).toHaveLength(5)
+    expect(built.walls.every((wall) => wall.thickness === DEFAULT_WALL_THICKNESS)).toBe(true)
+    expect(countWallSpans(built.walls, [0, -2.975], [0.3, -2.965])).toBe(1)
     expect(built.diagnostics.unhostedOpeningIds).toEqual([])
 
     const rejected: AptVectorDoc = {
@@ -2641,11 +2672,10 @@ describe('buildVectorNodes', () => {
       ],
     }
     const built = buildVectorNodes(source)!
-    const thick = built.walls.filter((wall) => wall.thickness === 0.25)
-    expect(thick).toHaveLength(3)
-    expect(thick.some((wall) => segLenOf(wall) > 2.24 && segLenOf(wall) < 2.26)).toBe(true)
-    expect(thick.some((wall) => segLenOf(wall) > 3 && segLenOf(wall) < 3.01)).toBe(true)
-    expect(built.walls.some((wall) => wall.thickness === 0.2 && segLenOf(wall) > 1.99)).toBe(true)
+    expect(built.walls.every((wall) => wall.thickness === DEFAULT_WALL_THICKNESS)).toBe(true)
+    expect(built.walls.some((wall) => segLenOf(wall) > 2.24 && segLenOf(wall) < 2.26)).toBe(true)
+    expect(built.walls.some((wall) => segLenOf(wall) > 3 && segLenOf(wall) < 3.01)).toBe(true)
+    expect(countWallSpans(built.walls, [2, -4], [4, -4])).toBe(1)
   })
 
   test('keeps opening and retained contacts invariant under DSU source order', () => {
@@ -2759,12 +2789,14 @@ describe('buildVectorNodes', () => {
       ),
     }
 
-    expect(
-      buildVectorNodes(atTolerance)!.walls.filter((wall) => wall.thickness === 0.25),
-    ).toHaveLength(2)
-    expect(
-      buildVectorNodes(beyondTolerance)!.walls.filter((wall) => wall.thickness === 0.25),
-    ).toHaveLength(1)
+    const within = buildVectorNodes(atTolerance)!
+    const beyond = buildVectorNodes(beyondTolerance)!
+    expect(within.walls).toHaveLength(4)
+    expect(countWallSpans(within.walls, [-1, -3], [-0.75, -2.99])).toBe(1)
+    expect(countWallSpans(within.walls, [-4, -3], [0, -3])).toBe(0)
+    expect(beyond.walls).toHaveLength(3)
+    expect(countWallSpans(beyond.walls, [-1, -3], [-0.75, -2.99])).toBe(1)
+    expect(countWallSpans(beyond.walls, [-4, -3], [0, -3])).toBe(1)
   })
 
   test('keeps an exact window host between touching thick caps without extending into them', () => {
@@ -2881,9 +2913,9 @@ describe('buildVectorNodes', () => {
     }
 
     const built = buildVectorNodes(competing)!
-    expect(built.walls.filter((wall) => wall.thickness === 0.25)).toHaveLength(2)
-    expect(built.walls.filter((wall) => wall.thickness === 0.12)).toHaveLength(1)
-    expect(built.walls.filter((wall) => wall.thickness === 0.3)).toHaveLength(1)
+    expect(built.walls).toHaveLength(5)
+    expect(built.walls.every((wall) => wall.thickness === DEFAULT_WALL_THICKNESS)).toBe(true)
+    expect(countWallSpans(built.walls, [-1, -3], [-0.75, -3])).toBe(2)
     // These are intentionally nonmergeable contributors; preserving both
     // identities leaves the two canonical bridge spans visible.
     expect(containedDuplicateSpan([...built.walls])).toEqual({ count: 2, length: 0.5 })
@@ -2943,8 +2975,12 @@ describe('buildVectorNodes', () => {
     }
 
     const built = buildVectorNodes(controls)!
-    expect(built.walls.filter((wall) => wall.thickness === 0.2)).toHaveLength(6)
-    expect(built.walls.filter((wall) => wall.thickness === 0.1)).toHaveLength(2)
+    expect(built.walls).toHaveLength(8)
+    expect(built.walls.every((wall) => wall.thickness === DEFAULT_WALL_THICKNESS)).toBe(true)
+    expect(countWallSpans(built.walls, [-4, -3.5], [-1, -3.5])).toBe(1)
+    expect(countWallSpans(built.walls, [-4, -3.2], [-2, -3.2])).toBe(1)
+    expect(countWallSpans(built.walls, [-1, -3.5], [0, -3.5])).toBe(1)
+    expect(countWallSpans(built.walls, [0.25, -3.2], [1.25, -3.2])).toBe(1)
     expect(containedDuplicateSpan([...built.walls])).toEqual({ count: 0, length: 0 })
   })
 
@@ -2964,7 +3000,7 @@ describe('buildVectorNodes', () => {
     }
 
     const built = buildVectorNodes(continuation)!
-    const chain = built.walls.filter((wall) => wall.thickness === 0.25)
+    const chain = built.walls.filter((wall) => Math.abs(segLenOf(wall) - 4) < 1e-6)
     expect(chain).toHaveLength(1)
     expect(segLenOf(chain[0]!)).toBeCloseTo(4)
     expect(containedDuplicateSpan([...built.walls])).toEqual({ count: 0, length: 0 })
@@ -2992,10 +3028,11 @@ describe('buildVectorNodes', () => {
     }
 
     const built = buildVectorNodes(nonFacing)!
-    const outer = built.walls.filter((wall) => wall.thickness === 0.25)
-    expect(outer).toHaveLength(1)
-    expect(segLenOf(outer[0]!)).toBeCloseTo(4, 5)
-    expect(built.walls.filter((wall) => wall.thickness === 0.12)).toHaveLength(1)
+    const overlappingRuns = built.walls.filter((wall) => Math.abs(segLenOf(wall) - 4) < 0.001)
+    expect(overlappingRuns).toHaveLength(2)
+    expect(countWallSpans(overlappingRuns, [-4, -3], [0, -3], 1e-3)).toBe(1)
+    expect(countWallSpans(overlappingRuns, [-4, -3], [0, -2.94], 1e-3)).toBe(1)
+    expect(built.walls).toHaveLength(3)
   })
 
   test('preserves a retained bridge contact while connecting an unrelated tee', () => {
@@ -3033,8 +3070,10 @@ describe('buildVectorNodes', () => {
     }
 
     const built = buildVectorNodes(relationWithTee)!
-    const thin = built.walls.find((wall) => wall.thickness === 0.12)!
-    const tee = built.walls.find((wall) => wall.thickness === 0.1)!
+    const thin = built.walls.find((wall) => segLenOf(wall) > 0.24 && segLenOf(wall) < 0.26)!
+    const tee = built.walls.find(
+      (wall) => wall.start[0] === wall.end[0] && Math.abs(segLenOf(wall) - 0.5) < 1e-6,
+    )!
     expect([thin.start, thin.end]).toContainEqual([-1, -3])
     expect([tee.start, tee.end]).toContainEqual([-1, -3])
     expect(segLenOf(tee)).toBeCloseTo(0.5)
@@ -3076,19 +3115,37 @@ describe('buildVectorNodes', () => {
     }
 
     const built = buildVectorNodes(continuation)!
-    const outer = built.walls.filter((wall) => wall.thickness === 0.25)
+    const outer = built.walls.filter((wall) => {
+      const length = segLenOf(wall)
+      return Math.abs(length - 1.75035) < 1e-4 || Math.abs(length - 3) < 1e-6
+    })
     expect(outer).toHaveLength(2)
     expect(outer.map(segLenOf).sort((a, b) => a - b)).toEqual([
       expect.closeTo(1.75035, 5),
       expect.closeTo(3, 5),
     ])
-    expect(built.walls.filter((wall) => wall.thickness === 0.12)).toHaveLength(1)
+    expect(built.walls.some((wall) => segLenOf(wall) > 0.24 && segLenOf(wall) < 0.26)).toBe(true)
     expect(containedDuplicateSpan([...built.walls])).toEqual({ count: 0, length: 0 })
   })
 })
 
 function segLenOf(wall: { start: [number, number]; end: [number, number] }): number {
   return Math.hypot(wall.end[0] - wall.start[0], wall.end[1] - wall.start[1])
+}
+
+function countWallSpans(
+  walls: { start: [number, number]; end: [number, number] }[],
+  start: [number, number],
+  end: [number, number],
+  tolerance = 1e-6,
+): number {
+  const pointMatches = (actual: [number, number], expected: [number, number]) =>
+    Math.abs(actual[0] - expected[0]) <= tolerance && Math.abs(actual[1] - expected[1]) <= tolerance
+  return walls.filter(
+    (wall) =>
+      (pointMatches(wall.start, start) && pointMatches(wall.end, end)) ||
+      (pointMatches(wall.start, end) && pointMatches(wall.end, start)),
+  ).length
 }
 
 function containedDuplicateSpan(

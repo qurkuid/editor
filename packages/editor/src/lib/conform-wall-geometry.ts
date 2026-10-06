@@ -6,6 +6,7 @@ type Corner = { point: Vector3; weights: number[] }
 export function conformWallGeometry(source: BufferGeometry): BufferGeometry {
   const position = source.getAttribute('position')
   if (!position || Object.keys(source.morphAttributes).length > 0) return source
+  const normal = source.getAttribute('normal')
 
   const unique: Vector3[] = []
   let changed = false
@@ -61,7 +62,35 @@ export function conformWallGeometry(source: BufferGeometry): BufferGeometry {
       vertexCount,
     )
     for (let offset = start; offset + 2 < end; offset += 3) {
-      const indices = [0, 1, 2].map((i) => source.index?.getX(offset + i) ?? offset + i)
+      let indices = [0, 1, 2].map((i) => source.index?.getX(offset + i) ?? offset + i)
+      const sourceTriangle = indices.map((index) => points[index]!)
+      const sourceCross = sourceTriangle[1]!
+        .clone()
+        .sub(sourceTriangle[0]!)
+        .cross(sourceTriangle[2]!.clone().sub(sourceTriangle[0]!))
+      if (
+        normal &&
+        normal.itemSize >= 3 &&
+        indices.every((index) => index >= 0 && index < normal.count) &&
+        sourceCross.lengthSq() > EPSILON ** 2
+      ) {
+        const crossDirection = sourceCross.normalize()
+        const normals = indices.map((index) => new Vector3().fromBufferAttribute(normal, index))
+        const normalsAreValid = normals.every(
+          (vector) =>
+            Number.isFinite(vector.x) &&
+            Number.isFinite(vector.y) &&
+            Number.isFinite(vector.z) &&
+            vector.lengthSq() > EPSILON ** 2,
+        )
+        if (
+          normalsAreValid &&
+          normals.every((vector) => crossDirection.dot(vector.normalize()) < -EPSILON)
+        ) {
+          indices = [indices[0]!, indices[2]!, indices[1]!]
+          changed = true
+        }
+      }
       const triangle = indices.map((index) => points[index]!)
       const ab = triangle[1]!.clone().sub(triangle[0]!)
       const ac = triangle[2]!.clone().sub(triangle[0]!)

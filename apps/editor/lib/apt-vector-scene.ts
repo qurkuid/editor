@@ -1,6 +1,7 @@
 import {
   type CeilingNode as CeilingNodeType,
   createDefaultWallFaceBands,
+  DEFAULT_WALL_THICKNESS,
   DoorNode,
   detectSpacesForLevel,
   type GuideNode as GuideNodeType,
@@ -492,6 +493,9 @@ export function buildVectorNodes(
     return null
 
   const [imageW, imageH] = doc.imageSize
+  const sourceGuideScale = (imageW * doc.mmPerPx) / 10000
+  const frameScale = frame.scale === undefined ? 1 : frame.scale / sourceGuideScale
+  const generatedWallThickness = DEFAULT_WALL_THICKNESS / frameScale
   const cx = (imageW * doc.mmPerPx) / 2
   const cy = (imageH * doc.mmPerPx) / 2
   const toLevel = ([x, y]: Vec2): Vec2 => [(x - cx) / 1000, (y - cy) / 1000]
@@ -1106,8 +1110,12 @@ export function buildVectorNodes(
     const node = WallNode.parse({
       start: seg.start,
       end: seg.end,
-      thickness: seg.th,
-      faceBands: createDefaultWallFaceBands(seg.th),
+      thickness: generatedWallThickness,
+      faceBands: createDefaultWallFaceBands(generatedWallThickness),
+      slots: {
+        interior: 'library:concrete-plate',
+        exterior: 'library:concrete-plate',
+      },
     })
     walls.push(node)
     hostByMerged.push({
@@ -1264,7 +1272,7 @@ export function buildVectorNodes(
     zones: [...reconciledZones, ...zonePlan.create],
     slabs: [],
     ceilings: [],
-    guideScale: (imageW * doc.mmPerPx) / 10000,
+    guideScale: sourceGuideScale,
     diagnostics: { unhostedOpeningIds, dedupedOpeningIds, droppedWallIds },
   }
   const framed = applyAptPlanImportFrame(scene, frame)
@@ -1301,13 +1309,12 @@ function applyAptPlanImportFrame(
   const oddReflection = Boolean(frame.flipX) !== Boolean(frame.flipY)
 
   const walls = scene.walls.map((wall) => {
-    const thickness = (wall.thickness ?? 0.1) * scale
     return WallNode.parse({
       ...wall,
       start: transformPoint(wall.start),
       end: transformPoint(wall.end),
-      thickness,
-      faceBands: createDefaultWallFaceBands(thickness),
+      thickness: DEFAULT_WALL_THICKNESS,
+      faceBands: createDefaultWallFaceBands(DEFAULT_WALL_THICKNESS),
     })
   })
   const openings = scene.openings.map((opening) => {

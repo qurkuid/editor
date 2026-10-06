@@ -113,6 +113,15 @@ describe('Phase 2 ontology manual contract', () => {
   })
 
   test('documents apartment wall extraction and junction continuity', () => {
+    expect(MODELING_AGENT_MANUAL).toContain('every generated interior and exterior wall')
+    expect(MODELING_AGENT_MANUAL).toContain('one solid 0.1 m (100 mm) concrete layer')
+    expect(MODELING_AGENT_MANUAL).toContain('`library:concrete-plate` base finishes on both sides')
+    expect(MODELING_AGENT_MANUAL).toContain('independent of guide scale')
+    expect(MODELING_AGENT_MANUAL).toContain('Source thickness measurements remain immutable')
+    expect(MODELING_AGENT_MANUAL).toContain('preserve existing manual/custom walls')
+    expect(MODELING_AGENT_MANUAL).toContain('no slab physically supports it')
+    expect(MODELING_AGENT_MANUAL).toContain('stores no host or offset')
+    expect(MODELING_AGENT_MANUAL).toContain('Real slab support always wins')
     expect(MODELING_AGENT_MANUAL).toContain('splits a straight host at every interior T/X contact')
     expect(MODELING_AGENT_MANUAL).toContain('overlapping projected thickness bands')
     expect(MODELING_AGENT_MANUAL).toContain('clusters touching both endpoints')

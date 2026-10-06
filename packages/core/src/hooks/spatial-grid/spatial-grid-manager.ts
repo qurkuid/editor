@@ -1081,7 +1081,7 @@ export class SpatialGridManager {
     }
 
     const support = computeWallSlabSupport(
-      { start, end, curveOffset, thickness },
+      { start, end, curveOffset, thickness, supportOffset },
       [...slabMap.values()].map((slab) => this.effectiveSlabRecord(slab)),
       this.getLevelWallNodes(levelId).map((wall) => getEffectiveNode(wall)),
       preferredSlabId,

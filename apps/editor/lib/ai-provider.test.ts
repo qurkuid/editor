@@ -62,6 +62,13 @@ describe('AI provider boundary', () => {
     expect(prompt).toContain('Preview creates no scene nodes')
     expect(prompt).toContain('full room barrier')
     expect(prompt).toContain('conflicting OCR labels')
+    expect(prompt).toContain('every generated interior and exterior wall')
+    expect(prompt).toContain('one solid 0.1 m (100 mm) concrete layer')
+    expect(prompt).toContain('`library:concrete-plate` base finishes on both sides')
+    expect(prompt).toContain('preserve existing manual/custom walls')
+    expect(prompt).toContain('no slab physically supports it')
+    expect(prompt).toContain('stores no host or offset')
+    expect(prompt).toContain('Real slab support always wins')
   })
 
   test('uses the authenticated Codex CLI when no API key is configured', () => {

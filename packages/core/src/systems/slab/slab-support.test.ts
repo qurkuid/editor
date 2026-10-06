@@ -138,3 +138,174 @@ describe('computeWallSlabSupport preferred host', () => {
     expect(support.elevation).toBeCloseTo(0.6)
   })
 })
+
+describe('computeWallSlabSupport apartment automatic base fallback', () => {
+  const levelId = 'level_auto_base'
+  const sourceCoordinates = [
+    [
+      [-1.5598013527106631, 3.754434235140441],
+      [-3.610501352710662, 3.754434235140441],
+    ],
+    [
+      [-1.1336013527106625, 3.752434235140441],
+      [-1.5598013527106631, 3.752434235140441],
+    ],
+  ] as const
+  const makeWall = (
+    start: [number, number],
+    end: [number, number],
+    overrides: Record<string, unknown> = {},
+  ) =>
+    WallNode.parse({
+      parentId: levelId,
+      start,
+      end,
+      thickness: 0.1,
+      metadata: { source: 'apt-vector' },
+      ...overrides,
+    })
+  const remoteAutoSlab = (overrides: Record<string, unknown> = {}) =>
+    SlabNode.parse({
+      parentId: levelId,
+      polygon: [
+        [10, 10],
+        [12, 10],
+        [12, 12],
+        [10, 12],
+      ],
+      elevation: 0.05,
+      autoFromWalls: true,
+      ...overrides,
+    })
+  const fallback = {
+    elevation: 0.05,
+    electedSlabId: null,
+    baseElevation: 0.05,
+    baseSegments: [{ start: 0, end: 1, elevation: 0.05 }],
+  }
+
+  it('uses the unanimous automatic floor for the two exact unsupported source walls', () => {
+    const walls = sourceCoordinates.map(([start, end]) => makeWall([...start], [...end]))
+    const slabs = [remoteAutoSlab()]
+
+    for (const wall of walls) {
+      expect(computeWallSlabSupport(wall, slabs, walls)).toEqual(fallback)
+      expect(
+        computeWallSlabSupport(
+          {
+            start: wall.start,
+            end: wall.end,
+            curveOffset: wall.curveOffset,
+            thickness: wall.thickness,
+            supportOffset: wall.supportOffset,
+          },
+          slabs,
+          walls,
+        ),
+      ).toEqual(fallback)
+    }
+  })
+
+  it('keeps real slab support authoritative and resumes the fallback after removal', () => {
+    const wall = makeWall([0, 0], [2, 0])
+    const remote = remoteAutoSlab()
+    const actual = SlabNode.parse({
+      id: 'slab_actual',
+      parentId: levelId,
+      polygon: [
+        [-1, -1],
+        [3, -1],
+        [3, 1],
+        [-1, 1],
+      ],
+      elevation: 0.05,
+    })
+    const raised = SlabNode.parse({ ...actual, id: 'slab_raised', elevation: 0.2 })
+
+    expect(computeWallSlabSupport(wall, [remote, actual], [wall])).toMatchObject({
+      elevation: 0.05,
+      electedSlabId: actual.id,
+    })
+    expect(computeWallSlabSupport(wall, [remote, raised], [wall])).toMatchObject({
+      elevation: 0.2,
+      electedSlabId: raised.id,
+    })
+    expect(computeWallSlabSupport(wall, [remote], [wall])).toEqual(fallback)
+  })
+
+  it('fails closed for ambiguous identity and authored vertical intent', () => {
+    const wall = makeWall([0, 0], [2, 0])
+    const auto = remoteAutoSlab()
+    const cases = [
+      { query: wall, slabs: [auto], walls: [] },
+      { query: wall, slabs: [auto], walls: [wall, { ...wall, id: 'wall_duplicate' }] },
+      { query: makeWall([0, 0], [2, 0], { metadata: { source: 'manual' } }), slabs: [auto] },
+      { query: makeWall([0, 0], [2, 0], { height: 2.5 }), slabs: [auto] },
+      { query: makeWall([0, 0], [2, 0], { supportSlabId: 'ground' }), slabs: [auto] },
+      { query: makeWall([0, 0], [2, 0], { supportOffset: 0.1 }), slabs: [auto] },
+    ]
+
+    for (const entry of cases) {
+      const walls = entry.walls ?? [entry.query]
+      expect(computeWallSlabSupport(entry.query, entry.slabs, walls).elevation).toBe(0)
+    }
+    expect(computeWallSlabSupport({ ...wall, supportOffset: 0.1 }, [auto], [wall]).elevation).toBe(
+      0,
+    )
+  })
+
+  it('fails closed for missing, conflicting, recessed, holed, or capped floor evidence', () => {
+    const wall = makeWall([0, 0], [2, 0])
+    const auto = remoteAutoSlab()
+    const invalidSlabSets = [
+      [],
+      [remoteAutoSlab({ parentId: 'level_other' })],
+      [
+        auto,
+        remoteAutoSlab({
+          id: 'slab_high',
+          elevation: 0.2,
+          polygon: [
+            [20, 20],
+            [22, 20],
+            [22, 22],
+            [20, 22],
+          ],
+        }),
+      ],
+      [
+        auto,
+        remoteAutoSlab({
+          id: 'slab_authored_step',
+          autoFromWalls: false,
+          elevation: 0.2,
+          polygon: [
+            [20, 20],
+            [22, 20],
+            [22, 22],
+            [20, 22],
+          ],
+        }),
+      ],
+      [remoteAutoSlab({ recessed: true })],
+      [
+        remoteAutoSlab({
+          holes: [
+            [
+              [10.2, 10.2],
+              [10.8, 10.2],
+              [10.5, 10.8],
+            ],
+          ],
+        }),
+      ],
+    ]
+
+    for (const slabs of invalidSlabSets) {
+      expect(computeWallSlabSupport(wall, slabs, [wall]).elevation).toBe(0)
+    }
+    expect(computeWallSlabSupport(wall, [auto], [wall], null, -0.01).elevation).toBe(0)
+    expect(computeWallSlabSupport(wall, [auto], [wall], null, 0.04)).toEqual(fallback)
+    expect(computeWallSlabSupport(wall, [auto], [wall], null, 0.05)).toEqual(fallback)
+  })
+})

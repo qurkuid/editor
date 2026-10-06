@@ -281,6 +281,42 @@ test('cancels only a reverse pair retraced by one source triangle fan', () => {
   expect(source.toJSON()).toEqual(original)
 })
 
+test('repairs a reversed CSG face only when all source normals agree', () => {
+  const makeFace = (normals?: number[]) => {
+    const source = new THREE.BufferGeometry()
+    source.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0, 0, 1, 0], 3),
+    )
+    source.setAttribute('uv1', new THREE.Float32BufferAttribute([10, 11, 20, 21, 30, 31], 2))
+    source.setAttribute(
+      'color',
+      new THREE.Float32BufferAttribute([100, 101, 102, 200, 201, 202, 300, 301, 302], 3),
+    )
+    if (normals) source.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3))
+    return source
+  }
+
+  const reversed = makeFace([0, 0, -1, 0, 0, -1, 0, 0, -1])
+  const original = reversed.toJSON()
+  const corrected = conformWallGeometry(reversed)
+  const position = corrected.getAttribute('position')
+  const a = new THREE.Vector3().fromBufferAttribute(position, 0)
+  const b = new THREE.Vector3().fromBufferAttribute(position, 1)
+  const c = new THREE.Vector3().fromBufferAttribute(position, 2)
+  expect(b.clone().sub(a).cross(c.clone().sub(a)).z).toBeLessThan(0)
+  expect(Array.from(corrected.getAttribute('uv1').array)).toEqual([10, 11, 30, 31, 20, 21])
+  expect(Array.from(corrected.getAttribute('color').array)).toEqual([
+    100, 101, 102, 300, 301, 302, 200, 201, 202,
+  ])
+  expect(reversed.toJSON()).toEqual(original)
+
+  for (const normals of [undefined, [0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, -1, 0, 0, 1, 0, 0, -1]]) {
+    const source = makeFace(normals)
+    expect(conformWallGeometry(source)).toBe(source)
+  }
+})
+
 test('serialized GLB wall is closed without native extras under nested transforms', async () => {
   const { wall, root, mesh } = fixture(true)
   root.position.set(4, 2, -7)
