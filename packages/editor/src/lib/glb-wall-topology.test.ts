@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { generateExtrudedWall } from '../../../viewer/src/systems/wall/wall-system'
+import { conformWallGeometry } from './conform-wall-geometry'
 import { prepareSceneForExport } from './glb-export'
 
 afterEach(() => sceneRegistry.clear())
@@ -53,6 +54,44 @@ function inspect(geometries: THREE.BufferGeometry[]) {
     badEdges: [...edges.values()].filter((uses) => uses.length !== 2 || uses[0]! + uses[1]! !== 0)
       .length,
   }
+}
+
+function signedArea(geometry: THREE.BufferGeometry, start = 0, count?: number) {
+  const position = geometry.getAttribute('position')
+  const end = Math.min(start + (count ?? position.count - start), position.count)
+  let area = 0
+  for (let offset = start; offset + 2 < end; offset += 3) {
+    const a = new THREE.Vector3().fromBufferAttribute(position, offset)
+    const b = new THREE.Vector3().fromBufferAttribute(position, offset + 1)
+    const c = new THREE.Vector3().fromBufferAttribute(position, offset + 2)
+    area += (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+  }
+  return area / 2
+}
+
+function hasReversePair(geometry: THREE.BufferGeometry, start: number, count: number) {
+  const position = geometry.getAttribute('position')
+  const triangles: THREE.Vector3[][] = []
+  for (let offset = start; offset + 2 < start + count; offset += 3) {
+    triangles.push(
+      [0, 1, 2].map((corner) => new THREE.Vector3().fromBufferAttribute(position, offset + corner)),
+    )
+  }
+  const same = (a: THREE.Vector3, b: THREE.Vector3) => a.equals(b)
+  for (let first = 0; first < triangles.length; first++) {
+    for (let second = first + 1; second < triangles.length; second++) {
+      for (let shift = 0; shift < 3; shift++) {
+        if (
+          same(triangles[first]![0]!, triangles[second]![shift]!) &&
+          same(triangles[first]![1]!, triangles[second]![(shift + 2) % 3]!) &&
+          same(triangles[first]![2]!, triangles[second]![(shift + 1) % 3]!)
+        ) {
+          return true
+        }
+      }
+    }
+  }
+  return false
 }
 
 function fixture(opening: boolean, stepped = false) {
@@ -197,6 +236,49 @@ test('removes collapsed CSG triangles without changing the wall shell', () => {
   expect(after.badEdges).toBe(0)
   expect(after.triangles).toBe(12)
   expect(after.volume).toBeCloseTo(before.volume, 6)
+})
+
+test('cancels only a reverse pair retraced by one source triangle fan', () => {
+  const source = new THREE.BufferGeometry()
+  source.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(
+      [
+        0, 0, 0, 1, 0, 0, 0, 0.000003, 0, 0.999998, 0.000001, 0, 10, 0, 0, 10, 1, 0, 20, 0, 0, 21,
+        0, 0, 20, 1, 0, 20, 1, 0, 21, 0, 0, 20, 0, 0,
+      ],
+      3,
+    ),
+  )
+  source.setAttribute(
+    'uv1',
+    new THREE.Float32BufferAttribute(
+      Array.from({ length: 12 }, (_, index) => [index, index + 0.5]).flat(),
+      2,
+    ),
+  )
+  source.addGroup(0, 3, 7)
+  source.addGroup(3, 3, 9)
+  source.addGroup(6, 3, 11)
+  source.addGroup(9, 3, 13)
+  const original = source.toJSON()
+  const beforeArea = signedArea(source)
+  const result = conformWallGeometry(source)
+  const firstGroup = result.groups.find((group) => group.materialIndex === 7)!
+
+  expect(firstGroup.count).toBe(9)
+  expect(hasReversePair(result, firstGroup.start, firstGroup.count)).toBe(false)
+  expect(signedArea(result)).toBeCloseTo(beforeArea, 5)
+  expect(result.groups).toEqual([
+    { start: 0, count: 9, materialIndex: 7 },
+    { start: 9, count: 12, materialIndex: 9 },
+    { start: 21, count: 3, materialIndex: 11 },
+    { start: 24, count: 3, materialIndex: 13 },
+  ])
+  const resultUv = result.getAttribute('uv1')
+  expect(resultUv.getX(0)).toBeCloseTo(1, 6)
+  expect(resultUv.getY(0)).toBeCloseTo(1.5, 6)
+  expect(source.toJSON()).toEqual(original)
 })
 
 test('serialized GLB wall is closed without native extras under nested transforms', async () => {

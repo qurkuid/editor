@@ -110,13 +110,17 @@ export function conformWallGeometry(source: BufferGeometry): BufferGeometry {
         point: triangle.reduce((sum, point) => sum.add(point), new Vector3()).multiplyScalar(1 / 3),
         weights: [1 / 3, 1 / 3, 1 / 3],
       }
+      const fan: Corner[][] = []
       for (let i = 0; i < boundary.length; i++) {
-        writeTriangle(
-          [center, boundary[i]!, boundary[(i + 1) % boundary.length]!],
-          indices,
-          material,
+        const start = boundary[i]!
+        const end = boundary[(i + 1) % boundary.length]!
+        const reverse = fan.findIndex(
+          (triangle) => triangle[1]!.point === end.point && triangle[2]!.point === start.point,
         )
+        if (reverse >= 0) fan.splice(reverse, 1)
+        else fan.push([center, start, end])
       }
+      for (const triangle of fan) writeTriangle(triangle, indices, material)
     }
   }
   if (!changed) return source

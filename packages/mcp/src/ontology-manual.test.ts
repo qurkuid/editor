@@ -207,6 +207,12 @@ describe('Phase 2 ontology manual contract', () => {
       'own-level `slabKey` reconciliation applies only to manual or non-auto Slab ids and elevations',
     )
     expect(MODELING_AGENT_MANUAL).toContain(
+      'When a boundary wall elects an existing support Slab with zero `supportOffset`, an auto-room Slab uses that walking surface directly',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
+      'slab-less construction datum, explicit offsets, and terrain retain the default thickness lift, and mixed vertical candidates fail closed',
+    )
+    expect(MODELING_AGENT_MANUAL).toContain(
       'Above-level covering undersides remain unchanged for every non-recessed Slab, including auto Slabs',
     )
     expect(MODELING_AGENT_MANUAL).toContain(

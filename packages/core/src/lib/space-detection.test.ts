@@ -984,8 +984,10 @@ describe('auto slab trigger ownership', () => {
           children: [...level.children, ...supports.map((slab) => slab.id)],
         },
       })
+      // The elected manual slabs already expose the finished walking surface;
+      // auto-room sync must not add the default 5 cm a second time.
       expect((sceneStore.getState().nodes[fixture.autoSlab.id] as SlabNode).elevation).toBeCloseTo(
-        0.45,
+        0.4,
       )
 
       const raisedSupports = supports.map((slab) => ({ ...slab, elevation: 0.6 }))
@@ -994,7 +996,7 @@ describe('auto slab trigger ownership', () => {
         ...Object.fromEntries(raisedSupports.map((slab) => [slab.id, slab])),
       })
       expect((sceneStore.getState().nodes[fixture.autoSlab.id] as SlabNode).elevation).toBeCloseTo(
-        0.65,
+        0.6,
       )
 
       const withoutSupports = { ...sceneStore.getState().nodes }

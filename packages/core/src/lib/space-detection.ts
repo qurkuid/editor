@@ -391,20 +391,34 @@ function autoRoomVerticalPlacements(
     })
     if (boundaryWalls.length !== space.wallIds.length) continue
 
-    const wallBases = boundaryWalls.map((wall) => {
+    const wallVerticals = boundaryWalls.map((wall) => {
       const offset = wall.supportOffset ?? 0
       if (wall.supportSlabId === GROUND_SUPPORT_ID) {
-        return (
+        const base =
           (terrainSupportLift(nodes, space.levelId, wall.start[0], wall.start[1]) ?? 0) + offset
-        )
+        return { base, slabElevation: base + DEFAULT_AUTO_SLAB_ELEVATION }
       }
-      return (
-        computeWallSlabSupport(wall, supportSlabs, walls, wall.supportSlabId ?? null).elevation +
-        offset
-      )
+      const support = computeWallSlabSupport(wall, supportSlabs, walls, wall.supportSlabId ?? null)
+      const base = support.elevation + offset
+      return {
+        base,
+        // A selected existing slab already represents a finished walking
+        // surface. Construction datum (no elected slab), explicit offsets,
+        // and terrain keep the historical default slab thickness lift.
+        slabElevation:
+          support.electedSlabId !== null && offset === 0
+            ? base
+            : base + DEFAULT_AUTO_SLAB_ELEVATION,
+      }
     })
+    const wallBases = wallVerticals.map(({ base }) => base)
     const base = consensusElevation(wallBases)
     if (base === undefined) continue
+
+    const slabElevation = consensusElevation(
+      wallVerticals.map(({ slabElevation }) => slabElevation),
+    )
+    if (slabElevation === undefined) continue
 
     const wallTops = boundaryWalls.map((wall, index) =>
       resolveWallTop(wall, storeyHeight, wallBases[index] ?? base),
@@ -413,7 +427,7 @@ function autoRoomVerticalPlacements(
     if (top === undefined) continue
 
     placements.set(polygonSignature(space.polygon.map(pointFromTuple)), {
-      slabElevation: base + DEFAULT_AUTO_SLAB_ELEVATION,
+      slabElevation,
       ceilingHeight: top - CEILING_CLAMP_MARGIN,
     })
   }

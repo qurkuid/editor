@@ -1,6 +1,8 @@
 import {
   clearSceneHistory,
   emitter,
+  pauseSpaceDetection,
+  resumeSpaceDetection,
   saveStoredAsset,
   useScene,
   validateBuildJson,
@@ -67,6 +69,39 @@ export function resetEditorAfterSceneImport(): void {
   useViewer.getState().resetSelection()
   useEditor.getState().setMode('select')
   useEditor.getState().setPhase('site')
+}
+
+type BuildImportInput = {
+  nodes: Record<string, unknown>
+  rootNodeIds: string[]
+  collections?: Record<string, unknown>
+  materials?: Record<string, unknown>
+  installedPlugins?: string[]
+}
+
+export function applyBuildImport(parsed: BuildImportInput): void {
+  const currentScene = useScene.getState()
+  const setScene = currentScene.setScene
+  pauseSpaceDetection()
+  try {
+    setScene(
+      parsed.nodes as Parameters<typeof setScene>[0],
+      parsed.rootNodeIds as Parameters<typeof setScene>[1],
+      {
+        collections: parsed.collections as NonNullable<
+          Parameters<typeof setScene>[2]
+        >['collections'],
+        materials: parsed.materials as NonNullable<
+          Parameters<typeof setScene>[2]
+        >['materials'],
+        installedPlugins: parsed.installedPlugins ?? currentScene.installedPlugins,
+        hasExplicitPluginInstallState:
+          parsed.installedPlugins !== undefined || currentScene.hasExplicitPluginInstallState,
+      },
+    )
+  } finally {
+    resumeSpaceDetection()
+  }
 }
 
 const isSceneNode = (value: unknown): value is SceneNode => {
@@ -209,7 +244,6 @@ export function SettingsPanel({
   const collections = useScene((state) => state.collections)
   const materials = useScene((state) => state.materials)
   const installedPlugins = useScene((state) => state.installedPlugins)
-  const setScene = useScene((state) => state.setScene)
   const clearScene = useScene((state) => state.clearScene)
   const resetSelection = useViewer((state) => state.resetSelection)
   const exportScene = useViewer((state) => state.exportScene)
@@ -301,29 +335,8 @@ export function SettingsPanel({
     e.target.value = ''
   }
 
-  const handleConfirmImport = (parsed: {
-    nodes: Record<string, unknown>
-    rootNodeIds: string[]
-    collections?: Record<string, unknown>
-    materials?: Record<string, unknown>
-    installedPlugins?: string[]
-  }) => {
-    const currentScene = useScene.getState()
-    setScene(
-      parsed.nodes as Parameters<typeof setScene>[0],
-      parsed.rootNodeIds as Parameters<typeof setScene>[1],
-      {
-        collections: parsed.collections as NonNullable<
-          Parameters<typeof setScene>[2]
-        >['collections'],
-        materials: parsed.materials as NonNullable<
-          Parameters<typeof setScene>[2]
-        >['materials'],
-        installedPlugins: parsed.installedPlugins ?? currentScene.installedPlugins,
-        hasExplicitPluginInstallState:
-          parsed.installedPlugins !== undefined || currentScene.hasExplicitPluginInstallState,
-      },
-    )
+  const handleConfirmImport = (parsed: BuildImportInput) => {
+    applyBuildImport(parsed)
     // An import is a scene load: it becomes the undo floor. Without this,
     // undo could step back into the pre-import scene state.
     resetEditorAfterSceneImport()
